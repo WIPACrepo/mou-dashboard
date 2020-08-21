@@ -1,6 +1,5 @@
 """Conditional in-cell drop-down menu with IceCube WBS MoU info."""
 
-import logging
 from collections import OrderedDict
 from typing import Dict, List, Union
 
@@ -17,12 +16,12 @@ from ..config import app
 # Constants
 
 # read data from excel file
-DF = pd.read_excel("WBS.xlsx")
+DF = pd.read_excel("WBS.xlsx").fillna("")
 
 # Institutions and Labor Categories filter dropdown menus
-INSTITUTIONS = DF["Institution"].unique().tolist()
+INSTITUTIONS = [i for i in DF["Institution"].unique().tolist() if i]
 print(f"INSTITUTIONS: {INSTITUTIONS}")
-LABOR = DF["Labor Cat."].unique().tolist()
+LABOR = [b for b in DF["Labor Cat."].unique().tolist() if b]
 print(f"LABOR: {LABOR}")
 
 # # In-cell WBS L2/L3 dropdown menu
@@ -93,16 +92,16 @@ def layout() -> html.Div:
             # Institution filter dropdown menu
             dcc.Dropdown(
                 id="tab-1-filter-dropdown-inst",
-                options=[{"label": st, "value": st} for st in INSTITUTIONS if st],
-                value=INSTITUTIONS[0],
+                options=[{"label": st, "value": st} for st in INSTITUTIONS],
+                value="",
                 # multi=True
             ),
             # Labor Category filter dropdown menu
             html.Div(children="""Select Labor Category"""),
             dcc.Dropdown(
                 id="tab-1-filter-dropdown-labor",
-                options=[{"label": st, "value": st} for st in LABOR if st],
-                value=LABOR[0],
+                options=[{"label": st, "value": st} for st in LABOR],
+                value="",
                 # multi=True
             ),
             # Button to add new rows
