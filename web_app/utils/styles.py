@@ -7,11 +7,14 @@ CENTERED_100 = {
     "display": "flex",
     "align-items": "center",
     "justify-content": "center",
+    "margin-right": "0px",
+    "margin-left": "0px",
 }
+
 
 WIDTH_45 = {"width": "45%"}
 
-LEFT_45 = {"width": "45%", "float": "left"}
+WIDTH_22_5 = {"width": "22.5%"}
 
 WIDTH_30 = {
     "width": "30%",
@@ -25,8 +28,6 @@ CENTERED_30 = {
 }
 
 CONTENT_STYLE = {
-    "border-left": "1px #d6d6d6 solid",
-    "border-right": "1px #d6d6d6 solid",
     "padding-top": "2%",
     "padding-left": "2%",
     "padding-right": "2%",

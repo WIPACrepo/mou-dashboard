@@ -10,10 +10,20 @@ from .tabs import i3_mno
 from .utils.styles import CONTENT_STYLE, TAB_SELECTED_STYLE, TAB_STYLE, TABS_STYLE
 
 app.layout = html.Div(
-    style={"padding-left": "5%", "padding-right": "5%", "backgroundColor": "#FFFFDA"},
+    style={"padding-left": "5%", "padding-right": "5%", "backgroundColor": "#D3D7CFFF"},
     children=[
         html.Label(
-            style={"fontSize": 60, "font-family": "serif", "font-weight": "999"},
+            style={
+                "fontSize": 55,
+                "font-family": [
+                    "Palatino Linotype",
+                    "Book Antiqua",
+                    "Palatino",
+                    "serif",
+                ],
+                "font-weight": "550",
+                "font-style": "oblique",
+            },
             children="MoU Dashboard",
         ),
         html.Div(
@@ -30,7 +40,16 @@ app.layout = html.Div(
                             style=TAB_STYLE,
                             selected_style=TAB_SELECTED_STYLE,
                         ),
+                        dcc.Tab(
+                            label="Upgrade M&O",
+                            value="tab2",
+                            style=TAB_STYLE,
+                            selected_style=TAB_SELECTED_STYLE,
+                            disabled=True,
+                            disabled_style=TAB_STYLE,
+                        ),
                     ],
+                    colors={"primary": "green", "background": "#F3F3F3FF",},
                 ),
                 html.Div(id="tab-content", style=CONTENT_STYLE),
             ],

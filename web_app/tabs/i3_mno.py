@@ -11,6 +11,17 @@ import pandas as pd  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
 
 from ..config import app
+from ..utils.styles import (
+    CENTERED_30,
+    CENTERED_100,
+    HIDDEN,
+    SHORT_HR,
+    STAT_LABEL,
+    STAT_NUMBER,
+    WIDTH_22_5,
+    WIDTH_30,
+    WIDTH_45,
+)
 
 # --------------------------------------------------------------------------------------
 # Constants
@@ -77,33 +88,85 @@ def layout() -> html.Div:
     """Construct the HTML."""
     return html.Div(
         children=[
-            html.H1(children="IceCube MoU (v4.0)"),
-            html.H2("Notes:"),
-            html.H2("Read current staffing matrix excel file"),
-            html.H2("Filter dropdown menus for institutions and labor categories"),
-            html.H2("Dropdown menus for WBS L2 & L3 to update existent entries"),
-            html.H2("Add row button"),
-            html.Div(children="""Name of Institutional Leader"""),
-            dcc.Input(id="tab-1-input-name", value="Name", type="text"),
-            html.Div(children="""Email of Institutional Leader"""),
-            dcc.Input(id="tab-1-input-email", value="Email", type="text"),
-            html.Div(id="tab-1-output"),
-            html.Div(children="""Select Institution"""),
-            # Institution filter dropdown menu
-            dcc.Dropdown(
-                id="tab-1-filter-dropdown-inst",
-                options=[{"label": st, "value": st} for st in INSTITUTIONS],
-                value="",
-                # multi=True
+            html.Div(
+                children=[
+                    html.H4("Institution Leader"),
+                    html.Div(
+                        className="row",
+                        style={"margin-left": "5%"},
+                        children=[
+                            dcc.Input(
+                                id="tab-1-input-name",
+                                value="",
+                                type="text",
+                                placeholder="name",
+                                style={"width": "24%"},
+                            ),
+                            dcc.Input(
+                                id="tab-1-input-email",
+                                value="",
+                                type="text",
+                                placeholder="email",
+                                style={"width": "23%"},
+                            ),
+                            html.I(
+                                id="tab-1-name-email-icon",
+                                n_clicks=0,
+                                style={"margin-left": "1%", "align-text": "bottom"},
+                            ),
+                        ],
+                    ),
+                ],
             ),
-            # Labor Category filter dropdown menu
-            html.Div(children="""Select Labor Category"""),
-            dcc.Dropdown(
-                id="tab-1-filter-dropdown-labor",
-                options=[{"label": st, "value": st} for st in LABOR],
-                value="",
-                # multi=True
+            ####
+            html.Hr(),
+            ####
+            html.Div(
+                children=[
+                    html.H4("SOW Filter"),
+                    # SOW Filter
+                    html.Div(
+                        className="row",
+                        style=CENTERED_100,
+                        children=[
+                            html.Div(
+                                style=WIDTH_45,
+                                children=[
+                                    html.Div(children="""Select Institution"""),
+                                    # Institution filter dropdown menu
+                                    dcc.Dropdown(
+                                        id="tab-1-filter-dropdown-inst",
+                                        options=[
+                                            {"label": st, "value": st}
+                                            for st in INSTITUTIONS
+                                        ],
+                                        value="",
+                                        # multi=True
+                                    ),
+                                ],
+                            ),
+                            html.Div(
+                                style=WIDTH_45,
+                                children=[
+                                    # Labor Category filter dropdown menu
+                                    html.Div(children="""Select Labor Category"""),
+                                    dcc.Dropdown(
+                                        id="tab-1-filter-dropdown-labor",
+                                        options=[
+                                            {"label": st, "value": st} for st in LABOR
+                                        ],
+                                        value="",
+                                        # multi=True
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
             ),
+            ####
+            html.Hr(style=SHORT_HR),
+            ####
             # Button to add new rows
             html.Button("Add Row", id="tab-1-editing-rows-button", n_clicks=0),
             # Staffing matrix data
@@ -294,12 +357,15 @@ def get_dropdown_conditional(
 
 
 @app.callback(  # type: ignore[misc]
-    Output("tab-1-output", "children"),
+    Output("tab-1-name-email-icon", "children"),
     [Input("tab-1-input-name", "value"), Input("tab-1-input-email", "value")],
 )
 def update_input(name: str, email: str) -> str:
     """Enter name & email callback."""
-    return name + " <" + email + ">"
+    # TODO -- check auth
+    if name and email:
+        return "✔"
+    return "✖"
 
 
 @app.callback(  # type: ignore[misc]
