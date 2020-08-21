@@ -83,6 +83,8 @@ DF_PER_ROW_DROPDOWN = pd.DataFrame(
 # --------------------------------------------------------------------------------------
 # Layout
 
+ADD_BUTTON = html.Button("+ Add New Data", id="tab-1-editing-rows-button", n_clicks=0)
+
 
 def layout() -> html.Div:
     """Construct the HTML."""
@@ -90,7 +92,7 @@ def layout() -> html.Div:
         children=[
             html.Div(
                 children=[
-                    html.H4("Institution Leader"),
+                    html.H4("Institution Leader Sign-In"),
                     html.Div(
                         className="row",
                         style={"margin-left": "5%"},
@@ -112,18 +114,23 @@ def layout() -> html.Div:
                             html.I(
                                 id="tab-1-name-email-icon",
                                 n_clicks=0,
-                                style={"margin-left": "1%", "align-text": "bottom"},
+                                style={
+                                    "margin-left": "1%",
+                                    "align-text": "bottom",
+                                    "fontSize": 25,
+                                },
                             ),
                         ],
                     ),
                 ],
             ),
             ####
-            html.Hr(),
+            html.Hr(style={"margin-top": "3%", "margin-bottom": "3%"}),
             ####
             html.Div(
+                style={"margin-bottom": "2%"},
                 children=[
-                    html.H4("SOW Filter"),
+                    html.H4("Staffing Matrix Data"),
                     # SOW Filter
                     html.Div(
                         className="row",
@@ -132,7 +139,7 @@ def layout() -> html.Div:
                             html.Div(
                                 style=WIDTH_45,
                                 children=[
-                                    html.Div(children="""Select Institution"""),
+                                    html.Div(children="Filter by Institution"),
                                     # Institution filter dropdown menu
                                     dcc.Dropdown(
                                         id="tab-1-filter-dropdown-inst",
@@ -149,7 +156,7 @@ def layout() -> html.Div:
                                 style=WIDTH_45,
                                 children=[
                                     # Labor Category filter dropdown menu
-                                    html.Div(children="""Select Labor Category"""),
+                                    html.Div(children="Filter by Labor Category"),
                                     dcc.Dropdown(
                                         id="tab-1-filter-dropdown-labor",
                                         options=[
@@ -165,16 +172,21 @@ def layout() -> html.Div:
                 ],
             ),
             ####
-            html.Hr(style=SHORT_HR),
+            # html.Hr(style=SHORT_HR),
             ####
+            html.Div(
+                style=CENTERED_100,
+                children=[
+                    html.H6("click a cell to edit", style={"font-style": "oblique"}),
+                ],
+            ),
             # Button to add new rows
-            html.Button("Add Row", id="tab-1-editing-rows-button", n_clicks=0),
+            html.Div(style={"margin-bottom": "0.5%"}, children=[ADD_BUTTON]),
             # Staffing matrix data
-            html.Div(children="""Visualize Data"""),
             dt.DataTable(
                 id="tab-1-dropdown-per-row",
                 editable=True,
-                row_deletable=True,
+                row_deletable=False,
                 data=DF_PER_ROW_DROPDOWN.to_dict("records"),
                 columns=(
                     [
@@ -196,10 +208,12 @@ def layout() -> html.Div:
                     ]
                     + [{"id": c, "name": c} for c in DF.columns]
                 ),
+                style_table={"overflowX": "scroll"},
                 style_cell={
                     "textAlign": "left",
                     "fontSize": 14,
                     "font-family": "sans-serif",
+                    "padding-left": "0.65%",
                 },
                 style_data_conditional=[
                     {
@@ -227,11 +241,9 @@ def layout() -> html.Div:
                         ]
                     },
                 },
-                # column_static_dropdown=[
-                #    {'id' : 'WBS L2',   'dropdown': [{'label': i, 'value': i} for i in dmf['WBS L2'].unique()]},
-                # ]
+                page_size=20,
             ),
-            html.Div(id="tab-1-dropdown-per-row-container"),
+            html.Div(style={"margin-top": "0.5%"}, children=[ADD_BUTTON]),
         ]
     )
 
@@ -360,7 +372,7 @@ def get_dropdown_conditional(
     Output("tab-1-name-email-icon", "children"),
     [Input("tab-1-input-name", "value"), Input("tab-1-input-email", "value")],
 )
-def update_input(name: str, email: str) -> str:
+def update_name_email_icon(name: str, email: str) -> str:
     """Enter name & email callback."""
     # TODO -- check auth
     if name and email:
