@@ -14,7 +14,7 @@ app.layout = html.Div(
     children=[
         html.Label(
             style={"fontSize": 60, "font-family": "serif", "font-weight": "999"},
-            children="Mad Dash",
+            children="MoU Dashboard",
         ),
         html.Div(
             style={"backgroundColor": "white"},
@@ -25,14 +25,8 @@ app.layout = html.Div(
                     style=TABS_STYLE,
                     children=[
                         dcc.Tab(
-                            label="Histograms",
+                            label="IceCube M&O",
                             value="tab1",
-                            style=TAB_STYLE,
-                            selected_style=TAB_SELECTED_STYLE,
-                        ),
-                        dcc.Tab(
-                            label="Comparisons",
-                            value="tab2",
                             style=TAB_STYLE,
                             selected_style=TAB_SELECTED_STYLE,
                         ),

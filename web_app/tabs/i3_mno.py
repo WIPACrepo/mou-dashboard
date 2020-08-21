@@ -1,5 +1,6 @@
 """Conditional in-cell drop-down menu with IceCube WBS MoU info."""
 
+import logging
 from collections import OrderedDict
 from typing import Dict, List, Union
 
@@ -20,7 +21,9 @@ DF = pd.read_excel("WBS.xlsx")
 
 # Institutions and Labor Categories filter dropdown menus
 INSTITUTIONS = DF["Institution"].unique().tolist()
+print(f"INSTITUTIONS: {INSTITUTIONS}")
 LABOR = DF["Labor Cat."].unique().tolist()
+print(f"LABOR: {LABOR}")
 
 # # In-cell WBS L2/L3 dropdown menu
 DF_PER_ROW_DROPDOWN = pd.DataFrame(
@@ -70,100 +73,105 @@ DF_PER_ROW_DROPDOWN = pd.DataFrame(
 # --------------------------------------------------------------------------------------
 # Layout
 
-# set the layout of the dash app
-app.layout = html.Div(
-    children=[
-        html.H1(children="IceCube MoU (v4.0)"),
-        html.H2("Notes:"),
-        html.H2("Read current staffing matrix excel file"),
-        html.H2("Filter dropdown menus for institutions and labor categories"),
-        html.H2("Dropdown menus for WBS L2 & L3 to update existent entries"),
-        html.H2("Add row button"),
-        html.Div(children="""Name of Institutional Leader"""),
-        dcc.Input(id="tab-1-input-name", value="Name", type="text"),
-        html.Div(children="""Email of Institutional Leader"""),
-        dcc.Input(id="tab-1-input-email", value="Email", type="text"),
-        html.Div(id="tab-1-output"),
-        html.Div(children="""Select Institution"""),
-        # Institution filter dropdown menu
-        dcc.Dropdown(
-            id="tab-1-filter-dropdown-inst",
-            options=[{"label": st, "value": st} for st in INSTITUTIONS],
-            value=INSTITUTIONS[0],
-            # multi=True
-        ),
-        # Labor Category filter dropdown menu
-        html.Div(children="""Select Labor Category"""),
-        dcc.Dropdown(
-            id="tab-1-filter-dropdown-labor",
-            options=[{"label": st, "value": st} for st in LABOR],
-            value=LABOR[0],
-            # multi=True
-        ),
-        # Button to add new rows
-        html.Button("Add Row", id="tab-1-editing-rows-button", n_clicks=0),
-        # Staffing matrix data
-        html.Div(children="""Visualize Data"""),
-        dt.DataTable(
-            id="tab-1-dropdown-per-row",
-            editable=True,
-            row_deletable=True,
-            data=DF_PER_ROW_DROPDOWN.to_dict("records"),
-            columns=(
-                [
-                    {
-                        "id": "WBS L2",
-                        "name": "WBS L2 (new)",
-                        "presentation": "dropdown",
-                    },
-                    {
-                        "id": "WBS L3",
-                        "name": "WBS L3 (new)",
-                        "presentation": "dropdown",
-                    },
-                    {
-                        "id": "Source of Funds (U.S. Only)",
-                        "name": "Source of Funds (U.S. Only)",
-                        "presentation": "dropdown",
-                    },
-                ]
-                + [{"id": c, "name": c} for c in DF.columns]
+
+def layout() -> html.Div:
+    """Construct the HTML."""
+    return html.Div(
+        children=[
+            html.H1(children="IceCube MoU (v4.0)"),
+            html.H2("Notes:"),
+            html.H2("Read current staffing matrix excel file"),
+            html.H2("Filter dropdown menus for institutions and labor categories"),
+            html.H2("Dropdown menus for WBS L2 & L3 to update existent entries"),
+            html.H2("Add row button"),
+            html.Div(children="""Name of Institutional Leader"""),
+            dcc.Input(id="tab-1-input-name", value="Name", type="text"),
+            html.Div(children="""Email of Institutional Leader"""),
+            dcc.Input(id="tab-1-input-email", value="Email", type="text"),
+            html.Div(id="tab-1-output"),
+            html.Div(children="""Select Institution"""),
+            # Institution filter dropdown menu
+            dcc.Dropdown(
+                id="tab-1-filter-dropdown-inst",
+                options=[{"label": st, "value": st} for st in INSTITUTIONS if st],
+                value=INSTITUTIONS[0],
+                # multi=True
             ),
-            style_cell={
-                "textAlign": "left",
-                "fontSize": 14,
-                "font-family": "sans-serif",
-            },
-            style_data_conditional=[
-                {"if": {"row_index": "odd"}, "backgroundColor": "rgb(248, 248, 248)"}
-            ],
-            style_header={
-                "backgroundColor": "rgb(230, 230, 230)",
-                "fontWeight": "bold",
-            },
-            dropdown={
-                "WBS L2": {
-                    "options": [
-                        {"label": i, "value": i}
-                        for i in DF_PER_ROW_DROPDOWN["WBS L2"].unique()
+            # Labor Category filter dropdown menu
+            html.Div(children="""Select Labor Category"""),
+            dcc.Dropdown(
+                id="tab-1-filter-dropdown-labor",
+                options=[{"label": st, "value": st} for st in LABOR if st],
+                value=LABOR[0],
+                # multi=True
+            ),
+            # Button to add new rows
+            html.Button("Add Row", id="tab-1-editing-rows-button", n_clicks=0),
+            # Staffing matrix data
+            html.Div(children="""Visualize Data"""),
+            dt.DataTable(
+                id="tab-1-dropdown-per-row",
+                editable=True,
+                row_deletable=True,
+                data=DF_PER_ROW_DROPDOWN.to_dict("records"),
+                columns=(
+                    [
+                        {
+                            "id": "WBS L2",
+                            "name": "WBS L2 (new)",
+                            "presentation": "dropdown",
+                        },
+                        {
+                            "id": "WBS L3",
+                            "name": "WBS L3 (new)",
+                            "presentation": "dropdown",
+                        },
+                        {
+                            "id": "Source of Funds (U.S. Only)",
+                            "name": "Source of Funds (U.S. Only)",
+                            "presentation": "dropdown",
+                        },
                     ]
+                    + [{"id": c, "name": c} for c in DF.columns]
+                ),
+                style_cell={
+                    "textAlign": "left",
+                    "fontSize": 14,
+                    "font-family": "sans-serif",
                 },
-                "Source of Funds (U.S. Only)": {
-                    "options": [
-                        {"label": i, "value": i}
-                        for i in DF_PER_ROW_DROPDOWN[
-                            "Source of Funds (U.S. Only)"
-                        ].unique()
-                    ]
+                style_data_conditional=[
+                    {
+                        "if": {"row_index": "odd"},
+                        "backgroundColor": "rgb(248, 248, 248)",
+                    }
+                ],
+                style_header={
+                    "backgroundColor": "rgb(230, 230, 230)",
+                    "fontWeight": "bold",
                 },
-            },
-            # column_static_dropdown=[
-            #    {'id' : 'WBS L2',   'dropdown': [{'label': i, 'value': i} for i in dmf['WBS L2'].unique()]},
-            # ]
-        ),
-        html.Div(id="tab-1-dropdown-per-row-container"),
-    ]
-)
+                dropdown={
+                    "WBS L2": {
+                        "options": [
+                            {"label": i, "value": i}
+                            for i in DF_PER_ROW_DROPDOWN["WBS L2"].unique()
+                        ]
+                    },
+                    "Source of Funds (U.S. Only)": {
+                        "options": [
+                            {"label": i, "value": i}
+                            for i in DF_PER_ROW_DROPDOWN[
+                                "Source of Funds (U.S. Only)"
+                            ].unique()
+                        ]
+                    },
+                },
+                # column_static_dropdown=[
+                #    {'id' : 'WBS L2',   'dropdown': [{'label': i, 'value': i} for i in dmf['WBS L2'].unique()]},
+                # ]
+            ),
+            html.Div(id="tab-1-dropdown-per-row-container"),
+        ]
+    )
 
 
 # --------------------------------------------------------------------------------------
