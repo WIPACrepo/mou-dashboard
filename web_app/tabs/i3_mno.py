@@ -10,12 +10,20 @@ import dash_table as dt  # type: ignore[import]
 import pandas as pd  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
 
+from ..config import app
+
+# --------------------------------------------------------------------------------------
+# Constants
+
 # read data from excel file
 DF = pd.read_excel("WBS.xlsx")
-# print(df.head())
+
+# Institutions and Labor Categories filter dropdown menus
+INSTITUTIONS = DF["Institution"].unique().tolist()
+LABOR = DF["Labor Cat."].unique().tolist()
 
 # # In-cell WBS L2/L3 dropdown menu
-df_per_row_dropdown = pd.DataFrame(
+DF_PER_ROW_DROPDOWN = pd.DataFrame(
     OrderedDict(
         [
             (
@@ -58,13 +66,6 @@ df_per_row_dropdown = pd.DataFrame(
     )
 )  # df_per_row_dropdown
 
-print("Initialize dash object")
-EXTERNAL_STYLESHEETS = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
-app = dash.Dash(__name__, external_stylesheets=EXTERNAL_STYLESHEETS)
-
-# Institutions and Labor Categories filter dropdown menus
-INSTITUTIONS = DF["Institution"].unique().tolist()
-LABOR = DF["Labor Cat."].unique().tolist()
 
 # --------------------------------------------------------------------------------------
 # Layout
@@ -107,7 +108,7 @@ app.layout = html.Div(
             id="tab-1-dropdown-per-row",
             editable=True,
             row_deletable=True,
-            data=df_per_row_dropdown.to_dict("records"),
+            data=DF_PER_ROW_DROPDOWN.to_dict("records"),
             columns=(
                 [
                     {
@@ -144,13 +145,13 @@ app.layout = html.Div(
                 "WBS L2": {
                     "options": [
                         {"label": i, "value": i}
-                        for i in df_per_row_dropdown["WBS L2"].unique()
+                        for i in DF_PER_ROW_DROPDOWN["WBS L2"].unique()
                     ]
                 },
                 "Source of Funds (U.S. Only)": {
                     "options": [
                         {"label": i, "value": i}
-                        for i in df_per_row_dropdown[
+                        for i in DF_PER_ROW_DROPDOWN[
                             "Source of Funds (U.S. Only)"
                         ].unique()
                     ]
@@ -339,7 +340,3 @@ def display_table(
         return rows
 
     return []
-
-
-if __name__ == "__main__":
-    app.run_server(debug=False)
