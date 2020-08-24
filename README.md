@@ -3,3 +3,17 @@ Web App and Servers for the MoU Dashboard
 
 A front-end to Smartsheet docs which allows PIs to easily report to the ICC their
 Statements of Work in accordance with MoUs.
+
+## Web App
+A dashboard for managing & reporting MoU tasks
+
+### Getting Started
+    python3 -m virtualenv -p python3 mou-dash-web
+    pip install -r web_app/requirements.txt
+
+### Running the Server
+    python -m web_app
+
+### Viewing Webpage
+#### Locally
+Go to http://localhost:8050/
