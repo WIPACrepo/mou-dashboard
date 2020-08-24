@@ -130,3 +130,6 @@ dmypy.json
 
 # access keys/tokens/etc.
 *.key
+
+# backup/hidden files
+.*#

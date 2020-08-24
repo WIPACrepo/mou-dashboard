@@ -10,12 +10,30 @@ import dash_table as dt  # type: ignore[import]
 import pandas as pd  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
 
+from ..config import app
+from ..utils.styles import (
+    CENTERED_100,
+    HIDDEN,
+    SHORT_HR,
+    WIDTH_22_5,
+    WIDTH_30,
+    WIDTH_45,
+)
+
+# --------------------------------------------------------------------------------------
+# Constants
+
 # read data from excel file
-DF = pd.read_excel("WBS.xlsx")
-# print(df.head())
+DF = pd.read_excel("WBS.xlsx").fillna("")
+
+# Institutions and Labor Categories filter dropdown menus
+INSTITUTIONS = [i for i in DF["Institution"].unique().tolist() if i]
+print(f"INSTITUTIONS: {INSTITUTIONS}")
+LABOR = [b for b in DF["Labor Cat."].unique().tolist() if b]
+print(f"LABOR: {LABOR}")
 
 # # In-cell WBS L2/L3 dropdown menu
-df_per_row_dropdown = pd.DataFrame(
+DF_PER_ROW_DROPDOWN = pd.DataFrame(
     OrderedDict(
         [
             (
@@ -58,111 +76,175 @@ df_per_row_dropdown = pd.DataFrame(
     )
 )  # df_per_row_dropdown
 
-print("Initialize dash object")
-EXTERNAL_STYLESHEETS = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
-app = dash.Dash(__name__, external_stylesheets=EXTERNAL_STYLESHEETS)
-
-# Institutions and Labor Categories filter dropdown menus
-INSTITUTIONS = DF["Institution"].unique().tolist()
-LABOR = DF["Labor Cat."].unique().tolist()
 
 # --------------------------------------------------------------------------------------
 # Layout
 
-# set the layout of the dash app
-app.layout = html.Div(
-    children=[
-        html.H1(children="IceCube MoU (v4.0)"),
-        html.H2("Notes:"),
-        html.H2("Read current staffing matrix excel file"),
-        html.H2("Filter dropdown menus for institutions and labor categories"),
-        html.H2("Dropdown menus for WBS L2 & L3 to update existent entries"),
-        html.H2("Add row button"),
-        html.Div(children="""Name of Institutional Leader"""),
-        dcc.Input(id="tab-1-input-name", value="Name", type="text"),
-        html.Div(children="""Email of Institutional Leader"""),
-        dcc.Input(id="tab-1-input-email", value="Email", type="text"),
-        html.Div(id="tab-1-output"),
-        html.Div(children="""Select Institution"""),
-        # Institution filter dropdown menu
-        dcc.Dropdown(
-            id="tab-1-filter-dropdown-inst",
-            options=[{"label": st, "value": st} for st in INSTITUTIONS],
-            value=INSTITUTIONS[0],
-            # multi=True
-        ),
-        # Labor Category filter dropdown menu
-        html.Div(children="""Select Labor Category"""),
-        dcc.Dropdown(
-            id="tab-1-filter-dropdown-labor",
-            options=[{"label": st, "value": st} for st in LABOR],
-            value=LABOR[0],
-            # multi=True
-        ),
-        # Button to add new rows
-        html.Button("Add Row", id="tab-1-editing-rows-button", n_clicks=0),
-        # Staffing matrix data
-        html.Div(children="""Visualize Data"""),
-        dt.DataTable(
-            id="tab-1-dropdown-per-row",
-            editable=True,
-            row_deletable=True,
-            data=df_per_row_dropdown.to_dict("records"),
-            columns=(
-                [
-                    {
-                        "id": "WBS L2",
-                        "name": "WBS L2 (new)",
-                        "presentation": "dropdown",
-                    },
-                    {
-                        "id": "WBS L3",
-                        "name": "WBS L3 (new)",
-                        "presentation": "dropdown",
-                    },
-                    {
-                        "id": "Source of Funds (U.S. Only)",
-                        "name": "Source of Funds (U.S. Only)",
-                        "presentation": "dropdown",
-                    },
-                ]
-                + [{"id": c, "name": c} for c in DF.columns]
+ADD_BUTTON = html.Button("+ Add New Data", id="tab-1-editing-rows-button", n_clicks=0)
+
+
+def layout() -> html.Div:
+    """Construct the HTML."""
+    return html.Div(
+        children=[
+            html.Div(
+                # Institution Leader Sign-In
+                children=[
+                    html.H4("Institution Leader Sign-In"),
+                    html.Div(
+                        className="row",
+                        style={"margin-left": "5%"},
+                        children=[
+                            dcc.Input(
+                                id="tab-1-input-name",
+                                value="",
+                                type="text",
+                                placeholder="name",
+                                style={"width": "24%"},
+                            ),
+                            dcc.Input(
+                                id="tab-1-input-email",
+                                value="",
+                                type="text",
+                                placeholder="email",
+                                style={"width": "23%"},
+                            ),
+                            html.I(
+                                id="tab-1-name-email-icon",
+                                n_clicks=0,
+                                style={
+                                    "margin-left": "0.5em",
+                                    "align-text": "bottom",
+                                    "fontSize": 25,
+                                },
+                            ),
+                        ],
+                    ),
+                ],
             ),
-            style_cell={
-                "textAlign": "left",
-                "fontSize": 14,
-                "font-family": "sans-serif",
-            },
-            style_data_conditional=[
-                {"if": {"row_index": "odd"}, "backgroundColor": "rgb(248, 248, 248)"}
-            ],
-            style_header={
-                "backgroundColor": "rgb(230, 230, 230)",
-                "fontWeight": "bold",
-            },
-            dropdown={
-                "WBS L2": {
-                    "options": [
-                        {"label": i, "value": i}
-                        for i in df_per_row_dropdown["WBS L2"].unique()
+            ####
+            html.Hr(style={"margin-top": "3em", "margin-bottom": "3em"}),
+            ####
+            html.Div(
+                style={"margin-bottom": "2em"},
+                children=[
+                    html.H4("Staffing Matrix Data"),
+                    # SOW Filter
+                    html.Div(
+                        className="row",
+                        style=CENTERED_100,
+                        children=[
+                            html.Div(
+                                style=WIDTH_45,
+                                children=[
+                                    html.Div(children="Filter by Institution"),
+                                    # Institution filter dropdown menu
+                                    dcc.Dropdown(
+                                        id="tab-1-filter-dropdown-inst",
+                                        options=[
+                                            {"label": st, "value": st}
+                                            for st in INSTITUTIONS
+                                        ],
+                                        value="",
+                                        # multi=True
+                                    ),
+                                ],
+                            ),
+                            html.Div(
+                                style=WIDTH_45,
+                                children=[
+                                    # Labor Category filter dropdown menu
+                                    html.Div(children="Filter by Labor Category"),
+                                    dcc.Dropdown(
+                                        id="tab-1-filter-dropdown-labor",
+                                        options=[
+                                            {"label": st, "value": st} for st in LABOR
+                                        ],
+                                        value="",
+                                        # multi=True
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+            ####
+            # html.Hr(style=SHORT_HR),
+            ####
+            html.Div(
+                style=CENTERED_100,
+                children=[
+                    html.H6("click a cell to edit", style={"font-style": "oblique"}),
+                ],
+            ),
+            # Add Button
+            html.Div(style={"margin-bottom": "0.5em"}, children=[ADD_BUTTON]),
+            # Table
+            dt.DataTable(
+                id="tab-1-dropdown-per-row",
+                editable=True,
+                row_deletable=False,
+                data=DF_PER_ROW_DROPDOWN.to_dict("records"),
+                columns=(
+                    [
+                        {
+                            "id": "WBS L2",
+                            "name": "WBS L2 (new)",
+                            "presentation": "dropdown",
+                        },
+                        {
+                            "id": "WBS L3",
+                            "name": "WBS L3 (new)",
+                            "presentation": "dropdown",
+                        },
+                        {
+                            "id": "Source of Funds (U.S. Only)",
+                            "name": "Source of Funds (U.S. Only)",
+                            "presentation": "dropdown",
+                        },
                     ]
+                    + [{"id": c, "name": c} for c in DF.columns]
+                ),
+                # Styles
+                style_table={"overflowX": "scroll"},
+                style_cell={
+                    "textAlign": "left",
+                    "fontSize": 14,
+                    "font-family": "sans-serif",
+                    "padding-left": "0.5em",
                 },
-                "Source of Funds (U.S. Only)": {
-                    "options": [
-                        {"label": i, "value": i}
-                        for i in df_per_row_dropdown[
-                            "Source of Funds (U.S. Only)"
-                        ].unique()
-                    ]
+                style_cell_conditional=[
+                    {"if": {"column_id": "WBS L2"}, "padding-left": "1.5em"}
+                ],
+                style_data_conditional=[
+                    {"if": {"row_index": "odd"}, "backgroundColor": "whitesmoke"}
+                ],
+                style_header={"backgroundColor": "gainsboro", "fontWeight": "bold"},
+                # Dropdowns
+                dropdown={
+                    "WBS L2": {
+                        "options": [
+                            {"label": i, "value": i}
+                            for i in DF_PER_ROW_DROPDOWN["WBS L2"].unique()
+                        ]
+                    },
+                    "Source of Funds (U.S. Only)": {
+                        "options": [
+                            {"label": i, "value": i}
+                            for i in DF_PER_ROW_DROPDOWN[
+                                "Source of Funds (U.S. Only)"
+                            ].unique()
+                        ]
+                    },
                 },
-            },
-            # column_static_dropdown=[
-            #    {'id' : 'WBS L2',   'dropdown': [{'label': i, 'value': i} for i in dmf['WBS L2'].unique()]},
-            # ]
-        ),
-        html.Div(id="tab-1-dropdown-per-row-container"),
-    ]
-)
+                # Page Size
+                page_size=20,
+            ),
+            # Add Button
+            html.Div(style={"margin-top": "0.5em"}, children=[ADD_BUTTON]),
+        ]
+    )
 
 
 # --------------------------------------------------------------------------------------
@@ -286,12 +368,15 @@ def get_dropdown_conditional(
 
 
 @app.callback(  # type: ignore[misc]
-    Output("tab-1-output", "children"),
+    Output("tab-1-name-email-icon", "children"),
     [Input("tab-1-input-name", "value"), Input("tab-1-input-email", "value")],
 )
-def update_input(name: str, email: str) -> str:
+def update_name_email_icon(name: str, email: str) -> str:
     """Enter name & email callback."""
-    return name + " <" + email + ">"
+    # TODO -- check auth
+    if name and email:
+        return "✔"
+    return "✖"
 
 
 @app.callback(  # type: ignore[misc]
@@ -339,7 +424,3 @@ def display_table(
         return rows
 
     return []
-
-
-if __name__ == "__main__":
-    app.run_server(debug=False)
