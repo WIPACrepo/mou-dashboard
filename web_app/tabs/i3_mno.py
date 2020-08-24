@@ -12,12 +12,9 @@ from dash.dependencies import Input, Output, State  # type: ignore[import]
 
 from ..config import app
 from ..utils.styles import (
-    CENTERED_30,
     CENTERED_100,
     HIDDEN,
     SHORT_HR,
-    STAT_LABEL,
-    STAT_NUMBER,
     WIDTH_22_5,
     WIDTH_30,
     WIDTH_45,
@@ -91,6 +88,7 @@ def layout() -> html.Div:
     return html.Div(
         children=[
             html.Div(
+                # Institution Leader Sign-In
                 children=[
                     html.H4("Institution Leader Sign-In"),
                     html.Div(
@@ -115,7 +113,7 @@ def layout() -> html.Div:
                                 id="tab-1-name-email-icon",
                                 n_clicks=0,
                                 style={
-                                    "margin-left": "1%",
+                                    "margin-left": "0.5em",
                                     "align-text": "bottom",
                                     "fontSize": 25,
                                 },
@@ -125,10 +123,10 @@ def layout() -> html.Div:
                 ],
             ),
             ####
-            html.Hr(style={"margin-top": "3%", "margin-bottom": "3%"}),
+            html.Hr(style={"margin-top": "3em", "margin-bottom": "3em"}),
             ####
             html.Div(
-                style={"margin-bottom": "2%"},
+                style={"margin-bottom": "2em"},
                 children=[
                     html.H4("Staffing Matrix Data"),
                     # SOW Filter
@@ -180,9 +178,9 @@ def layout() -> html.Div:
                     html.H6("click a cell to edit", style={"font-style": "oblique"}),
                 ],
             ),
-            # Button to add new rows
-            html.Div(style={"margin-bottom": "0.5%"}, children=[ADD_BUTTON]),
-            # Staffing matrix data
+            # Add Button
+            html.Div(style={"margin-bottom": "0.5em"}, children=[ADD_BUTTON]),
+            # Table
             dt.DataTable(
                 id="tab-1-dropdown-per-row",
                 editable=True,
@@ -208,23 +206,22 @@ def layout() -> html.Div:
                     ]
                     + [{"id": c, "name": c} for c in DF.columns]
                 ),
+                # Styles
                 style_table={"overflowX": "scroll"},
                 style_cell={
                     "textAlign": "left",
                     "fontSize": 14,
                     "font-family": "sans-serif",
-                    "padding-left": "0.65%",
+                    "padding-left": "0.5em",
                 },
-                style_data_conditional=[
-                    {
-                        "if": {"row_index": "odd"},
-                        "backgroundColor": "rgb(248, 248, 248)",
-                    }
+                style_cell_conditional=[
+                    {"if": {"column_id": "WBS L2"}, "padding-left": "1.5em"}
                 ],
-                style_header={
-                    "backgroundColor": "rgb(230, 230, 230)",
-                    "fontWeight": "bold",
-                },
+                style_data_conditional=[
+                    {"if": {"row_index": "odd"}, "backgroundColor": "whitesmoke"}
+                ],
+                style_header={"backgroundColor": "gainsboro", "fontWeight": "bold"},
+                # Dropdowns
                 dropdown={
                     "WBS L2": {
                         "options": [
@@ -241,9 +238,11 @@ def layout() -> html.Div:
                         ]
                     },
                 },
+                # Page Size
                 page_size=20,
             ),
-            html.Div(style={"margin-top": "0.5%"}, children=[ADD_BUTTON]),
+            # Add Button
+            html.Div(style={"margin-top": "0.5em"}, children=[ADD_BUTTON]),
         ]
     )
 

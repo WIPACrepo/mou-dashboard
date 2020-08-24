@@ -7,8 +7,8 @@ CENTERED_100 = {
     "display": "flex",
     "align-items": "center",
     "justify-content": "center",
-    "margin-right": "0px",
-    "margin-left": "0px",
+    "margin-right": "0",
+    "margin-left": "0",
 }
 
 
@@ -28,26 +28,15 @@ CENTERED_30 = {
 }
 
 CONTENT_STYLE = {
-    "padding-top": "2%",
-    "padding-left": "2%",
-    "padding-right": "2%",
+    "padding-top": "2em",
+    "padding-left": "2em",
+    "padding-right": "2em",
 }
 
 # Hr
 
 SHORT_HR = {"margin-left": "15%", "margin-right": "15%"}
 
-# Stats
-
-STAT_NUMBER = {
-    "font-family": "monospace",
-    "fontSize": 25,
-    "text-align": "right",
-    "display": "inline-block",
-    "padding-right": "4%",
-}
-
-STAT_LABEL = {"fontSize": 20, "display": "inline-block"}
 
 # Styles for Tabs
 
