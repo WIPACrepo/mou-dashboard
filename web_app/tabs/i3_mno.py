@@ -384,43 +384,28 @@ def update_name_email_icon(name: str, email: str) -> str:
     [
         Input("tab-1-filter-dropdown-inst", "value"),
         Input("tab-1-filter-dropdown-labor", "value"),
-        Input("tab-1-editing-rows-button", "n_clicks"),
     ],
     [
         State("tab-1-dropdown-per-row", "data"),
         State("tab-1-dropdown-per-row", "columns"),
     ],
 )
-def display_table(
+def table_data(
     institution: List[Dict[str, str]],
-    labor: List[Dict[str, str]],
-    n_clicks: int,
-    rows: List[Dict[str, str]],
+    labor: str,
+    rows: str,
     columns: List[Dict[str, str]],
 ) -> List[Dict[str, str]]:
     """Filter dropdown menu & new rows callbacks."""
-    ctx = dash.callback_context
+    print("HAAAANNNNKKK")
 
-    if not ctx.triggered:
-        button_id = "None"
-    else:
-        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    dff = DF
+    # filter by labor
+    if labor:
+        dff = dff[dff["Labor Cat."] == labor]
 
-    if n_clicks == 0 or button_id in ("filter-dropdown-inst", "filter-dropdown-labor"):
-        # print(button_id)
-        if not institution:
-            dff = DF[DF["Labor Cat."] == labor]
-        elif not labor:
-            dff = DF[DF["Institution"] == institution]
-        else:
-            dff = DF[DF["Institution"] == institution]
-            dff = dff[dff["Labor Cat."] == labor]
-        return dff.to_dict("records")
+    # filter by institution
+    if institution:
+        dff = dff[dff["Institution"] == institution]
 
-    if button_id == "editing-rows-button":
-        # print(button_id)
-        if n_clicks > 0:
-            rows.append({c["id"]: "" for c in columns})
-        return rows
-
-    return []
+    return dff.to_dict("records")
