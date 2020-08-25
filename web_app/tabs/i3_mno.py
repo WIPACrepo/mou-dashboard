@@ -1,84 +1,19 @@
 """Conditional in-cell drop-down menu with IceCube WBS MoU info."""
 
-from collections import OrderedDict
 from typing import Dict, List, Tuple, Union
 
-import dash  # type: ignore[import]
-
-# --------------------------------------------------------------------------------------
-# Layout
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 import dash_table as dt  # type: ignore[import]
-import pandas as pd  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
 
 from ..config import app
-from ..utils.styles import (
-    CENTERED_100,
-    HIDDEN,
-    SHORT_HR,
-    WIDTH_22_5,
-    WIDTH_30,
-    WIDTH_45,
-)
+from ..utils import data
+from ..utils.styles import CENTERED_100, WIDTH_45
 
 # --------------------------------------------------------------------------------------
-# Constants
-
-# read data from excel file
-DF = pd.read_excel("WBS.xlsx").fillna("")
-
-# Institutions and Labor Categories filter dropdown menus
-INSTITUTIONS = [i for i in DF["Institution"].unique().tolist() if i]
-print(f"INSTITUTIONS: {INSTITUTIONS}")
-LABOR = [b for b in DF["Labor Cat."].unique().tolist() if b]
-print(f"LABOR: {LABOR}")
-
-# # In-cell WBS L2/L3 dropdown menu
-DF_PER_ROW_DROPDOWN = pd.DataFrame(
-    OrderedDict(
-        [
-            (
-                # WBS L2 dropdown menu
-                "WBS L2",
-                [
-                    "2.1 Program Coordination",
-                    "2.2 Detector Operations & Maintenance (Online)",
-                    "2.3 Computing & Data Management Services",
-                    "2.4 Data Processing & Simulation Services",
-                    "2.5 Software",
-                    "2.6 Calibration",
-                ],
-            ),
-            (
-                # WBS L3 dropdown menu
-                "WBS L3",
-                [
-                    "2.1.1 Administration",
-                    "2.2.1 Run Coordination",
-                    "2.3.1 Data Storage & Transfer",
-                    "2.4.1 Offline Data Production",
-                    "2.5.1 Core Software",
-                    "2.6.1 Detector Calibration",
-                ],
-            ),
-            # Source of funds dropdown menu
-            (
-                "Source of Funds (U.S. Only)",
-                [
-                    "NSF M&O Core",
-                    "Base Grants",
-                    "US In-Kind",
-                    "Non-US In-kind",
-                    "Non-US In-kind",
-                    "Non-US In-kind",
-                ],
-            ),
-        ]
-    )
-)  # df_per_row_dropdown
+# Layout
 
 
 def _get_add_button(_id: str, block: bool = True) -> dbc.Button:
@@ -145,7 +80,7 @@ def layout() -> html.Div:
                                         id="tab-1-filter-dropdown-inst",
                                         options=[
                                             {"label": st, "value": st}
-                                            for st in INSTITUTIONS
+                                            for st in data.get_institutions()
                                         ],
                                         value="",
                                         # multi=True
@@ -160,7 +95,8 @@ def layout() -> html.Div:
                                     dcc.Dropdown(
                                         id="tab-1-filter-dropdown-labor",
                                         options=[
-                                            {"label": st, "value": st} for st in LABOR
+                                            {"label": st, "value": st}
+                                            for st in data.get_labor()
                                         ],
                                         value="",
                                         # multi=True
@@ -189,30 +125,9 @@ def layout() -> html.Div:
             ),
             # Table
             dt.DataTable(
-                id="tab-1-dropdown-per-row",
+                id="tab-1-data-table",
                 editable=False,
                 row_deletable=False,
-                # data set in callback
-                columns=(
-                    [
-                        {
-                            "id": "WBS L2",
-                            "name": "WBS L2 (new)",
-                            "presentation": "dropdown",
-                        },
-                        {
-                            "id": "WBS L3",
-                            "name": "WBS L3 (new)",
-                            "presentation": "dropdown",
-                        },
-                        {
-                            "id": "Source of Funds (U.S. Only)",
-                            "name": "Source of Funds (U.S. Only)",
-                            "presentation": "dropdown",
-                        },
-                    ]
-                    + [{"id": c, "name": c} for c in DF.columns]
-                ),
                 # Styles
                 style_table={"overflowX": "scroll"},
                 style_cell={
@@ -228,42 +143,111 @@ def layout() -> html.Div:
                     {"if": {"row_index": "odd"}, "backgroundColor": "whitesmoke"}
                 ],
                 style_header={"backgroundColor": "gainsboro", "fontWeight": "bold"},
-                # Dropdowns
-                dropdown={
-                    "WBS L2": {
-                        "options": [
-                            {"label": i, "value": i}
-                            for i in DF_PER_ROW_DROPDOWN["WBS L2"].unique()
-                        ]
-                    },
-                    "Source of Funds (U.S. Only)": {
-                        "options": [
-                            {"label": i, "value": i}
-                            for i in DF_PER_ROW_DROPDOWN[
-                                "Source of Funds (U.S. Only)"
-                            ].unique()
-                        ]
-                    },
-                },
                 # Page Size
                 page_size=20,
+                # data set in callback
+                # columns set in callback
+                # dropdown set in callback
+                # dropdown_conditional set in callback
             ),
             # Add Button
-            html.Div(style={"margin-top": "0.5em"}, children=[ADD_BUTTON]),
+            html.Div(
+                style={"margin-top": "0.5em"},
+                children=[
+                    _get_add_button("tab-1-editing-rows-button-bottom", block=False)
+                ],
+            ),
+            # Modal Pop-up for Adding New Data
+            dbc.Modal(
+                id="history-modal-tab1",
+                size="lg",
+                children=[
+                    # Header
+                    dbc.ModalHeader(id="history-modal-header-tab1"),
+                    # Body
+                    dbc.ModalBody(dbc.ListGroup(id="history-list-tab1")),
+                    # Footer
+                    dbc.ModalFooter(
+                        children=[
+                            dbc.Button(
+                                "Close",
+                                id="close-history-modal-tab1",
+                                className="ml-auto",
+                            )
+                        ]
+                    ),
+                ],
+            ),
         ]
     )
 
 
 # --------------------------------------------------------------------------------------
-# Static Callbacks
+# Table Callbacks
+
+
+@app.callback(  # type: ignore[misc]
+    Output("tab-1-data-table", "data"),
+    [
+        Input("tab-1-filter-dropdown-inst", "value"),
+        Input("tab-1-filter-dropdown-labor", "value"),
+    ],
+)
+def table_data(institution: str, labor: str,) -> List[Dict[str, str]]:
+    """Grab table data, optionally filter rows."""
+    table = data.get_table(institution=institution, labor=labor)
+    return table
+
+
+@app.callback(  # type: ignore[misc]
+    Output("tab-1-data-table", "columns"), [Input("tab-1-data-table", "editable")],
+)
+def table_columns(_: bool) -> List[Dict[str, str]]:
+    """Grab table columns."""
+    columns = [
+        {"id": "WBS L2", "name": "WBS L2 (new)", "presentation": "dropdown"},
+        {"id": "WBS L3", "name": "WBS L3 (new)", "presentation": "dropdown"},
+        {
+            "id": "Source of Funds (U.S. Only)",
+            "name": "Source of Funds (U.S. Only)",
+            "presentation": "dropdown",
+        },
+    ]
+
+    columns += [{"id": c, "name": c} for c in data.get_table_columns()]
+
+    return columns
+
+
+@app.callback(  # type: ignore[misc]
+    Output("tab-1-data-table", "dropdown"), [Input("tab-1-data-table", "editable")],
+)
+def table_dropdown(_: bool) -> Dict[str, Dict[str, List[Dict[str, str]]]]:
+    """Grab table dropdown."""
+    dropdown = {
+        "WBS L2": {
+            "options": [
+                {"label": i, "value": i}
+                for i in data.get_column_dropdown_menu("WBS L2")
+            ]
+        },
+        "Source of Funds (U.S. Only)": {
+            "options": [
+                {"label": i, "value": i}
+                for i in data.get_column_dropdown_menu("Source of Funds (U.S. Only)")
+            ]
+        },
+    }
+
+    return dropdown
 
 
 @app.callback(
-    Output("tab-1-dropdown-per-row", "dropdown_conditional"),
-    [Input("tab-1-dropdown-per-row", "editable")],
+    Output("tab-1-data-table", "dropdown_conditional"),
+    [Input("tab-1-data-table", "editable")],
 )  # type: ignore[misc]
-def get_dropdown_conditional(
-    editable: bool,
+def table_dropdown_conditional(
+    _: bool,
 ) -> List[Dict[str, Union[Dict[str, str], List[Dict[str, str]]]]]:
     """Return the conditional filterings for the drop-down menu."""
     return [
@@ -371,7 +355,59 @@ def get_dropdown_conditional(
 
 
 # --------------------------------------------------------------------------------------
-# Callbacks
+# "Add New Data" Modal Callbacks
+
+
+@app.callback(
+    Output("history-modal-tab1", "is_open"),
+    [
+        Input("tab-1-editing-rows-button-top", "n_clicks"),
+        Input("tab-1-editing-rows-button-bottom", "n_clicks"),
+        Input("close-history-modal-tab1", "n_clicks"),
+    ],
+    [State("history-modal-tab1", "is_open")],
+)  # type: ignore
+def add_new_data_modal_open_close(open_clicks_1, open_clicks_2, close_clicks, is_open):
+    """Open/close the "add new data" modal."""
+    if open_clicks_1 or open_clicks_2 or close_clicks:
+        return not is_open
+    return is_open
+
+
+@app.callback(
+    Output("history-modal-header-tab1", "children"),
+    [
+        Input("tab-1-filter-dropdown-inst", "value"),
+        Input("tab-1-filter-dropdown-labor", "value"),
+    ],
+)  # type: ignore
+def history_modal_header(histogram_name: str, collection_name: str) -> str:
+    """Return header for the history modal."""
+    return f"TODO {histogram_name} & {collection_name}"
+
+
+@app.callback(
+    Output("history-list-tab1", "children"),
+    [
+        Input("tab-1-filter-dropdown-inst", "value"),
+        Input("tab-1-filter-dropdown-labor", "value"),
+    ],
+)  # type: ignore
+def history_modal_list(
+    database_name: str, collection_name: str
+) -> Union[List[dbc.ListGroupItem], str]:
+    """Return list of history for the history modal."""
+
+    # TODO
+
+    # if button_id == "editing-rows-button":
+    #     # print(button_id)
+    #     if n_clicks_1 > 0:
+    #         rows.append({c["id"]: "" for c in columns})
+    #     return rows
+
+    return "TODO"
+
 
 # --------------------------------------------------------------------------------------
 # Other Callbacks
@@ -380,7 +416,7 @@ def get_dropdown_conditional(
 @app.callback(  # type: ignore[misc]
     [
         Output("tab-1-name-email-icon", "children"),
-        Output("tab-1-dropdown-per-row", "editable"),
+        Output("tab-1-data-table", "editable"),
         Output("tab-1-editing-rows-button-top", "disabled"),
         Output("tab-1-editing-rows-button-bottom", "disabled"),
         Output("tab-1-how-to-edit-message", "children"),
@@ -408,35 +444,3 @@ def auth_updates(name: str, email: str) -> Tuple[str, bool, bool, bool, str]:
         add_button_off,
         "sign in to edit",
     )
-
-
-@app.callback(  # type: ignore[misc]
-    Output("tab-1-dropdown-per-row", "data"),
-    [
-        Input("tab-1-filter-dropdown-inst", "value"),
-        Input("tab-1-filter-dropdown-labor", "value"),
-    ],
-    [
-        State("tab-1-dropdown-per-row", "data"),
-        State("tab-1-dropdown-per-row", "columns"),
-    ],
-)
-def table_data(
-    institution: List[Dict[str, str]],
-    labor: str,
-    rows: str,
-    columns: List[Dict[str, str]],
-) -> List[Dict[str, str]]:
-    """Filter dropdown menu & new rows callbacks."""
-    print("HAAAANNNNKKK")
-
-    dff = DF
-    # filter by labor
-    if labor:
-        dff = dff[dff["Labor Cat."] == labor]
-
-    # filter by institution
-    if institution:
-        dff = dff[dff["Institution"] == institution]
-
-    return dff.to_dict("records")
