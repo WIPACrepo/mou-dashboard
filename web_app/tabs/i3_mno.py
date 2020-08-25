@@ -1,9 +1,13 @@
 """Conditional in-cell drop-down menu with IceCube WBS MoU info."""
 
 from collections import OrderedDict
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 
 import dash  # type: ignore[import]
+
+# --------------------------------------------------------------------------------------
+# Layout
+import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 import dash_table as dt  # type: ignore[import]
@@ -77,10 +81,8 @@ DF_PER_ROW_DROPDOWN = pd.DataFrame(
 )  # df_per_row_dropdown
 
 
-# --------------------------------------------------------------------------------------
-# Layout
-
-ADD_BUTTON = html.Button("+ Add New Data", id="tab-1-editing-rows-button", n_clicks=0)
+def _get_add_button(_id: str, block: bool = True) -> dbc.Button:
+    return dbc.Button("+ Add New Data", id=_id, block=block, n_clicks=0, disabled=True)
 
 
 def layout() -> html.Div:
@@ -175,17 +177,22 @@ def layout() -> html.Div:
             html.Div(
                 style=CENTERED_100,
                 children=[
-                    html.H6("click a cell to edit", style={"font-style": "oblique"}),
+                    html.H6(
+                        id="tab-1-how-to-edit-message", style={"font-style": "oblique"},
+                    ),
                 ],
             ),
             # Add Button
-            html.Div(style={"margin-bottom": "0.5em"}, children=[ADD_BUTTON]),
+            html.Div(
+                style={"margin-bottom": "0.5em"},
+                children=[_get_add_button("tab-1-editing-rows-button-top")],
+            ),
             # Table
             dt.DataTable(
                 id="tab-1-dropdown-per-row",
-                editable=True,
+                editable=False,
                 row_deletable=False,
-                data=DF_PER_ROW_DROPDOWN.to_dict("records"),
+                # data set in callback
                 columns=(
                     [
                         {
@@ -366,17 +373,41 @@ def get_dropdown_conditional(
 # --------------------------------------------------------------------------------------
 # Callbacks
 
+# --------------------------------------------------------------------------------------
+# Other Callbacks
+
 
 @app.callback(  # type: ignore[misc]
-    Output("tab-1-name-email-icon", "children"),
+    [
+        Output("tab-1-name-email-icon", "children"),
+        Output("tab-1-dropdown-per-row", "editable"),
+        Output("tab-1-editing-rows-button-top", "disabled"),
+        Output("tab-1-editing-rows-button-bottom", "disabled"),
+        Output("tab-1-how-to-edit-message", "children"),
+    ],
     [Input("tab-1-input-name", "value"), Input("tab-1-input-email", "value")],
 )
-def update_name_email_icon(name: str, email: str) -> str:
+def auth_updates(name: str, email: str) -> Tuple[str, bool, bool, bool, str]:
     """Enter name & email callback."""
     # TODO -- check auth
+    add_button_off = True
+    table_editable = True
+
     if name and email:
-        return "✔"
-    return "✖"
+        return (
+            "✔",
+            table_editable,
+            not add_button_off,
+            not add_button_off,
+            "click a cell to edit",
+        )
+    return (
+        "✖",
+        not table_editable,
+        add_button_off,
+        add_button_off,
+        "sign in to edit",
+    )
 
 
 @app.callback(  # type: ignore[misc]
