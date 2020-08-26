@@ -16,11 +16,11 @@ from ..utils.styles import CENTERED_100, WIDTH_45
 # Layout
 
 
-def _get_add_button(_id: str, block: bool = True) -> dbc.Button:
+def _new_data_button(_id: str, block: bool = True) -> dbc.Button:
     return dbc.Button("+ Add New Data", id=_id, block=block, n_clicks=0, disabled=True)
 
 
-def _fixed_width_column(
+def _style_cell_conditional_fixed_width(
     _id: str, width: str, border_right: bool = False
 ) -> Dict[str, Collection[str]]:
     style = {
@@ -34,6 +34,62 @@ def _fixed_width_column(
         style["border-right"] = "1px solid black"
 
     return style
+
+
+def _new_data_modal() -> dbc.Modal:
+    return dbc.Modal(
+        id="tab-1-new-data-modal",
+        size="lg",
+        children=[
+            # Header
+            dbc.ModalHeader("Add New Data"),
+            # Body
+            dbc.ModalBody(),
+            # Footer
+            dbc.ModalFooter(
+                style={"display": "flex"},
+                children=[
+                    html.Div(
+                        style={"width": "58%"},
+                        children=[
+                            dbc.Button(
+                                "Cancel",
+                                id="tab-1-cancel-new-data-modal",
+                                className="ml-auto",
+                                outline=True,
+                                color="danger",
+                            ),
+                        ],
+                    ),
+                    dbc.ButtonGroup(
+                        style={
+                            "width": "38%",
+                            "display": "flex",
+                            "flex-direction": "row",
+                            "justify-content": "flex-end",
+                        },
+                        children=[
+                            dbc.Button(
+                                "Add & Add Another",
+                                id="tab-1-add-&-add-another-new-data-modal",
+                                className="ml-auto",
+                                outline=True,
+                                color="success",
+                                style={"width": "50%"},
+                            ),
+                            dbc.Button(
+                                "Add & Exit",
+                                id="tab-1-add-&-exit-new-data-modal",
+                                className="ml-auto",
+                                color="success",
+                                style={"width": "50%"},
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+        ],
+    )
 
 
 def layout() -> html.Div:
@@ -137,7 +193,7 @@ def layout() -> html.Div:
             # Add Button
             html.Div(
                 style={"margin-bottom": "0.5em"},
-                children=[_get_add_button("tab-1-editing-rows-button-top")],
+                children=[_new_data_button("tab-1-new-data-button-top")],
             ),
             # Table
             dt.DataTable(
@@ -167,23 +223,27 @@ def layout() -> html.Div:
                 },
                 style_cell_conditional=[
                     {"if": {"column_id": "WBS L2"}, "padding-left": "1.5em"},
-                    _fixed_width_column("WBS L2", "225px"),
-                    _fixed_width_column("WBS L3", "225px", border_right=True),
-                    _fixed_width_column("US / Non-US", "65px"),
-                    _fixed_width_column("Institution", "85px"),
-                    _fixed_width_column("Labor Cat.", "85px"),
-                    _fixed_width_column("Names", "150px"),
-                    _fixed_width_column("Tasks", "300px"),
-                    _fixed_width_column(
+                    _style_cell_conditional_fixed_width("WBS L2", "225px"),
+                    _style_cell_conditional_fixed_width(
+                        "WBS L3", "225px", border_right=True
+                    ),
+                    _style_cell_conditional_fixed_width("US / Non-US", "65px"),
+                    _style_cell_conditional_fixed_width("Institution", "85px"),
+                    _style_cell_conditional_fixed_width("Labor Cat.", "85px"),
+                    _style_cell_conditional_fixed_width("Names", "150px"),
+                    _style_cell_conditional_fixed_width("Tasks", "300px"),
+                    _style_cell_conditional_fixed_width(
                         "Source of Funds (U.S. Only)", "130px", border_right=True
                     ),
-                    _fixed_width_column("NSF M&O Core", "80px"),
-                    _fixed_width_column("NSF Base Grants", "80px"),
-                    _fixed_width_column("U.S. Institutional In-Kind", "80px"),
-                    _fixed_width_column(
+                    _style_cell_conditional_fixed_width("NSF M&O Core", "80px"),
+                    _style_cell_conditional_fixed_width("NSF Base Grants", "80px"),
+                    _style_cell_conditional_fixed_width(
+                        "U.S. Institutional In-Kind", "80px"
+                    ),
+                    _style_cell_conditional_fixed_width(
                         "Europe & Asia Pacific In-Kind", "80px", border_right=True
                     ),
-                    _fixed_width_column("Grand Total", "80px"),
+                    _style_cell_conditional_fixed_width("Grand Total", "80px"),
                 ],
                 style_data={
                     "whiteSpace": "normal",
@@ -205,30 +265,11 @@ def layout() -> html.Div:
             html.Div(
                 style={"margin-top": "0.5em"},
                 children=[
-                    _get_add_button("tab-1-editing-rows-button-bottom", block=False)
+                    _new_data_button("tab-1-new-data-button-bottom", block=False)
                 ],
             ),
-            # Modal Pop-up for Adding New Data
-            dbc.Modal(
-                id="history-modal-tab1",
-                size="lg",
-                children=[
-                    # Header
-                    dbc.ModalHeader(id="history-modal-header-tab1"),
-                    # Body
-                    dbc.ModalBody(dbc.ListGroup(id="history-list-tab1")),
-                    # Footer
-                    dbc.ModalFooter(
-                        children=[
-                            dbc.Button(
-                                "Close",
-                                id="close-history-modal-tab1",
-                                className="ml-auto",
-                            )
-                        ]
-                    ),
-                ],
-            ),
+            # Modal for Adding New Data
+            _new_data_modal(),
         ]
     )
 
@@ -403,58 +444,33 @@ def table_dropdown(
 
 
 # --------------------------------------------------------------------------------------
-# "Add New Data" Modal Callbacks
+# "New Data" Modal Callbacks
 
 
 @app.callback(
-    Output("history-modal-tab1", "is_open"),
+    Output("tab-1-new-data-modal", "is_open"),
     [
-        Input("tab-1-editing-rows-button-top", "n_clicks"),
-        Input("tab-1-editing-rows-button-bottom", "n_clicks"),
-        Input("close-history-modal-tab1", "n_clicks"),
+        Input("tab-1-new-data-button-top", "n_clicks"),
+        Input("tab-1-new-data-button-bottom", "n_clicks"),
+        Input("tab-1-cancel-new-data-modal", "n_clicks"),
+        Input("tab-1-add-&-exit-new-data-modal", "n_clicks"),
     ],
-    [State("history-modal-tab1", "is_open")],
+    [State("tab-1-new-data-modal", "is_open")],
 )  # type: ignore
-def add_new_data_modal_open_close(open_clicks_1, open_clicks_2, close_clicks, is_open):
+def new_data_modal_open_close(
+    open_clicks_1: int,
+    open_clicks_2: int,
+    cancel_clicks: int,
+    add_exit_clicks: int,
+    is_open: bool,
+):
     """Open/close the "add new data" modal."""
-    if open_clicks_1 or open_clicks_2 or close_clicks:
-        return not is_open
-    return is_open
+    if open_clicks_1 or open_clicks_2 or cancel_clicks or add_exit_clicks:
+        return not is_open  # Change open/close state
+    return is_open  # Don't change open/close state
 
 
-@app.callback(
-    Output("history-modal-header-tab1", "children"),
-    [
-        Input("tab-1-filter-dropdown-inst", "value"),
-        Input("tab-1-filter-dropdown-labor", "value"),
-    ],
-)  # type: ignore
-def history_modal_header(histogram_name: str, collection_name: str) -> str:
-    """Return header for the history modal."""
-    return f"TODO {histogram_name} & {collection_name}"
-
-
-@app.callback(
-    Output("history-list-tab1", "children"),
-    [
-        Input("tab-1-filter-dropdown-inst", "value"),
-        Input("tab-1-filter-dropdown-labor", "value"),
-    ],
-)  # type: ignore
-def history_modal_list(
-    database_name: str, collection_name: str
-) -> Union[List[dbc.ListGroupItem], str]:
-    """Return list of history for the history modal."""
-
-    # TODO
-
-    # if button_id == "editing-rows-button":
-    #     # print(button_id)
-    #     if n_clicks_1 > 0:
-    #         rows.append({c["id"]: "" for c in columns})
-    #     return rows
-
-    return "TODO"
+# Input("tab-1-add-&-add-another-new-data-modal", "n_clicks"),
 
 
 # --------------------------------------------------------------------------------------
@@ -465,8 +481,8 @@ def history_modal_list(
     [
         Output("tab-1-name-email-icon", "children"),
         Output("tab-1-data-table", "editable"),
-        Output("tab-1-editing-rows-button-top", "disabled"),
-        Output("tab-1-editing-rows-button-bottom", "disabled"),
+        Output("tab-1-new-data-button-top", "disabled"),
+        Output("tab-1-new-data-button-bottom", "disabled"),
         Output("tab-1-how-to-edit-message", "children"),
     ],
     [Input("tab-1-input-name", "value"), Input("tab-1-input-email", "value")],
