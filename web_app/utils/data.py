@@ -1,7 +1,7 @@
 """REST interface for reading and writing MoU data."""
 
 
-from typing import cast, Dict, List
+from typing import Any, cast, Dict, List
 
 import pandas as pd  # type: ignore[import]
 
@@ -9,7 +9,7 @@ import pandas as pd  # type: ignore[import]
 _DF = pd.read_excel("WBS.xlsx").fillna("")
 
 
-def get_table(institution: str = "", labor: str = "") -> List[Dict[str, str]]:
+def get_table(institution: str = "", labor: str = "") -> List[Dict[str, Any]]:
     """Get table, optionally filtered by institution and/or labor."""
     dff = _DF
     # filter by labor
@@ -20,7 +20,15 @@ def get_table(institution: str = "", labor: str = "") -> List[Dict[str, str]]:
     if institution:
         dff = dff[dff["Institution"] == institution]
 
-    return cast(List[Dict[str, str]], dff.to_dict("records"))
+    def _row(row: Dict[str, Any]) -> Dict[str, str]:
+        for key in row.keys():
+            if isinstance(row[key], float):
+                row[key] = float(f"{row[key]:.2g}")
+        return row
+
+    # cast and remove any rows without any values
+    table = [_row(r) for r in dff.to_dict("records") if any(r.values())]
+    return table
 
 
 def get_table_columns() -> List[str]:
@@ -30,7 +38,6 @@ def get_table_columns() -> List[str]:
 
 # Institutions and Labor Categories filter dropdown menus
 _INSTITUTIONS = [i for i in _DF["Institution"].unique().tolist() if i]
-print(f"INSTITUTIONS: {_INSTITUTIONS}")
 
 
 def get_institutions() -> List[str]:
@@ -39,7 +46,6 @@ def get_institutions() -> List[str]:
 
 
 _LABOR = [b for b in _DF["Labor Cat."].unique().tolist() if b]
-print(f"LABOR: {_LABOR}")
 
 
 def get_labor() -> List[str]:

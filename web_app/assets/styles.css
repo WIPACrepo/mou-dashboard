@@ -1,3 +1,7 @@
+
+/* Dropdown Menus */
 .Select-menu-outer {
-    display : block !important;
+    display : block !important; /* make visible */
+    --accent : darkgreen;
+    padding-left: 1.5em;
 }

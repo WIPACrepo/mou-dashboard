@@ -1,6 +1,6 @@
 """Conditional in-cell drop-down menu with IceCube WBS MoU info."""
 
-from typing import Dict, List, Tuple, Union
+from typing import Collection, Dict, List, Tuple, Union
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -18,6 +18,22 @@ from ..utils.styles import CENTERED_100, WIDTH_45
 
 def _get_add_button(_id: str, block: bool = True) -> dbc.Button:
     return dbc.Button("+ Add New Data", id=_id, block=block, n_clicks=0, disabled=True)
+
+
+def _fixed_width_column(
+    _id: str, width: str, border_right: bool = False
+) -> Dict[str, Collection[str]]:
+    style = {
+        "if": {"column_id": _id},
+        "minWidth": width,
+        "width": width,
+        "maxWidth": width,
+    }
+
+    if border_right:
+        style["border-right"] = "1px solid black"
+
+    return style
 
 
 def layout() -> html.Div:
@@ -127,22 +143,57 @@ def layout() -> html.Div:
             dt.DataTable(
                 id="tab-1-data-table",
                 editable=False,
+                # sort_action="native",
+                # sort_mode="multi",
                 row_deletable=False,
                 # Styles
-                style_table={"overflowX": "scroll"},
+                style_table={"overflowX": "auto", "overflowY": "auto"},
+                style_header={
+                    "backgroundColor": "gainsboro",
+                    "fontWeight": "bold",
+                    "whiteSpace": "normal",
+                    "height": "auto",
+                    "lineHeight": "15px",
+                },
                 style_cell={
                     "textAlign": "left",
                     "fontSize": 14,
                     "font-family": "sans-serif",
                     "padding-left": "0.5em",
+                    # these widths will make it obvious if there's a new/extra column
+                    "minWidth": "10px",
+                    "width": "10px",
+                    "maxWidth": "10px",
                 },
                 style_cell_conditional=[
-                    {"if": {"column_id": "WBS L2"}, "padding-left": "1.5em"}
+                    {"if": {"column_id": "WBS L2"}, "padding-left": "1.5em"},
+                    _fixed_width_column("WBS L2", "225px"),
+                    _fixed_width_column("WBS L3", "225px", border_right=True),
+                    _fixed_width_column("US / Non-US", "65px"),
+                    _fixed_width_column("Institution", "85px"),
+                    _fixed_width_column("Labor Cat.", "85px"),
+                    _fixed_width_column("Names", "150px"),
+                    _fixed_width_column("Tasks", "300px"),
+                    _fixed_width_column(
+                        "Source of Funds (U.S. Only)", "130px", border_right=True
+                    ),
+                    _fixed_width_column("NSF M&O Core", "80px"),
+                    _fixed_width_column("NSF Base Grants", "80px"),
+                    _fixed_width_column("U.S. Institutional In-Kind", "80px"),
+                    _fixed_width_column(
+                        "Europe & Asia Pacific In-Kind", "80px", border_right=True
+                    ),
+                    _fixed_width_column("Grand Total", "80px"),
                 ],
+                style_data={
+                    "whiteSpace": "normal",
+                    "height": "auto",
+                    "lineHeight": "20px",
+                    "wordBreak": "normal",
+                },
                 style_data_conditional=[
                     {"if": {"row_index": "odd"}, "backgroundColor": "whitesmoke"}
                 ],
-                style_header={"backgroundColor": "gainsboro", "fontWeight": "bold"},
                 # Page Size
                 page_size=20,
                 # data set in callback
@@ -204,32 +255,38 @@ def table_data(institution: str, labor: str,) -> List[Dict[str, str]]:
 )
 def table_columns(_: bool) -> List[Dict[str, str]]:
     """Grab table columns."""
-    columns = [
-        {"id": "WBS L2", "name": "WBS L2 (new)", "presentation": "dropdown"},
-        {"id": "WBS L3", "name": "WBS L3 (new)", "presentation": "dropdown"},
-        {
-            "id": "Source of Funds (U.S. Only)",
-            "name": "Source of Funds (U.S. Only)",
-            "presentation": "dropdown",
-        },
-    ]
 
-    columns += [{"id": c, "name": c} for c in data.get_table_columns()]
+    def _presentation(col_name: str) -> str:
+        dropdowns = ("WBS L2", "WBS L3", "Source of Funds (U.S. Only)")
+        if col_name in dropdowns:
+            return "dropdown"
+        return "input"
+
+    columns = [
+        {"id": c, "name": c, "presentation": _presentation(c)}
+        for c in data.get_table_columns()
+    ]
 
     return columns
 
 
 @app.callback(  # type: ignore[misc]
-    Output("tab-1-data-table", "dropdown"), [Input("tab-1-data-table", "editable")],
+    [
+        Output("tab-1-data-table", "dropdown"),
+        Output("tab-1-data-table", "dropdown_conditional"),
+    ],
+    [Input("tab-1-data-table", "editable")],
 )
-def table_dropdown(_: bool) -> Dict[str, Dict[str, List[Dict[str, str]]]]:
+def table_dropdown(
+    _: bool,
+) -> Tuple[Dict[str, Dict[str, List[Dict[str, str]]]], List[Dict[str, object]]]:
     """Grab table dropdown."""
     dropdown = {
         "WBS L2": {
             "options": [
                 {"label": i, "value": i}
                 for i in data.get_column_dropdown_menu("WBS L2")
-            ]
+            ],
         },
         "Source of Funds (U.S. Only)": {
             "options": [
@@ -239,18 +296,7 @@ def table_dropdown(_: bool) -> Dict[str, Dict[str, List[Dict[str, str]]]]:
         },
     }
 
-    return dropdown
-
-
-@app.callback(
-    Output("tab-1-data-table", "dropdown_conditional"),
-    [Input("tab-1-data-table", "editable")],
-)  # type: ignore[misc]
-def table_dropdown_conditional(
-    _: bool,
-) -> List[Dict[str, Union[Dict[str, str], List[Dict[str, str]]]]]:
-    """Return the conditional filterings for the drop-down menu."""
-    return [
+    dropdown_conditional = [
         {
             "if": {
                 "column_id": "WBS L3",
@@ -352,6 +398,8 @@ def table_dropdown_conditional(
             ],
         },
     ]
+
+    return dropdown, dropdown_conditional
 
 
 # --------------------------------------------------------------------------------------
