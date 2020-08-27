@@ -1,6 +1,6 @@
 """Conditional in-cell drop-down menu with IceCube WBS MoU info."""
 
-from typing import Collection, Dict, List, Tuple, Union
+from typing import Any, Collection, Dict, List, Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -40,17 +40,34 @@ def _new_data_modal() -> dbc.Modal:
     return dbc.Modal(
         id="tab-1-new-data-modal",
         size="lg",
+        backdrop="static",
         children=[
             # Header
             dbc.ModalHeader("Add New Data"),
             # Body
-            dbc.ModalBody(),
+            dbc.ModalBody(
+                children=[  # "Data Added" confirmation label
+                    dbc.Alert(
+                        "Data Added ✔",
+                        id="tab-1-added-alert-new-data-modal",
+                        is_open=False,
+                        color="success",
+                        duration=4000,
+                        style={
+                            "font-size": "20px",
+                            "font-style": "oblique",
+                            "text-align": "center",
+                        },
+                    ),
+                    html.Div(id="tab-1-form-new-data-modal"),
+                ],
+            ),
             # Footer
             dbc.ModalFooter(
                 style={"display": "flex"},
                 children=[
                     html.Div(
-                        style={"width": "58%"},
+                        style={"width": "60%"},
                         children=[
                             dbc.Button(
                                 "Cancel",
@@ -61,6 +78,7 @@ def _new_data_modal() -> dbc.Modal:
                             ),
                         ],
                     ),
+                    # Save buttons
                     dbc.ButtonGroup(
                         style={
                             "width": "38%",
@@ -69,20 +87,22 @@ def _new_data_modal() -> dbc.Modal:
                             "justify-content": "flex-end",
                         },
                         children=[
+                            # "Add & Add Another" button
                             dbc.Button(
                                 "Add & Add Another",
                                 id="tab-1-add-&-add-another-new-data-modal",
                                 className="ml-auto",
                                 outline=True,
                                 color="success",
-                                style={"width": "50%"},
+                                style={"width": "60%"},
                             ),
+                            # "Add & Exit" button
                             dbc.Button(
                                 "Add & Exit",
                                 id="tab-1-add-&-exit-new-data-modal",
                                 className="ml-auto",
                                 color="success",
-                                style={"width": "50%"},
+                                style={"width": "40%"},
                             ),
                         ],
                     ),
@@ -464,13 +484,48 @@ def new_data_modal_open_close(
     add_exit_clicks: int,
     is_open: bool,
 ):
-    """Open/close the "add new data" modal."""
+    """Open/close the "add new data" modal.
+
+    If something was clicked -- change open/close state, otherwise...
+    nothing was clicked (AKA on page launch) -- don't change state.
+    """
     if open_clicks_1 or open_clicks_2 or cancel_clicks or add_exit_clicks:
-        return not is_open  # Change open/close state
-    return is_open  # Don't change open/close state
+        return not is_open
+    return is_open
 
 
-# Input("tab-1-add-&-add-another-new-data-modal", "n_clicks"),
+@app.callback(
+    Output("tab-1-added-alert-new-data-modal", "is_open"),
+    [Input("tab-1-add-&-add-another-new-data-modal", "n_clicks")],
+    [State("tab-1-added-alert-new-data-modal", "is_open")],
+)  # type: ignore
+def new_data_modal_added_alert(add_another_clicks: int, is_open: bool) -> bool:
+    """Save data from modal."""
+    if add_another_clicks:
+        # Button has never been clicked
+        return not is_open
+    return is_open
+
+
+@app.callback(
+    Output("tab-1-form-new-data-modal", "children"),
+    [
+        Input("tab-1-add-&-add-another-new-data-modal", "n_clicks"),
+        Input("tab-1-add-&-exit-new-data-modal", "n_clicks"),
+    ],
+    [
+        State("tab-1-form-new-data-modal", "children"),
+        State("tab-1-added-alert-new-data-modal", "is_open"),
+    ],
+)  # type: ignore
+def new_data_modal_add(
+    add_another_clicks: int, add_exit_clicks: int, children: List[Any], is_open: bool
+) -> List[Any]:
+    """Save data from modal."""
+    if not is_open:
+        return
+
+    print("SAVE!")
 
 
 # --------------------------------------------------------------------------------------
