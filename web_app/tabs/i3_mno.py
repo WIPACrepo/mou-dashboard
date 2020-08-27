@@ -16,6 +16,7 @@ from ..utils.styles import CENTERED_100, WIDTH_45
 SDict = Dict[str, str]
 
 
+
 # --------------------------------------------------------------------------------------
 # Layout
 
@@ -275,12 +276,10 @@ def layout() -> html.Div:
                     "lineHeight": "20px",
                     "wordBreak": "normal",
                 },
-                style_data_conditional=[
-                    {"if": {"row_index": "odd"}, "backgroundColor": "whitesmoke"}
-                ],
                 # Page Size
-                page_size=20,
+                page_size=15,
                 # data set in callback
+                # style_data_conditional set in callback
                 # columns set in callback
                 # dropdown set in callback
                 # dropdown_conditional set in callback
@@ -303,16 +302,63 @@ def layout() -> html.Div:
 
 
 @app.callback(  # type: ignore[misc]
-    Output("tab-1-data-table", "data"),
+    [
+        Output("tab-1-data-table", "data"),
+        Output("tab-1-data-table", "style_data_conditional"),
+    ],
     [
         Input("tab-1-filter-dropdown-inst", "value"),
         Input("tab-1-filter-dropdown-labor", "value"),
     ],
 )
-def table_data(institution: str, labor: str) -> List[SDict]:
+def table_data(
+    institution: str, labor: str
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Collection[str]]]]:
     """Grab table data, optionally filter rows."""
     table = data.get_table(institution=institution, labor=labor)
-    return table
+
+    # Make hidden copy of each column to detect changed values
+    for row in table:
+        row.update({i + "_hidden": v for i, v in row.items()})
+
+    # Style Data...
+    # zebra-stripe
+    style_data_conditional = [
+        {"if": {"row_index": "odd"}, "backgroundColor": "whitesmoke"},
+    ]
+    # stylize changed data
+    # https://community.plotly.com/t/highlight-cell-in-datatable-if-it-has-been-edited/28808/3
+    style_data_conditional += [
+        {
+            "if": {
+                "column_id": i,
+                "filter_query": "{{{0}}} != {{{0}_hidden}}".format(i),
+            },
+            "fontWeight": "bold",
+            "fontStyle": "oblique",
+        }
+        for i in data.get_table_columns()
+    ]
+
+    return table, style_data_conditional
+
+
+# @app.callback(  # type: ignore[misc]
+#     Output("tab-1-data-table", "style_data_conditional"),
+#     [Input("tab-1-data-table", "data")],
+#     [State("tab-1-data-table", "style_data_conditional")],
+# )
+# def table_data_change(
+#     data: str, style_data_conditional: List[Dict[str, SDict]]
+# ) -> List[Dict[str, SDict]]:
+#     """Grab table data, optionally filter rows."""
+#     print(style_data_conditional)
+
+#     if PREVIOUS_DATA:
+#         pass
+
+#     # PREVIOUS_DATA = data
+#     return style_data_conditional
 
 
 @app.callback(  # type: ignore[misc]
