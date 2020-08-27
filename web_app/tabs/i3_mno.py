@@ -1,6 +1,6 @@
 """Conditional in-cell drop-down menu with IceCube WBS MoU info."""
 
-from typing import Any, Collection, Dict, List, Tuple
+from typing import Any, Collection, Dict, List, Tuple, Union
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -11,6 +11,10 @@ from dash.dependencies import Input, Output, State  # type: ignore[import]
 from ..config import app
 from ..utils import data
 from ..utils.styles import CENTERED_100, WIDTH_45
+
+# Types
+SDict = Dict[str, str]
+
 
 # --------------------------------------------------------------------------------------
 # Layout
@@ -305,7 +309,7 @@ def layout() -> html.Div:
         Input("tab-1-filter-dropdown-labor", "value"),
     ],
 )
-def table_data(institution: str, labor: str,) -> List[Dict[str, str]]:
+def table_data(institution: str, labor: str) -> List[SDict]:
     """Grab table data, optionally filter rows."""
     table = data.get_table(institution=institution, labor=labor)
     return table
@@ -314,12 +318,11 @@ def table_data(institution: str, labor: str,) -> List[Dict[str, str]]:
 @app.callback(  # type: ignore[misc]
     Output("tab-1-data-table", "columns"), [Input("tab-1-data-table", "editable")],
 )
-def table_columns(_: bool) -> List[Dict[str, str]]:
+def table_columns(_: bool) -> List[SDict]:
     """Grab table columns."""
 
     def _presentation(col_name: str) -> str:
-        dropdowns = ("WBS L2", "WBS L3", "Source of Funds (U.S. Only)")
-        if col_name in dropdowns:
+        if data.is_column_dropdown(col_name):
             return "dropdown"
         return "input"
 
@@ -340,127 +343,51 @@ def table_columns(_: bool) -> List[Dict[str, str]]:
 )
 def table_dropdown(
     _: bool,
-) -> Tuple[Dict[str, Dict[str, List[Dict[str, str]]]], List[Dict[str, object]]]:
+) -> Tuple[
+    Dict[str, Dict[str, List[SDict]]], List[Dict[str, Union[SDict, List[SDict]]]],
+]:
     """Grab table dropdown."""
-    dropdown = {
-        "WBS L2": {
-            "options": [
-                {"label": i, "value": i}
-                for i in data.get_column_dropdown_menu("WBS L2")
-            ],
-        },
-        "Source of Funds (U.S. Only)": {
-            "options": [
-                {"label": i, "value": i}
-                for i in data.get_column_dropdown_menu("Source of Funds (U.S. Only)")
-            ]
-        },
-    }
+    simple_dropdowns = {}  # type: Dict[str, Dict[str, List[SDict]]]
+    conditional_dropdowns = []  # type: List[Dict[str, Union[SDict, List[SDict]]]]
 
-    dropdown_conditional = [
-        {
-            "if": {
-                "column_id": "WBS L3",
-                "filter_query": '{WBS L2} eq "2.1 Program Coordination"',
-            },
-            "options": [
-                {"label": i, "value": i}
-                for i in [
-                    "2.1.0 Program Coordination",
-                    "2.1.1 Administration",
-                    "2.1.2 Engineering and R&D Support",
-                    "2.1.3 USAP Support & Safety",
-                    "2.1.4 Education & Outreach",
-                    "2.1.5 Communications",
+    for column in data.get_dropdown_columns():
+        # Add simple dropdowns
+        if data.is_simple_dropdown(column):
+            simple_dropdowns[column] = {
+                "options": [
+                    {"label": i, "value": i}
+                    for i in data.get_simple_column_dropdown_menu(column)
                 ]
-            ],
-        },
-        {
-            "if": {
-                "column_id": "WBS L3",
-                "filter_query": '{WBS L2} eq "2.2 Detector Operations & Maintenance (Online)"',
-            },
-            "options": [
-                {"label": i, "value": i}
-                for i in [
-                    "2.2.0 Detector Operations & Maintenance",
-                    "2.2.1 Run Coordination",
-                    "2.2.2 Data Acquisition",
-                    "2.2.3 Online Filter (PnF)",
-                    "2.2.4 Detector Monitoring",
-                    "2.2.5 Experiment Control",
-                    "2.2.6 Surface Detectors",
-                    "2.2.7 Supernova System",
-                    "2.2.8 Real-Time Alerts",
-                    "2.2.9 SPS/SPTS",
-                ]
-            ],
-        },
-        {
-            "if": {
-                "column_id": "WBS L3",
-                "filter_query": '{WBS L2} eq "2.3 Computing & Data Management Services"',
-            },
-            "options": [
-                {"label": i, "value": i}
-                for i in [
-                    "2.3.0 Computing & Data Management Services",
-                    "2.3.1 Data Storage & Transfer",
-                    "2.3.2 Core Data Center Infrastructure",
-                    "2.3.3 Central Computing Resources",
-                    "2.3.4 Distributed Computing Resources",
-                ]
-            ],
-        },
-        {
-            "if": {
-                "column_id": "WBS L3",
-                "filter_query": '{WBS L2} eq "2.4 Data Processing & Simulation Services"',
-            },
-            "options": [
-                {"label": i, "value": i}
-                for i in [
-                    "2.4.0 Data Processing & Simulation Services",
-                    "2.4.1 Offline Data Production",
-                    "2.4.2 Simulation Production",
-                    "2.4.3 Public Data Products",
-                ]
-            ],
-        },
-        {
-            "if": {
-                "column_id": "WBS L3",
-                "filter_query": '{WBS L2} eq "2.5 Software"',
-            },
-            "options": [
-                {"label": i, "value": i}
-                for i in [
-                    "2.5.0 Software",
-                    "2.5.1 Core Software",
-                    "2.5.2 Simulation Software",
-                    "2.5.3 Reconstruction",
-                    "2.5.4 Science Support Tools",
-                    "2.5.5 Software Development Infrastructure",
-                ]
-            ],
-        },
-        {
-            "if": {
-                "column_id": "WBS L3",
-                "filter_query": '{WBS L2} eq "2.6 Calibration"',
-            },
-            "options": [
-                {"label": i, "value": i}
-                for i in [
-                    "2.6.0 Calibration",
-                    "2.6.1 Detector Calibration",
-                    "2.6.2 Ice Properties",
-                ]
-            ],
-        },
-    ]
+            }
 
-    return dropdown, dropdown_conditional
+        # Add conditional dropdowns
+        elif data.is_conditional_dropdown(column):
+            dependee_col_name, dependee_col_opts = data.get_conditional_column_dependee(
+                column
+            )
+            for dependee_column_option in dependee_col_opts:
+                conditional_dropdowns.append(
+                    {
+                        "if": {
+                            "column_id": column,
+                            "filter_query": f'''{{{dependee_col_name}}} eq "{dependee_column_option}"''',
+                        },
+                        "options": [
+                            {"label": i, "value": i}
+                            for i in data.get_conditional_column_dropdown_menu(
+                                column, dependee_column_option
+                            )
+                        ],
+                    }
+                )
+
+        # Error
+        else:
+            raise Exception(
+                f"Dropdown column ({column}) is not simple nor conditional."
+            )
+
+    return simple_dropdowns, conditional_dropdowns
 
 
 # --------------------------------------------------------------------------------------
@@ -523,7 +450,7 @@ def new_data_modal_add(
 ) -> List[Any]:
     """Save data from modal."""
     if not is_open:
-        return
+        return []
 
     print("SAVE!")
 
