@@ -13,7 +13,7 @@ _DF = pd.read_excel("WBS.xlsx").fillna("")
 # Data/Table functions
 
 
-def get_table(institution: str = "", labor: str = "") -> List[Dict[str, Any]]:
+def pull_data_table(institution: str = "", labor: str = "") -> List[Dict[str, Any]]:
     """Get table, optionally filtered by institution and/or labor."""
     dff = _DF
     # filter by labor
@@ -33,6 +33,11 @@ def get_table(institution: str = "", labor: str = "") -> List[Dict[str, Any]]:
     # cast and remove any rows without any values
     table = [_row(r) for r in dff.to_dict("records") if any(r.values())]
     return table
+
+
+def push_data_row(new_data_row: Dict[str, str]) -> None:
+    """Push new/changed data row to source."""
+    _DF.iloc[0] = new_data_row  # add as top row
 
 
 # --------------------------------------------------------------------------------------

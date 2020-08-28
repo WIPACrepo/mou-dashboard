@@ -2,6 +2,7 @@
 
 from typing import Any, Collection, Dict, List, Tuple, Union
 
+import dash  # type: ignore[import]
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
@@ -9,12 +10,13 @@ import dash_table as dt  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
 
 from ..config import app
-from ..utils import data
+from ..utils import data_source
 from ..utils.styles import CENTERED_100, WIDTH_45
 
 # Types
 SDict = Dict[str, str]
-
+DTable = List[Dict[str, Any]]
+SDCond = List[Dict[str, Collection[str]]]
 
 
 # --------------------------------------------------------------------------------------
@@ -39,82 +41,6 @@ def _style_cell_conditional_fixed_width(
         style["border-right"] = "1px solid black"
 
     return style
-
-
-def _new_data_modal() -> dbc.Modal:
-    return dbc.Modal(
-        id="tab-1-new-data-modal",
-        size="lg",
-        backdrop="static",
-        children=[
-            # Header
-            dbc.ModalHeader("Add New Data"),
-            # Body
-            dbc.ModalBody(
-                children=[  # "Data Added" confirmation label
-                    dbc.Alert(
-                        "Data Added ✔",
-                        id="tab-1-added-alert-new-data-modal",
-                        is_open=False,
-                        color="success",
-                        duration=4000,
-                        style={
-                            "font-size": "20px",
-                            "font-style": "oblique",
-                            "text-align": "center",
-                        },
-                    ),
-                    html.Div(id="tab-1-form-new-data-modal"),
-                ],
-            ),
-            # Footer
-            dbc.ModalFooter(
-                style={"display": "flex"},
-                children=[
-                    html.Div(
-                        style={"width": "60%"},
-                        children=[
-                            dbc.Button(
-                                "Cancel",
-                                id="tab-1-cancel-new-data-modal",
-                                className="ml-auto",
-                                outline=True,
-                                color="danger",
-                            ),
-                        ],
-                    ),
-                    # Save buttons
-                    dbc.ButtonGroup(
-                        style={
-                            "width": "38%",
-                            "display": "flex",
-                            "flex-direction": "row",
-                            "justify-content": "flex-end",
-                        },
-                        children=[
-                            # "Add & Add Another" button
-                            dbc.Button(
-                                "Add & Add Another",
-                                id="tab-1-add-&-add-another-new-data-modal",
-                                className="ml-auto",
-                                outline=True,
-                                color="success",
-                                style={"width": "60%"},
-                            ),
-                            # "Add & Exit" button
-                            dbc.Button(
-                                "Add & Exit",
-                                id="tab-1-add-&-exit-new-data-modal",
-                                className="ml-auto",
-                                color="success",
-                                style={"width": "40%"},
-                            ),
-                        ],
-                    ),
-                ],
-            ),
-        ],
-    )
 
 
 def layout() -> html.Div:
@@ -177,7 +103,7 @@ def layout() -> html.Div:
                                         id="tab-1-filter-dropdown-inst",
                                         options=[
                                             {"label": st, "value": st}
-                                            for st in data.get_institutions()
+                                            for st in data_source.get_institutions()
                                         ],
                                         value="",
                                         # multi=True
@@ -193,7 +119,7 @@ def layout() -> html.Div:
                                         id="tab-1-filter-dropdown-labor",
                                         options=[
                                             {"label": st, "value": st}
-                                            for st in data.get_labor()
+                                            for st in data_source.get_labor()
                                         ],
                                         value="",
                                         # multi=True
@@ -291,8 +217,6 @@ def layout() -> html.Div:
                     _new_data_button("tab-1-new-data-button-bottom", block=False)
                 ],
             ),
-            # Modal for Adding New Data
-            _new_data_modal(),
         ]
     )
 
@@ -309,38 +233,71 @@ def layout() -> html.Div:
     [
         Input("tab-1-filter-dropdown-inst", "value"),
         Input("tab-1-filter-dropdown-labor", "value"),
+        Input("tab-1-new-data-button-top", "n_clicks"),
+        Input("tab-1-new-data-button-bottom", "n_clicks"),
     ],
-)
+    [State("tab-1-data-table", "data"), State("tab-1-data-table", "columns")],
+)  # pylint: disable=R0913
 def table_data(
-    institution: str, labor: str
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Collection[str]]]]:
+    institution: str,
+    labor: str,
+    n_clicks_top: int,
+    n_clicks_bottom: int,
+    state_data_table: DTable,
+    state_columns: List[Dict[str, str]],
+) -> Tuple[DTable, SDCond]:
     """Grab table data, optionally filter rows."""
-    table = data.get_table(institution=institution, labor=labor)
+
+    def _get_style_data_conditional(columns: List[str]) -> SDCond:
+        """Style Data..."""
+        # zebra-stripe
+        style_data_conditional = [
+            {"if": {"row_index": "odd"}, "backgroundColor": "whitesmoke"},
+        ]
+        # stylize changed data
+        # https://community.plotly.com/t/highlight-cell-in-datatable-if-it-has-been-edited/28808/3
+        style_data_conditional += [
+            {
+                "if": {
+                    "column_id": i,
+                    "filter_query": "{{{0}}} != {{{0}_hidden}}".format(i),
+                },
+                # "fontWeight": "bold",
+                "color": "darkgreen",
+                "fontStyle": "oblique",
+            }
+            for i in columns
+        ]
+        return style_data_conditional
+
+    # https://dash.plotly.com/advanced-callbacks
+    triggered = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
+
+    # Add New Data
+    if triggered in ["tab-1-new-data-button-top", "tab-1-new-data-button-bottom"]:
+        # no data_source calls
+        column_names = [c["name"] for c in state_columns]
+        new_data_row = {n: "" for n in column_names}
+
+        # add labor and/or institution, then push to data source
+        if labor or institution:
+            new_data_row["Labor Cat."] = labor
+            new_data_row["Institution"] = institution
+            data_source.push_data_row(new_data_row)
+
+        # add to table and return
+        state_data_table.insert(0, new_data_row)
+        return state_data_table, _get_style_data_conditional(column_names)
+
+    #
+    # Else: Page Load
+    table = data_source.pull_data_table(institution=institution, labor=labor)
 
     # Make hidden copy of each column to detect changed values
     for row in table:
         row.update({i + "_hidden": v for i, v in row.items()})
 
-    # Style Data...
-    # zebra-stripe
-    style_data_conditional = [
-        {"if": {"row_index": "odd"}, "backgroundColor": "whitesmoke"},
-    ]
-    # stylize changed data
-    # https://community.plotly.com/t/highlight-cell-in-datatable-if-it-has-been-edited/28808/3
-    style_data_conditional += [
-        {
-            "if": {
-                "column_id": i,
-                "filter_query": "{{{0}}} != {{{0}_hidden}}".format(i),
-            },
-            "fontWeight": "bold",
-            "fontStyle": "oblique",
-        }
-        for i in data.get_table_columns()
-    ]
-
-    return table, style_data_conditional
+    return table, _get_style_data_conditional(data_source.get_table_columns())
 
 
 # @app.callback(  # type: ignore[misc]
@@ -368,13 +325,13 @@ def table_columns(_: bool) -> List[SDict]:
     """Grab table columns."""
 
     def _presentation(col_name: str) -> str:
-        if data.is_column_dropdown(col_name):
+        if data_source.is_column_dropdown(col_name):
             return "dropdown"
         return "input"
 
     columns = [
         {"id": c, "name": c, "presentation": _presentation(c)}
-        for c in data.get_table_columns()
+        for c in data_source.get_table_columns()
     ]
 
     return columns
@@ -396,21 +353,22 @@ def table_dropdown(
     simple_dropdowns = {}  # type: Dict[str, Dict[str, List[SDict]]]
     conditional_dropdowns = []  # type: List[Dict[str, Union[SDict, List[SDict]]]]
 
-    for column in data.get_dropdown_columns():
+    for column in data_source.get_dropdown_columns():
         # Add simple dropdowns
-        if data.is_simple_dropdown(column):
+        if data_source.is_simple_dropdown(column):
             simple_dropdowns[column] = {
                 "options": [
                     {"label": i, "value": i}
-                    for i in data.get_simple_column_dropdown_menu(column)
+                    for i in data_source.get_simple_column_dropdown_menu(column)
                 ]
             }
 
         # Add conditional dropdowns
-        elif data.is_conditional_dropdown(column):
-            dependee_col_name, dependee_col_opts = data.get_conditional_column_dependee(
-                column
-            )
+        elif data_source.is_conditional_dropdown(column):
+            (
+                dependee_col_name,
+                dependee_col_opts,
+            ) = data_source.get_conditional_column_dependee(column)
             for dependee_column_option in dependee_col_opts:
                 conditional_dropdowns.append(
                     {
@@ -420,7 +378,7 @@ def table_dropdown(
                         },
                         "options": [
                             {"label": i, "value": i}
-                            for i in data.get_conditional_column_dropdown_menu(
+                            for i in data_source.get_conditional_column_dropdown_menu(
                                 column, dependee_column_option
                             )
                         ],
@@ -436,69 +394,15 @@ def table_dropdown(
     return simple_dropdowns, conditional_dropdowns
 
 
-# --------------------------------------------------------------------------------------
-# "New Data" Modal Callbacks
-
-
-@app.callback(
-    Output("tab-1-new-data-modal", "is_open"),
-    [
-        Input("tab-1-new-data-button-top", "n_clicks"),
-        Input("tab-1-new-data-button-bottom", "n_clicks"),
-        Input("tab-1-cancel-new-data-modal", "n_clicks"),
-        Input("tab-1-add-&-exit-new-data-modal", "n_clicks"),
-    ],
-    [State("tab-1-new-data-modal", "is_open")],
-)  # type: ignore
-def new_data_modal_open_close(
-    open_clicks_1: int,
-    open_clicks_2: int,
-    cancel_clicks: int,
-    add_exit_clicks: int,
-    is_open: bool,
-):
-    """Open/close the "add new data" modal.
-
-    If something was clicked -- change open/close state, otherwise...
-    nothing was clicked (AKA on page launch) -- don't change state.
-    """
-    if open_clicks_1 or open_clicks_2 or cancel_clicks or add_exit_clicks:
-        return not is_open
-    return is_open
-
-
-@app.callback(
-    Output("tab-1-added-alert-new-data-modal", "is_open"),
-    [Input("tab-1-add-&-add-another-new-data-modal", "n_clicks")],
-    [State("tab-1-added-alert-new-data-modal", "is_open")],
-)  # type: ignore
-def new_data_modal_added_alert(add_another_clicks: int, is_open: bool) -> bool:
-    """Save data from modal."""
-    if add_another_clicks:
-        # Button has never been clicked
-        return not is_open
-    return is_open
-
-
-@app.callback(
-    Output("tab-1-form-new-data-modal", "children"),
-    [
-        Input("tab-1-add-&-add-another-new-data-modal", "n_clicks"),
-        Input("tab-1-add-&-exit-new-data-modal", "n_clicks"),
-    ],
-    [
-        State("tab-1-form-new-data-modal", "children"),
-        State("tab-1-added-alert-new-data-modal", "is_open"),
-    ],
-)  # type: ignore
-def new_data_modal_add(
-    add_another_clicks: int, add_exit_clicks: int, children: List[Any], is_open: bool
-) -> List[Any]:
-    """Save data from modal."""
-    if not is_open:
-        return []
-
-    print("SAVE!")
+# @app.callback(
+#     Output("tab-1-data-table", "data"),
+#     [],
+#     [State("tab-1-data-table", "data"), State("tab-1-data-table", "columns")],
+# )
+# def add_row(n_clicks, rows, columns):
+#     if n_clicks:
+#         rows.append({c["id"]: "" for c in columns})
+#     return rows
 
 
 # --------------------------------------------------------------------------------------
@@ -536,3 +440,6 @@ def auth_updates(name: str, email: str) -> Tuple[str, bool, bool, bool, str]:
         add_button_off,
         "sign in to edit",
     )
+
+
+# TODO - add "View All Rows" button -> page_size = <# of rows>
