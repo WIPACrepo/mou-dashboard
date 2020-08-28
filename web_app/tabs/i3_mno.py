@@ -8,7 +8,7 @@ import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 import dash_table as dt  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
-from dash_table.Format import Format
+from dash_table.Format import Format  # type: ignore[import]
 
 from ..config import app
 from ..utils import data_source
@@ -384,43 +384,35 @@ def table_dropdown(
     simple_dropdowns = {}  # type: Dict[str, Dict[str, List[SDict]]]
     conditional_dropdowns = []  # type: List[Dict[str, Union[SDict, List[SDict]]]]
 
-    for column in data_source.get_dropdown_columns():
+    def _options(menu: List[str]) -> List[SDict]:
+        return [{"label": opt, "value": opt} for opt in menu]
+
+    for col in data_source.get_dropdown_columns():
         # Add simple dropdowns
-        if data_source.is_simple_dropdown(column):
-            simple_dropdowns[column] = {
-                "options": [
-                    {"label": i, "value": i}
-                    for i in data_source.get_simple_column_dropdown_menu(column)
-                ]
-            }
+        if data_source.is_simple_dropdown(col):
+            dropdown = data_source.get_simple_column_dropdown_menu(col)
+            simple_dropdowns[col] = {"options": _options(dropdown)}
 
         # Add conditional dropdowns
-        elif data_source.is_conditional_dropdown(column):
-            (
-                dependee_col_name,
-                dependee_col_opts,
-            ) = data_source.get_conditional_column_dependee(column)
-            for dependee_column_option in dependee_col_opts:
+        elif data_source.is_conditional_dropdown(col):
+            dep_col_name, dep_col_opts = data_source.get_conditional_column_dependee(
+                col
+            )
+            for opt in dep_col_opts:
+                dropdown = data_source.get_conditional_column_dropdown_menu(col, opt)
                 conditional_dropdowns.append(
                     {
                         "if": {
-                            "column_id": column,
-                            "filter_query": f'''{{{dependee_col_name}}} eq "{dependee_column_option}"''',
+                            "column_id": col,
+                            "filter_query": f'''{{{dep_col_name}}} eq "{opt}"''',
                         },
-                        "options": [
-                            {"label": i, "value": i}
-                            for i in data_source.get_conditional_column_dropdown_menu(
-                                column, dependee_column_option
-                            )
-                        ],
+                        "options": _options(dropdown),
                     }
                 )
 
         # Error
         else:
-            raise Exception(
-                f"Dropdown column ({column}) is not simple nor conditional."
-            )
+            raise Exception(f"Dropdown column ({col}) is not simple nor conditional.")
 
     return simple_dropdowns, conditional_dropdowns
 
