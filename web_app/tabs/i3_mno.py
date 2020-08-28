@@ -18,6 +18,9 @@ SDict = Dict[str, str]
 DTable = List[Dict[str, Any]]
 SDCond = List[Dict[str, Collection[str]]]
 
+# Constants
+LABOR_LABEL = "Labor Cat."
+INSTITUTION_LABEL = "Institution"
 
 # --------------------------------------------------------------------------------------
 # Layout
@@ -41,6 +44,29 @@ def _style_cell_conditional_fixed_width(
         style["border-right"] = "1px solid black"
 
     return style
+
+
+def _style_cell_conditional() -> List[Dict[str, Collection[str]]]:
+    return [
+        {"if": {"column_id": "WBS L2"}, "padding-left": "1.5em"},
+        _style_cell_conditional_fixed_width("WBS L2", "225px"),
+        _style_cell_conditional_fixed_width("WBS L3", "225px", border_right=True),
+        _style_cell_conditional_fixed_width("US / Non-US", "65px"),
+        _style_cell_conditional_fixed_width(INSTITUTION_LABEL, "85px"),
+        _style_cell_conditional_fixed_width(LABOR_LABEL, "85px"),
+        _style_cell_conditional_fixed_width("Names", "150px"),
+        _style_cell_conditional_fixed_width("Tasks", "300px"),
+        _style_cell_conditional_fixed_width(
+            "Source of Funds (U.S. Only)", "130px", border_right=True
+        ),
+        _style_cell_conditional_fixed_width("NSF M&O Core", "80px"),
+        _style_cell_conditional_fixed_width("NSF Base Grants", "80px"),
+        _style_cell_conditional_fixed_width("U.S. Institutional In-Kind", "80px"),
+        _style_cell_conditional_fixed_width(
+            "Europe & Asia Pacific In-Kind", "80px", border_right=True
+        ),
+        _style_cell_conditional_fixed_width("Grand Total", "80px"),
+    ]
 
 
 def layout() -> html.Div:
@@ -172,30 +198,7 @@ def layout() -> html.Div:
                     "width": "10px",
                     "maxWidth": "10px",
                 },
-                style_cell_conditional=[
-                    {"if": {"column_id": "WBS L2"}, "padding-left": "1.5em"},
-                    _style_cell_conditional_fixed_width("WBS L2", "225px"),
-                    _style_cell_conditional_fixed_width(
-                        "WBS L3", "225px", border_right=True
-                    ),
-                    _style_cell_conditional_fixed_width("US / Non-US", "65px"),
-                    _style_cell_conditional_fixed_width("Institution", "85px"),
-                    _style_cell_conditional_fixed_width("Labor Cat.", "85px"),
-                    _style_cell_conditional_fixed_width("Names", "150px"),
-                    _style_cell_conditional_fixed_width("Tasks", "300px"),
-                    _style_cell_conditional_fixed_width(
-                        "Source of Funds (U.S. Only)", "130px", border_right=True
-                    ),
-                    _style_cell_conditional_fixed_width("NSF M&O Core", "80px"),
-                    _style_cell_conditional_fixed_width("NSF Base Grants", "80px"),
-                    _style_cell_conditional_fixed_width(
-                        "U.S. Institutional In-Kind", "80px"
-                    ),
-                    _style_cell_conditional_fixed_width(
-                        "Europe & Asia Pacific In-Kind", "80px", border_right=True
-                    ),
-                    _style_cell_conditional_fixed_width("Grand Total", "80px"),
-                ],
+                style_cell_conditional=_style_cell_conditional(),
                 style_data={
                     "whiteSpace": "normal",
                     "height": "auto",
@@ -281,8 +284,8 @@ def table_data(
 
         # add labor and/or institution, then push to data source
         if labor or institution:
-            new_data_row["Labor Cat."] = labor
-            new_data_row["Institution"] = institution
+            new_data_row[LABOR_LABEL] = labor
+            new_data_row[INSTITUTION_LABEL] = institution
             data_source.push_data_row(new_data_row)
 
         # add to table and return
@@ -293,7 +296,7 @@ def table_data(
     # Else: Page Load
     table = data_source.pull_data_table(institution=institution, labor=labor)
 
-    # Make hidden copy of each column to detect changed values
+    # Make a hidden copy of each column to detect changed values
     for row in table:
         row.update({i + "_hidden": v for i, v in row.items()})
 
