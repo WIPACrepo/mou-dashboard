@@ -374,7 +374,7 @@ def table_dropdown(
 ) -> Tuple[
     Dict[str, Dict[str, List[SDict]]], List[Dict[str, Union[SDict, List[SDict]]]],
 ]:
-    """Grab table dropdown."""
+    """Grab table dropdowns."""
     simple_dropdowns = {}  # type: Dict[str, Dict[str, List[SDict]]]
     conditional_dropdowns = []  # type: List[Dict[str, Union[SDict, List[SDict]]]]
 

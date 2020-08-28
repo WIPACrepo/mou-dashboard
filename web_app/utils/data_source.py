@@ -28,14 +28,8 @@ def pull_data_table(institution: str = "", labor: str = "") -> List[Dict[str, An
     if institution:
         dff = dff[dff[INSTITUTION_LABEL] == institution]
 
-    def _row(row: Dict[str, Any]) -> Dict[str, str]:
-        # for key in row.keys():
-        # if isinstance(row[key], float):
-        # row[key] = float(f"{row[key]:.2g}")
-        return row
-
     # cast and remove any rows without any values
-    table = [_row(r) for r in dff.to_dict("records") if any(r.values())]
+    table = [r for r in dff.to_dict("records") if any(r.values())]
     return table
 
 
@@ -69,8 +63,20 @@ _SIMPLE_DROPDOWN_MENUS = {
         "Non-US In-kind",
     ],
     "US / Non-US": ["US", "Non-US"],
-    "Institution": ["KE", "GR", "PO", "SC", "AD", "EN", "MA", "IT", "WO", "CS", "DS"],
-    "Labor Cat.": [
+    LABOR_CAT_LABEL: [
+        "KE",
+        "GR",
+        "PO",
+        "SC",
+        "AD",
+        "EN",
+        "MA",
+        "IT",
+        "WO",
+        "CS",
+        "DS",
+    ],
+    INSTITUTION_LABEL: [
         "LBNL",
         "UWRF",
         "DREXEL",
@@ -259,8 +265,8 @@ _WIDTHS = {
     "WBS L2": 225,
     "WBS L3": 225,
     "US / Non-US": 65,
-    INSTITUTION_LABEL: 85,
     LABOR_CAT_LABEL: 85,
+    INSTITUTION_LABEL: 100,
     "Names": 150,
     "Tasks": 300,
     "Source of Funds (U.S. Only)": 130,
@@ -268,7 +274,7 @@ _WIDTHS = {
     "NSF Base Grants": 80,
     "U.S. Institutional In-Kind": 80,
     "Europe & Asia Pacific In-Kind": 80,
-    "Grand Total": 80,
+    "Grand Total": 60,
 }
 
 
