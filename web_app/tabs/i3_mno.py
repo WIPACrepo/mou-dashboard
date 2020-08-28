@@ -62,26 +62,16 @@ def _style_cell_conditional_fixed_width(
 
 
 def _style_cell_conditional() -> List[Dict[str, Collection[str]]]:
-    return [
-        {"if": {"column_id": "WBS L2"}, "padding-left": "1.5em"},
-        _style_cell_conditional_fixed_width("WBS L2", "225px"),
-        _style_cell_conditional_fixed_width("WBS L3", "225px", border_right=True),
-        _style_cell_conditional_fixed_width("US / Non-US", "65px"),
-        _style_cell_conditional_fixed_width(data_source.INSTITUTION_LABEL, "85px"),
-        _style_cell_conditional_fixed_width(data_source.LABOR_CAT_LABEL, "85px"),
-        _style_cell_conditional_fixed_width("Names", "150px"),
-        _style_cell_conditional_fixed_width("Tasks", "300px"),
-        _style_cell_conditional_fixed_width(
-            "Source of Funds (U.S. Only)", "130px", border_right=True
-        ),
-        _style_cell_conditional_fixed_width("NSF M&O Core", "80px"),
-        _style_cell_conditional_fixed_width("NSF Base Grants", "80px"),
-        _style_cell_conditional_fixed_width("U.S. Institutional In-Kind", "80px"),
-        _style_cell_conditional_fixed_width(
-            "Europe & Asia Pacific In-Kind", "80px", border_right=True
-        ),
-        _style_cell_conditional_fixed_width("Grand Total", "80px"),
-    ]
+    style_cell_conditional = []
+
+    for col in data_source.get_table_columns():
+        width = f"{data_source.get_column_width(col)}px"
+        border_right = data_source.has_border_right(col)
+        style_cell_conditional.append(
+            _style_cell_conditional_fixed_width(col, width, border_right=border_right)
+        )
+
+    return style_cell_conditional
 
 
 def layout() -> html.Div:
@@ -195,7 +185,11 @@ def layout() -> html.Div:
                 # sort_mode="multi",
                 row_deletable=False,
                 # Styles
-                style_table={"overflowX": "auto", "overflowY": "auto"},
+                style_table={
+                    "overflowX": "auto",
+                    "overflowY": "auto",
+                    "padding-left": "1em",
+                },
                 style_header={
                     "backgroundColor": "gainsboro",
                     "fontWeight": "bold",

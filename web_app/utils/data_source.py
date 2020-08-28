@@ -251,4 +251,39 @@ def get_conditional_column_dependee(column: str) -> Tuple[str, List[str]]:
 def get_conditional_column_dropdown_menu(
     column: str, dependee_column_option: str
 ) -> List[str]:
+    """Get the dropdown menu for a conditional dropdown-column."""
     return _CONDITIONAL_DROPDOWN_MENUS[column][1][dependee_column_option]
+
+
+_WIDTHS = {
+    "WBS L2": 225,
+    "WBS L3": 225,
+    "US / Non-US": 65,
+    INSTITUTION_LABEL: 85,
+    LABOR_CAT_LABEL: 85,
+    "Names": 150,
+    "Tasks": 300,
+    "Source of Funds (U.S. Only)": 130,
+    "NSF M&O Core": 80,
+    "NSF Base Grants": 80,
+    "U.S. Institutional In-Kind": 80,
+    "Europe & Asia Pacific In-Kind": 80,
+    "Grand Total": 80,
+}
+
+
+def get_column_width(column: str) -> int:
+    """Return the pixel width of a given column."""
+    return _WIDTHS[column]
+
+
+_BORDER_RIGHT_COLUMNS = [
+    "Source of Funds (U.S. Only)",
+    "WBS L3",
+    "Europe & Asia Pacific In-Kind",
+]
+
+
+def has_border_right(column: str) -> bool:
+    """Return whether column has a border to its right."""
+    return column in _BORDER_RIGHT_COLUMNS
