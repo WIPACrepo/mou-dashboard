@@ -5,3 +5,22 @@
     --accent : darkgreen;
     padding-left: 1.5em;
 }
+
+/* Buttons above DataTable */
+.dash-spreadsheet-menu{
+    position: relative;
+    float: right;
+    margin-bottom: 0.5em;
+}
+
+.dash-spreadsheet-menu > * {
+    padding-right: 0px !important;
+    padding-left: 0.5em !important;
+}
+
+/* Hide the column header "hide" icon */
+.column-header--hide{
+    visibility: hidden !important;
+    padding: 0;
+    width: 0;
+}

@@ -136,7 +136,7 @@ def layout() -> html.Div:
                             html.Div(
                                 style=WIDTH_45,
                                 children=[
-                                    html.Div(children="Filter by Institution"),
+                                    html.Div(children="Institution"),
                                     # Institution filter dropdown menu
                                     dcc.Dropdown(
                                         id="tab-1-filter-dropdown-inst",
@@ -153,7 +153,7 @@ def layout() -> html.Div:
                                 style=WIDTH_45,
                                 children=[
                                     # Labor Category filter dropdown menu
-                                    html.Div(children="Filter by Labor Category"),
+                                    html.Div(children="Labor Category"),
                                     dcc.Dropdown(
                                         id="tab-1-filter-dropdown-labor",
                                         options=[
@@ -228,16 +228,21 @@ def layout() -> html.Div:
                 # columns set in callback
                 # dropdown set in callback
                 # dropdown_conditional set in callback
+                export_format="xlsx",
+                export_headers="display",
+                merge_duplicate_headers=True,
             ),
-            # Add Button
+            # Bottom Buttons
             html.Div(
                 style={"margin-top": "0.5em"},
                 children=[
+                    # New Data
                     _new_data_button("tab-1-new-data-button-bottom", block=False),
+                    # Show All
                     dbc.Button(
                         id="tab-1-show-all-button",
                         n_clicks=0,
-                        style={"margin-left": "0.5em"},
+                        style={"margin-left": "1em"},
                     ),
                 ],
             ),
@@ -315,6 +320,7 @@ def table_data(
     table = data_source.pull_data_table(institution=institution, labor=labor)
 
     # Make a hidden copy of each column to detect changed values
+    # they're "hidden" b/c these duplicate columns aren't in the 'columns' property
     for row in table:
         row.update({i + "_hidden": v for i, v in row.items()})
 
@@ -363,6 +369,7 @@ def table_columns(table_editable: bool) -> List[SDict]:
             "type": _type(c),
             "format": Format(precision=2, scheme="f"),  # always 2 decimals
             "editable": table_editable and data_source.is_column_editable(c),
+            "hideable": True,
         }
         for c in data_source.get_table_columns()
     ]
