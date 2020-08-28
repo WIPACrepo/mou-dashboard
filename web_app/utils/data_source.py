@@ -270,11 +270,11 @@ _WIDTHS = {
     "Names": 150,
     "Tasks": 300,
     "Source of Funds (U.S. Only)": 130,
-    "NSF M&O Core": 80,
-    "NSF Base Grants": 80,
-    "U.S. Institutional In-Kind": 80,
-    "Europe & Asia Pacific In-Kind": 80,
-    "Grand Total": 60,
+    "NSF M&O Core": 90,
+    "NSF Base Grants": 90,
+    "U.S. Institutional In-Kind": 90,
+    "Europe & Asia Pacific In-Kind": 90,
+    "Grand Total": 90,
 }
 
 

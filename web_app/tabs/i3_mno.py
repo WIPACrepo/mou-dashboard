@@ -46,7 +46,7 @@ def _new_data_button(_id: str, block: bool = True) -> dbc.Button:
 
 
 def _style_cell_conditional_fixed_width(
-    _id: str, width: str, border_right: bool = False
+    _id: str, width: str, border_right: bool = False, align_right: bool = False
 ) -> Dict[str, Collection[str]]:
     style = {
         "if": {"column_id": _id},
@@ -58,18 +58,26 @@ def _style_cell_conditional_fixed_width(
     if border_right:
         style["border-right"] = "1px solid black"
 
+    if align_right:
+        style["textAlign"] = "right"
+
     return style
 
 
 def _style_cell_conditional() -> List[Dict[str, Collection[str]]]:
     style_cell_conditional = []
 
-    for col in data_source.get_table_columns():
-        width = f"{data_source.get_column_width(col)}px"
-        border_right = data_source.has_border_right(col)
-        style_cell_conditional.append(
-            _style_cell_conditional_fixed_width(col, width, border_right=border_right)
+    for col_name in data_source.get_table_columns():
+        # get values
+        width = f"{data_source.get_column_width(col_name)}px"
+        border_right = data_source.has_border_right(col_name)
+        align_right = data_source.is_column_numeric(col_name)
+
+        # set & add style
+        style = _style_cell_conditional_fixed_width(
+            col_name, width, border_right=border_right, align_right=align_right
         )
+        style_cell_conditional.append(style)
 
     return style_cell_conditional
 
