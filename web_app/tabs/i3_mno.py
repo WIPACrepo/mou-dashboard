@@ -8,6 +8,7 @@ import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 import dash_table as dt  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
+from dash_table.Format import Format
 
 from ..config import app
 from ..utils import data_source
@@ -339,16 +340,28 @@ def table_data(
 @app.callback(  # type: ignore[misc]
     Output("tab-1-data-table", "columns"), [Input("tab-1-data-table", "editable")],
 )
-def table_columns(_: bool) -> List[SDict]:
+def table_columns(table_editable: bool) -> List[SDict]:
     """Grab table columns."""
 
     def _presentation(col_name: str) -> str:
         if data_source.is_column_dropdown(col_name):
             return "dropdown"
-        return "input"
+        return "input"  # default
+
+    def _type(col_name: str) -> str:
+        if data_source.is_column_numeric(col_name):
+            return "numeric"
+        return "any"  # default
 
     columns = [
-        {"id": c, "name": c, "presentation": _presentation(c)}
+        {
+            "id": c,
+            "name": c,
+            "presentation": _presentation(c),
+            "type": _type(c),
+            "format": Format(precision=2, scheme="f"),  # always 2 decimals
+            "editable": table_editable and data_source.is_column_editable(c),
+        }
         for c in data_source.get_table_columns()
     ]
 
@@ -410,17 +423,6 @@ def table_dropdown(
             )
 
     return simple_dropdowns, conditional_dropdowns
-
-
-# @app.callback(
-#     Output("tab-1-data-table", "data"),
-#     [],
-#     [State("tab-1-data-table", "data"), State("tab-1-data-table", "columns")],
-# )
-# def add_row(n_clicks, rows, columns):
-#     if n_clicks:
-#         rows.append({c["id"]: "" for c in columns})
-#     return rows
 
 
 # --------------------------------------------------------------------------------------

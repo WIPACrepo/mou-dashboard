@@ -29,9 +29,9 @@ def pull_data_table(institution: str = "", labor: str = "") -> List[Dict[str, An
         dff = dff[dff[INSTITUTION_LABEL] == institution]
 
     def _row(row: Dict[str, Any]) -> Dict[str, str]:
-        for key in row.keys():
-            if isinstance(row[key], float):
-                row[key] = float(f"{row[key]:.2g}")
+        # for key in row.keys():
+        # if isinstance(row[key], float):
+        # row[key] = float(f"{row[key]:.2g}")
         return row
 
     # cast and remove any rows without any values
@@ -184,6 +184,17 @@ _DROPDOWNS = list(_SIMPLE_DROPDOWN_MENUS.keys()) + list(
 )
 
 
+_NUMERICS = [
+    "NSF M&O Core",
+    "NSF Base Grants",
+    "U.S. Institutional In-Kind",
+    "Europe & Asia Pacific In-Kind",
+    "Grand Total",
+]
+
+_NON_EDITABLES = ["Grand Total"]
+
+
 def get_simple_column_dropdown_menu(column: str) -> List[str]:
     """Return dropdown menu for a column."""
     return _SIMPLE_DROPDOWN_MENUS[column]
@@ -200,8 +211,18 @@ def get_labor_categories() -> List[str]:
 
 
 def is_column_dropdown(column: str) -> bool:
-    """Return dropdown menu for a column."""
+    """Return  whether column is a dropdown-type."""
     return column in _DROPDOWNS
+
+
+def is_column_numeric(column: str) -> bool:
+    """Return whether column takes numeric data."""
+    return column in _NUMERICS
+
+
+def is_column_editable(column: str) -> bool:
+    """Return whether column data can be edited by end-user."""
+    return column not in _NON_EDITABLES
 
 
 def get_dropdown_columns() -> List[str]:
