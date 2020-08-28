@@ -163,7 +163,7 @@ def layout() -> html.Div:
                                         id="tab-1-filter-dropdown-labor",
                                         options=[
                                             {"label": st, "value": st}
-                                            for st in data_source.get_labor()
+                                            for st in data_source.get_labor_categories()
                                         ],
                                         value="",
                                         # multi=True
@@ -287,8 +287,8 @@ def table_data(
                     "column_id": i,
                     "filter_query": "{{{0}}} != {{{0}_hidden}}".format(i),
                 },
-                # "fontWeight": "bold",
-                "color": "darkgreen",
+                "fontWeight": "bold",
+                # "color": "darkgreen",  # doesn't color dropdown-type value
                 "fontStyle": "oblique",
             }
             for i in columns

@@ -41,26 +41,6 @@ def push_data_row(new_data_row: Dict[str, str]) -> None:
 
 
 # --------------------------------------------------------------------------------------
-# Labor & Institution functions
-
-
-_INSTITUTIONS = [i for i in _DF["Institution"].unique().tolist() if i]
-
-
-def get_institutions() -> List[str]:
-    """Return list of institutions."""
-    return _INSTITUTIONS
-
-
-_LABOR = [b for b in _DF["Labor Cat."].unique().tolist() if b]
-
-
-def get_labor() -> List[str]:
-    """Return list of labors."""
-    return _LABOR
-
-
-# --------------------------------------------------------------------------------------
 # Column functions
 
 
@@ -68,8 +48,6 @@ def get_table_columns() -> List[str]:
     """Return table column's names."""
     return cast(List[str], _DF.columns)
 
-
-_DROPDOWNS = ["WBS L2", "WBS L3", "Source of Funds (U.S. Only)"]
 
 _SIMPLE_DROPDOWN_MENUS = {
     "WBS L2": [
@@ -85,6 +63,60 @@ _SIMPLE_DROPDOWN_MENUS = {
         "Base Grants",
         "US In-Kind",
         "Non-US In-kind",
+    ],
+    "US / Non-US": ["US", "Non-US"],
+    "Institution": ["KE", "GR", "PO", "SC", "AD", "EN", "MA", "IT", "WO", "CS", "DS"],
+    "Labor Cat.": [
+        "LBNL",
+        "UWRF",
+        "DREXEL",
+        "GTECH",
+        "MARQUETTE",
+        "MIT",
+        "MSU",
+        "UCLA",
+        "UD",
+        "UMD",
+        "UA",
+        "ROCHESTER",
+        "SBU",
+        "SDSMT",
+        "UW",
+        "ALBERTA",
+        "BOCHUM",
+        "DESY",
+        "CHIBA",
+        "DPNC",
+        "ERLANGEN",
+        "MÜNSTER",
+        "NBI",
+        "SKKU",
+        "SU",
+        "UC",
+        "UOX",
+        "ULB",
+        "UU",
+        "VUB",
+        "RWTH",
+        "MAINZ",
+        "PSU",
+        "GENT",
+        "UCB",
+        "UTA",
+        "UMH",
+        "UAA",
+        "DTMND",
+        "WUPPERTAL",
+        "CAU",
+        "KU",
+        "UCI",
+        "TUM",
+        "SUBR",
+        "Yale",
+        "OSU",
+        "QUEEN'S",
+        "ADELAIDE",
+        "HUMBOLDT",
     ],
 }
 
@@ -143,9 +175,24 @@ _CONDITIONAL_DROPDOWN_MENUS = {
 }
 
 
+_DROPDOWNS = list(_SIMPLE_DROPDOWN_MENUS.keys()) + list(
+    _CONDITIONAL_DROPDOWN_MENUS.keys()
+)
+
+
 def get_simple_column_dropdown_menu(column: str) -> List[str]:
     """Return dropdown menu for a column."""
     return _SIMPLE_DROPDOWN_MENUS[column]
+
+
+def get_institutions() -> List[str]:
+    """Return list of institutions."""
+    return get_simple_column_dropdown_menu("Institution")
+
+
+def get_labor_categories() -> List[str]:
+    """Return list of labors."""
+    return get_simple_column_dropdown_menu("Labor Cat.")
 
 
 def is_column_dropdown(column: str) -> bool:
