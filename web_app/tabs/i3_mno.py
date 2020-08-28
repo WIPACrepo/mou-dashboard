@@ -1,6 +1,6 @@
 """Conditional in-cell drop-down menu with IceCube WBS MoU info."""
 
-from typing import Any, Collection, Dict, List, Tuple, Union
+from typing import Any, cast, Collection, Dict, List, Tuple, Union
 
 import dash  # type: ignore[import]
 import dash_bootstrap_components as dbc  # type: ignore[import]
@@ -22,12 +22,30 @@ SDCond = List[Dict[str, Collection[str]]]
 LABOR_LABEL = "Labor Cat."
 INSTITUTION_LABEL = "Institution"
 
+
+# --------------------------------------------------------------------------------------
+# Functions that really should be in a dash library
+
+
+def _triggered() -> str:
+    """https://dash.plotly.com/advanced-callbacks."""
+    trig = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
+    return cast(str, trig)
+
+
 # --------------------------------------------------------------------------------------
 # Layout
 
 
 def _new_data_button(_id: str, block: bool = True) -> dbc.Button:
-    return dbc.Button("+ Add New Data", id=_id, block=block, n_clicks=0, disabled=True)
+    return dbc.Button(
+        "+ Add New Data",
+        id=_id,
+        block=block,
+        n_clicks=0,
+        color="secondary",
+        disabled=True,
+    )
 
 
 def _style_cell_conditional_fixed_width(
@@ -205,8 +223,7 @@ def layout() -> html.Div:
                     "lineHeight": "20px",
                     "wordBreak": "normal",
                 },
-                # Page Size
-                page_size=15,
+                # page_size set in callback
                 # data set in callback
                 # style_data_conditional set in callback
                 # columns set in callback
@@ -217,7 +234,12 @@ def layout() -> html.Div:
             html.Div(
                 style={"margin-top": "0.5em"},
                 children=[
-                    _new_data_button("tab-1-new-data-button-bottom", block=False)
+                    _new_data_button("tab-1-new-data-button-bottom", block=False),
+                    dbc.Button(
+                        id="tab-1-show-all-button",
+                        n_clicks=0,
+                        style={"margin-left": "0.5em"},
+                    ),
                 ],
             ),
         ]
@@ -244,8 +266,8 @@ def layout() -> html.Div:
 def table_data(
     institution: str,
     labor: str,
-    n_clicks_top: int,
-    n_clicks_bottom: int,
+    _: int,
+    __: int,
     state_data_table: DTable,
     state_columns: List[Dict[str, str]],
 ) -> Tuple[DTable, SDCond]:
@@ -273,11 +295,8 @@ def table_data(
         ]
         return style_data_conditional
 
-    # https://dash.plotly.com/advanced-callbacks
-    triggered = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
-
     # Add New Data
-    if triggered in ["tab-1-new-data-button-top", "tab-1-new-data-button-bottom"]:
+    if _triggered() in ["tab-1-new-data-button-top", "tab-1-new-data-button-bottom"]:
         # no data_source calls
         column_names = [c["name"] for c in state_columns]
         new_data_row = {n: "" for n in column_names}
@@ -445,4 +464,17 @@ def auth_updates(name: str, email: str) -> Tuple[str, bool, bool, bool, str]:
     )
 
 
-# TODO - add "View All Rows" button -> page_size = <# of rows>
+@app.callback(  # type: ignore[misc]
+    [
+        Output("tab-1-show-all-button", "children"),
+        Output("tab-1-show-all-button", "color"),
+        Output("tab-1-data-table", "page_size"),
+    ],
+    [Input("tab-1-show-all-button", "n_clicks")],
+)
+def toggle_pagination(n_clicks: int) -> Tuple[str, str, int]:
+    """Toggle whether the table is paginated."""
+    if n_clicks % 2 == 0:
+        return "Show All Rows", "light", 15
+    # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
+    return "Collapse Rows to Pages", "dark", 9999999999
