@@ -8,6 +8,10 @@ import pandas as pd  # type: ignore[import]
 # read data from excel file
 _DF = pd.read_excel("WBS.xlsx").fillna("")
 
+# Constants
+LABOR_CAT_LABEL = "Labor Cat."
+INSTITUTION_LABEL = "Institution"
+
 
 # --------------------------------------------------------------------------------------
 # Data/Table functions
@@ -18,11 +22,11 @@ def pull_data_table(institution: str = "", labor: str = "") -> List[Dict[str, An
     dff = _DF
     # filter by labor
     if labor:
-        dff = dff[dff["Labor Cat."] == labor]
+        dff = dff[dff[LABOR_CAT_LABEL] == labor]
 
     # filter by institution
     if institution:
-        dff = dff[dff["Institution"] == institution]
+        dff = dff[dff[INSTITUTION_LABEL] == institution]
 
     def _row(row: Dict[str, Any]) -> Dict[str, str]:
         for key in row.keys():
@@ -187,12 +191,12 @@ def get_simple_column_dropdown_menu(column: str) -> List[str]:
 
 def get_institutions() -> List[str]:
     """Return list of institutions."""
-    return get_simple_column_dropdown_menu("Institution")
+    return get_simple_column_dropdown_menu(INSTITUTION_LABEL)
 
 
 def get_labor_categories() -> List[str]:
     """Return list of labors."""
-    return get_simple_column_dropdown_menu("Labor Cat.")
+    return get_simple_column_dropdown_menu(LABOR_CAT_LABEL)
 
 
 def is_column_dropdown(column: str) -> bool:

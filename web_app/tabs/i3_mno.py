@@ -18,10 +18,6 @@ SDict = Dict[str, str]
 DTable = List[Dict[str, Any]]
 SDCond = List[Dict[str, Collection[str]]]
 
-# Constants
-LABOR_LABEL = "Labor Cat."
-INSTITUTION_LABEL = "Institution"
-
 
 # --------------------------------------------------------------------------------------
 # Functions that really should be in a dash library
@@ -70,8 +66,8 @@ def _style_cell_conditional() -> List[Dict[str, Collection[str]]]:
         _style_cell_conditional_fixed_width("WBS L2", "225px"),
         _style_cell_conditional_fixed_width("WBS L3", "225px", border_right=True),
         _style_cell_conditional_fixed_width("US / Non-US", "65px"),
-        _style_cell_conditional_fixed_width(INSTITUTION_LABEL, "85px"),
-        _style_cell_conditional_fixed_width(LABOR_LABEL, "85px"),
+        _style_cell_conditional_fixed_width(data_source.INSTITUTION_LABEL, "85px"),
+        _style_cell_conditional_fixed_width(data_source.LABOR_CAT_LABEL, "85px"),
         _style_cell_conditional_fixed_width("Names", "150px"),
         _style_cell_conditional_fixed_width("Tasks", "300px"),
         _style_cell_conditional_fixed_width(
@@ -303,8 +299,8 @@ def table_data(
 
         # add labor and/or institution, then push to data source
         if labor or institution:
-            new_data_row[LABOR_LABEL] = labor
-            new_data_row[INSTITUTION_LABEL] = institution
+            new_data_row[data_source.LABOR_CAT_LABEL] = labor
+            new_data_row[data_source.INSTITUTION_LABEL] = institution
             data_source.push_data_row(new_data_row)
 
         # add to table and return
@@ -444,22 +440,20 @@ def table_dropdown(
 def auth_updates(name: str, email: str) -> Tuple[str, bool, bool, bool, str]:
     """Enter name & email callback."""
     # TODO -- check auth
-    add_button_off = True
-    table_editable = True
 
     if name and email:
         return (
             "✔",
-            table_editable,
-            not add_button_off,
-            not add_button_off,
+            True,  # data-table editable
+            False,  # new-data-button-top NOT disabled
+            False,  # new-data-button-bottom NOT disabled
             "click a cell to edit",
         )
     return (
         "✖",
-        not table_editable,
-        add_button_off,
-        add_button_off,
+        False,  # data-table NOT editable
+        True,  # new-data-button-top disabled
+        True,  # new-data-button-bottom disabled
         "sign in to edit",
     )
 
