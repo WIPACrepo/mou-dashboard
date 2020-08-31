@@ -1,4 +1,6 @@
 
+
+/*------------------------------------------------------------------------------------*/
 /* Dropdown Menus */
 .Select-menu-outer {
     display : block !important; /* make visible */
@@ -6,6 +8,8 @@
     padding-left: 1.5em;
 }
 
+
+/*------------------------------------------------------------------------------------*/
 /* Buttons above DataTable */
 .dash-spreadsheet-menu{
     position: relative;
@@ -18,9 +22,33 @@
     padding-left: 0.5em !important;
 }
 
-/* Hide the column header "hide" icon */
-.column-header--hide{
+
+.column-header--hide{ /* Hide the column header "hide" icon */
     visibility: hidden !important;
     padding: 0;
     width: 0;
+}
+
+.export, .show-hide{ /* copy "btn btn-outline-secondary" */
+    color: #6c757d;
+    border-color: #6c757d;
+    display: inline-block;
+    font-weight: 400;
+    font-size: 1rem;
+    padding: .375rem 2rem;
+    line-height: 1.5;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+
+.export:hover, .show-hide:hover{ /* copy "btn btn-outline-secondary" */
+    color: white;
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+
+/*------------------------------------------------------------------------------------*/
+/* dbc Buttons */
+.btn {
+    padding: .375rem 2rem;
 }

@@ -234,15 +234,33 @@ def layout() -> html.Div:
             ),
             # Bottom Buttons
             html.Div(
-                style={"margin-top": "0.5em"},
+                style={"margin-top": "0.75em"},
                 children=[
                     # New Data
                     _new_data_button("tab-1-new-data-button-bottom", block=False),
+                    # Load Snapshot
+                    dbc.Button(
+                        "Load Snapshot",
+                        id="tab-1-load-snapshot-button",
+                        n_clicks=0,
+                        outline=True,
+                        color="info",
+                        style={"margin-left": "1em"},
+                    ),
+                    # Make Snapshot
+                    dbc.Button(
+                        "Make Snapshot",
+                        id="tab-1-make-snapshot-button",
+                        n_clicks=0,
+                        outline=True,
+                        color="success",
+                        style={"margin-left": "1em"},
+                    ),
                     # Show All
                     dbc.Button(
                         id="tab-1-show-all-button",
                         n_clicks=0,
-                        style={"margin-left": "1em"},
+                        style={"margin-right": "1em", "float": "right"},
                     ),
                 ],
             ),
@@ -436,11 +454,12 @@ def table_dropdown(
         Output("tab-1-data-table", "editable"),
         Output("tab-1-new-data-button-top", "disabled"),
         Output("tab-1-new-data-button-bottom", "disabled"),
+        Output("tab-1-make-snapshot-button", "disabled"),
         Output("tab-1-how-to-edit-message", "children"),
     ],
     [Input("tab-1-input-name", "value"), Input("tab-1-input-email", "value")],
 )
-def auth_updates(name: str, email: str) -> Tuple[str, bool, bool, bool, str]:
+def auth_updates(name: str, email: str) -> Tuple[str, bool, bool, bool, bool, str]:
     """Enter name & email callback."""
     # TODO -- check auth
 
@@ -450,6 +469,7 @@ def auth_updates(name: str, email: str) -> Tuple[str, bool, bool, bool, str]:
             True,  # data-table editable
             False,  # new-data-button-top NOT disabled
             False,  # new-data-button-bottom NOT disabled
+            False,  # make-snapshot-button NOT disabled
             "click a cell to edit",
         )
     return (
@@ -457,6 +477,7 @@ def auth_updates(name: str, email: str) -> Tuple[str, bool, bool, bool, str]:
         False,  # data-table NOT editable
         True,  # new-data-button-top disabled
         True,  # new-data-button-bottom disabled
+        True,  # make-snapshot-button disabled
         "sign in to edit",
     )
 
@@ -465,13 +486,14 @@ def auth_updates(name: str, email: str) -> Tuple[str, bool, bool, bool, str]:
     [
         Output("tab-1-show-all-button", "children"),
         Output("tab-1-show-all-button", "color"),
+        Output("tab-1-show-all-button", "outline"),
         Output("tab-1-data-table", "page_size"),
     ],
     [Input("tab-1-show-all-button", "n_clicks")],
 )
-def toggle_pagination(n_clicks: int) -> Tuple[str, str, int]:
+def toggle_pagination(n_clicks: int) -> Tuple[str, str, bool, int]:
     """Toggle whether the table is paginated."""
     if n_clicks % 2 == 0:
-        return "Show All Rows", "light", 15
+        return "Show All Rows", "secondary", True, 15
     # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
-    return "Collapse Rows to Pages", "dark", 9999999999
+    return "Collapse Rows to Pages", "dark", False, 9999999999
