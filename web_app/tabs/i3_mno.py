@@ -46,7 +46,7 @@ def _new_data_button(_id: str, block: bool = True) -> dbc.Button:
 
 
 def _style_cell_conditional_fixed_width(
-    _id: str, width: str, border_right: bool = False, align_right: bool = False
+    _id: str, width: str, border_left: bool = False, align_right: bool = False
 ) -> Dict[str, Collection[str]]:
     style = {
         "if": {"column_id": _id},
@@ -55,8 +55,8 @@ def _style_cell_conditional_fixed_width(
         "maxWidth": width,
     }
 
-    if border_right:
-        style["border-right"] = "1px solid black"
+    if border_left:
+        style["border-left"] = "1px solid black"
 
     if align_right:
         style["textAlign"] = "right"
@@ -70,14 +70,14 @@ def _style_cell_conditional() -> List[Dict[str, Collection[str]]]:
     for col_name in data_source.get_table_columns():
         # get values
         width = f"{data_source.get_column_width(col_name)}px"
-        border_right = data_source.has_border_right(col_name)
+        border_left = data_source.has_border_left(col_name)
         align_right = data_source.is_column_numeric(col_name)
 
         # set & add style
-        style = _style_cell_conditional_fixed_width(
-            col_name, width, border_right=border_right, align_right=align_right
+        fixed_width = _style_cell_conditional_fixed_width(
+            col_name, width, border_left=border_left, align_right=align_right
         )
-        style_cell_conditional.append(style)
+        style_cell_conditional.append(fixed_width)
 
     return style_cell_conditional
 
@@ -182,7 +182,7 @@ def layout() -> html.Div:
             ),
             # Add Button
             html.Div(
-                style={"margin-bottom": "0.5em"},
+                style={"margin-bottom": "0.8em"},
                 children=[_new_data_button("tab-1-new-data-button-top")],
             ),
             # Table
@@ -192,6 +192,7 @@ def layout() -> html.Div:
                 # sort_action="native",
                 # sort_mode="multi",
                 row_deletable=False,
+                hidden_columns=data_source.get_hidden_columns(),
                 # Styles
                 style_table={
                     "overflowX": "auto",
@@ -234,7 +235,7 @@ def layout() -> html.Div:
             ),
             # Bottom Buttons
             html.Div(
-                style={"margin-top": "0.75em"},
+                style={"margin-top": "0.8em"},
                 children=[
                     # New Data
                     _new_data_button("tab-1-new-data-button-bottom", block=False),
@@ -306,14 +307,14 @@ def table_data(
         style_data_conditional += [
             {
                 "if": {
-                    "column_id": i,
-                    "filter_query": "{{{0}}} != {{{0}_hidden}}".format(i),
+                    "column_id": col,
+                    "filter_query": "{{{0}}} != {{{0}_hidden}}".format(col),
                 },
                 "fontWeight": "bold",
                 # "color": "darkgreen",  # doesn't color dropdown-type value
                 "fontStyle": "oblique",
             }
-            for i in columns
+            for col in columns
         ]
         return style_data_conditional
 

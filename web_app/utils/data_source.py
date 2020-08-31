@@ -1,9 +1,11 @@
 """REST interface for reading and writing MoU data."""
 
 
-from typing import Any, cast, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import pandas as pd  # type: ignore[import]
+
+from .icecube_setup import ICECUBE_INSTS
 
 # read data from excel file
 _DF = pd.read_excel("WBS.xlsx").fillna("")
@@ -11,6 +13,25 @@ _DF = pd.read_excel("WBS.xlsx").fillna("")
 # Constants
 LABOR_CAT_LABEL = "Labor Cat."
 INSTITUTION_LABEL = "Institution"
+
+
+_ID = "ID"
+_WBS_L2 = "WBS L2"
+_WBS_L3 = "WBS L3"
+_US_NON_US = "US / Non-US"
+_NAMES = "Names"
+_TASKS = "Tasks"
+_SOURCE_OF_FUNDS_US_ONLY = "Source of Funds (U.S. Only)"
+_FTE = "FTE"
+_NSF_MO_CORE = "NSF M&O Core"
+_NSF_BASE_GRANTS = "NSF Base Grants"
+_US_INSTITUTIONAL_IN_KIND = "U.S. Institutional In-Kind"
+_EUROPE_ASIA_PACIFIC_IN_KIND = "Europe & Asia Pacific In-Kind"
+_GRAND_TOTAL = "Grand Total"
+
+
+_US = "US"
+_NON_US = "Non-US"
 
 
 # --------------------------------------------------------------------------------------
@@ -30,6 +51,19 @@ def pull_data_table(institution: str = "", labor: str = "") -> List[Dict[str, An
 
     # cast and remove any rows without any values
     table = [r for r in dff.to_dict("records") if any(r.values())]
+
+    def _us_or_non_us(institution: str) -> str:
+        for inst in ICECUBE_INSTS.values():
+            if inst["abbreviation"] == institution:
+                if inst["is_US"]:
+                    return _US
+                return _NON_US
+        return ""
+
+    # don't use US/Non-US from excel b/c later this won't even be stored in the DB
+    for record in table:
+        record[_US_NON_US] = _us_or_non_us(record[INSTITUTION_LABEL])
+
     return table
 
 
@@ -41,14 +75,32 @@ def push_data_row(new_data_row: Dict[str, str]) -> None:
 # --------------------------------------------------------------------------------------
 # Column functions
 
+_COLUMNS = [
+    _ID,
+    _WBS_L2,
+    _WBS_L3,
+    _US_NON_US,
+    INSTITUTION_LABEL,
+    LABOR_CAT_LABEL,
+    _NAMES,
+    _TASKS,
+    _SOURCE_OF_FUNDS_US_ONLY,
+    _FTE,
+    _NSF_MO_CORE,
+    _NSF_BASE_GRANTS,
+    _US_INSTITUTIONAL_IN_KIND,
+    _EUROPE_ASIA_PACIFIC_IN_KIND,
+    _GRAND_TOTAL,
+]
+
 
 def get_table_columns() -> List[str]:
     """Return table column's names."""
-    return cast(List[str], _DF.columns)
+    return _COLUMNS
 
 
 _SIMPLE_DROPDOWN_MENUS = {
-    "WBS L2": [
+    _WBS_L2: [
         "2.1 Program Coordination",
         "2.2 Detector Operations & Maintenance (Online)",
         "2.3 Computing & Data Management Services",
@@ -56,83 +108,15 @@ _SIMPLE_DROPDOWN_MENUS = {
         "2.5 Software",
         "2.6 Calibration",
     ],
-    "Source of Funds (U.S. Only)": [
-        "NSF M&O Core",
-        "Base Grants",
-        "US In-Kind",
-        "Non-US In-kind",
-    ],
-    "US / Non-US": ["US", "Non-US"],
-    LABOR_CAT_LABEL: [
-        "KE",
-        "GR",
-        "PO",
-        "SC",
-        "AD",
-        "EN",
-        "MA",
-        "IT",
-        "WO",
-        "CS",
-        "DS",
-    ],
-    INSTITUTION_LABEL: [
-        "LBNL",
-        "UWRF",
-        "DREXEL",
-        "GTECH",
-        "MARQUETTE",
-        "MIT",
-        "MSU",
-        "UCLA",
-        "UD",
-        "UMD",
-        "UA",
-        "ROCHESTER",
-        "SBU",
-        "SDSMT",
-        "UW",
-        "ALBERTA",
-        "BOCHUM",
-        "DESY",
-        "CHIBA",
-        "DPNC",
-        "ERLANGEN",
-        "MÜNSTER",
-        "NBI",
-        "SKKU",
-        "SU",
-        "UC",
-        "UOX",
-        "ULB",
-        "UU",
-        "VUB",
-        "RWTH",
-        "MAINZ",
-        "PSU",
-        "GENT",
-        "UCB",
-        "UTA",
-        "UMH",
-        "UAA",
-        "DTMND",
-        "WUPPERTAL",
-        "CAU",
-        "KU",
-        "UCI",
-        "TUM",
-        "SUBR",
-        "Yale",
-        "OSU",
-        "QUEEN'S",
-        "ADELAIDE",
-        "HUMBOLDT",
-    ],
+    LABOR_CAT_LABEL: sorted(
+        ["AD", "CS", "DS", "EN", "GR", "IT", "KE", "MA", "PO", "SC", "WO"]
+    ),
+    INSTITUTION_LABEL: sorted(inst["abbreviation"] for inst in ICECUBE_INSTS.values()),
 }
 
 _CONDITIONAL_DROPDOWN_MENUS = {
-    "WBS L3": (
-        "WBS L2",
+    _WBS_L3: (
+        _WBS_L2,
         {
             "2.1 Program Coordination": [
                 "2.1.0 Program Coordination",
@@ -181,7 +165,14 @@ _CONDITIONAL_DROPDOWN_MENUS = {
                 "2.6.2 Ice Properties",
             ],
         },
-    )
+    ),
+    _SOURCE_OF_FUNDS_US_ONLY: (
+        _US_NON_US,
+        {
+            _US: [_NSF_MO_CORE, "Base Grants", "US In-Kind"],
+            _NON_US: ["Non-US In-kind"],
+        },
+    ),
 }
 
 
@@ -191,14 +182,32 @@ _DROPDOWNS = list(_SIMPLE_DROPDOWN_MENUS.keys()) + list(
 
 
 _NUMERICS = [
-    "NSF M&O Core",
-    "NSF Base Grants",
-    "U.S. Institutional In-Kind",
-    "Europe & Asia Pacific In-Kind",
-    "Grand Total",
+    _FTE,
+    _NSF_MO_CORE,
+    _NSF_BASE_GRANTS,
+    _US_INSTITUTIONAL_IN_KIND,
+    _EUROPE_ASIA_PACIFIC_IN_KIND,
+    _GRAND_TOTAL,
 ]
 
-_NON_EDITABLES = ["Grand Total"]
+_NON_EDITABLES = [
+    _US_NON_US,
+    _NSF_MO_CORE,
+    _NSF_BASE_GRANTS,
+    _US_INSTITUTIONAL_IN_KIND,
+    _EUROPE_ASIA_PACIFIC_IN_KIND,
+    _GRAND_TOTAL,
+]
+
+_HIDDENS = [
+    _ID,
+    _US_NON_US,
+    _NSF_MO_CORE,
+    _NSF_BASE_GRANTS,
+    _US_INSTITUTIONAL_IN_KIND,
+    _EUROPE_ASIA_PACIFIC_IN_KIND,
+    _GRAND_TOTAL,
+]
 
 
 def get_simple_column_dropdown_menu(column: str) -> List[str]:
@@ -229,6 +238,11 @@ def is_column_numeric(column: str) -> bool:
 def is_column_editable(column: str) -> bool:
     """Return whether column data can be edited by end-user."""
     return column not in _NON_EDITABLES
+
+
+def get_hidden_columns() -> List[str]:
+    """Return the columns hidden be default."""
+    return _HIDDENS
 
 
 def get_dropdown_columns() -> List[str]:
@@ -262,34 +276,40 @@ def get_conditional_column_dropdown_menu(
 
 
 _WIDTHS = {
-    "WBS L2": 225,
-    "WBS L3": 225,
-    "US / Non-US": 65,
+    _WBS_L2: 350,
+    _WBS_L3: 300,
+    _US_NON_US: 100,
     LABOR_CAT_LABEL: 85,
-    INSTITUTION_LABEL: 100,
-    "Names": 150,
-    "Tasks": 300,
-    "Source of Funds (U.S. Only)": 130,
-    "NSF M&O Core": 90,
-    "NSF Base Grants": 90,
-    "U.S. Institutional In-Kind": 90,
-    "Europe & Asia Pacific In-Kind": 90,
-    "Grand Total": 90,
+    INSTITUTION_LABEL: 140,
+    _NAMES: 150,
+    _TASKS: 300,
+    _SOURCE_OF_FUNDS_US_ONLY: 150,
+    _FTE: 90,
+    _NSF_MO_CORE: 90,
+    _NSF_BASE_GRANTS: 90,
+    _US_INSTITUTIONAL_IN_KIND: 90,
+    _EUROPE_ASIA_PACIFIC_IN_KIND: 90,
+    _GRAND_TOTAL: 90,
 }
 
 
 def get_column_width(column: str) -> int:
     """Return the pixel width of a given column."""
-    return _WIDTHS[column]
+    try:
+        return _WIDTHS[column]
+    except KeyError:
+        return 35
 
 
-_BORDER_RIGHT_COLUMNS = [
-    "Source of Funds (U.S. Only)",
-    "WBS L3",
-    "Europe & Asia Pacific In-Kind",
+_BORDER_LEFT_COLUMNS = [
+    _US_NON_US,
+    INSTITUTION_LABEL,
+    _SOURCE_OF_FUNDS_US_ONLY,
+    _NSF_MO_CORE,
+    _GRAND_TOTAL,
 ]
 
 
-def has_border_right(column: str) -> bool:
+def has_border_left(column: str) -> bool:
     """Return whether column has a border to its right."""
-    return column in _BORDER_RIGHT_COLUMNS
+    return column in _BORDER_LEFT_COLUMNS

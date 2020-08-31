@@ -14,19 +14,12 @@
 .dash-spreadsheet-menu{
     position: relative;
     float: right;
-    margin-bottom: 0.5em;
+    margin-bottom: 0.8em;
 }
 
 .dash-spreadsheet-menu > * {
     padding-right: 0px !important;
-    padding-left: 0.5em !important;
-}
-
-
-.column-header--hide{ /* Hide the column header "hide" icon */
-    visibility: hidden !important;
-    padding: 0;
-    width: 0;
+    margin-left: 0.7em !important;
 }
 
 .export, .show-hide{ /* copy "btn btn-outline-secondary" */
@@ -51,4 +44,17 @@
 /* dbc Buttons */
 .btn {
     padding: .375rem 2rem;
+}
+
+
+/*------------------------------------------------------------------------------------*/
+/* DataTable */
+.column-header--hide{ /* Hide the column header "hide" icon */
+    visibility: hidden !important;
+    padding: 0 !important;
+    width: 0 !important;
+}
+
+.dash-header{
+    padding-right: 0.5em !important;
 }
