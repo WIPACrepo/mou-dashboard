@@ -322,16 +322,16 @@ def table_data(
     if _triggered() in ["tab-1-new-data-button-top", "tab-1-new-data-button-bottom"]:
         # no data_source calls
         column_names = [c["name"] for c in state_columns]
-        new_data_row = {n: "" for n in column_names}
+        new_record = {n: "" for n in column_names}
 
         # add labor and/or institution, then push to data source
         if labor or institution:
-            new_data_row[data_source.LABOR_CAT_LABEL] = labor
-            new_data_row[data_source.INSTITUTION_LABEL] = institution
-            data_source.push_data_row(new_data_row)
+            new_record[data_source.LABOR_CAT_LABEL] = labor
+            new_record[data_source.INSTITUTION_LABEL] = institution
+            data_source.push_record(new_record)
 
         # add to table and return
-        state_data_table.insert(0, new_data_row)
+        state_data_table.insert(0, new_record)
         return state_data_table, _get_style_data_conditional(column_names)
 
     #
@@ -340,28 +340,29 @@ def table_data(
 
     # Make a hidden copy of each column to detect changed values
     # they're "hidden" b/c these duplicate columns aren't in the 'columns' property
-    for row in table:
-        row.update({i + "_hidden": v for i, v in row.items()})
+    for record in table:
+        record.update({f"{i}_hidden": v for i, v in record.items()})
 
     return table, _get_style_data_conditional(data_source.get_table_columns())
 
 
-# @app.callback(  # type: ignore[misc]
-#     Output("tab-1-data-table", "style_data_conditional"),
-#     [Input("tab-1-data-table", "data")],
-#     [State("tab-1-data-table", "style_data_conditional")],
-# )
-# def table_data_change(
-#     data: str, style_data_conditional: List[Dict[str, SDict]]
-# ) -> List[Dict[str, SDict]]:
-#     """Grab table data, optionally filter rows."""
-#     print(style_data_conditional)
+@app.callback(  # type: ignore[misc]
+    Output("tab-1-data-table", "hidden"), [Input("tab-1-data-table", "data")],
+)
+def table_data_change(data: List[Dict[str, str]]) -> bool:
+    """Grab table data, optionally filter rows."""
+    for record in data:
+        for column in [c for c in record if f"{c}_hidden" in record]:
+            if record[column] != record[f"{column}_hidden"]:
 
-#     if PREVIOUS_DATA:
-#         pass
+                # remove '_hidden' columns
+                record = {k: v for k, v in record.items() if not k.endswith("_hidden")}
 
-#     # PREVIOUS_DATA = data
-#     return style_data_conditional
+                # push
+                data_source.push_record(record)
+                break
+
+    return False
 
 
 @app.callback(  # type: ignore[misc]
