@@ -298,7 +298,7 @@ def table_data(
             {
                 "if": {
                     "column_id": col,
-                    "filter_query": "{{{0}}} != {{{0}_hidden}}".format(col),
+                    "filter_query": dash_utils.get_changed_data_filter_query(col),
                 },
                 "fontWeight": "bold",
                 # "color": "darkgreen",  # doesn't color dropdown-type value
@@ -330,7 +330,7 @@ def table_data(
     #
     # Else: Page Load
     table = data_source.pull_data_table(institution=institution, labor=labor)
-    table = dash_utils.create_hidden_duplicate_columns(table)
+    table = dash_utils.add_original_copies(table)
 
     return table, _get_style_data_conditional(data_source.get_table_columns())
 
@@ -338,12 +338,12 @@ def table_data(
 @app.callback(  # type: ignore[misc]
     Output("tab-1-data-table", "hidden"), [Input("tab-1-data-table", "data")],
 )
-def table_data_change(data: List[Dict[str, DataEntry]]) -> bool:
+def table_data_change(data: Table) -> bool:
     """Grab table data, optionally filter rows."""
     for record in data:
         if dash_utils.has_record_changed(record):
             # remove '_hidden' column entries
-            record = dash_utils.remove_hidden_duplicate_column_entries(record)
+            record = dash_utils.remove_original_copies(record)
 
             # push
             data_source.push_record(record)

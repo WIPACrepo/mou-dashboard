@@ -7,6 +7,8 @@ import dash  # type: ignore[import]
 
 from .types import Record, Table
 
+# Constants
+_SUFFIX = "_original"
 
 
 # --------------------------------------------------------------------------------------
@@ -26,30 +28,26 @@ def triggered_id() -> str:
 # Data Functions
 
 
-def create_hidden_duplicate_columns(
-    table: List[Dict[str, DataEntry]]
-) -> List[Dict[str, DataEntry]]:
-    """Make a hidden copy of each column to detect changed values.
+def add_original_copies(table: Table) -> Table:
+    """Make a copy of each column to detect changed values.
 
-    They're "hidden" b/c these duplicate columns aren't in the 'columns'
+    Hide these duplicate columns by not adding them to the 'columns'
     property.
     """
     for record in table:
-        record.update({f"{i}_hidden": v for i, v in record.items()})
+        record.update({f"{i}{_SUFFIX}": v for i, v in record.items()})
 
     return table
 
 
-def remove_hidden_duplicate_column_entries(
-    record: Dict[str, DataEntry]
-) -> Dict[str, DataEntry]:
-    """Remove the hidden copies used to detect changed values, in a row."""
-    return {k: v for k, v in record.items() if not k.endswith("_hidden")}
+def remove_original_copies(record: Record) -> Record:
+    """Remove the original copies used to detect changed values in a record."""
+    return {k: v for k, v in record.items() if not k.endswith(_SUFFIX)}
 
 
 def _has_field_changed(record: Record, field_name: str) -> bool:
     try:
-        return record[field_name] != record[f"{field_name}_hidden"]
+        return record[field_name] != record[f"{field_name}{_SUFFIX}"]
     except KeyError:
         return False
 
@@ -60,3 +58,12 @@ def has_record_changed(record: Record) -> bool:
         if _has_field_changed(record, field_name):
             return True
     return False
+
+
+def get_changed_data_filter_query(column: str) -> str:
+    """Return the filter query for detecting changed data.
+
+    For use as an "if" value in a DataTable.style_data_conditional
+    entry.
+    """
+    return f"{{{column}}} != {{{column}{_SUFFIX}}}"
