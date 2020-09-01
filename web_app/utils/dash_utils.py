@@ -8,7 +8,7 @@ import dash  # type: ignore[import]
 from .types import Record, Table
 
 # Constants
-_SUFFIX = "_original"
+_OC_SUFFIX = "_original"
 
 
 # --------------------------------------------------------------------------------------
@@ -35,19 +35,19 @@ def add_original_copies(table: Table) -> Table:
     property.
     """
     for record in table:
-        record.update({f"{i}{_SUFFIX}": v for i, v in record.items()})
+        record.update({f"{i}{_OC_SUFFIX}": v for i, v in record.items()})
 
     return table
 
 
 def remove_original_copies(record: Record) -> Record:
     """Remove the original copies used to detect changed values in a record."""
-    return {k: v for k, v in record.items() if not k.endswith(_SUFFIX)}
+    return {k: v for k, v in record.items() if not k.endswith(_OC_SUFFIX)}
 
 
 def _has_field_changed(record: Record, field_name: str) -> bool:
     try:
-        return record[field_name] != record[f"{field_name}{_SUFFIX}"]
+        return record[field_name] != record[f"{field_name}{_OC_SUFFIX}"]
     except KeyError:
         return False
 
@@ -66,4 +66,4 @@ def get_changed_data_filter_query(column: str) -> str:
     For use as an "if" value in a DataTable.style_data_conditional
     entry.
     """
-    return f"{{{column}}} != {{{column}{_SUFFIX}}}"
+    return f"{{{column}}} != {{{column}{_OC_SUFFIX}}}"
