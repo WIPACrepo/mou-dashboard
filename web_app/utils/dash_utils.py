@@ -1,23 +1,12 @@
 """Utility module for front-end Dash functions."""
 
 
-from typing import cast, Collection, Dict, List, Union
+from typing import cast
 
 import dash  # type: ignore[import]
 
-# --------------------------------------------------------------------------------------
-# Types
+from .types import Record, Table
 
-
-DataEntry = Union[int, float, str]  # just data
-_StrDict = Dict[str, str]  # Ceci n'est pas une pipe
-
-
-# DataTable properties
-TData = List[Dict[str, DataEntry]]  # data
-SDCond = List[Dict[str, Collection[str]]]  # style_data_conditional
-DDown = Dict[str, Dict[str, List[_StrDict]]]  # dropdown
-DDCond = List[Dict[str, Union[_StrDict, List[_StrDict]]]]  # dropdown_conditional
 
 
 # --------------------------------------------------------------------------------------
@@ -58,14 +47,14 @@ def remove_hidden_duplicate_column_entries(
     return {k: v for k, v in record.items() if not k.endswith("_hidden")}
 
 
-def _has_field_changed(record: Dict[str, DataEntry], field_name: str) -> bool:
+def _has_field_changed(record: Record, field_name: str) -> bool:
     try:
         return record[field_name] != record[f"{field_name}_hidden"]
     except KeyError:
         return False
 
 
-def has_record_changed(record: Dict[str, DataEntry]) -> bool:
+def has_record_changed(record: Record) -> bool:
     """Return whether the record has been changed by the user."""
     for field_name in record:
         if _has_field_changed(record, field_name):

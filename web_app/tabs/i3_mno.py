@@ -11,8 +11,8 @@ from dash_table.Format import Format  # type: ignore[import]
 
 from ..config import app
 from ..utils import dash_utils, data_source
-from ..utils.dash_utils import DataEntry, DDCond, DDown, SDCond, TData
 from ..utils.styles import CENTERED_100, WIDTH_45
+from ..utils.types import DDCond, DDown, Record, SDCond, Table, TData
 
 # --------------------------------------------------------------------------------------
 # Layout
@@ -315,7 +315,7 @@ def table_data(
     ]:
         # no data_source calls
         column_names = [c["name"] for c in state_columns]
-        new_record = {n: "" for n in column_names}  # type: Dict[str, DataEntry]
+        new_record = {n: "" for n in column_names}  # type: Record
 
         # add labor and/or institution, then push to data source
         if labor or institution:
@@ -494,8 +494,7 @@ def toggle_pagination(n_clicks: int) -> Tuple[str, str, bool, int]:
     [Input("tab-1-show-all-columns-button", "n_clicks")],
 )
 def toggle_hidden_columns(n_clicks: int) -> Tuple[str, str, bool, List[str]]:
-    """Toggle whether the table is paginated."""
+    """Toggle hiding/showing the default hidden columns."""
     if n_clicks % 2 == 0:
         return "Show All Columns", "secondary", True, data_source.get_hidden_columns()
-    # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
     return "Show Default Columns", "dark", False, []
