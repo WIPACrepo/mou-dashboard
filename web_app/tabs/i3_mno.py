@@ -223,6 +223,7 @@ def layout() -> html.Div:
                     "lineHeight": "20px",
                     "wordBreak": "normal",
                 },
+                # hidden_columns set in callback
                 # page_size set in callback
                 # data set in callback
                 # style_data_conditional set in callback
@@ -257,9 +258,15 @@ def layout() -> html.Div:
                         color="success",
                         style={"margin-left": "1em"},
                     ),
-                    # Show All
+                    # Show All Rows
                     dbc.Button(
-                        id="tab-1-show-all-button",
+                        id="tab-1-show-all-rows-button",
+                        n_clicks=0,
+                        style={"margin-right": "1em", "float": "right"},
+                    ),
+                    # Show All Columns
+                    dbc.Button(
+                        id="tab-1-show-all-columns-button",
                         n_clicks=0,
                         style={"margin-right": "1em", "float": "right"},
                     ),
@@ -486,12 +493,12 @@ def auth_updates(name: str, email: str) -> Tuple[str, bool, bool, bool, bool, st
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("tab-1-show-all-button", "children"),
-        Output("tab-1-show-all-button", "color"),
-        Output("tab-1-show-all-button", "outline"),
+        Output("tab-1-show-all-rows-button", "children"),
+        Output("tab-1-show-all-rows-button", "color"),
+        Output("tab-1-show-all-rows-button", "outline"),
         Output("tab-1-data-table", "page_size"),
     ],
-    [Input("tab-1-show-all-button", "n_clicks")],
+    [Input("tab-1-show-all-rows-button", "n_clicks")],
 )
 def toggle_pagination(n_clicks: int) -> Tuple[str, str, bool, int]:
     """Toggle whether the table is paginated."""
@@ -499,3 +506,20 @@ def toggle_pagination(n_clicks: int) -> Tuple[str, str, bool, int]:
         return "Show All Rows", "secondary", True, 15
     # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
     return "Collapse Rows to Pages", "dark", False, 9999999999
+
+
+@app.callback(  # type: ignore[misc]
+    [
+        Output("tab-1-show-all-columns-button", "children"),
+        Output("tab-1-show-all-columns-button", "color"),
+        Output("tab-1-show-all-columns-button", "outline"),
+        Output("tab-1-data-table", "hidden_columns"),
+    ],
+    [Input("tab-1-show-all-columns-button", "n_clicks")],
+)
+def toggle_hidden_columns(n_clicks: int) -> Tuple[str, str, bool, List[str]]:
+    """Toggle whether the table is paginated."""
+    if n_clicks % 2 == 0:
+        return "Show All Columns", "secondary", True, data_source.get_hidden_columns()
+    # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
+    return "Show Default Columns", "dark", False, []
