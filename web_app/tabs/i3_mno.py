@@ -1,8 +1,7 @@
 """Conditional in-cell drop-down menu with IceCube WBS MoU info."""
 
-from typing import Any, cast, Collection, Dict, List, Tuple, Union
+from typing import Collection, Dict, List, Tuple
 
-import dash  # type: ignore[import]
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
@@ -11,24 +10,9 @@ from dash.dependencies import Input, Output, State  # type: ignore[import]
 from dash_table.Format import Format  # type: ignore[import]
 
 from ..config import app
-from ..utils import data_source
+from ..utils import dash_utils, data_source
+from ..utils.dash_utils import DataEntry, DDCond, DDown, SDCond, TData
 from ..utils.styles import CENTERED_100, WIDTH_45
-
-# Types
-SDict = Dict[str, str]
-DTable = List[Dict[str, Any]]
-SDCond = List[Dict[str, Collection[str]]]
-
-
-# --------------------------------------------------------------------------------------
-# Functions that really should be in a dash library
-
-
-def _triggered() -> str:
-    """https://dash.plotly.com/advanced-callbacks."""
-    trig = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
-    return cast(str, trig)
-
 
 # --------------------------------------------------------------------------------------
 # Layout
@@ -192,7 +176,6 @@ def layout() -> html.Div:
                 # sort_action="native",
                 # sort_mode="multi",
                 row_deletable=False,
-                hidden_columns=data_source.get_hidden_columns(),
                 # Styles
                 style_table={
                     "overflowX": "auto",
@@ -298,9 +281,9 @@ def table_data(
     labor: str,
     _: int,
     __: int,
-    state_data_table: DTable,
+    state_data_table: TData,
     state_columns: List[Dict[str, str]],
-) -> Tuple[DTable, SDCond]:
+) -> Tuple[TData, SDCond]:
     """Grab table data, optionally filter rows."""
 
     def _get_style_data_conditional(columns: List[str]) -> SDCond:
@@ -326,10 +309,13 @@ def table_data(
         return style_data_conditional
 
     # Add New Data
-    if _triggered() in ["tab-1-new-data-button-top", "tab-1-new-data-button-bottom"]:
+    if dash_utils.triggered_id() in [
+        "tab-1-new-data-button-top",
+        "tab-1-new-data-button-bottom",
+    ]:
         # no data_source calls
         column_names = [c["name"] for c in state_columns]
-        new_record = {n: "" for n in column_names}
+        new_record = {n: "" for n in column_names}  # type: Dict[str, DataEntry]
 
         # add labor and/or institution, then push to data source
         if labor or institution:
@@ -344,11 +330,7 @@ def table_data(
     #
     # Else: Page Load
     table = data_source.pull_data_table(institution=institution, labor=labor)
-
-    # Make a hidden copy of each column to detect changed values
-    # they're "hidden" b/c these duplicate columns aren't in the 'columns' property
-    for record in table:
-        record.update({f"{i}_hidden": v for i, v in record.items()})
+    table = dash_utils.create_hidden_duplicate_columns(table)
 
     return table, _get_style_data_conditional(data_source.get_table_columns())
 
@@ -356,18 +338,16 @@ def table_data(
 @app.callback(  # type: ignore[misc]
     Output("tab-1-data-table", "hidden"), [Input("tab-1-data-table", "data")],
 )
-def table_data_change(data: List[Dict[str, str]]) -> bool:
+def table_data_change(data: List[Dict[str, DataEntry]]) -> bool:
     """Grab table data, optionally filter rows."""
     for record in data:
-        for column in [c for c in record if f"{c}_hidden" in record]:
-            if record[column] != record[f"{column}_hidden"]:
+        if dash_utils.has_record_changed(record):
+            # remove '_hidden' column entries
+            record = dash_utils.remove_hidden_duplicate_column_entries(record)
 
-                # remove '_hidden' columns
-                record = {k: v for k, v in record.items() if not k.endswith("_hidden")}
-
-                # push
-                data_source.push_record(record)
-                break
+            # push
+            data_source.push_record(record)
+            break
 
     return False
 
@@ -375,7 +355,7 @@ def table_data_change(data: List[Dict[str, str]]) -> bool:
 @app.callback(  # type: ignore[misc]
     Output("tab-1-data-table", "columns"), [Input("tab-1-data-table", "editable")],
 )
-def table_columns(table_editable: bool) -> List[SDict]:
+def table_columns(table_editable: bool) -> List[Dict[str, str]]:
     """Grab table columns."""
 
     def _presentation(col_name: str) -> str:
@@ -411,17 +391,13 @@ def table_columns(table_editable: bool) -> List[SDict]:
     ],
     [Input("tab-1-data-table", "editable")],
 )
-def table_dropdown(
-    _: bool,
-) -> Tuple[
-    Dict[str, Dict[str, List[SDict]]], List[Dict[str, Union[SDict, List[SDict]]]],
-]:
+def table_dropdown(_: bool,) -> Tuple[DDown, DDCond]:
     """Grab table dropdowns."""
-    simple_dropdowns = {}  # type: Dict[str, Dict[str, List[SDict]]]
-    conditional_dropdowns = []  # type: List[Dict[str, Union[SDict, List[SDict]]]]
+    simple_dropdowns = {}  # type: DDown
+    conditional_dropdowns = []  # type: DDCond
 
-    def _options(menu: List[str]) -> List[SDict]:
-        return [{"label": opt, "value": opt} for opt in menu]
+    def _options(menu: List[str]) -> List[Dict[str, str]]:
+        return [{"label": m, "value": m} for m in menu]
 
     for col in data_source.get_dropdown_columns():
         # Add simple dropdowns
@@ -431,16 +407,16 @@ def table_dropdown(
 
         # Add conditional dropdowns
         elif data_source.is_conditional_dropdown(col):
-            dep_col_name, dep_col_opts = data_source.get_conditional_column_dependee(
-                col
-            )
+            # get dependee column and its options
+            dep_col, dep_col_opts = data_source.get_conditional_column_dependee(col)
+            # make filter_query for each dependee-column option
             for opt in dep_col_opts:
                 dropdown = data_source.get_conditional_column_dropdown_menu(col, opt)
                 conditional_dropdowns.append(
                     {
                         "if": {
                             "column_id": col,
-                            "filter_query": f'''{{{dep_col_name}}} eq "{opt}"''',
+                            "filter_query": f'''{{{dep_col}}} eq "{opt}"''',
                         },
                         "options": _options(dropdown),
                     }

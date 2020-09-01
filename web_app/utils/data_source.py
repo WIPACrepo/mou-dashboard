@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Tuple
 
 import pandas as pd  # type: ignore[import]
 
+from .dash_utils import DataEntry
 from .icecube_setup import ICECUBE_INSTS
 
 # read data from excel file
@@ -67,7 +68,7 @@ def pull_data_table(institution: str = "", labor: str = "") -> List[Dict[str, An
     return table
 
 
-def push_record(new_data_row: Dict[str, str]) -> None:
+def push_record(new_data_row: Dict[str, DataEntry]) -> None:
     """Push new/changed data row to source."""
     # TODO -- use ID to replace/update record
     # TODO -- only push data that hasn't been pushed before -> hidden column
