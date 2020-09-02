@@ -357,16 +357,16 @@ def table_data_change(table: Table, previous: Table) -> Table:
     if not previous:
         return table
 
-    # Push changed records
-    changed_records = [r for r in table if r not in previous]
-    for record in changed_records:
+    # Push modified records
+    modified_records = [r for r in table if r not in previous]
+    for record in modified_records:
         src.push_record(util.without_original_copies_from_record(record))
 
-    changed_record_ids = [c["id"] for c in changed_records]
+    mod_ids = [c["id"] for c in modified_records]
 
     # Delete deleted records
     deleted_records = [
-        r for r in previous if (r not in table) and (r["id"] not in changed_record_ids)
+        r for r in previous if (r not in table) and (r["id"] not in mod_ids)
     ]
     for record in deleted_records:
         src.delete_record(record)
