@@ -1,6 +1,6 @@
 """Conditional in-cell drop-down menu with IceCube WBS MoU info."""
 
-from typing import Collection, Dict, List, Tuple
+from typing import Collection, Dict, List, Optional, Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -318,10 +318,10 @@ def table_data(
     ___: int,
     state_data_table: TData,
     state_columns: List[Dict[str, str]],
-) -> Tuple[TData, Dict[str, int], int]:
+) -> Tuple[TData, Optional[Dict[str, int]], int]:
     """Grab table data, optionally filter rows."""
-    focus = {"row": 0, "column": 0}
     page = 0
+    focus = {"row": 0, "column": 0}  # type: Optional[Dict[str, int]]
 
     # Add New Data
     if util.triggered_id() in ["tab-1-new-data-btn-top", "tab-1-new-data-btn-bottom"]:
@@ -340,6 +340,14 @@ def table_data(
             state_data_table.insert(0, new_record)
 
         return state_data_table, focus, page
+
+    # focus on first cell, but not on page load
+    if util.triggered_id() not in [
+        "tab-1-filter-dropdown-inst",
+        "tab-1-filter-dropdown-labor",
+        "tab-1-refresh-button",
+    ]:
+        focus = None
 
     # Else: Page Load or Filter or Refresh
     table = src.pull_data_table(institution=institution, labor=labor)
