@@ -155,7 +155,7 @@ def layout() -> html.Div:
                                     html.Div(children="Institution"),
                                     # Institution filter dropdown menu
                                     dcc.Dropdown(
-                                        id="tab-1-filter-dropdown-inst",
+                                        id="tab-1-filter-inst",
                                         options=[
                                             {"label": st, "value": st}
                                             for st in src.get_institutions()
@@ -171,7 +171,7 @@ def layout() -> html.Div:
                                     # Labor Category filter dropdown menu
                                     html.Div(children="Labor Category"),
                                     dcc.Dropdown(
-                                        id="tab-1-filter-dropdown-labor",
+                                        id="tab-1-filter-labor",
                                         options=[
                                             {"label": st, "value": st}
                                             for st in src.get_labor_categories()
@@ -207,6 +207,8 @@ def layout() -> html.Div:
                 editable=False,
                 # sort_action="native",
                 # sort_mode="multi",
+                # filter_action="native",  # the UI for native filtering isn't there yet
+                sort_action="native",
                 # Styles
                 style_table={
                     "overflowX": "auto",
@@ -296,6 +298,10 @@ def layout() -> html.Div:
                     ),
                 ],
             ),
+            # Dummy Label -- for communicating that a defilter event occurred
+            html.Label(
+                "", id="tab-1-defilter-event-timestamp-dummy-label", hidden=True
+            ),
         ]
     )
 
@@ -309,10 +315,11 @@ def layout() -> html.Div:
         Output("tab-1-data-table", "data"),
         Output("tab-1-data-table", "active_cell"),
         Output("tab-1-data-table", "page_current"),
+        Output("tab-1-defilter-event-timestamp-dummy-label", "children"),
     ],
     [
-        Input("tab-1-filter-dropdown-inst", "value"),
-        Input("tab-1-filter-dropdown-labor", "value"),
+        Input("tab-1-filter-inst", "value"),
+        Input("tab-1-filter-labor", "value"),
         Input("tab-1-new-data-btn-top", "n_clicks"),
         Input("tab-1-new-data-btn-bottom", "n_clicks"),
         Input("tab-1-refresh-button", "n_clicks"),
@@ -327,10 +334,11 @@ def table_data(
     ___: int,
     state_data_table: TData,
     state_columns: List[Dict[str, str]],
-) -> Tuple[TData, Optional[Dict[str, int]], int]:
+) -> Tuple[TData, Optional[Dict[str, int]], int, str]:
     """Grab table data, optionally filter rows."""
     page = 0
     focus = {"row": 0, "column": 0}  # type: Optional[Dict[str, int]]
+    defilter_event_ts = ""
 
     # Add New Data
     if util.triggered_id() in ["tab-1-new-data-btn-top", "tab-1-new-data-btn-bottom"]:
@@ -348,47 +356,72 @@ def table_data(
             new_record = util.add_original_copies_to_record(new_record, novel=True)
             state_data_table.insert(0, new_record)
 
-        return state_data_table, focus, page
+        return state_data_table, focus, page, defilter_event_ts
 
     # focus on first cell, but not on page load
     if util.triggered_id() not in [
-        "tab-1-filter-dropdown-inst",
-        "tab-1-filter-dropdown-labor",
+        "tab-1-filter-inst",
+        "tab-1-filter-labor",
         "tab-1-refresh-button",
     ]:
         focus = None
 
+    # Signal to table_data_change() that event was triggered by removing the filter(s)
+    if not (institution or labor) and (
+        util.triggered_id() in ["tab-1-filter-inst", "tab-1-filter-labor"]
+    ):
+        defilter_event_ts = util.get_now()
+
     # Else: Page Load or Filter or Refresh
     table = src.pull_data_table(institution=institution, labor=labor)
     table = util.add_original_copies(table)
-    return table, focus, page
+    return table, focus, page, defilter_event_ts
 
 
 @app.callback(  # type: ignore[misc]
     Output("tab-1-data-table", "data_previous"),
     [Input("tab-1-data-table", "data")],
-    [State("tab-1-data-table", "data_previous")],
+    [
+        State("tab-1-data-table", "data_previous"),
+        State("tab-1-filter-inst", "value"),
+        State("tab-1-filter-labor", "value"),
+        State("tab-1-defilter-event-timestamp-dummy-label", "children"),
+    ],
 )
-def table_data_change(table: Table, previous: Table) -> Table:
+def table_data_change(
+    current_table: Table,
+    previous_table: Table,
+    filtering_by_institution: str,
+    filtering_by_labor: str,
+    defilter_event_ts: str,
+) -> Table:
     """Grab table data, optionally filter rows."""
-    if not previous:
-        return table
+    if not previous_table:
+        return current_table
+
+    # don't call DS if just the filter values are removed
+    # otherwise, this will push all the newly visible records
+    if util.is_valid_defilter_event(defilter_event_ts):
+        return current_table
 
     # Push modified records
-    modified_records = [r for r in table if r not in previous]
+    modified_records = [r for r in current_table if r not in previous_table]
     for record in modified_records:
         src.push_record(util.without_original_copies_from_record(record))
 
-    mod_ids = [c["id"] for c in modified_records]
+    # Delete deleted records -- but don't delete records that just aren't being displayed
+    if not (filtering_by_institution or filtering_by_labor):
+        mod_ids = [c["id"] for c in modified_records]
 
-    # Delete deleted records
-    deleted_records = [
-        r for r in previous if (r not in table) and (r["id"] not in mod_ids)
-    ]
-    for record in deleted_records:
-        src.delete_record(record)
+        deleted_records = [
+            r
+            for r in previous_table
+            if (r not in current_table) and (r["id"] not in mod_ids)
+        ]
+        for record in deleted_records:
+            src.delete_record(record)
 
-    return table
+    return current_table
 
 
 @app.callback(  # type: ignore[misc]

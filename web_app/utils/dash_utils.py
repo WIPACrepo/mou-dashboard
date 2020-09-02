@@ -1,6 +1,7 @@
 """Utility module for front-end Dash functions."""
 
 
+import time
 from typing import cast
 
 import dash  # type: ignore[import]
@@ -9,6 +10,7 @@ from .types import Record, Table
 
 # Constants
 _OC_SUFFIX = "_original"
+_FILTER_THRESHOLD = 1.0
 
 
 # --------------------------------------------------------------------------------------
@@ -78,3 +80,23 @@ def get_changed_data_filter_query(column: str) -> str:
     entry.
     """
     return f"{{{column}}} != {{{column}{_OC_SUFFIX}}}"
+
+
+def get_now() -> str:
+    """Get epoch time as a str."""
+    return str(time.time())
+
+
+def is_valid_defilter_event(timestamp: str) -> bool:
+    """Return whether the event last occurred w/in the `_FILTER_THRESHOLD`."""
+    if not timestamp:
+        return False
+
+    then = float(timestamp)
+    if float(get_now()) - then < _FILTER_THRESHOLD:
+        print(
+            f"VALID DEFILTER EVENT ({float(get_now()) - then} vs {_FILTER_THRESHOLD})"
+        )
+        return True
+    print(f"invalid defilter event ({float(get_now()) - then} vs {_FILTER_THRESHOLD})")
+    return False
