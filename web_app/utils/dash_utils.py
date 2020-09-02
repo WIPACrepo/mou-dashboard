@@ -28,6 +28,16 @@ def triggered_id() -> str:
 # Data Functions
 
 
+def add_original_copies_to_record(record: Record) -> Record:
+    """Make a copy of each field to detect changed values."""
+    for field in record:  # don't add copies of copies, AKA make it safe to call this 2x
+        if field.endswith(_OC_SUFFIX):
+            return record
+
+    record.update({f"{i}{_OC_SUFFIX}": v for i, v in record.items()})
+    return record
+
+
 def add_original_copies(table: Table) -> Table:
     """Make a copy of each column to detect changed values.
 
@@ -35,29 +45,22 @@ def add_original_copies(table: Table) -> Table:
     property.
     """
     for record in table:
-        record.update({f"{i}{_OC_SUFFIX}": v for i, v in record.items()})
+        add_original_copies_to_record(record)
 
     return table
 
 
-def remove_original_copies(record: Record) -> Record:
-    """Remove the original copies used to detect changed values in a record."""
+def _without_original_copies_from_record(record: Record) -> Record:
     return {k: v for k, v in record.items() if not k.endswith(_OC_SUFFIX)}
 
 
-def _has_field_changed(record: Record, field_name: str) -> bool:
-    try:
-        return record[field_name] != record[f"{field_name}{_OC_SUFFIX}"]
-    except KeyError:
-        return False
+def without_original_copies(table: Table) -> Table:
+    """Copy but leave out the original copies used to detect changed values."""
+    new_table = []
+    for record in table:
+        new_table.append(_without_original_copies_from_record(record))
 
-
-def has_record_changed(record: Record) -> bool:
-    """Return whether the record has been changed by the user."""
-    for field_name in record:
-        if _has_field_changed(record, field_name):
-            return True
-    return False
+    return new_table
 
 
 def get_changed_data_filter_query(column: str) -> str:

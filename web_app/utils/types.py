@@ -12,7 +12,7 @@ Table = List[Record]
 _StrDict = Dict[str, str]  # Ceci n'est pas une pipe
 
 
-# DataTable properties
+# Dash DataTable properties
 TData = List[Dict[str, DataEntry]]  # data
 SDCond = List[Dict[str, Collection[str]]]  # style_data_conditional
 DDown = Dict[str, Dict[str, List[_StrDict]]]  # dropdown

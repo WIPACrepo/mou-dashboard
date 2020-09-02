@@ -1,15 +1,18 @@
 """REST interface for reading and writing MoU data."""
 
 
-from typing import Any, Dict, List, Tuple
+import hashlib
+from copy import deepcopy
+from typing import cast, List, Optional, Tuple
 
 import pandas as pd  # type: ignore[import]
 
 from .icecube_setup import ICECUBE_INSTS
-from .types import Record
+from .types import Record, Table
 
 # read data from excel file
-_DF = pd.read_excel("WBS.xlsx").fillna("")
+_TABLE = pd.read_excel("WBS.xlsx").fillna("")
+_TABLE = [r for r in _TABLE.to_dict("records") if any(r.values())]
 
 # Constants
 LABOR_CAT_LABEL = "Labor Cat."
@@ -17,6 +20,7 @@ INSTITUTION_LABEL = "Institution"
 
 
 _ID = "ID"
+_HASH = "HASH"
 _WBS_L2 = "WBS L2"
 _WBS_L3 = "WBS L3"
 _US_NON_US = "US / Non-US"
@@ -39,19 +43,44 @@ _NON_US = "Non-US"
 # Data/Table functions
 
 
-def pull_data_table(institution: str = "", labor: str = "") -> List[Dict[str, Any]]:
+def _hash_record(record: Record) -> str:
+    _copy = deepcopy(record)
+
+    # clear up any float-to-int casting that Dash does
+    for field in _copy.keys():
+        try:
+            _copy[field] = float(_copy[field])
+        except (ValueError, TypeError):
+            pass
+
+    # remove HASH key, otherwise this would always result in a different hash
+    try:
+        del _copy[_HASH]
+    except KeyError:
+        pass
+
+    # get hash
+    str_repr = str(sorted([f"{k}&{v}" for (k, v) in _copy.items()]))
+    sha = hashlib.sha256(str_repr.encode("utf-8")).hexdigest()
+    return sha
+
+
+def has_record_changed(record: Record) -> bool:
+    """Return whether the record has been changed by the user."""
+    return record[_HASH] != _hash_record(record)
+
+
+def pull_data_table(institution: str = "", labor: str = "") -> Table:
     """Get table, optionally filtered by institution and/or labor."""
-    dff = _DF
+    table = deepcopy(_TABLE)  # very important to deep-copy here
+
     # filter by labor
     if labor:
-        dff = dff[dff[LABOR_CAT_LABEL] == labor]
+        table = [r for r in table if r[LABOR_CAT_LABEL] == labor]
 
     # filter by institution
     if institution:
-        dff = dff[dff[INSTITUTION_LABEL] == institution]
-
-    # cast and remove any rows without any values
-    table = [r for r in dff.to_dict("records") if any(r.values())]
+        table = [r for r in table if r[INSTITUTION_LABEL] == institution]
 
     def _us_or_non_us(institution: str) -> str:
         for inst in ICECUBE_INSTS.values():
@@ -65,14 +94,52 @@ def pull_data_table(institution: str = "", labor: str = "") -> List[Dict[str, An
     for record in table:
         record[_US_NON_US] = _us_or_non_us(record[INSTITUTION_LABEL])
 
-    return table
+    for record in table:
+        record[_HASH] = _hash_record(record)
+
+    return cast(Table, table)
 
 
-def push_record(new_data_row: Record) -> None:
-    """Push new/changed data row to source."""
-    # TODO -- use ID to replace/update record
-    # TODO -- only push data that hasn't been pushed before -> hidden column
-    _DF.iloc[0] = new_data_row  # add as top row
+def push_record(record: Record) -> Optional[Record]:
+    """Push new/changed record to source."""
+    # New?
+    if not record[_ID] and record[_ID] != 0:
+        print("PUSH NEW")
+        record[_ID] = len(_TABLE)
+        record[_HASH] = _hash_record(record)
+        _TABLE.append(record)  # add as last record
+        return record
+
+    # Changed?
+    current_hash = _hash_record(record)
+    if record[_HASH] != current_hash:
+        print("PUSH")
+        record[_HASH] = current_hash
+        _TABLE[record[_ID]] = record  # replace record
+        return record
+
+    # Don't Push
+    # print(f'no updates for record #{record["ID"]}')
+    return None
+
+
+def push_changed_records(table: Table) -> Table:
+    """Push each new/changed record to source.
+
+    Return Table of the changed records only.
+    """
+    changes = []
+    print("\n--> push_changed_records()\n")
+
+    i = 0
+    for record in table:
+        if res := push_record(record):
+            changes.append(res)
+            print(res)
+            i += 1
+
+    print(f"\n||| push_changed_records() -> {i} pushed\n")
+    return changes
 
 
 # --------------------------------------------------------------------------------------
@@ -80,6 +147,7 @@ def push_record(new_data_row: Record) -> None:
 
 _COLUMNS = [
     _ID,
+    _HASH,
     _WBS_L2,
     _WBS_L3,
     _US_NON_US,
@@ -194,6 +262,7 @@ _NUMERICS = [
 ]
 
 _NON_EDITABLES = [
+    _HASH,
     _US_NON_US,
     _NSF_MO_CORE,
     _NSF_BASE_GRANTS,
@@ -204,6 +273,7 @@ _NON_EDITABLES = [
 
 _HIDDENS = [
     _ID,
+    _HASH,
     _US_NON_US,
     _NSF_MO_CORE,
     _NSF_BASE_GRANTS,
@@ -279,6 +349,7 @@ def get_conditional_column_dropdown_menu(
 
 
 _WIDTHS = {
+    _HASH: 200,
     _WBS_L2: 350,
     _WBS_L3: 300,
     _US_NON_US: 100,

@@ -7,10 +7,10 @@ import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 import dash_table as dt  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
-from dash_table.Format import Format  # type: ignore[import]
 
 from ..config import app
-from ..utils import dash_utils, data_source
+from ..utils import dash_utils as util
+from ..utils import data_source as src
 from ..utils.styles import CENTERED_100, WIDTH_45
 from ..utils.types import DDCond, DDown, Record, SDCond, Table, TData
 
@@ -51,11 +51,11 @@ def _style_cell_conditional_fixed_width(
 def _style_cell_conditional() -> List[Dict[str, Collection[str]]]:
     style_cell_conditional = []
 
-    for col_name in data_source.get_table_columns():
+    for col_name in src.get_table_columns():
         # get values
-        width = f"{data_source.get_column_width(col_name)}px"
-        border_left = data_source.has_border_left(col_name)
-        align_right = data_source.is_column_numeric(col_name)
+        width = f"{src.get_column_width(col_name)}px"
+        border_left = src.has_border_left(col_name)
+        align_right = src.is_column_numeric(col_name)
 
         # set & add style
         fixed_width = _style_cell_conditional_fixed_width(
@@ -66,6 +66,29 @@ def _style_cell_conditional() -> List[Dict[str, Collection[str]]]:
     return style_cell_conditional
 
 
+def _get_style_data_conditional() -> SDCond:
+    """Style Data..."""
+    # zebra-stripe
+    style_data_conditional = [
+        {"if": {"row_index": "odd"}, "backgroundColor": "whitesmoke"},
+    ]
+    # stylize changed data
+    # https://community.plotly.com/t/highlight-cell-in-datatable-if-it-has-been-edited/28808/3
+    style_data_conditional += [
+        {
+            "if": {
+                "column_id": col,
+                "filter_query": util.get_changed_data_filter_query(col),
+            },
+            "fontWeight": "bold",
+            # "color": "darkgreen",  # doesn't color dropdown-type value
+            "fontStyle": "oblique",
+        }
+        for col in src.get_table_columns()
+    ]
+    return style_data_conditional
+
+
 def layout() -> html.Div:
     """Construct the HTML."""
     return html.Div(
@@ -73,7 +96,7 @@ def layout() -> html.Div:
             html.Div(
                 # Institution Leader Sign-In
                 children=[
-                    html.H4("Institution Leader Sign-In"),
+                    html.H4("Institution Leader Sign-In", id="hank"),
                     html.Div(
                         className="row",
                         style={"margin-left": "5%"},
@@ -126,7 +149,7 @@ def layout() -> html.Div:
                                         id="tab-1-filter-dropdown-inst",
                                         options=[
                                             {"label": st, "value": st}
-                                            for st in data_source.get_institutions()
+                                            for st in src.get_institutions()
                                         ],
                                         value="",
                                         # multi=True
@@ -142,7 +165,7 @@ def layout() -> html.Div:
                                         id="tab-1-filter-dropdown-labor",
                                         options=[
                                             {"label": st, "value": st}
-                                            for st in data_source.get_labor_categories()
+                                            for st in src.get_labor_categories()
                                         ],
                                         value="",
                                         # multi=True
@@ -167,7 +190,7 @@ def layout() -> html.Div:
             # Add Button
             html.Div(
                 style={"margin-bottom": "0.8em"},
-                children=[_new_data_button("tab-1-new-data-button-top")],
+                children=[_new_data_button("tab-1-new-data-btn-top")],
             ),
             # Table
             dt.DataTable(
@@ -206,10 +229,10 @@ def layout() -> html.Div:
                     "lineHeight": "20px",
                     "wordBreak": "normal",
                 },
+                style_data_conditional=_get_style_data_conditional(),
                 # hidden_columns set in callback
                 # page_size set in callback
                 # data set in callback
-                # style_data_conditional set in callback
                 # columns set in callback
                 # dropdown set in callback
                 # dropdown_conditional set in callback
@@ -222,7 +245,7 @@ def layout() -> html.Div:
                 style={"margin-top": "0.8em"},
                 children=[
                     # New Data
-                    _new_data_button("tab-1-new-data-button-bottom", block=False),
+                    _new_data_button("tab-1-new-data-btn-bottom", block=False),
                     # Load Snapshot
                     dbc.Button(
                         "Load Snapshot",
@@ -240,6 +263,14 @@ def layout() -> html.Div:
                         outline=True,
                         color="success",
                         style={"margin-left": "1em"},
+                    ),
+                    # Refresh
+                    dbc.Button(
+                        "↻",
+                        id="tab-1-refresh-button",
+                        n_clicks=0,
+                        color="success",
+                        style={"margin-left": "1em", "font-weight": "bold"},
                     ),
                     # Show All Rows
                     dbc.Button(
@@ -264,15 +295,13 @@ def layout() -> html.Div:
 
 
 @app.callback(  # type: ignore[misc]
-    [
-        Output("tab-1-data-table", "data"),
-        Output("tab-1-data-table", "style_data_conditional"),
-    ],
+    Output("tab-1-data-table", "data"),
     [
         Input("tab-1-filter-dropdown-inst", "value"),
         Input("tab-1-filter-dropdown-labor", "value"),
-        Input("tab-1-new-data-button-top", "n_clicks"),
-        Input("tab-1-new-data-button-bottom", "n_clicks"),
+        Input("tab-1-new-data-btn-top", "n_clicks"),
+        Input("tab-1-new-data-btn-bottom", "n_clicks"),
+        Input("tab-1-refresh-button", "n_clicks"),
     ],
     [State("tab-1-data-table", "data"), State("tab-1-data-table", "columns")],
 )  # pylint: disable=R0913
@@ -281,73 +310,41 @@ def table_data(
     labor: str,
     _: int,
     __: int,
+    ___: int,
     state_data_table: TData,
     state_columns: List[Dict[str, str]],
-) -> Tuple[TData, SDCond]:
+) -> TData:
     """Grab table data, optionally filter rows."""
-
-    def _get_style_data_conditional(columns: List[str]) -> SDCond:
-        """Style Data..."""
-        # zebra-stripe
-        style_data_conditional = [
-            {"if": {"row_index": "odd"}, "backgroundColor": "whitesmoke"},
-        ]
-        # stylize changed data
-        # https://community.plotly.com/t/highlight-cell-in-datatable-if-it-has-been-edited/28808/3
-        style_data_conditional += [
-            {
-                "if": {
-                    "column_id": col,
-                    "filter_query": dash_utils.get_changed_data_filter_query(col),
-                },
-                "fontWeight": "bold",
-                # "color": "darkgreen",  # doesn't color dropdown-type value
-                "fontStyle": "oblique",
-            }
-            for col in columns
-        ]
-        return style_data_conditional
-
+    #
     # Add New Data
-    if dash_utils.triggered_id() in [
-        "tab-1-new-data-button-top",
-        "tab-1-new-data-button-bottom",
-    ]:
-        # no data_source calls
+    if util.triggered_id() in ["tab-1-new-data-btn-top", "tab-1-new-data-btn-bottom"]:
         column_names = [c["name"] for c in state_columns]
         new_record = {n: "" for n in column_names}  # type: Record
 
-        # add labor and/or institution, then push to data source
-        if labor or institution:
-            new_record[data_source.LABOR_CAT_LABEL] = labor
-            new_record[data_source.INSTITUTION_LABEL] = institution
-            data_source.push_record(new_record)
+        # add labor and/or institution
+        new_record[src.LABOR_CAT_LABEL] = labor
+        new_record[src.INSTITUTION_LABEL] = institution
 
-        # add to table and return
-        state_data_table.insert(0, new_record)
-        return state_data_table, _get_style_data_conditional(column_names)
+        # push to data source
+        if new_record := src.push_record(new_record):  # type: ignore[assignment]
+            new_record = util.add_original_copies_to_record(new_record)
+            state_data_table.insert(0, new_record)
+
+        return state_data_table
 
     #
-    # Else: Page Load
-    table = data_source.pull_data_table(institution=institution, labor=labor)
-    table = dash_utils.add_original_copies(table)
-
-    return table, _get_style_data_conditional(data_source.get_table_columns())
+    # Else: Page Load or Filter or Refresh
+    table = src.pull_data_table(institution=institution, labor=labor)
+    table = util.add_original_copies(table)
+    return table
 
 
 @app.callback(  # type: ignore[misc]
-    Output("tab-1-data-table", "hidden"), [Input("tab-1-data-table", "data")],
+    Output("hank", "hidden"), [Input("tab-1-data-table", "data")],
 )
-def table_data_change(data: Table) -> bool:
+def table_data_change(table: Table) -> bool:
     """Grab table data, optionally filter rows."""
-    for record in data:
-        if dash_utils.has_record_changed(record):
-            # remove '_hidden' column entries
-            record = dash_utils.remove_original_copies(record)
-
-            # push
-            data_source.push_record(record)
-            break
+    src.push_changed_records(util.without_original_copies(table))
 
     return False
 
@@ -355,16 +352,16 @@ def table_data_change(data: Table) -> bool:
 @app.callback(  # type: ignore[misc]
     Output("tab-1-data-table", "columns"), [Input("tab-1-data-table", "editable")],
 )
-def table_columns(table_editable: bool) -> List[Dict[str, str]]:
+def table_columns(table_editable: bool) -> List[Dict[str, object]]:
     """Grab table columns."""
 
     def _presentation(col_name: str) -> str:
-        if data_source.is_column_dropdown(col_name):
+        if src.is_column_dropdown(col_name):
             return "dropdown"
         return "input"  # default
 
     def _type(col_name: str) -> str:
-        if data_source.is_column_numeric(col_name):
+        if src.is_column_numeric(col_name):
             return "numeric"
         return "any"  # default
 
@@ -374,11 +371,10 @@ def table_columns(table_editable: bool) -> List[Dict[str, str]]:
             "name": c,
             "presentation": _presentation(c),
             "type": _type(c),
-            "format": Format(precision=2, scheme="f"),  # always 2 decimals
-            "editable": table_editable and data_source.is_column_editable(c),
+            "editable": table_editable and src.is_column_editable(c),
             "hideable": True,
         }
-        for c in data_source.get_table_columns()
+        for c in src.get_table_columns()
     ]
 
     return columns
@@ -399,19 +395,19 @@ def table_dropdown(_: bool,) -> Tuple[DDown, DDCond]:
     def _options(menu: List[str]) -> List[Dict[str, str]]:
         return [{"label": m, "value": m} for m in menu]
 
-    for col in data_source.get_dropdown_columns():
+    for col in src.get_dropdown_columns():
         # Add simple dropdowns
-        if data_source.is_simple_dropdown(col):
-            dropdown = data_source.get_simple_column_dropdown_menu(col)
+        if src.is_simple_dropdown(col):
+            dropdown = src.get_simple_column_dropdown_menu(col)
             simple_dropdowns[col] = {"options": _options(dropdown)}
 
         # Add conditional dropdowns
-        elif data_source.is_conditional_dropdown(col):
+        elif src.is_conditional_dropdown(col):
             # get dependee column and its options
-            dep_col, dep_col_opts = data_source.get_conditional_column_dependee(col)
+            dep_col, dep_col_opts = src.get_conditional_column_dependee(col)
             # make filter_query for each dependee-column option
             for opt in dep_col_opts:
-                dropdown = data_source.get_conditional_column_dropdown_menu(col, opt)
+                dropdown = src.get_conditional_column_dropdown_menu(col, opt)
                 conditional_dropdowns.append(
                     {
                         "if": {
@@ -437,8 +433,8 @@ def table_dropdown(_: bool,) -> Tuple[DDown, DDCond]:
     [
         Output("tab-1-name-email-icon", "children"),
         Output("tab-1-data-table", "editable"),
-        Output("tab-1-new-data-button-top", "disabled"),
-        Output("tab-1-new-data-button-bottom", "disabled"),
+        Output("tab-1-new-data-btn-top", "disabled"),
+        Output("tab-1-new-data-btn-bottom", "disabled"),
         Output("tab-1-make-snapshot-button", "disabled"),
         Output("tab-1-how-to-edit-message", "children"),
     ],
@@ -496,5 +492,5 @@ def toggle_pagination(n_clicks: int) -> Tuple[str, str, bool, int]:
 def toggle_hidden_columns(n_clicks: int) -> Tuple[str, str, bool, List[str]]:
     """Toggle hiding/showing the default hidden columns."""
     if n_clicks % 2 == 0:
-        return "Show All Columns", "secondary", True, data_source.get_hidden_columns()
+        return "Show All Columns", "secondary", True, src.get_hidden_columns()
     return "Show Default Columns", "dark", False, []
