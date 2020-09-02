@@ -2,6 +2,7 @@
 
 /*------------------------------------------------------------------------------------*/
 /* Dropdown Menus */
+
 .Select-menu-outer {
     display : block !important; /* make visible */
     --accent : darkgreen;
@@ -11,6 +12,7 @@
 
 /*------------------------------------------------------------------------------------*/
 /* Buttons above DataTable */
+
 .dash-spreadsheet-menu{
     position: relative;
     float: right;
@@ -42,6 +44,7 @@
 
 /*------------------------------------------------------------------------------------*/
 /* dbc Buttons */
+
 .btn {
     padding: .375rem 2rem;
 }
@@ -49,6 +52,7 @@
 
 /*------------------------------------------------------------------------------------*/
 /* DataTable */
+
 .column-header--hide{ /* Hide the column header "hide" icon */
     visibility: hidden !important;
     padding: 0 !important;
@@ -57,4 +61,15 @@
 
 .dash-header{
     padding-right: 0.5em !important;
+}
+
+.current-page{
+    width: 35px !important;
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+}
+
+.dash-delete-cell{
+    text-align:center !important;
+    padding: 0 !important;
 }

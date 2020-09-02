@@ -19,8 +19,8 @@ LABOR_CAT_LABEL = "Labor Cat."
 INSTITUTION_LABEL = "Institution"
 
 
-_ID = "ID"
-_HASH = "HASH"
+_ID = "id"  # must be lowercase
+_CHECKSUM = "CHECKSUM"
 _WBS_L2 = "WBS L2"
 _WBS_L3 = "WBS L3"
 _US_NON_US = "US / Non-US"
@@ -43,7 +43,7 @@ _NON_US = "Non-US"
 # Data/Table functions
 
 
-def _hash_record(record: Record) -> str:
+def _checksum_record(record: Record) -> str:
     _copy = deepcopy(record)
 
     # clear up any float-to-int casting that Dash does
@@ -53,13 +53,13 @@ def _hash_record(record: Record) -> str:
         except (ValueError, TypeError):
             pass
 
-    # remove HASH key, otherwise this would always result in a different hash
+    # remove CHECKSUM key, otherwise this would always result in a different checksum
     try:
-        del _copy[_HASH]
+        del _copy[_CHECKSUM]
     except KeyError:
         pass
 
-    # get hash
+    # get checksum
     str_repr = str(sorted([f"{k}&{v}" for (k, v) in _copy.items()]))
     sha = hashlib.sha256(str_repr.encode("utf-8")).hexdigest()
     return sha
@@ -67,7 +67,7 @@ def _hash_record(record: Record) -> str:
 
 def has_record_changed(record: Record) -> bool:
     """Return whether the record has been changed by the user."""
-    return record[_HASH] != _hash_record(record)
+    return record[_CHECKSUM] != _checksum_record(record)
 
 
 def pull_data_table(institution: str = "", labor: str = "") -> Table:
@@ -95,7 +95,21 @@ def pull_data_table(institution: str = "", labor: str = "") -> Table:
         record[_US_NON_US] = _us_or_non_us(record[INSTITUTION_LABEL])
 
     for record in table:
-        record[_HASH] = _hash_record(record)
+        record[_CHECKSUM] = _checksum_record(record)
+
+    # sort
+    table = sorted(
+        table,
+        key=lambda k: (
+            k[_WBS_L2],
+            k[_WBS_L3],
+            k[_US_NON_US],
+            k[INSTITUTION_LABEL],
+            k[LABOR_CAT_LABEL],
+            k[_NAMES],
+            k[_SOURCE_OF_FUNDS_US_ONLY],
+        ),
+    )
 
     return cast(Table, table)
 
@@ -106,20 +120,20 @@ def push_record(record: Record) -> Optional[Record]:
     if not record[_ID] and record[_ID] != 0:
         print("PUSH NEW")
         record[_ID] = len(_TABLE)
-        record[_HASH] = _hash_record(record)
+        record[_CHECKSUM] = _checksum_record(record)
         _TABLE.append(record)  # add as last record
         return record
 
     # Changed?
-    current_hash = _hash_record(record)
-    if record[_HASH] != current_hash:
+    current_checksum = _checksum_record(record)
+    if record[_CHECKSUM] != current_checksum:
         print("PUSH")
-        record[_HASH] = current_hash
+        record[_CHECKSUM] = current_checksum
         _TABLE[record[_ID]] = record  # replace record
         return record
 
     # Don't Push
-    # print(f'no updates for record #{record["ID"]}')
+    # print(f'no updates for record #{record[_ID]}')
     return None
 
 
@@ -129,7 +143,6 @@ def push_changed_records(table: Table) -> Table:
     Return Table of the changed records only.
     """
     changes = []
-    print("\n--> push_changed_records()\n")
 
     i = 0
     for record in table:
@@ -138,7 +151,7 @@ def push_changed_records(table: Table) -> Table:
             print(res)
             i += 1
 
-    print(f"\n||| push_changed_records() -> {i} pushed\n")
+    print(f"||| push_changed_records() -> {i} pushed\n")
     return changes
 
 
@@ -147,7 +160,7 @@ def push_changed_records(table: Table) -> Table:
 
 _COLUMNS = [
     _ID,
-    _HASH,
+    _CHECKSUM,
     _WBS_L2,
     _WBS_L3,
     _US_NON_US,
@@ -262,7 +275,7 @@ _NUMERICS = [
 ]
 
 _NON_EDITABLES = [
-    _HASH,
+    _CHECKSUM,
     _US_NON_US,
     _NSF_MO_CORE,
     _NSF_BASE_GRANTS,
@@ -273,7 +286,7 @@ _NON_EDITABLES = [
 
 _HIDDENS = [
     _ID,
-    _HASH,
+    _CHECKSUM,
     _US_NON_US,
     _NSF_MO_CORE,
     _NSF_BASE_GRANTS,
@@ -349,7 +362,7 @@ def get_conditional_column_dropdown_menu(
 
 
 _WIDTHS = {
-    _HASH: 200,
+    _CHECKSUM: 200,
     _WBS_L2: 350,
     _WBS_L3: 300,
     _US_NON_US: 100,

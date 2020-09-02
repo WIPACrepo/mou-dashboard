@@ -198,7 +198,6 @@ def layout() -> html.Div:
                 editable=False,
                 # sort_action="native",
                 # sort_mode="multi",
-                row_deletable=False,
                 # Styles
                 style_table={
                     "overflowX": "auto",
@@ -230,6 +229,7 @@ def layout() -> html.Div:
                     "wordBreak": "normal",
                 },
                 style_data_conditional=_get_style_data_conditional(),
+                # row_deletable set in callback
                 # hidden_columns set in callback
                 # page_size set in callback
                 # data set in callback
@@ -239,6 +239,7 @@ def layout() -> html.Div:
                 export_format="xlsx",
                 export_headers="display",
                 merge_duplicate_headers=True,
+                # fixed_rows={"headers": True, "data": 0},
             ),
             # Bottom Buttons
             html.Div(
@@ -295,7 +296,11 @@ def layout() -> html.Div:
 
 
 @app.callback(  # type: ignore[misc]
-    Output("tab-1-data-table", "data"),
+    [
+        Output("tab-1-data-table", "data"),
+        Output("tab-1-data-table", "active_cell"),
+        Output("tab-1-data-table", "page_current"),
+    ],
     [
         Input("tab-1-filter-dropdown-inst", "value"),
         Input("tab-1-filter-dropdown-labor", "value"),
@@ -313,9 +318,12 @@ def table_data(
     ___: int,
     state_data_table: TData,
     state_columns: List[Dict[str, str]],
-) -> TData:
+) -> Tuple[TData, Dict[str, int], int]:
     """Grab table data, optionally filter rows."""
-    #
+    print("DATA -------------------------------------------------------" * 2)
+    focus = {"row": 0, "column": 0}
+    page = 0
+
     # Add New Data
     if util.triggered_id() in ["tab-1-new-data-btn-top", "tab-1-new-data-btn-bottom"]:
         column_names = [c["name"] for c in state_columns]
@@ -330,13 +338,12 @@ def table_data(
             new_record = util.add_original_copies_to_record(new_record)
             state_data_table.insert(0, new_record)
 
-        return state_data_table
+        return state_data_table, focus, page
 
-    #
     # Else: Page Load or Filter or Refresh
     table = src.pull_data_table(institution=institution, labor=labor)
     table = util.add_original_copies(table)
-    return table
+    return table, focus, page
 
 
 @app.callback(  # type: ignore[misc]
@@ -437,10 +444,11 @@ def table_dropdown(_: bool,) -> Tuple[DDown, DDCond]:
         Output("tab-1-new-data-btn-bottom", "disabled"),
         Output("tab-1-make-snapshot-button", "disabled"),
         Output("tab-1-how-to-edit-message", "children"),
+        Output("tab-1-data-table", "row_deletable"),
     ],
     [Input("tab-1-input-name", "value"), Input("tab-1-input-email", "value")],
 )
-def auth_updates(name: str, email: str) -> Tuple[str, bool, bool, bool, bool, str]:
+def sign_in(name: str, email: str) -> Tuple[str, bool, bool, bool, bool, str, bool]:
     """Enter name & email callback."""
     # TODO -- check auth
 
@@ -452,6 +460,7 @@ def auth_updates(name: str, email: str) -> Tuple[str, bool, bool, bool, bool, st
             False,  # new-data-button-bottom NOT disabled
             False,  # make-snapshot-button NOT disabled
             "click a cell to edit",
+            True,  # row is deletable
         )
     return (
         "✖",
@@ -460,6 +469,7 @@ def auth_updates(name: str, email: str) -> Tuple[str, bool, bool, bool, bool, st
         True,  # new-data-button-bottom disabled
         True,  # make-snapshot-button disabled
         "sign in to edit",
+        False,  # row NOT deletable
     )
 
 
@@ -469,15 +479,16 @@ def auth_updates(name: str, email: str) -> Tuple[str, bool, bool, bool, bool, st
         Output("tab-1-show-all-rows-button", "color"),
         Output("tab-1-show-all-rows-button", "outline"),
         Output("tab-1-data-table", "page_size"),
+        Output("tab-1-data-table", "page_action"),
     ],
     [Input("tab-1-show-all-rows-button", "n_clicks")],
 )
-def toggle_pagination(n_clicks: int) -> Tuple[str, str, bool, int]:
+def toggle_pagination(n_clicks: int) -> Tuple[str, str, bool, int, str]:
     """Toggle whether the table is paginated."""
     if n_clicks % 2 == 0:
-        return "Show All Rows", "secondary", True, 15
+        return "Show All Rows", "secondary", True, 15, "native"
     # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
-    return "Collapse Rows to Pages", "dark", False, 9999999999
+    return "Collapse Rows to Pages", "dark", False, 9999999999, "none"
 
 
 @app.callback(  # type: ignore[misc]

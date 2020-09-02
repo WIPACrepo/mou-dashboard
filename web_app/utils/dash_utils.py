@@ -57,8 +57,10 @@ def _without_original_copies_from_record(record: Record) -> Record:
 def without_original_copies(table: Table) -> Table:
     """Copy but leave out the original copies used to detect changed values."""
     new_table = []
-    for record in table:
-        new_table.append(_without_original_copies_from_record(record))
+
+    if table:
+        for record in table:
+            new_table.append(_without_original_copies_from_record(record))
 
     return new_table
 
