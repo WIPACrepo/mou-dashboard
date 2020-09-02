@@ -86,6 +86,15 @@ def _get_style_data_conditional() -> SDCond:
         }
         for col in src.get_table_columns()
     ]
+
+    style_data_conditional += [
+        {
+            "if": {"state": "selected"},  # 'active' | 'selected'
+            "backgroundColor": "transparent",
+            "border": "2px solid darkgreen",
+        },
+    ]
+
     return style_data_conditional
 
 

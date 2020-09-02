@@ -63,6 +63,7 @@
     padding-right: 0.5em !important;
 }
 
+
 .current-page{
     width: 35px !important;
     padding-right: 0 !important;
@@ -72,4 +73,16 @@
 .dash-delete-cell{
     text-align:center !important;
     padding: 0 !important;
+}
+
+.column-header--sort{
+    float: right !important;
+    vertical-align: middle !important;
+    margin-left: 0.5em;
+}
+
+.dash-spreadsheet-container table {
+    --accent: darkgreen !important;
+    --selected-background: darkgreen !important;
+    --selected-color: darkgreen !important;
 }
