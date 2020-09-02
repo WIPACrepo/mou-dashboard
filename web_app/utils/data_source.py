@@ -1,7 +1,6 @@
 """REST interface for reading and writing MoU data."""
 
 
-import hashlib
 from copy import deepcopy
 from typing import cast, List, Optional, Tuple
 
@@ -10,17 +9,12 @@ import pandas as pd  # type: ignore[import]
 from .icecube_setup import ICECUBE_INSTS
 from .types import Record, Table
 
-# read data from excel file
-_TABLE = pd.read_excel("WBS.xlsx").fillna("")
-_TABLE = [r for r in _TABLE.to_dict("records") if any(r.values())]
-
 # Constants
 LABOR_CAT_LABEL = "Labor Cat."
 INSTITUTION_LABEL = "Institution"
 
 
-_ID = "id"  # must be lowercase
-_CHECKSUM = "CHECKSUM"
+_ID = "id"
 _WBS_L2 = "WBS L2"
 _WBS_L3 = "WBS L3"
 _US_NON_US = "US / Non-US"
@@ -39,40 +33,21 @@ _US = "US"
 _NON_US = "Non-US"
 
 
+# read data from excel file
+_TABLE = pd.read_excel("WBS.xlsx").fillna("")
+_TABLE = [r for r in _TABLE.to_dict("records") if any(r.values())]
+_TABLE = {f"Z{r[_ID]}": r for r in _TABLE}
+for key in _TABLE.keys():
+    _TABLE[key][_ID] = key
+
+
 # --------------------------------------------------------------------------------------
 # Data/Table functions
 
 
-def _checksum_record(record: Record) -> str:
-    _copy = deepcopy(record)
-
-    # clear up any float-to-int casting that Dash does
-    for field in _copy.keys():
-        try:
-            _copy[field] = float(_copy[field])
-        except (ValueError, TypeError):
-            pass
-
-    # remove CHECKSUM key, otherwise this would always result in a different checksum
-    try:
-        del _copy[_CHECKSUM]
-    except KeyError:
-        pass
-
-    # get checksum
-    str_repr = str(sorted([f"{k}&{v}" for (k, v) in _copy.items()]))
-    sha = hashlib.sha256(str_repr.encode("utf-8")).hexdigest()
-    return sha
-
-
-def has_record_changed(record: Record) -> bool:
-    """Return whether the record has been changed by the user."""
-    return record[_CHECKSUM] != _checksum_record(record)
-
-
 def pull_data_table(institution: str = "", labor: str = "") -> Table:
     """Get table, optionally filtered by institution and/or labor."""
-    table = deepcopy(_TABLE)  # very important to deep-copy here
+    table = list(deepcopy(_TABLE).values())  # very important to deep-copy here
 
     # filter by labor
     if labor:
@@ -95,7 +70,9 @@ def pull_data_table(institution: str = "", labor: str = "") -> Table:
         record[_US_NON_US] = _us_or_non_us(record[INSTITUTION_LABEL])
 
     for record in table:
-        record[_CHECKSUM] = _checksum_record(record)
+        for field in record.keys():
+            if record[field] is None:
+                record[field] = ""
 
     # sort
     table = sorted(
@@ -114,45 +91,34 @@ def pull_data_table(institution: str = "", labor: str = "") -> Table:
     return cast(Table, table)
 
 
+def _next_id() -> str:
+    return f"{max(_TABLE.keys())}{max(_TABLE.keys())}"
+
+
 def push_record(record: Record) -> Optional[Record]:
     """Push new/changed record to source."""
-    # New?
+    # New
     if not record[_ID] and record[_ID] != 0:
-        print("PUSH NEW")
-        record[_ID] = len(_TABLE)
-        record[_CHECKSUM] = _checksum_record(record)
-        _TABLE.append(record)  # add as last record
+        record[_ID] = _next_id()
+        _TABLE[record[_ID]] = record  # add
+        print(f"PUSHED NEW {record[_ID]} --- table now has {len(_TABLE)} entries")
         return record
 
-    # Changed?
-    current_checksum = _checksum_record(record)
-    if record[_CHECKSUM] != current_checksum:
-        print("PUSH")
-        record[_CHECKSUM] = current_checksum
-        _TABLE[record[_ID]] = record  # replace record
-        return record
-
-    # Don't Push
-    # print(f'no updates for record #{record[_ID]}')
-    return None
+    # Changed
+    print(f"PUSHED {record[_ID]}")
+    _TABLE[record[_ID]] = record  # replace record
+    return record
 
 
-def push_changed_records(table: Table) -> Table:
-    """Push each new/changed record to source.
-
-    Return Table of the changed records only.
-    """
-    changes = []
-
-    i = 0
-    for record in table:
-        if res := push_record(record):
-            changes.append(res)
-            print(res)
-            i += 1
-
-    print(f"||| push_changed_records() -> {i} pushed\n")
-    return changes
+def delete_record(record: Record) -> bool:
+    """Delete the record, return True if successful."""
+    # try:
+    del _TABLE[record[_ID]]
+    print(f"DELETED {record[_ID]} --- table now has {len(_TABLE)} entries")
+    return True
+    # except KeyError:
+    #     print(f"couldn't delete {id_}")
+    #     return False
 
 
 # --------------------------------------------------------------------------------------
@@ -160,7 +126,6 @@ def push_changed_records(table: Table) -> Table:
 
 _COLUMNS = [
     _ID,
-    _CHECKSUM,
     _WBS_L2,
     _WBS_L3,
     _US_NON_US,
@@ -275,7 +240,6 @@ _NUMERICS = [
 ]
 
 _NON_EDITABLES = [
-    _CHECKSUM,
     _US_NON_US,
     _NSF_MO_CORE,
     _NSF_BASE_GRANTS,
@@ -286,7 +250,6 @@ _NON_EDITABLES = [
 
 _HIDDENS = [
     _ID,
-    _CHECKSUM,
     _US_NON_US,
     _NSF_MO_CORE,
     _NSF_BASE_GRANTS,
@@ -362,7 +325,7 @@ def get_conditional_column_dropdown_menu(
 
 
 _WIDTHS = {
-    _CHECKSUM: 200,
+    _ID: 100,
     _WBS_L2: 350,
     _WBS_L3: 300,
     _US_NON_US: 100,

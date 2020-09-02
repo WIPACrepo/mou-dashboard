@@ -28,13 +28,29 @@ def triggered_id() -> str:
 # Data Functions
 
 
-def add_original_copies_to_record(record: Record) -> Record:
-    """Make a copy of each field to detect changed values."""
+def add_original_copies_to_record(record: Record, novel: bool = False) -> Record:
+    """Make a copy of each field in an new column to detect changed values.
+
+    These columns aren't meant to be seen by the user.
+
+    Arguments:
+        record {Record} -- the record, that will be updated
+
+    Keyword Arguments:
+        novel {bool} -- if True, don't copy values, just set as '' (default: {False})
+
+    Returns:
+        Record -- the argument value
+    """
     for field in record:  # don't add copies of copies, AKA make it safe to call this 2x
         if field.endswith(_OC_SUFFIX):
             return record
 
-    record.update({f"{i}{_OC_SUFFIX}": v for i, v in record.items()})
+    if not novel:
+        record.update({f"{k}{_OC_SUFFIX}": v for k, v in record.items()})
+    else:
+        record.update({f"{k}{_OC_SUFFIX}": "" for k, _ in record.items()})
+
     return record
 
 
@@ -50,19 +66,9 @@ def add_original_copies(table: Table) -> Table:
     return table
 
 
-def _without_original_copies_from_record(record: Record) -> Record:
-    return {k: v for k, v in record.items() if not k.endswith(_OC_SUFFIX)}
-
-
-def without_original_copies(table: Table) -> Table:
+def without_original_copies_from_record(record: Record) -> Record:
     """Copy but leave out the original copies used to detect changed values."""
-    new_table = []
-
-    if table:
-        for record in table:
-            new_table.append(_without_original_copies_from_record(record))
-
-    return new_table
+    return {k: v for k, v in record.items() if not k.endswith(_OC_SUFFIX)}
 
 
 def get_changed_data_filter_query(column: str) -> str:

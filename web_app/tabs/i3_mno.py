@@ -320,7 +320,6 @@ def table_data(
     state_columns: List[Dict[str, str]],
 ) -> Tuple[TData, Dict[str, int], int]:
     """Grab table data, optionally filter rows."""
-    print("DATA -------------------------------------------------------" * 2)
     focus = {"row": 0, "column": 0}
     page = 0
 
@@ -335,7 +334,7 @@ def table_data(
 
         # push to data source
         if new_record := src.push_record(new_record):  # type: ignore[assignment]
-            new_record = util.add_original_copies_to_record(new_record)
+            new_record = util.add_original_copies_to_record(new_record, novel=True)
             state_data_table.insert(0, new_record)
 
         return state_data_table, focus, page
@@ -347,13 +346,31 @@ def table_data(
 
 
 @app.callback(  # type: ignore[misc]
-    Output("hank", "hidden"), [Input("tab-1-data-table", "data")],
+    # Output("hank", "hidden"),
+    Output("tab-1-data-table", "data_previous"),
+    [Input("tab-1-data-table", "data")],
+    [State("tab-1-data-table", "data_previous")],
 )
-def table_data_change(table: Table) -> bool:
+def table_data_change(table: Table, previous: Table) -> Table:
     """Grab table data, optionally filter rows."""
-    src.push_changed_records(util.without_original_copies(table))
+    if not previous:
+        return previous
 
-    return False
+    # Push changed records
+    changed_records = [r for r in table if r not in previous]
+    for record in changed_records:
+        src.push_record(util.without_original_copies_from_record(record))
+
+    changed_record_ids = [c["id"] for c in changed_records]
+
+    # Delete deleted records
+    deleted_records = [
+        r for r in previous if (r not in table) and (r["id"] not in changed_record_ids)
+    ]
+    for record in deleted_records:
+        src.delete_record(record)
+
+    return table
 
 
 @app.callback(  # type: ignore[misc]
