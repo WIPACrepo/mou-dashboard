@@ -96,7 +96,7 @@ def layout() -> html.Div:
             html.Div(
                 # Institution Leader Sign-In
                 children=[
-                    html.H4("Institution Leader Sign-In", id="hank"),
+                    html.H4("Institution Leader Sign-In"),
                     html.Div(
                         className="row",
                         style={"margin-left": "5%"},
@@ -333,6 +333,8 @@ def table_data(
         new_record[src.INSTITUTION_LABEL] = institution
 
         # push to data source
+        # NOTE -- This results in a double-push b/c table_data_change() is called next.
+        # NOTE -- But this call IS needed to grab the record's ID.
         if new_record := src.push_record(new_record):  # type: ignore[assignment]
             new_record = util.add_original_copies_to_record(new_record, novel=True)
             state_data_table.insert(0, new_record)
@@ -346,7 +348,6 @@ def table_data(
 
 
 @app.callback(  # type: ignore[misc]
-    # Output("hank", "hidden"),
     Output("tab-1-data-table", "data_previous"),
     [Input("tab-1-data-table", "data")],
     [State("tab-1-data-table", "data_previous")],
@@ -354,7 +355,7 @@ def table_data(
 def table_data_change(table: Table, previous: Table) -> Table:
     """Grab table data, optionally filter rows."""
     if not previous:
-        return previous
+        return table
 
     # Push changed records
     changed_records = [r for r in table if r not in previous]
