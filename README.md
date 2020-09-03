@@ -8,7 +8,7 @@ Statements of Work in accordance with MoUs.
 A dashboard for managing & reporting MoU tasks
 
 ### Getting Started
-    python3 -m virtualenv -p python3 mou-dash-web
+    python3.8 -m virtualenv -p python3.8 mou-dash-web
     pip install -r web_app/requirements.txt
 
 ### Running the Server
