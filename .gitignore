@@ -133,3 +133,5 @@ dmypy.json
 
 # backup/hidden files
 .*#
+
+src/
