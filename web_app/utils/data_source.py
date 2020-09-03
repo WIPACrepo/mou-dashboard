@@ -6,7 +6,9 @@ from typing import cast, List, Optional, Tuple
 
 import pandas as pd  # type: ignore[import]
 
-from .icecube_setup import ICECUBE_INSTS
+# local imports
+from keycloak_setup.icecube_setup import ICECUBE_INSTS  # type: ignore[import]
+
 from .types import Record, Table
 
 # Constants
