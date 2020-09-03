@@ -9,6 +9,7 @@ A dashboard for managing & reporting MoU tasks
 
 ### Getting Started
     python3.8 -m virtualenv -p python3.8 mou-dash-web
+    . mou-dash-web/bin/activate
     pip install -r web_app/requirements.txt
 
 ### Running the Server
