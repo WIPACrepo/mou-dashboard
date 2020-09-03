@@ -554,7 +554,7 @@ def sign_in(name: str, email: str) -> Tuple[str, bool, bool, bool, bool, str, bo
 def toggle_pagination(n_clicks: int) -> Tuple[str, str, bool, int, str]:
     """Toggle whether the table is paginated."""
     if n_clicks % 2 == 0:
-        return "Show All Rows", "secondary", True, 15, "native"
+        return "Show All Rows", "secondary", True, src.get_page_size(), "native"
     # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
     return "Collapse Rows to Pages", "dark", False, 9999999999, "none"
 

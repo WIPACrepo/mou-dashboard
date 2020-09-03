@@ -75,8 +75,7 @@ def pull_data_table(institution: str = "", labor: str = "") -> Table:
                 record[field] = ""
 
     # sort
-    table = sorted(
-        table,
+    table.sort(
         key=lambda k: (
             k[_WBS_L2],
             k[_WBS_L3],
@@ -363,3 +362,11 @@ _BORDER_LEFT_COLUMNS = [
 def has_border_left(column: str) -> bool:
     """Return whether column has a border to its right."""
     return column in _BORDER_LEFT_COLUMNS
+
+
+_PAGE_SIZE = 15
+
+
+def get_page_size() -> int:
+    """Return the number of rows for a page."""
+    return _PAGE_SIZE
