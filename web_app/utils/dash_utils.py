@@ -2,15 +2,15 @@
 
 
 import time
-from typing import cast
+from typing import cast, Final
 
 import dash  # type: ignore[import]
 
 from .types import Record, Table
 
 # Constants
-_OC_SUFFIX = "_original"
-_FILTER_THRESHOLD = 1.0
+_OC_SUFFIX: Final[str] = "_original"
+_RECENT_THRESHOLD: Final[float] = 1.0
 
 
 # --------------------------------------------------------------------------------------
@@ -87,16 +87,16 @@ def get_now() -> str:
     return str(time.time())
 
 
-def is_valid_defilter_event(timestamp: str) -> bool:
+def was_recent(timestamp: str) -> bool:
     """Return whether the event last occurred w/in the `_FILTER_THRESHOLD`."""
     if not timestamp:
         return False
 
-    then = float(timestamp)
-    if float(get_now()) - then < _FILTER_THRESHOLD:
-        print(
-            f"VALID DEFILTER EVENT ({float(get_now()) - then} vs {_FILTER_THRESHOLD})"
-        )
+    diff = float(get_now()) - float(timestamp)
+
+    if diff < _RECENT_THRESHOLD:
+        print(f"RECENT EVENT ({diff})")
         return True
-    print(f"invalid defilter event ({float(get_now()) - then} vs {_FILTER_THRESHOLD})")
+
+    print(f" not recent event ({diff})")
     return False
