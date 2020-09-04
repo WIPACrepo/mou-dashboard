@@ -298,9 +298,14 @@ def layout() -> html.Div:
                     ),
                 ],
             ),
-            # Dummy Label -- for communicating when the last push occurred
+            # Dummy Label -- for communicating when table was last updated by an exterior control
+            # NOTE: If table_data_exterior_controls() is called, then
+            # NOTE:    table_data_interior_controls() is called next b/c table.data changes.
+            # NOTE: A timestamp is the best way of stopping table_data_interior_controls().
+            # NOTE:    A simple flag wouldn't work b/c table_data_interior_controls()
+            # NOTE:    couldn't de-flag it (label can't be in multiple outputs).
             html.Label(
-                "", id="tab-1-front-end-data-change-timestamp-dummy-label", hidden=True
+                "", id="tab-1-table-exterior-control-timestamp-dummy-label", hidden=True
             ),
         ]
     )
@@ -315,7 +320,7 @@ def layout() -> html.Div:
         Output("tab-1-data-table", "data"),
         Output("tab-1-data-table", "active_cell"),
         Output("tab-1-data-table", "page_current"),
-        Output("tab-1-front-end-data-change-timestamp-dummy-label", "children"),
+        Output("tab-1-table-exterior-control-timestamp-dummy-label", "children"),
     ],
     [
         Input("tab-1-filter-inst", "value"),
@@ -326,7 +331,7 @@ def layout() -> html.Div:
     ],
     [State("tab-1-data-table", "data"), State("tab-1-data-table", "columns")],
 )  # pylint: disable=R0913
-def table_data(
+def table_data_exterior_controls(
     institution: str,
     labor: str,
     _: int,
@@ -335,45 +340,45 @@ def table_data(
     state_data_table: TData,
     state_columns: List[Dict[str, str]],
 ) -> Tuple[TData, Optional[Dict[str, int]], int, str]:
-    """Grab table data, optionally filter rows."""
-    page = 0
-    focus = {"row": 0, "column": 0}  # type: Optional[Dict[str, int]]
-    front_end_data_change_ts = ""
+    """Exterior control signaled that the table should be updated.
+
+    This is either a filter, an "add new", or a refresh. Only "add new"
+    changes MoU DS data. The others simply change what's visible to the
+    user.
+    """
+    table: Table = []
+    focus: Optional[Dict[str, int]] = {"row": 0, "column": 0}
 
     # Add New Data
     if util.triggered_id() in ["tab-1-new-data-btn-top", "tab-1-new-data-btn-bottom"]:
+        table = state_data_table
         column_names = [c["name"] for c in state_columns]
-        new_record = {n: "" for n in column_names}  # type: Record
+        new_record: Record = {n: "" for n in column_names}
 
-        # add labor and/or institution
+        # auto-fill labor and/or institution
         new_record[src.LABOR_CAT_LABEL] = labor
         new_record[src.INSTITUTION_LABEL] = institution
 
         # push to data source
-        # NOTE -- This results in a double-push b/c table_data_change() is called next.
-        # NOTE -- But this call IS needed to grab the record's ID.
         if new_record := src.push_record(new_record):  # type: ignore[assignment]
             new_record = util.add_original_copies_to_record(new_record, novel=True)
-            state_data_table.insert(0, new_record)
+            table.insert(0, new_record)
 
-        return state_data_table, focus, page, front_end_data_change_ts
+    # Page Load or Filter or Refresh
+    else:
+        # focus on first cell, but not on page load
+        if util.triggered_id() not in [
+            "tab-1-filter-inst",
+            "tab-1-filter-labor",
+            "tab-1-refresh-button",
+        ]:
+            focus = None
 
-    # focus on first cell, but not on page load
-    if util.triggered_id() not in [
-        "tab-1-filter-inst",
-        "tab-1-filter-labor",
-        "tab-1-refresh-button",
-    ]:
-        focus = None
+        # pull from data source
+        table = src.pull_data_table(institution=institution, labor=labor)
+        table = util.add_original_copies(table)
 
-    # Signal to table_data_change() that event was triggered by the filter(s)
-    if util.triggered_id() in ["tab-1-filter-inst", "tab-1-filter-labor"]:
-        front_end_data_change_ts = util.get_now()
-
-    # Else: Page Load or Filter or Refresh
-    table = src.pull_data_table(institution=institution, labor=labor)
-    table = util.add_original_copies(table)
-    return table, focus, page, front_end_data_change_ts
+    return table, focus, 0, util.get_now()
 
 
 @app.callback(  # type: ignore[misc]
@@ -381,25 +386,19 @@ def table_data(
     [Input("tab-1-data-table", "data")],
     [
         State("tab-1-data-table", "data_previous"),
-        State("tab-1-filter-inst", "value"),
-        State("tab-1-filter-labor", "value"),
-        State("tab-1-front-end-data-change-timestamp-dummy-label", "children"),
+        State("tab-1-table-exterior-control-timestamp-dummy-label", "children"),
     ],
 )
-def table_data_change(
-    current_table: Table,
-    previous_table: Table,
-    filtering_by_institution: str,
-    filtering_by_labor: str,
-    front_end_data_change_ts: str,
+def table_data_interior_controls(
+    current_table: Table, previous_table: Table, table_exterior_control_ts: str,
 ) -> Table:
     """Grab table data, optionally filter rows."""
+    # On page load
     if not previous_table:
         return current_table
 
-    # don't call DS if just the filter values are removed
-    # otherwise, this will push all the newly visible records
-    if util.is_recent_front_end_data_change(front_end_data_change_ts):
+    # Don't call DS if the table was just updated via exterior controls
+    if util.was_recent(table_exterior_control_ts):
         return current_table
 
     # Push modified records
@@ -407,10 +406,8 @@ def table_data_change(
     for record in modified_records:
         src.push_record(util.without_original_copies_from_record(record))
 
-    # Delete deleted records -- but don't delete records that just aren't being displayed
-    # if not (filtering_by_institution or filtering_by_labor):
+    # Delete deleted records
     mod_ids = [c["id"] for c in modified_records]
-
     deleted_records = [
         r
         for r in previous_table
@@ -462,8 +459,8 @@ def table_columns(table_editable: bool) -> List[Dict[str, object]]:
 )
 def table_dropdown(_: bool,) -> Tuple[DDown, DDCond]:
     """Grab table dropdowns."""
-    simple_dropdowns = {}  # type: DDown
-    conditional_dropdowns = []  # type: DDCond
+    simple_dropdowns: DDown = {}
+    conditional_dropdowns: DDCond = []
 
     def _options(menu: List[str]) -> List[Dict[str, str]]:
         return [{"label": m, "value": m} for m in menu]
