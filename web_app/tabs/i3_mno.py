@@ -298,9 +298,9 @@ def layout() -> html.Div:
                     ),
                 ],
             ),
-            # Dummy Label -- for communicating that a defilter event occurred
+            # Dummy Label -- for communicating when the last push occurred
             html.Label(
-                "", id="tab-1-defilter-event-timestamp-dummy-label", hidden=True
+                "", id="tab-1-front-end-data-change-timestamp-dummy-label", hidden=True
             ),
         ]
     )
@@ -315,7 +315,7 @@ def layout() -> html.Div:
         Output("tab-1-data-table", "data"),
         Output("tab-1-data-table", "active_cell"),
         Output("tab-1-data-table", "page_current"),
-        Output("tab-1-defilter-event-timestamp-dummy-label", "children"),
+        Output("tab-1-front-end-data-change-timestamp-dummy-label", "children"),
     ],
     [
         Input("tab-1-filter-inst", "value"),
@@ -338,7 +338,7 @@ def table_data(
     """Grab table data, optionally filter rows."""
     page = 0
     focus = {"row": 0, "column": 0}  # type: Optional[Dict[str, int]]
-    defilter_event_ts = ""
+    front_end_data_change_ts = ""
 
     # Add New Data
     if util.triggered_id() in ["tab-1-new-data-btn-top", "tab-1-new-data-btn-bottom"]:
@@ -356,7 +356,7 @@ def table_data(
             new_record = util.add_original_copies_to_record(new_record, novel=True)
             state_data_table.insert(0, new_record)
 
-        return state_data_table, focus, page, defilter_event_ts
+        return state_data_table, focus, page, front_end_data_change_ts
 
     # focus on first cell, but not on page load
     if util.triggered_id() not in [
@@ -366,16 +366,14 @@ def table_data(
     ]:
         focus = None
 
-    # Signal to table_data_change() that event was triggered by removing the filter(s)
-    if not (institution or labor) and (
-        util.triggered_id() in ["tab-1-filter-inst", "tab-1-filter-labor"]
-    ):
-        defilter_event_ts = util.get_now()
+    # Signal to table_data_change() that event was triggered by the filter(s)
+    if util.triggered_id() in ["tab-1-filter-inst", "tab-1-filter-labor"]:
+        front_end_data_change_ts = util.get_now()
 
     # Else: Page Load or Filter or Refresh
     table = src.pull_data_table(institution=institution, labor=labor)
     table = util.add_original_copies(table)
-    return table, focus, page, defilter_event_ts
+    return table, focus, page, front_end_data_change_ts
 
 
 @app.callback(  # type: ignore[misc]
@@ -385,7 +383,7 @@ def table_data(
         State("tab-1-data-table", "data_previous"),
         State("tab-1-filter-inst", "value"),
         State("tab-1-filter-labor", "value"),
-        State("tab-1-defilter-event-timestamp-dummy-label", "children"),
+        State("tab-1-front-end-data-change-timestamp-dummy-label", "children"),
     ],
 )
 def table_data_change(
@@ -393,7 +391,7 @@ def table_data_change(
     previous_table: Table,
     filtering_by_institution: str,
     filtering_by_labor: str,
-    defilter_event_ts: str,
+    front_end_data_change_ts: str,
 ) -> Table:
     """Grab table data, optionally filter rows."""
     if not previous_table:
@@ -401,7 +399,7 @@ def table_data_change(
 
     # don't call DS if just the filter values are removed
     # otherwise, this will push all the newly visible records
-    if util.is_valid_defilter_event(defilter_event_ts):
+    if util.is_recent_front_end_data_change(front_end_data_change_ts):
         return current_table
 
     # Push modified records
@@ -410,16 +408,16 @@ def table_data_change(
         src.push_record(util.without_original_copies_from_record(record))
 
     # Delete deleted records -- but don't delete records that just aren't being displayed
-    if not (filtering_by_institution or filtering_by_labor):
-        mod_ids = [c["id"] for c in modified_records]
+    # if not (filtering_by_institution or filtering_by_labor):
+    mod_ids = [c["id"] for c in modified_records]
 
-        deleted_records = [
-            r
-            for r in previous_table
-            if (r not in current_table) and (r["id"] not in mod_ids)
-        ]
-        for record in deleted_records:
-            src.delete_record(record)
+    deleted_records = [
+        r
+        for r in previous_table
+        if (r not in current_table) and (r["id"] not in mod_ids)
+    ]
+    for record in deleted_records:
+        src.delete_record(record)
 
     return current_table
 

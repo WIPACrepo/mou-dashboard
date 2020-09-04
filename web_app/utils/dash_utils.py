@@ -87,7 +87,7 @@ def get_now() -> str:
     return str(time.time())
 
 
-def is_valid_defilter_event(timestamp: str) -> bool:
+def is_recent_front_end_data_change(timestamp: str) -> bool:
     """Return whether the event last occurred w/in the `_FILTER_THRESHOLD`."""
     if not timestamp:
         return False
