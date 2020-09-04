@@ -392,7 +392,15 @@ def table_data_exterior_controls(
 def table_data_interior_controls(
     current_table: Table, previous_table: Table, table_exterior_control_ts: str,
 ) -> Table:
-    """Grab table data, optionally filter rows."""
+    """Interior control signaled that the table should be updated.
+
+    This is either a row deletion or a field edit. The table's view has
+    already been updated, so only DS communication is needed.
+
+    NOTE: This function is also called following table_data_exterior_controls().
+    This is unnecessary, so the timestamp of table_data_exterior_controls()'s
+    last call will be checked to determine if that was indeed the case.
+    """
     # On page load
     if not previous_table:
         return current_table
@@ -416,6 +424,7 @@ def table_data_interior_controls(
     for record in deleted_records:
         src.delete_record(record)
 
+    # Update data_previous
     return current_table
 
 
