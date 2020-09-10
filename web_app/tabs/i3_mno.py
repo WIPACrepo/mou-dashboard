@@ -355,12 +355,8 @@ def table_data_exterior_controls(
         column_names = [c["name"] for c in state_columns]
         new_record: Record = {n: "" for n in column_names}
 
-        # auto-fill labor and/or institution
-        new_record[src.LABOR_CAT_LABEL] = labor
-        new_record[src.INSTITUTION_LABEL] = institution
-
-        # push to data source
-        if new_record := src.push_record(new_record):  # type: ignore[assignment]
+        # push to data source AND auto-fill labor and/or institution
+        if new_record := src.push_record(new_record, labor=labor, institution=institution):  # type: ignore[assignment]
             new_record = util.add_original_copies_to_record(new_record, novel=True)
             table.insert(0, new_record)
 

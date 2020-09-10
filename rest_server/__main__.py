@@ -5,29 +5,27 @@ import asyncio
 import logging
 
 # local imports
-from rest_tools.server import (  # type: ignore
-    from_environment,
-    RestHandlerSetup,
-    RestServer,
-)
+from rest_tools.server import RestHandlerSetup, RestServer  # type: ignore
 
-from .config import EXPECTED_CONFIG
-from .routes import MainHandler
+from . import routes
+from .config import (
+    log_environment,
+    MOU_AUTH_ALGORITHM,
+    MOU_AUTH_ISSUER,
+    MOU_AUTH_SECRET,
+)
 
 
 def start(debug: bool = False) -> RestServer:
     """Start a Mad Dash REST service."""
-    config = from_environment(EXPECTED_CONFIG)
-
-    for name in config:
-        logging.info(f"{config[name]=}")
+    log_environment()
 
     args = RestHandlerSetup(
         {
             "auth": {
-                "secret": config["MOU_AUTH_SECRET"],
-                "issuer": config["MOU_AUTH_ISSUER"],
-                "algorithm": config["MOU_AUTH_ALGORITHM"],
+                "secret": MOU_AUTH_SECRET,
+                "issuer": MOU_AUTH_ISSUER,
+                "algorithm": MOU_AUTH_ALGORITHM,
             },
             "debug": debug,
         }
@@ -38,8 +36,15 @@ def start(debug: bool = False) -> RestServer:
 
     # Configure REST Routes
     server = RestServer(debug=debug)
-    server.add_route(r"/$", MainHandler, args)
-    # TODO
+
+    # server.add_route(r"/table/data$", TableHandler, args)  # get
+
+    # server.add_route(r"/table/data/snapshot$", SnapshotHandler, args)  # get, push
+
+    # server.add_route(r"/record$", RecordHandler, args)  # push, delete
+
+    # TODO: store timestamp and duration to cache most recent version from Smartsheet
+    server.add_route(r"/table/config$", routes.TableConfigHandler, args)  # get
 
     return server
 

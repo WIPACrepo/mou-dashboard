@@ -2,24 +2,43 @@
 
 
 from copy import deepcopy
-from typing import cast, List, Optional, Tuple
+from typing import cast, Dict, List, Optional, Tuple, TypedDict
+from urllib.parse import urljoin
 
 import pandas as pd  # type: ignore[import]
+import requests
 
 # local imports
 from keycloak_setup.icecube_setup import ICECUBE_INSTS  # type: ignore[import]
+from rest_tools.client import RestClient  # type: ignore
 
+from ..config import AUTH_PREFIX, REST_SERVER_URL, TOKEN_SERVER_URL
 from .types import Record, Table
 
-# Constants
-LABOR_CAT_LABEL = "Labor Cat."
-INSTITUTION_LABEL = "Institution"
+
+def ds_rest_connection() -> RestClient:
+    """Return REST Client connection object."""
+    token_request_url = urljoin(TOKEN_SERVER_URL, f"token?scope={AUTH_PREFIX}:web")
+    token_json = requests.get(token_request_url).json()
+
+    rc = RestClient(REST_SERVER_URL, token=token_json["access"], timeout=5, retries=0)
+    return rc
 
 
 _ID = "id"
+# read data from excel file
+_TABLE = pd.read_excel("WBS.xlsx").fillna("")
+_TABLE = [r for r in _TABLE.to_dict("records") if any(r.values())]
+_TABLE = {f"Z{r[_ID]}": r for r in _TABLE}
+for key in _TABLE.keys():
+    _TABLE[key][_ID] = key
+
+
 _WBS_L2 = "WBS L2"
 _WBS_L3 = "WBS L3"
+_LABOR_CAT = "Labor Cat."
 _US_NON_US = "US / Non-US"
+_INSTITUTION = "Institution"
 _NAMES = "Names"
 _TASKS = "Tasks"
 _SOURCE_OF_FUNDS_US_ONLY = "Source of Funds (U.S. Only)"
@@ -35,14 +54,6 @@ _US = "US"
 _NON_US = "Non-US"
 
 
-# read data from excel file
-_TABLE = pd.read_excel("WBS.xlsx").fillna("")
-_TABLE = [r for r in _TABLE.to_dict("records") if any(r.values())]
-_TABLE = {f"Z{r[_ID]}": r for r in _TABLE}
-for key in _TABLE.keys():
-    _TABLE[key][_ID] = key
-
-
 # --------------------------------------------------------------------------------------
 # Data/Table functions
 
@@ -53,11 +64,11 @@ def pull_data_table(institution: str = "", labor: str = "") -> Table:
 
     # filter by labor
     if labor:
-        table = [r for r in table if r[LABOR_CAT_LABEL] == labor]
+        table = [r for r in table if r[_LABOR_CAT] == labor]
 
     # filter by institution
     if institution:
-        table = [r for r in table if r[INSTITUTION_LABEL] == institution]
+        table = [r for r in table if r[_INSTITUTION] == institution]
 
     def _us_or_non_us(institution: str) -> str:
         for inst in ICECUBE_INSTS.values():
@@ -69,7 +80,7 @@ def pull_data_table(institution: str = "", labor: str = "") -> Table:
 
     # don't use US/Non-US from excel b/c later this won't even be stored in the DB
     for record in table:
-        record[_US_NON_US] = _us_or_non_us(record[INSTITUTION_LABEL])
+        record[_US_NON_US] = _us_or_non_us(record[_INSTITUTION])
 
     for record in table:
         for field in record.keys():
@@ -82,8 +93,8 @@ def pull_data_table(institution: str = "", labor: str = "") -> Table:
             k[_WBS_L2],
             k[_WBS_L3],
             k[_US_NON_US],
-            k[INSTITUTION_LABEL],
-            k[LABOR_CAT_LABEL],
+            k[_INSTITUTION],
+            k[_LABOR_CAT],
             k[_NAMES],
             k[_SOURCE_OF_FUNDS_US_ONLY],
         ),
@@ -96,8 +107,13 @@ def _next_id() -> str:
     return f"{max(_TABLE.keys())}{max(_TABLE.keys())}"
 
 
-def push_record(record: Record) -> Optional[Record]:
+def push_record(
+    record: Record, labor: str = "", institution: str = ""
+) -> Optional[Record]:
     """Push new/changed record to source."""
+    record[_INSTITUTION] = institution
+    record[_LABOR_CAT] = labor
+
     # New
     if not record[_ID] and record[_ID] != 0:
         record[_ID] = _next_id()
@@ -125,250 +141,164 @@ def delete_record(record: Record) -> bool:
 # --------------------------------------------------------------------------------------
 # Column functions
 
-_COLUMNS = [
-    _ID,
-    _WBS_L2,
-    _WBS_L3,
-    _US_NON_US,
-    INSTITUTION_LABEL,
-    LABOR_CAT_LABEL,
-    _NAMES,
-    _TASKS,
-    _SOURCE_OF_FUNDS_US_ONLY,
-    _FTE,
-    _NSF_MO_CORE,
-    _NSF_BASE_GRANTS,
-    _US_INSTITUTIONAL_IN_KIND,
-    _EUROPE_ASIA_PACIFIC_IN_KIND,
-    _GRAND_TOTAL,
-]
+
+class TableConfig(TypedDict):
+    """The response dict from '/table/config'."""
+
+    columns: List[str]
+    simple_dropdown_menus: Dict[str, List[str]]
+    conditional_dropdown_menus: Dict[str, Tuple[str, Dict[str, List[str]]]]
+    dropdowns: List[str]
+    numerics: List[str]
+    non_editables: List[str]
+    hiddens: List[str]
+    widths: Dict[str, int]
+    border_left_columns: List[str]
+    page_size: int
 
 
-def get_table_columns() -> List[str]:
+def _get_config() -> TableConfig:
+    rc = ds_rest_connection()
+    response = rc.request_seq("GET", "/table/config")
+
+    return cast(TableConfig, response)
+
+
+def get_table_columns(config: Optional[TableConfig] = None) -> List[str]:
     """Return table column's names."""
-    return _COLUMNS
+    if not config:
+        config = _get_config()
+
+    return config["columns"]
 
 
-_SIMPLE_DROPDOWN_MENUS = {
-    _WBS_L2: [
-        "2.1 Program Coordination",
-        "2.2 Detector Operations & Maintenance (Online)",
-        "2.3 Computing & Data Management Services",
-        "2.4 Data Processing & Simulation Services",
-        "2.5 Software",
-        "2.6 Calibration",
-    ],
-    LABOR_CAT_LABEL: sorted(
-        ["AD", "CS", "DS", "EN", "GR", "IT", "KE", "MA", "PO", "SC", "WO"]
-    ),
-    INSTITUTION_LABEL: sorted(inst["abbreviation"] for inst in ICECUBE_INSTS.values()),
-}
-
-_CONDITIONAL_DROPDOWN_MENUS = {
-    _WBS_L3: (
-        _WBS_L2,
-        {
-            "2.1 Program Coordination": [
-                "2.1.0 Program Coordination",
-                "2.1.1 Administration",
-                "2.1.2 Engineering and R&D Support",
-                "2.1.3 USAP Support & Safety",
-                "2.1.4 Education & Outreach",
-                "2.1.5 Communications",
-            ],
-            "2.2 Detector Operations & Maintenance (Online)": [
-                "2.2.0 Detector Operations & Maintenance",
-                "2.2.1 Run Coordination",
-                "2.2.2 Data Acquisition",
-                "2.2.3 Online Filter (PnF)",
-                "2.2.4 Detector Monitoring",
-                "2.2.5 Experiment Control",
-                "2.2.6 Surface Detectors",
-                "2.2.7 Supernova System",
-                "2.2.8 Real-Time Alerts",
-                "2.2.9 SPS/SPTS",
-            ],
-            "2.3 Computing & Data Management Services": [
-                "2.3.0 Computing & Data Management Services",
-                "2.3.1 Data Storage & Transfer",
-                "2.3.2 Core Data Center Infrastructure",
-                "2.3.3 Central Computing Resources",
-                "2.3.4 Distributed Computing Resources",
-            ],
-            "2.4 Data Processing & Simulation Services": [
-                "2.4.0 Data Processing & Simulation Services",
-                "2.4.1 Offline Data Production",
-                "2.4.2 Simulation Production",
-                "2.4.3 Public Data Products",
-            ],
-            "2.5 Software": [
-                "2.5.0 Software",
-                "2.5.1 Core Software",
-                "2.5.2 Simulation Software",
-                "2.5.3 Reconstruction",
-                "2.5.4 Science Support Tools",
-                "2.5.5 Software Development Infrastructure",
-            ],
-            "2.6 Calibration": [
-                "2.6.0 Calibration",
-                "2.6.1 Detector Calibration",
-                "2.6.2 Ice Properties",
-            ],
-        },
-    ),
-    _SOURCE_OF_FUNDS_US_ONLY: (
-        _US_NON_US,
-        {
-            _US: [_NSF_MO_CORE, "Base Grants", "US In-Kind"],
-            _NON_US: ["Non-US In-kind"],
-        },
-    ),
-}
-
-
-_DROPDOWNS = list(_SIMPLE_DROPDOWN_MENUS.keys()) + list(
-    _CONDITIONAL_DROPDOWN_MENUS.keys()
-)
-
-
-_NUMERICS = [
-    _FTE,
-    _NSF_MO_CORE,
-    _NSF_BASE_GRANTS,
-    _US_INSTITUTIONAL_IN_KIND,
-    _EUROPE_ASIA_PACIFIC_IN_KIND,
-    _GRAND_TOTAL,
-]
-
-_NON_EDITABLES = [
-    _US_NON_US,
-    _NSF_MO_CORE,
-    _NSF_BASE_GRANTS,
-    _US_INSTITUTIONAL_IN_KIND,
-    _EUROPE_ASIA_PACIFIC_IN_KIND,
-    _GRAND_TOTAL,
-]
-
-_HIDDENS = [
-    _ID,
-    _US_NON_US,
-    _NSF_MO_CORE,
-    _NSF_BASE_GRANTS,
-    _US_INSTITUTIONAL_IN_KIND,
-    _EUROPE_ASIA_PACIFIC_IN_KIND,
-    _GRAND_TOTAL,
-]
-
-
-def get_simple_column_dropdown_menu(column: str) -> List[str]:
+def get_simple_column_dropdown_menu(
+    column: str, config: Optional[TableConfig] = None
+) -> List[str]:
     """Return dropdown menu for a column."""
-    return _SIMPLE_DROPDOWN_MENUS[column]
+    if not config:
+        config = _get_config()
+
+    return config["simple_dropdown_menus"][column]
 
 
-def get_institutions() -> List[str]:
+def get_institutions(config: Optional[TableConfig] = None) -> List[str]:
     """Return list of institutions."""
-    return get_simple_column_dropdown_menu(INSTITUTION_LABEL)
+    if not config:
+        config = _get_config()
+
+    return get_simple_column_dropdown_menu(_INSTITUTION, config=config)
 
 
-def get_labor_categories() -> List[str]:
+def get_labor_categories(config: Optional[TableConfig] = None) -> List[str]:
     """Return list of labors."""
-    return get_simple_column_dropdown_menu(LABOR_CAT_LABEL)
+    if not config:
+        config = _get_config()
+
+    return get_simple_column_dropdown_menu(_LABOR_CAT, config=config)
 
 
-def is_column_dropdown(column: str) -> bool:
+def is_column_dropdown(column: str, config: Optional[TableConfig] = None) -> bool:
     """Return  whether column is a dropdown-type."""
-    return column in _DROPDOWNS
+    if not config:
+        config = _get_config()
+
+    return column in config["dropdowns"]
 
 
-def is_column_numeric(column: str) -> bool:
+def is_column_numeric(column: str, config: Optional[TableConfig] = None) -> bool:
     """Return whether column takes numeric data."""
-    return column in _NUMERICS
+    if not config:
+        config = _get_config()
+
+    return column in config["numerics"]
 
 
-def is_column_editable(column: str) -> bool:
+def is_column_editable(column: str, config: Optional[TableConfig] = None) -> bool:
     """Return whether column data can be edited by end-user."""
-    return column not in _NON_EDITABLES
+    if not config:
+        config = _get_config()
+
+    return column not in config["non_editables"]
 
 
-def get_hidden_columns() -> List[str]:
+def get_hidden_columns(config: Optional[TableConfig] = None) -> List[str]:
     """Return the columns hidden be default."""
-    return _HIDDENS
+    if not config:
+        config = _get_config()
+
+    return config["hiddens"]
 
 
-def get_dropdown_columns() -> List[str]:
+def get_dropdown_columns(config: Optional[TableConfig] = None) -> List[str]:
     """Return list of dropdown-type columns."""
-    return _DROPDOWNS
+    if not config:
+        config = _get_config()
+
+    return config["dropdowns"]
 
 
-def is_simple_dropdown(column: str) -> bool:
+def is_simple_dropdown(column: str, config: Optional[TableConfig] = None) -> bool:
     """Return whether column is a simple dropdown-type."""
-    return column in _SIMPLE_DROPDOWN_MENUS.keys()
+    if not config:
+        config = _get_config()
+
+    return column in config["simple_dropdown_menus"].keys()
 
 
-def is_conditional_dropdown(column: str) -> bool:
+def is_conditional_dropdown(column: str, config: Optional[TableConfig] = None) -> bool:
     """Return whether column is a conditional dropdown-type."""
-    return column in _CONDITIONAL_DROPDOWN_MENUS.keys()
+    if not config:
+        config = _get_config()
+
+    return column in config["conditional_dropdown_menus"].keys()
 
 
-def get_conditional_column_dependee(column: str) -> Tuple[str, List[str]]:
+def get_conditional_column_dependee(
+    column: str, config: Optional[TableConfig] = None
+) -> Tuple[str, List[str]]:
     """Get the dependee column's (name and list of options)."""
+    if not config:
+        config = _get_config()
+
     return (
-        _CONDITIONAL_DROPDOWN_MENUS[column][0],
-        list(_CONDITIONAL_DROPDOWN_MENUS[column][1].keys()),
+        config["conditional_dropdown_menus"][column][0],
+        list(config["conditional_dropdown_menus"][column][1].keys()),
     )
 
 
 def get_conditional_column_dropdown_menu(
-    column: str, dependee_column_option: str
+    column: str, dependee_column_option: str, config: Optional[TableConfig] = None
 ) -> List[str]:
     """Get the dropdown menu for a conditional dropdown-column."""
-    return _CONDITIONAL_DROPDOWN_MENUS[column][1][dependee_column_option]
+    if not config:
+        config = _get_config()
+
+    return config["conditional_dropdown_menus"][column][1][dependee_column_option]
 
 
-_WIDTHS = {
-    _ID: 100,
-    _WBS_L2: 350,
-    _WBS_L3: 300,
-    _US_NON_US: 100,
-    LABOR_CAT_LABEL: 100,
-    INSTITUTION_LABEL: 140,
-    _NAMES: 150,
-    _TASKS: 300,
-    _SOURCE_OF_FUNDS_US_ONLY: 150,
-    _FTE: 90,
-    _NSF_MO_CORE: 110,
-    _NSF_BASE_GRANTS: 110,
-    _US_INSTITUTIONAL_IN_KIND: 110,
-    _EUROPE_ASIA_PACIFIC_IN_KIND: 110,
-    _GRAND_TOTAL: 110,
-}
-
-
-def get_column_width(column: str) -> int:
+def get_column_width(column: str, config: Optional[TableConfig] = None) -> int:
     """Return the pixel width of a given column."""
+    if not config:
+        config = _get_config()
+
     try:
-        return _WIDTHS[column]
+        return config["widths"][column]
     except KeyError:
         return 35
 
 
-_BORDER_LEFT_COLUMNS = [
-    _US_NON_US,
-    INSTITUTION_LABEL,
-    _SOURCE_OF_FUNDS_US_ONLY,
-    _NSF_MO_CORE,
-    _GRAND_TOTAL,
-]
-
-
-def has_border_left(column: str) -> bool:
+def has_border_left(column: str, config: Optional[TableConfig] = None) -> bool:
     """Return whether column has a border to its right."""
-    return column in _BORDER_LEFT_COLUMNS
+    if not config:
+        config = _get_config()
+
+    return column in config["border_left_columns"]
 
 
-_PAGE_SIZE = 15
-
-
-def get_page_size() -> int:
+def get_page_size(config: Optional[TableConfig] = None) -> int:
     """Return the number of rows for a page."""
-    return _PAGE_SIZE
+    if not config:
+        config = _get_config()
+
+    return config["page_size"]
