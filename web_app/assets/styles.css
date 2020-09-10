@@ -1,0 +1,88 @@
+
+
+/*------------------------------------------------------------------------------------*/
+/* Dropdown Menus */
+
+.Select-menu-outer {
+    display : block !important; /* make visible */
+    --accent : darkgreen;
+    padding-left: 1.5em;
+}
+
+
+/*------------------------------------------------------------------------------------*/
+/* Buttons above DataTable */
+
+.dash-spreadsheet-menu{
+    position: relative;
+    float: right;
+    margin-bottom: 0.8em;
+}
+
+.dash-spreadsheet-menu > * {
+    padding-right: 0px !important;
+    margin-left: 0.7em !important;
+}
+
+.export, .show-hide{ /* copy "btn btn-outline-secondary" */
+    color: #6c757d;
+    border-color: #6c757d;
+    display: inline-block;
+    font-weight: 400;
+    font-size: 1rem;
+    padding: .375rem 2rem;
+    line-height: 1.5;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+
+.export:hover, .show-hide:hover{ /* copy "btn btn-outline-secondary" */
+    color: white;
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+
+/*------------------------------------------------------------------------------------*/
+/* dbc Buttons */
+
+.btn {
+    padding: .375rem 2rem;
+}
+
+
+/*------------------------------------------------------------------------------------*/
+/* DataTable */
+
+.column-header--hide{ /* Hide the column header "hide" icon */
+    visibility: hidden !important;
+    padding: 0 !important;
+    width: 0 !important;
+}
+
+.dash-header{
+    padding-right: 0.5em !important;
+}
+
+
+.current-page{
+    width: 35px !important;
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+}
+
+.dash-delete-cell{
+    text-align:center !important;
+    padding: 0 !important;
+}
+
+.column-header--sort{
+    float: right !important;
+    vertical-align: middle !important;
+    margin-left: 0.5em;
+}
+
+.dash-spreadsheet-container table {
+    --accent: darkgreen !important;
+    --selected-background: darkgreen !important;
+    --selected-color: darkgreen !important;
+}
