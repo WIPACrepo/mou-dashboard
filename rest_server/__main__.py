@@ -43,7 +43,6 @@ def start(debug: bool = False) -> RestServer:
 
     # server.add_route(r"/record$", RecordHandler, args)  # push, delete
 
-    # TODO: store timestamp and duration to cache most recent version from Smartsheet
     server.add_route(r"/table/config$", routes.TableConfigHandler, args)  # get
 
     return server
