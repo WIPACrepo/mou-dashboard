@@ -1,22 +1,20 @@
 """REST interface for reading and writing MoU data."""
 
 
-from copy import deepcopy
-from typing import cast, Dict, List, Optional, Tuple, TypedDict
+import logging
+from typing import Any, cast, Dict, List, Optional, Tuple, TypedDict
 from urllib.parse import urljoin
 
-import pandas as pd  # type: ignore[import]
 import requests
 
 # local imports
-from keycloak_setup.icecube_setup import ICECUBE_INSTS  # type: ignore[import]
 from rest_tools.client import RestClient  # type: ignore
 
 from ..config import AUTH_PREFIX, REST_SERVER_URL, TOKEN_SERVER_URL
 from .types import Record, Table
 
 
-def ds_rest_connection() -> RestClient:
+def _ds_rest_connection() -> RestClient:
     """Return REST Client connection object."""
     token_request_url = urljoin(TOKEN_SERVER_URL, f"token?scope={AUTH_PREFIX}:web")
     token_json = requests.get(token_request_url).json()
@@ -25,33 +23,11 @@ def ds_rest_connection() -> RestClient:
     return rc
 
 
-_ID = "id"
-# read data from excel file
-_TABLE = pd.read_excel("WBS.xlsx").fillna("")
-_TABLE = [r for r in _TABLE.to_dict("records") if any(r.values())]
-_TABLE = {f"Z{r[_ID]}": r for r in _TABLE}
-for key in _TABLE.keys():
-    _TABLE[key][_ID] = key
-
-
-_WBS_L2 = "WBS L2"
-_WBS_L3 = "WBS L3"
-_LABOR_CAT = "Labor Cat."
-_US_NON_US = "US / Non-US"
-_INSTITUTION = "Institution"
-_NAMES = "Names"
-_TASKS = "Tasks"
-_SOURCE_OF_FUNDS_US_ONLY = "Source of Funds (U.S. Only)"
-_FTE = "FTE"
-_NSF_MO_CORE = "NSF M&O Core"
-_NSF_BASE_GRANTS = "NSF Base Grants"
-_US_INSTITUTIONAL_IN_KIND = "U.S. Institutional In-Kind"
-_EUROPE_ASIA_PACIFIC_IN_KIND = "Europe & Asia Pacific In-Kind"
-_GRAND_TOTAL = "Grand Total"
-
-
-_US = "US"
-_NON_US = "Non-US"
+def _request(method: str, url: str, body: Any = None) -> Dict[str, Any]:
+    logging.info(f"{method} @ {url}, body: {body}")
+    response = _ds_rest_connection().request_seq(method, url, body)
+    logging.debug(f"{response}")
+    return cast(Dict[str, Any], response)
 
 
 # --------------------------------------------------------------------------------------
@@ -60,82 +36,32 @@ _NON_US = "Non-US"
 
 def pull_data_table(institution: str = "", labor: str = "") -> Table:
     """Get table, optionally filtered by institution and/or labor."""
-    table = list(deepcopy(_TABLE).values())  # very important to deep-copy here
+    body = {"institution": institution, "labor": labor}
+    response = _request("GET", "/table/data", body)
 
-    # filter by labor
-    if labor:
-        table = [r for r in table if r[_LABOR_CAT] == labor]
-
-    # filter by institution
-    if institution:
-        table = [r for r in table if r[_INSTITUTION] == institution]
-
-    def _us_or_non_us(institution: str) -> str:
-        for inst in ICECUBE_INSTS.values():
-            if inst["abbreviation"] == institution:
-                if inst["is_US"]:
-                    return _US
-                return _NON_US
-        return ""
-
-    # don't use US/Non-US from excel b/c later this won't even be stored in the DB
-    for record in table:
-        record[_US_NON_US] = _us_or_non_us(record[_INSTITUTION])
-
-    for record in table:
-        for field in record.keys():
-            if record[field] is None:
-                record[field] = ""
-
-    # sort
-    table.sort(
-        key=lambda k: (
-            k[_WBS_L2],
-            k[_WBS_L3],
-            k[_US_NON_US],
-            k[_INSTITUTION],
-            k[_LABOR_CAT],
-            k[_NAMES],
-            k[_SOURCE_OF_FUNDS_US_ONLY],
-        ),
-    )
-
-    return cast(Table, table)
-
-
-def _next_id() -> str:
-    return f"{max(_TABLE.keys())}{max(_TABLE.keys())}"
+    return cast(Table, response["table"])
 
 
 def push_record(
     record: Record, labor: str = "", institution: str = ""
 ) -> Optional[Record]:
     """Push new/changed record to source."""
-    record[_INSTITUTION] = institution
-    record[_LABOR_CAT] = labor
+    body = {"record": record, "institution": institution, "labor": labor}
+    response = _request("POST", "/record", body)
 
-    # New
-    if not record[_ID] and record[_ID] != 0:
-        record[_ID] = _next_id()
-        _TABLE[record[_ID]] = record  # add
-        print(f"PUSHED NEW {record[_ID]} --- table now has {len(_TABLE)} entries")
-        return record
-
-    # Changed
-    print(f"PUSHED {record[_ID]}")
-    _TABLE[record[_ID]] = record  # replace record
-    return record
+    return cast(Record, response["record"])
 
 
 def delete_record(record: Record) -> bool:
     """Delete the record, return True if successful."""
-    # try:
-    del _TABLE[record[_ID]]
-    print(f"DELETED {record[_ID]} --- table now has {len(_TABLE)} entries")
-    return True
-    # except KeyError:
-    #     print(f"couldn't delete {id_}")
-    #     return False
+    try:
+        body = {"record": record}
+        _request("DELETE", "/record", body)
+        return True
+    except requests.exceptions.HTTPError as e:
+        # TODO: test this case
+        logging.exception(f"EXCEPTED: {e}")
+        return False
 
 
 # --------------------------------------------------------------------------------------
@@ -164,8 +90,7 @@ class TableConfig:
 
         Use the parser functions to access configurations.
         """
-        rc = ds_rest_connection()
-        response = rc.request_seq("GET", "/table/config")
+        response = _request("GET", "/table/config")
         self.config = cast(TableConfig._ResponseTypedDict, response)
 
     def get_table_columns(self) -> List[str]:
@@ -178,11 +103,11 @@ class TableConfig:
 
     def get_institutions(self) -> List[str]:
         """Return list of institutions."""
-        return self.get_simple_column_dropdown_menu(_INSTITUTION)
+        return self.config["institutions"]
 
     def get_labor_categories(self) -> List[str]:
         """Return list of labors."""
-        return self.get_simple_column_dropdown_menu(_LABOR_CAT)
+        return self.config["labor_categories"]
 
     def is_column_dropdown(self, column: str) -> bool:
         """Return  whether column is a dropdown-type."""

@@ -39,12 +39,9 @@ def start(debug: bool = False) -> RestServer:
     # Configure REST Routes
     server = RestServer(debug=debug)
 
-    # server.add_route(r"/table/data$", TableHandler, args)  # get
-
+    server.add_route(r"/table/data$", routes.TableHandler, args)  # get
     # server.add_route(r"/table/data/snapshot$", SnapshotHandler, args)  # get, push
-
-    # server.add_route(r"/record$", RecordHandler, args)  # push, delete
-
+    server.add_route(r"/record$", routes.RecordHandler, args)  # push, delete
     server.add_route(r"/table/config$", routes.TableConfigHandler, args)  # get
 
     server.startup(address=MOU_REST_HOST, port=MOU_REST_PORT)
