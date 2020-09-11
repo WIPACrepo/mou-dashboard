@@ -11,6 +11,7 @@ from dash.dependencies import Input, Output, State  # type: ignore[import]
 from ..config import app
 from ..utils import dash_utils as util
 from ..utils import data_source as src
+from ..utils.data_source import TableConfig
 from ..utils.styles import CENTERED_100, WIDTH_45
 from ..utils.types import DDCond, DDown, Record, SDCond, Table, TData
 
@@ -48,14 +49,14 @@ def _style_cell_conditional_fixed_width(
     return style
 
 
-def _style_cell_conditional() -> List[Dict[str, Collection[str]]]:
+def _style_cell_conditional(tconfig: TableConfig) -> List[Dict[str, Collection[str]]]:
     style_cell_conditional = []
 
-    for col_name in src.get_table_columns():
+    for col_name in tconfig.get_table_columns():
         # get values
-        width = f"{src.get_column_width(col_name)}px"
-        border_left = src.has_border_left(col_name)
-        align_right = src.is_column_numeric(col_name)
+        width = f"{tconfig.get_column_width(col_name)}px"
+        border_left = tconfig.has_border_left(col_name)
+        align_right = tconfig.is_column_numeric(col_name)
 
         # set & add style
         fixed_width = _style_cell_conditional_fixed_width(
@@ -66,7 +67,7 @@ def _style_cell_conditional() -> List[Dict[str, Collection[str]]]:
     return style_cell_conditional
 
 
-def _get_style_data_conditional() -> SDCond:
+def _get_style_data_conditional(tconfig: TableConfig) -> SDCond:
     """Style Data..."""
     # zebra-stripe
     style_data_conditional = [
@@ -84,7 +85,7 @@ def _get_style_data_conditional() -> SDCond:
             # "color": "darkgreen",  # doesn't color dropdown-type value
             "fontStyle": "oblique",
         }
-        for col in src.get_table_columns()
+        for col in tconfig.get_table_columns()
     ]
 
     style_data_conditional += [
@@ -100,6 +101,8 @@ def _get_style_data_conditional() -> SDCond:
 
 def layout() -> html.Div:
     """Construct the HTML."""
+    tconfig = TableConfig()
+
     return html.Div(
         children=[
             html.Div(
@@ -158,7 +161,7 @@ def layout() -> html.Div:
                                         id="tab-1-filter-inst",
                                         options=[
                                             {"label": st, "value": st}
-                                            for st in src.get_institutions()
+                                            for st in tconfig.get_institutions()
                                         ],
                                         value="",
                                         # multi=True
@@ -174,7 +177,7 @@ def layout() -> html.Div:
                                         id="tab-1-filter-labor",
                                         options=[
                                             {"label": st, "value": st}
-                                            for st in src.get_labor_categories()
+                                            for st in tconfig.get_labor_categories()
                                         ],
                                         value="",
                                         # multi=True
@@ -232,14 +235,14 @@ def layout() -> html.Div:
                     "width": "10px",
                     "maxWidth": "10px",
                 },
-                style_cell_conditional=_style_cell_conditional(),
+                style_cell_conditional=_style_cell_conditional(tconfig),
                 style_data={
                     "whiteSpace": "normal",
                     "height": "auto",
                     "lineHeight": "20px",
                     "wordBreak": "normal",
                 },
-                style_data_conditional=_get_style_data_conditional(),
+                style_data_conditional=_get_style_data_conditional(tconfig),
                 # row_deletable set in callback
                 # hidden_columns set in callback
                 # page_size set in callback
@@ -429,14 +432,15 @@ def table_data_interior_controls(
 )
 def table_columns(table_editable: bool) -> List[Dict[str, object]]:
     """Grab table columns."""
+    tconfig = TableConfig()
 
     def _presentation(col_name: str) -> str:
-        if src.is_column_dropdown(col_name):
+        if tconfig.is_column_dropdown(col_name):
             return "dropdown"
         return "input"  # default
 
     def _type(col_name: str) -> str:
-        if src.is_column_numeric(col_name):
+        if tconfig.is_column_numeric(col_name):
             return "numeric"
         return "any"  # default
 
@@ -446,10 +450,10 @@ def table_columns(table_editable: bool) -> List[Dict[str, object]]:
             "name": c,
             "presentation": _presentation(c),
             "type": _type(c),
-            "editable": table_editable and src.is_column_editable(c),
+            "editable": table_editable and tconfig.is_column_editable(c),
             "hideable": True,
         }
-        for c in src.get_table_columns()
+        for c in tconfig.get_table_columns()
     ]
 
     return columns
@@ -462,27 +466,28 @@ def table_columns(table_editable: bool) -> List[Dict[str, object]]:
     ],
     [Input("tab-1-data-table", "editable")],
 )
-def table_dropdown(_: bool,) -> Tuple[DDown, DDCond]:
+def table_dropdown(_: bool) -> Tuple[DDown, DDCond]:
     """Grab table dropdowns."""
     simple_dropdowns: DDown = {}
     conditional_dropdowns: DDCond = []
+    tconfig = TableConfig()
 
     def _options(menu: List[str]) -> List[Dict[str, str]]:
         return [{"label": m, "value": m} for m in menu]
 
-    for col in src.get_dropdown_columns():
+    for col in tconfig.get_dropdown_columns():
         # Add simple dropdowns
-        if src.is_simple_dropdown(col):
-            dropdown = src.get_simple_column_dropdown_menu(col)
+        if tconfig.is_simple_dropdown(col):
+            dropdown = tconfig.get_simple_column_dropdown_menu(col)
             simple_dropdowns[col] = {"options": _options(dropdown)}
 
         # Add conditional dropdowns
-        elif src.is_conditional_dropdown(col):
+        elif tconfig.is_conditional_dropdown(col):
             # get dependee column and its options
-            dep_col, dep_col_opts = src.get_conditional_column_dependee(col)
+            dep_col, dep_col_opts = tconfig.get_conditional_column_dependee(col)
             # make filter_query for each dependee-column option
             for opt in dep_col_opts:
-                dropdown = src.get_conditional_column_dropdown_menu(col, opt)
+                dropdown = tconfig.get_conditional_column_dropdown_menu(col, opt)
                 conditional_dropdowns.append(
                     {
                         "if": {
@@ -554,7 +559,8 @@ def sign_in(name: str, email: str) -> Tuple[str, bool, bool, bool, bool, str, bo
 def toggle_pagination(n_clicks: int) -> Tuple[str, str, bool, int, str]:
     """Toggle whether the table is paginated."""
     if n_clicks % 2 == 0:
-        return "Show All Rows", "secondary", True, src.get_page_size(), "native"
+        tconfig = TableConfig()
+        return "Show All Rows", "secondary", True, tconfig.get_page_size(), "native"
     # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
     return "Collapse Rows to Pages", "dark", False, 9999999999, "none"
 
@@ -571,5 +577,6 @@ def toggle_pagination(n_clicks: int) -> Tuple[str, str, bool, int, str]:
 def toggle_hidden_columns(n_clicks: int) -> Tuple[str, str, bool, List[str]]:
     """Toggle hiding/showing the default hidden columns."""
     if n_clicks % 2 == 0:
-        return "Show All Columns", "secondary", True, src.get_hidden_columns()
+        tconfig = TableConfig()
+        return "Show All Columns", "secondary", True, tconfig.get_hidden_columns()
     return "Show Default Columns", "dark", False, []
