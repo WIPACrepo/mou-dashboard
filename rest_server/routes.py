@@ -48,10 +48,9 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
         **kwargs: Any,
     ) -> None:
         """Initialize a BaseMoUHandler object."""
-        # super().initialize(*args, **kwargs)
+        super().initialize(*args, **kwargs)
 
-        # self.motor_client = motor_client  # pylint: disable=W0201
-        # self.md_mc = MoUMotorClient(motor_client)  # pylint: disable=W0201
+        # self.motor = MoUMotorClient(motor_client)  # pylint: disable=W0201
 
     def get_json_body_argument(
         self,

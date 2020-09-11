@@ -30,6 +30,8 @@ MOU_AUTH_ALGORITHM = _config_env["MOU_AUTH_ALGORITHM"]
 MOU_AUTH_ISSUER = _config_env["MOU_AUTH_ISSUER"]
 MOU_AUTH_SECRET = _config_env["MOU_AUTH_SECRET"]
 MOU_AUTH_PREFIX = _config_env["MOU_AUTH_PREFIX"]
+MOU_REST_HOST = _config_env["MOU_REST_HOST"]
+MOU_REST_PORT = int(_config_env["MOU_REST_PORT"])
 
 
 def log_environment() -> None:

@@ -13,6 +13,8 @@ from .config import (
     MOU_AUTH_ALGORITHM,
     MOU_AUTH_ISSUER,
     MOU_AUTH_SECRET,
+    MOU_REST_HOST,
+    MOU_REST_PORT,
 )
 
 
@@ -45,6 +47,7 @@ def start(debug: bool = False) -> RestServer:
 
     server.add_route(r"/table/config$", routes.TableConfigHandler, args)  # get
 
+    server.startup(address=MOU_REST_HOST, port=MOU_REST_PORT)
     return server
 
 
