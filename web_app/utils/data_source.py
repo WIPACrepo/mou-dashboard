@@ -26,7 +26,7 @@ def _ds_rest_connection() -> RestClient:
 def _request(method: str, url: str, body: Any = None) -> Dict[str, Any]:
     logging.info(f"{method} @ {url}, body: {body}")
     response = _ds_rest_connection().request_seq(method, url, body)
-    logging.debug(f"{response}")
+    # logging.debug(f"{response}")
     return cast(Dict[str, Any], response)
 
 
@@ -40,6 +40,12 @@ def pull_data_table(
     """Get table, optionally filtered by institution and/or labor."""
     body = {"institution": institution, "labor": labor, "total_rows": with_totals}
     response = _request("GET", "/table/data", body)
+
+    for record in response["table"]:
+        if record["id"] == "Z101":
+            from pprint import pprint
+
+            pprint(f"\n\n\n{record}\n\n\n")
 
     return cast(Table, response["table"])
 

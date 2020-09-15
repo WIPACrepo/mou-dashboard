@@ -1,11 +1,11 @@
 """Conditional in-cell drop-down menu with IceCube WBS MoU info."""
 
-from typing import Collection, Dict, List, Optional, Tuple
+from typing import Collection, Dict, List, Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
-import dash_table as dt  # type: ignore[import]
+import dash_table  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
 
 from ..config import app
@@ -13,9 +13,20 @@ from ..utils import dash_utils as util
 from ..utils import data_source as src
 from ..utils.data_source import TableConfig
 from ..utils.styles import CENTERED_100, WIDTH_45
-from ..utils.types import DDCond, DDown, Record, SDCond, Table, TData
+from ..utils.types import (
+    DataEntry,
+    Record,
+    Table,
+    TColumns,
+    TDDown,
+    TDDownCond,
+    TFocus,
+    TSDCond,
+)
 
 REFRESH_MSG = "Refresh page and try again."
+BTN_OFF = "dark"
+BTN_ON = "secondary"
 
 
 # --------------------------------------------------------------------------------------
@@ -24,12 +35,7 @@ REFRESH_MSG = "Refresh page and try again."
 
 def _new_data_button(_id: str, block: bool = True) -> dbc.Button:
     return dbc.Button(
-        "+ Add New Data",
-        id=_id,
-        block=block,
-        n_clicks=0,
-        color="secondary",
-        disabled=True,
+        "+ Add New Data", id=_id, block=block, n_clicks=0, color=BTN_ON, disabled=True,
     )
 
 
@@ -70,7 +76,7 @@ def _style_cell_conditional(tconfig: TableConfig) -> List[Dict[str, Collection[s
     return style_cell_conditional
 
 
-def _get_style_data_conditional(tconfig: TableConfig) -> SDCond:
+def _get_style_data_conditional(tconfig: TableConfig) -> TSDCond:
     """Style Data..."""
     # zebra-stripe
     style_data_conditional = [
@@ -229,7 +235,7 @@ def layout() -> html.Div:
                 children=[_new_data_button("tab-1-new-data-btn-top")],
             ),
             # Table
-            dt.DataTable(
+            dash_table.DataTable(
                 id="tab-1-data-table",
                 editable=False,
                 # sort_action="native",
@@ -359,6 +365,54 @@ def layout() -> html.Div:
 # Table Callbacks
 
 
+def _totals(n_clicks: int) -> Tuple[bool, str, str, bool]:
+    """Figure out whether to include totals, and format the button.
+
+    Returns:
+        bool -- whether to include totals
+        str  -- button label
+        str  -- button color
+        bool -- button outline
+    """
+    if (util.triggered_id() == "tab-1-show-totals-button") and (n_clicks % 2 == 1):
+        return True, "Hide Totals", BTN_OFF, False
+    return False, "Show Totals", BTN_ON, True
+
+
+def _add_new_data(
+    state_table: Table, state_columns: TColumns, labor: str, institution: str,
+) -> Tuple[Table, dbc.Toast]:
+    """Push new record to data source; add to table.
+
+    Returns:
+        TData     -- up-to-date data table
+        dbc.Toast -- toast element with confirmation message
+    """
+    table = state_table
+    column_names = [c["name"] for c in state_columns]
+    new_record: Record = {n: "" for n in column_names}
+
+    # push to data source AND auto-fill labor and/or institution
+    if new_record := src.push_record(new_record, labor=labor, institution=institution):  # type: ignore[assignment]
+        new_record = util.add_original_copies_to_record(new_record, novel=True)
+        table.insert(0, new_record)
+        toast = _make_toast("Record Added", f"id: {new_record['id']}", "success", 5)
+    else:
+        toast = _make_toast("Failed to Make Record", REFRESH_MSG, "danger")
+
+    return table, toast
+
+
+def _get_table(institution: str, labor: str, show_totals: bool) -> Table:
+    """Pull from data source."""
+    table = src.pull_data_table(
+        institution=institution, labor=labor, with_totals=show_totals
+    )
+    table = util.add_original_copies(table)
+
+    return table
+
+
 @app.callback(  # type: ignore[misc]
     [
         Output("tab-1-data-table", "data"),
@@ -387,19 +441,18 @@ def table_data_exterior_controls(
     __: int,
     ___: int,
     totals_n_clicks: int,
-    state_data_table: TData,
-    state_columns: List[Dict[str, str]],
-) -> Tuple[TData, Optional[Dict[str, int]], int, str, dbc.Toast, str, str, bool]:
+    state_table: Table,
+    state_columns: TColumns,
+) -> Tuple[Table, TFocus, int, str, dbc.Toast, str, str, bool]:
     """Exterior control signaled that the table should be updated.
 
-    This is either a filter, an "add new", or a refresh. Only "add new"
-    changes MoU DS data. The others simply change what's visible to the
-    user.
+    This is either a filter, "add new", refresh, or "show totals". Only
+    "add new" changes MoU DS data. The others simply change what's
+    visible to the user.
     """
     table: Table = []
-    focus: Optional[Dict[str, int]] = None
+    focus: TFocus = None
     toast: dbc.Toast = None
-    show_totals, totals_label, totals_color = False, "Show Totals", "secondary"
 
     # focus on first cell, but not on page load
     if util.triggered_id() in [
@@ -412,35 +465,57 @@ def table_data_exterior_controls(
     ]:
         focus = {"row": 0, "column": 0}
 
+    # format "Show Totals" button
+    show_totals, totals_label, totals_color, totals_outline = _totals(totals_n_clicks)
+
     # Add New Data
     if util.triggered_id() in ["tab-1-new-data-btn-top", "tab-1-new-data-btn-bottom"]:
-        table = state_data_table
-        column_names = [c["name"] for c in state_columns]
-        new_record: Record = {n: "" for n in column_names}
-
-        # push to data source AND auto-fill labor and/or institution
-        if new_record := src.push_record(new_record, labor=labor, institution=institution):  # type: ignore[assignment]
-            new_record = util.add_original_copies_to_record(new_record, novel=True)
-            table.insert(0, new_record)
-            toast = _make_toast("Record Added", f"id: {new_record['id']}", "success", 5)
-        else:
-            toast = _make_toast("Failed to Make Record", REFRESH_MSG, "danger")
-
-    # Page Load or Filter or Refresh
+        table, toast = _add_new_data(state_table, state_columns, labor, institution)
+    # OR Pull Table (optionally filtered)
     else:
-        if util.triggered_id() == "tab-1-show-totals-button":
-            if totals_n_clicks % 2 == 1:
-                show_totals, totals_label, totals_color = True, "Hide Totals", "dark"
+        table = _get_table(institution, labor, show_totals)
 
-        # pull from data source
-        table = src.pull_data_table(
-            institution=institution, labor=labor, with_totals=show_totals
+    timestamp = util.get_now()
+    return table, focus, 0, timestamp, toast, totals_label, totals_color, totals_outline
+
+
+def _push_modified_records(
+    current_table: Table, previous_table: Table
+) -> List[DataEntry]:
+    """For each row that changed, push the record to the DS."""
+    modified_records = [r for r in current_table if r not in previous_table]
+    for record in modified_records:
+        src.push_record(util.without_original_copies_from_record(record))
+
+    ids = [c["id"] for c in modified_records]
+    return ids
+
+
+def _delete_deleted_records(
+    current_table: Table, previous_table: Table, keeps: List[DataEntry]
+) -> dbc.Toast:
+    """For each row that was deleted by the user, delete its DS record."""
+    toast = None
+
+    delete_these = [
+        r for r in previous_table if (r not in current_table) and (r["id"] not in keeps)
+    ]
+
+    failures = []
+    record = None
+    for record in delete_these:
+        toast = _make_toast(f"Deleted Record {record['id']}", "", "dark")
+        # try to delete
+        if not src.delete_record(record):
+            failures.append(record)
+
+    # make toast message if any records failed to be deleted
+    if failures:
+        toast = _make_toast(
+            f"Failed to Delete Record {record['id']}", REFRESH_MSG, "danger",
         )
-        table = util.add_original_copies(table)
 
-    totals_outline = not show_totals
-    time = util.get_now()
-    return table, focus, 0, time, toast, totals_label, totals_color, totals_outline
+    return toast
 
 
 @app.callback(  # type: ignore[misc]
@@ -467,42 +542,20 @@ def table_data_interior_controls(
     This is unnecessary, so the timestamp of table_data_exterior_controls()'s
     last call will be checked to determine if that was indeed the case.
     """
-    update = f"Last Updated: {util.get_human_now()}"
+    updated_message = f"Last Updated: {util.get_human_now()}"
 
-    # On page load
-    if not previous_table:
-        return current_table, None, update
+    # On page load OR table was just updated via exterior controls
+    if (not previous_table) or util.was_recent(table_exterior_control_ts):
+        return current_table, None, updated_message
 
-    # Don't call DS if the table was just updated via exterior controls
-    if util.was_recent(table_exterior_control_ts):
-        return current_table, None, update
+    # Push (if any)
+    mod_ids = _push_modified_records(current_table, previous_table)
 
-    toast: dbc.Toast = None
-
-    # Push modified records
-    modified_records = [r for r in current_table if r not in previous_table]
-    for record in modified_records:
-        src.push_record(util.without_original_copies_from_record(record))
-
-    # Delete deleted records
-    mod_ids = [c["id"] for c in modified_records]
-    deleted_records = [
-        r
-        for r in previous_table
-        if (r not in current_table) and (r["id"] not in mod_ids)
-    ]
-    failed_to_delete = []
-    for record in deleted_records:
-        toast = _make_toast(f"Deleted Record {record['id']}", "", "dark")
-        if not src.delete_record(record):
-            failed_to_delete.append(record)
-    if failed_to_delete:
-        toast = _make_toast(
-            f"Failed to Delete Record {record['id']}", REFRESH_MSG, "danger",
-        )
+    # Delete (if any)
+    toast = _delete_deleted_records(current_table, previous_table, mod_ids)
 
     # Update data_previous
-    return current_table, toast, update
+    return current_table, toast, updated_message
 
 
 @app.callback(  # type: ignore[misc]
@@ -544,10 +597,10 @@ def table_columns(table_editable: bool) -> List[Dict[str, object]]:
     ],
     [Input("tab-1-data-table", "editable")],
 )
-def table_dropdown(_: bool) -> Tuple[DDown, DDCond]:
+def table_dropdown(_: bool) -> Tuple[TDDown, TDDownCond]:
     """Grab table dropdowns."""
-    simple_dropdowns: DDown = {}
-    conditional_dropdowns: DDCond = []
+    simple_dropdowns: TDDown = {}
+    conditional_dropdowns: TDDownCond = []
     tconfig = TableConfig()
 
     def _options(menu: List[str]) -> List[Dict[str, str]]:
@@ -638,9 +691,9 @@ def toggle_pagination(n_clicks: int) -> Tuple[str, str, bool, int, str]:
     """Toggle whether the table is paginated."""
     if n_clicks % 2 == 0:
         tconfig = TableConfig()
-        return "Show All Rows", "secondary", True, tconfig.get_page_size(), "native"
+        return "Show All Rows", BTN_ON, True, tconfig.get_page_size(), "native"
     # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
-    return "Collapse Rows to Pages", "dark", False, 9999999999, "none"
+    return "Collapse Rows to Pages", BTN_OFF, False, 9999999999, "none"
 
 
 @app.callback(  # type: ignore[misc]
@@ -656,8 +709,8 @@ def toggle_hidden_columns(n_clicks: int) -> Tuple[str, str, bool, List[str]]:
     """Toggle hiding/showing the default hidden columns."""
     if n_clicks % 2 == 0:
         tconfig = TableConfig()
-        return "Show All Columns", "secondary", True, tconfig.get_hidden_columns()
-    return "Show Default Columns", "dark", False, []
+        return "Show All Columns", BTN_ON, True, tconfig.get_hidden_columns()
+    return "Show Default Columns", BTN_OFF, False, []
 
 
 @app.callback(  # type: ignore[misc]
