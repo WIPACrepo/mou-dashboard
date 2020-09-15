@@ -15,6 +15,9 @@ from ..utils.data_source import TableConfig
 from ..utils.styles import CENTERED_100, WIDTH_45
 from ..utils.types import DDCond, DDown, Record, SDCond, Table, TData
 
+REFRESH_MSG = "Refresh page and try again."
+
+
 # --------------------------------------------------------------------------------------
 # Layout
 
@@ -97,6 +100,27 @@ def _get_style_data_conditional(tconfig: TableConfig) -> SDCond:
     ]
 
     return style_data_conditional
+
+
+def _make_toast(header: str, message: str, icon: str, duration: float = 0) -> dbc.Toast:
+    return dbc.Toast(
+        [html.P(message, className="mb-0")],
+        id=f"tab-1-toast-{util.get_now()}",
+        header=header,
+        is_open=True,
+        dismissable=True,
+        duration=duration * 1000,  # 0 = forever
+        fade=False,
+        icon=icon,
+        # top: 66 positions the toast below the navbar
+        style={
+            "position": "fixed",
+            "top": 66,
+            "right": 10,
+            "width": 350,
+            "font-size": "1.1em",
+        },
+    )
 
 
 def layout() -> html.Div:
@@ -299,7 +323,20 @@ def layout() -> html.Div:
                         n_clicks=0,
                         style={"margin-right": "1em", "float": "right"},
                     ),
+                    # Show Totals
+                    dbc.Button(
+                        id="tab-1-show-totals-button",
+                        n_clicks=0,
+                        style={"margin-right": "1em", "float": "right"},
+                    ),
                 ],
+            ),
+            dbc.Row(
+                html.Label(
+                    id="tab-1-last-updated-label", style={"font-style": "italic"}
+                ),
+                justify="center",
+                style={"margin-top": "15px"},
             ),
             # Dummy Label -- for communicating when table was last updated by an exterior control
             # NOTE: If table_data_exterior_controls() is called, then
@@ -310,6 +347,10 @@ def layout() -> html.Div:
             html.Label(
                 "", id="tab-1-table-exterior-control-timestamp-dummy-label", hidden=True
             ),
+            # Dummy Divs -- for adding toasts, modals, etc.
+            html.Div(id="tab-1-toast-1"),
+            html.Div(id="tab-1-toast-2"),
+            html.Div(id="tab-1-dialog-1"),
         ]
     )
 
@@ -324,6 +365,10 @@ def layout() -> html.Div:
         Output("tab-1-data-table", "active_cell"),
         Output("tab-1-data-table", "page_current"),
         Output("tab-1-table-exterior-control-timestamp-dummy-label", "children"),
+        Output("tab-1-toast-1", "children"),
+        Output("tab-1-show-totals-button", "children"),
+        Output("tab-1-show-totals-button", "color"),
+        Output("tab-1-show-totals-button", "outline"),
     ],
     [
         Input("tab-1-filter-inst", "value"),
@@ -331,6 +376,7 @@ def layout() -> html.Div:
         Input("tab-1-new-data-btn-top", "n_clicks"),
         Input("tab-1-new-data-btn-bottom", "n_clicks"),
         Input("tab-1-refresh-button", "n_clicks"),
+        Input("tab-1-show-totals-button", "n_clicks"),
     ],
     [State("tab-1-data-table", "data"), State("tab-1-data-table", "columns")],
 )  # pylint: disable=R0913
@@ -340,9 +386,10 @@ def table_data_exterior_controls(
     _: int,
     __: int,
     ___: int,
+    totals_n_clicks: int,
     state_data_table: TData,
     state_columns: List[Dict[str, str]],
-) -> Tuple[TData, Optional[Dict[str, int]], int, str]:
+) -> Tuple[TData, Optional[Dict[str, int]], int, str, dbc.Toast, str, str, bool]:
     """Exterior control signaled that the table should be updated.
 
     This is either a filter, an "add new", or a refresh. Only "add new"
@@ -350,7 +397,20 @@ def table_data_exterior_controls(
     user.
     """
     table: Table = []
-    focus: Optional[Dict[str, int]] = {"row": 0, "column": 0}
+    focus: Optional[Dict[str, int]] = None
+    toast: dbc.Toast = None
+    show_totals, totals_label, totals_color = False, "Show Totals", "secondary"
+
+    # focus on first cell, but not on page load
+    if util.triggered_id() in [
+        "tab-1-filter-inst",
+        "tab-1-filter-labor",
+        "tab-1-new-data-btn-top",
+        "tab-1-new-data-btn-bottom",
+        "tab-1-refresh-button",
+        "tab-1-show-totals-button",
+    ]:
+        focus = {"row": 0, "column": 0}
 
     # Add New Data
     if util.triggered_id() in ["tab-1-new-data-btn-top", "tab-1-new-data-btn-bottom"]:
@@ -362,26 +422,33 @@ def table_data_exterior_controls(
         if new_record := src.push_record(new_record, labor=labor, institution=institution):  # type: ignore[assignment]
             new_record = util.add_original_copies_to_record(new_record, novel=True)
             table.insert(0, new_record)
+            toast = _make_toast("Record Added", f"id: {new_record['id']}", "success", 5)
+        else:
+            toast = _make_toast("Failed to Make Record", REFRESH_MSG, "danger")
 
     # Page Load or Filter or Refresh
     else:
-        # focus on first cell, but not on page load
-        if util.triggered_id() not in [
-            "tab-1-filter-inst",
-            "tab-1-filter-labor",
-            "tab-1-refresh-button",
-        ]:
-            focus = None
+        if util.triggered_id() == "tab-1-show-totals-button":
+            if totals_n_clicks % 2 == 1:
+                show_totals, totals_label, totals_color = True, "Hide Totals", "dark"
 
         # pull from data source
-        table = src.pull_data_table(institution=institution, labor=labor)
+        table = src.pull_data_table(
+            institution=institution, labor=labor, with_totals=show_totals
+        )
         table = util.add_original_copies(table)
 
-    return table, focus, 0, util.get_now()
+    totals_outline = not show_totals
+    time = util.get_now()
+    return table, focus, 0, time, toast, totals_label, totals_color, totals_outline
 
 
 @app.callback(  # type: ignore[misc]
-    Output("tab-1-data-table", "data_previous"),
+    [
+        Output("tab-1-data-table", "data_previous"),
+        Output("tab-1-toast-2", "children"),
+        Output("tab-1-last-updated-label", "children"),
+    ],
     [Input("tab-1-data-table", "data")],
     [
         State("tab-1-data-table", "data_previous"),
@@ -390,7 +457,7 @@ def table_data_exterior_controls(
 )
 def table_data_interior_controls(
     current_table: Table, previous_table: Table, table_exterior_control_ts: str,
-) -> Table:
+) -> Tuple[Table, dbc.Toast, str]:
     """Interior control signaled that the table should be updated.
 
     This is either a row deletion or a field edit. The table's view has
@@ -400,13 +467,17 @@ def table_data_interior_controls(
     This is unnecessary, so the timestamp of table_data_exterior_controls()'s
     last call will be checked to determine if that was indeed the case.
     """
+    update = f"Last Updated: {util.get_human_now()}"
+
     # On page load
     if not previous_table:
-        return current_table
+        return current_table, None, update
 
     # Don't call DS if the table was just updated via exterior controls
     if util.was_recent(table_exterior_control_ts):
-        return current_table
+        return current_table, None, update
+
+    toast: dbc.Toast = None
 
     # Push modified records
     modified_records = [r for r in current_table if r not in previous_table]
@@ -420,11 +491,18 @@ def table_data_interior_controls(
         for r in previous_table
         if (r not in current_table) and (r["id"] not in mod_ids)
     ]
+    failed_to_delete = []
     for record in deleted_records:
-        src.delete_record(record)
+        toast = _make_toast(f"Deleted Record {record['id']}", "", "dark")
+        if not src.delete_record(record):
+            failed_to_delete.append(record)
+    if failed_to_delete:
+        toast = _make_toast(
+            f"Failed to Delete Record {record['id']}", REFRESH_MSG, "danger",
+        )
 
     # Update data_previous
-    return current_table
+    return current_table, toast, update
 
 
 @app.callback(  # type: ignore[misc]
@@ -580,3 +658,18 @@ def toggle_hidden_columns(n_clicks: int) -> Tuple[str, str, bool, List[str]]:
         tconfig = TableConfig()
         return "Show All Columns", "secondary", True, tconfig.get_hidden_columns()
     return "Show Default Columns", "dark", False, []
+
+
+@app.callback(  # type: ignore[misc]
+    Output("tab-1-dialog-1", "children"),
+    [
+        Input("tab-1-load-snapshot-button", "n_clicks"),
+        Input("tab-1-make-snapshot-button", "n_clicks"),
+    ],
+    prevent_initial_call=True,
+)
+def launch_not_implemented_dialog(_: int, __: int) -> dcc.ConfirmDialog:
+    """Launch a dialog for not-yet-implemented features."""
+    return dcc.ConfirmDialog(
+        id="not-implemented", message="Feature not yet implemented.", displayed=True
+    )

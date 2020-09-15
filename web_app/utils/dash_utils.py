@@ -1,6 +1,7 @@
 """Utility module for front-end Dash functions."""
 
 
+import datetime
 import time
 from typing import cast, Final
 
@@ -85,6 +86,13 @@ def get_changed_data_filter_query(column: str) -> str:
 def get_now() -> str:
     """Get epoch time as a str."""
     return str(time.time())
+
+
+def get_human_now() -> str:
+    """Get the current date and time with timezone, human-readable."""
+    todaynow = datetime.datetime.now()
+    timezone = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
+    return f"{todaynow.strftime('%Y-%m-%d %H:%M:%S')} {timezone}"
 
 
 def was_recent(timestamp: str) -> bool:

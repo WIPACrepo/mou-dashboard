@@ -34,9 +34,11 @@ def _request(method: str, url: str, body: Any = None) -> Dict[str, Any]:
 # Data/Table functions
 
 
-def pull_data_table(institution: str = "", labor: str = "") -> Table:
+def pull_data_table(
+    institution: str = "", labor: str = "", with_totals: bool = False
+) -> Table:
     """Get table, optionally filtered by institution and/or labor."""
-    body = {"institution": institution, "labor": labor}
+    body = {"institution": institution, "labor": labor, "total_rows": with_totals}
     response = _request("GET", "/table/data", body)
 
     return cast(Table, response["table"])
@@ -46,10 +48,13 @@ def push_record(
     record: Record, labor: str = "", institution: str = ""
 ) -> Optional[Record]:
     """Push new/changed record to source."""
-    body = {"record": record, "institution": institution, "labor": labor}
-    response = _request("POST", "/record", body)
-
-    return cast(Record, response["record"])
+    try:
+        body = {"record": record, "institution": institution, "labor": labor}
+        response = _request("POST", "/record", body)
+        return cast(Record, response["record"])
+    except requests.exceptions.HTTPError as e:
+        logging.exception(f"EXCEPTED: {e}")
+        return None
 
 
 def delete_record(record: Record) -> bool:
@@ -59,7 +64,6 @@ def delete_record(record: Record) -> bool:
         _request("DELETE", "/record", body)
         return True
     except requests.exceptions.HTTPError as e:
-        # TODO: test this case
         logging.exception(f"EXCEPTED: {e}")
         return False
 
@@ -76,6 +80,8 @@ class TableConfig:
 
         columns: List[str]
         simple_dropdown_menus: Dict[str, List[str]]
+        institutions: List[str]
+        labor_categories: List[str]
         conditional_dropdown_menus: Dict[str, Tuple[str, Dict[str, List[str]]]]
         dropdowns: List[str]
         numerics: List[str]

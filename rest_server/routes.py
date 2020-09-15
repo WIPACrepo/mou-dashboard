@@ -211,7 +211,7 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
                 k[_SOURCE_OF_FUNDS_US_ONLY],
             ),
         )
-        print(table)
+
         self.write({"table": table})
 
 
@@ -234,11 +234,11 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
             record[_ID] = _next_id()
             _TABLE[record[_ID]] = record  # add
             print(f"PUSHED NEW {record[_ID]} --- table now has {len(_TABLE)} entries")
-            self.write({"record": record})
 
         # Changed
-        print(f"PUSHED {record[_ID]}")
-        _TABLE[record[_ID]] = record  # replace record
+        else:
+            print(f"PUSHED {record[_ID]}")
+            _TABLE[record[_ID]] = record  # replace record
 
         self.write({"record": record})
 
@@ -254,7 +254,7 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
         # except KeyError:
         #     print(f"couldn't delete {id_}")
         #     return False
-        raise tornado.web.HTTPError(400, reason=f"(Va")
+        # raise tornado.web.HTTPError(400, reason=f"(Va")
 
 
 # -----------------------------------------------------------------------------
