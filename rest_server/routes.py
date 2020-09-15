@@ -226,8 +226,10 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
     def post(self) -> None:
         """Handle POST."""
         record = self.get_argument("record")
-        record[_INSTITUTION] = self.get_argument("institution", default="")
-        record[_LABOR_CAT] = self.get_argument("labor", default="")
+        if inst := self.get_argument("institution", default=None):
+            record[_INSTITUTION] = inst
+        if labor := self.get_argument("labor", default=None):
+            record[_LABOR_CAT] = labor
 
         # New
         if not record[_ID] and record[_ID] != 0:

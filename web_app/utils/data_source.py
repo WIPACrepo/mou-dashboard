@@ -41,12 +41,6 @@ def pull_data_table(
     body = {"institution": institution, "labor": labor, "total_rows": with_totals}
     response = _request("GET", "/table/data", body)
 
-    for record in response["table"]:
-        if record["id"] == "Z101":
-            from pprint import pprint
-
-            pprint(f"\n\n\n{record}\n\n\n")
-
     return cast(Table, response["table"])
 
 
