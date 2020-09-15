@@ -4,47 +4,48 @@
 # local imports
 from keycloak_setup.icecube_setup import ICECUBE_INSTS  # type: ignore[import]
 
-_ID = "id"
-_WBS_L2 = "WBS L2"
-_WBS_L3 = "WBS L3"
-_LABOR_CAT = "Labor Cat."
-_US_NON_US = "US / Non-US"
-_INSTITUTION = "Institution"
-_NAMES = "Names"
+ID = "id"
+WBS_L2 = "WBS L2"
+WBS_L3 = "WBS L3"
+LABOR_CAT = "Labor Cat."
+US_NON_US = "US / Non-US"
+INSTITUTION = "Institution"
+NAMES = "Names"
 _TASKS = "Tasks"
-_SOURCE_OF_FUNDS_US_ONLY = "Source of Funds (U.S. Only)"
-_FTE = "FTE"
+SOURCE_OF_FUNDS_US_ONLY = "Source of Funds (U.S. Only)"
+FTE = "FTE"
 _NSF_MO_CORE = "NSF M&O Core"
 _NSF_BASE_GRANTS = "NSF Base Grants"
-_US_INSTITUTIONAL_IN_KIND = "U.S. Institutional In-Kind"
-_EUROPE_ASIA_PACIFIC_IN_KIND = "Europe & Asia Pacific In-Kind"
-_GRAND_TOTAL = "Grand Total"
+_US_INSTITUTIONAL_IN_KIND = "US In-Kind"
+_EUROPE_ASIA_PACIFIC_IN_KIND = "Non-US In-Kind"
+GRAND_TOTAL = "Grand Total"
 
 
-_US = "US"
-_NON_US = "Non-US"
+US = "US"
+NON_US = "Non-US"
+NON_US_IN_KIND = "Non-US In-kind"
 
-_COLUMNS = [
-    _ID,
-    _WBS_L2,
-    _WBS_L3,
-    _US_NON_US,
-    _INSTITUTION,
-    _LABOR_CAT,
-    _NAMES,
+COLUMNS = [
+    ID,
+    WBS_L2,
+    WBS_L3,
+    US_NON_US,
+    INSTITUTION,
+    LABOR_CAT,
+    NAMES,
     _TASKS,
-    _SOURCE_OF_FUNDS_US_ONLY,
-    _FTE,
+    SOURCE_OF_FUNDS_US_ONLY,
+    FTE,
     _NSF_MO_CORE,
     _NSF_BASE_GRANTS,
     _US_INSTITUTIONAL_IN_KIND,
     _EUROPE_ASIA_PACIFIC_IN_KIND,
-    _GRAND_TOTAL,
+    GRAND_TOTAL,
 ]
 
 
-_SIMPLE_DROPDOWN_MENUS = {
-    _WBS_L2: [
+SIMPLE_DROPDOWN_MENUS = {
+    WBS_L2: [
         "2.1 Program Coordination",
         "2.2 Detector Operations & Maintenance (Online)",
         "2.3 Computing & Data Management Services",
@@ -52,15 +53,15 @@ _SIMPLE_DROPDOWN_MENUS = {
         "2.5 Software",
         "2.6 Calibration",
     ],
-    _LABOR_CAT: sorted(
+    LABOR_CAT: sorted(
         ["AD", "CS", "DS", "EN", "GR", "IT", "KE", "MA", "PO", "SC", "WO"]
     ),
-    _INSTITUTION: sorted(inst["abbreviation"] for inst in ICECUBE_INSTS.values()),
+    INSTITUTION: sorted(inst["abbreviation"] for inst in ICECUBE_INSTS.values()),
 }
 
-_CONDITIONAL_DROPDOWN_MENUS = {
-    _WBS_L3: (
-        _WBS_L2,
+CONDITIONAL_DROPDOWN_MENUS = {
+    WBS_L3: (
+        WBS_L2,
         {
             "2.1 Program Coordination": [
                 "2.1.0 Program Coordination",
@@ -110,74 +111,78 @@ _CONDITIONAL_DROPDOWN_MENUS = {
             ],
         },
     ),
-    _SOURCE_OF_FUNDS_US_ONLY: (
-        _US_NON_US,
-        {
-            _US: [_NSF_MO_CORE, "Base Grants", "US In-Kind"],
-            _NON_US: ["Non-US In-kind"],
-        },
+    SOURCE_OF_FUNDS_US_ONLY: (
+        US_NON_US,
+        {US: [_NSF_MO_CORE, "Base Grants", "US In-Kind"], NON_US: [NON_US_IN_KIND]},
     ),
 }
 
 
-_DROPDOWNS = list(_SIMPLE_DROPDOWN_MENUS.keys()) + list(
-    _CONDITIONAL_DROPDOWN_MENUS.keys()
-)
+DROPDOWNS = list(SIMPLE_DROPDOWN_MENUS.keys()) + list(CONDITIONAL_DROPDOWN_MENUS.keys())
 
 
-_NUMERICS = [
-    _FTE,
+NUMERICS = [
+    FTE,
     _NSF_MO_CORE,
     _NSF_BASE_GRANTS,
     _US_INSTITUTIONAL_IN_KIND,
     _EUROPE_ASIA_PACIFIC_IN_KIND,
-    _GRAND_TOTAL,
+    GRAND_TOTAL,
 ]
 
-_NON_EDITABLES = [
-    _US_NON_US,
+NON_EDITABLES = [
+    US_NON_US,
     _NSF_MO_CORE,
     _NSF_BASE_GRANTS,
     _US_INSTITUTIONAL_IN_KIND,
     _EUROPE_ASIA_PACIFIC_IN_KIND,
-    _GRAND_TOTAL,
+    GRAND_TOTAL,
 ]
 
-_HIDDENS = [
-    _ID,
-    _US_NON_US,
+HIDDENS = [
+    ID,
+    US_NON_US,
     _NSF_MO_CORE,
     _NSF_BASE_GRANTS,
     _US_INSTITUTIONAL_IN_KIND,
     _EUROPE_ASIA_PACIFIC_IN_KIND,
-    _GRAND_TOTAL,
+    GRAND_TOTAL,
 ]
 
-_WIDTHS = {
-    _ID: 100,
-    _WBS_L2: 350,
-    _WBS_L3: 300,
-    _US_NON_US: 100,
-    _LABOR_CAT: 100,
-    _INSTITUTION: 140,
-    _NAMES: 150,
+WIDTHS = {
+    ID: 100,
+    WBS_L2: 350,
+    WBS_L3: 300,
+    US_NON_US: 100,
+    LABOR_CAT: 100,
+    INSTITUTION: 140,
+    NAMES: 150,
     _TASKS: 300,
-    _SOURCE_OF_FUNDS_US_ONLY: 150,
-    _FTE: 90,
+    SOURCE_OF_FUNDS_US_ONLY: 150,
+    FTE: 90,
     _NSF_MO_CORE: 110,
     _NSF_BASE_GRANTS: 110,
     _US_INSTITUTIONAL_IN_KIND: 110,
     _EUROPE_ASIA_PACIFIC_IN_KIND: 110,
-    _GRAND_TOTAL: 110,
+    GRAND_TOTAL: 110,
 }
 
 
-_BORDER_LEFT_COLUMNS = [
-    _US_NON_US,
-    _INSTITUTION,
-    _SOURCE_OF_FUNDS_US_ONLY,
+BORDER_LEFT_COLUMNS = [
+    US_NON_US,
+    INSTITUTION,
+    SOURCE_OF_FUNDS_US_ONLY,
     _NSF_MO_CORE,
-    _GRAND_TOTAL,
+    GRAND_TOTAL,
 ]
 
-_PAGE_SIZE = 15
+PAGE_SIZE = 15
+
+ON_THE_FLY_FIELDS = [
+    US_NON_US,
+    _NSF_MO_CORE,
+    _NSF_BASE_GRANTS,
+    _US_INSTITUTIONAL_IN_KIND,
+    _EUROPE_ASIA_PACIFIC_IN_KIND,
+    GRAND_TOTAL,
+]
