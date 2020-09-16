@@ -5,7 +5,7 @@
 
 .Select-menu-outer {
     display : block !important; /* make visible */
-    --accent : darkgreen;
+    --accent : #258835;
     padding-left: 1.5em;
 }
 
@@ -36,7 +36,7 @@
 }
 
 .export:hover, .show-hide:hover{ /* copy "btn btn-outline-secondary" */
-    color: white;
+    color: whitesmoke;
     background-color: #6c757d;
     border-color: #6c757d;
 }
@@ -82,7 +82,7 @@
 }
 
 .dash-spreadsheet-container table {
-    --accent: darkgreen !important;
-    --selected-background: darkgreen !important;
-    --selected-color: darkgreen !important;
+    --accent: #258835 !important;
+    --selected-background: #258835 !important;
+    --selected-color: #258835 !important;
 }

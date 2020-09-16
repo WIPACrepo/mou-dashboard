@@ -22,6 +22,18 @@ _TABLE = {f"Z{r[tc.ID]}": r for r in _TABLE}
 for key in _TABLE.keys():
     _TABLE[key][tc.ID] = key
 
+# remove rows with "total" in them (case-insensitive)
+copy = {}
+for k, v in _TABLE.items():
+    # pylint: disable=C0103
+    skip = False
+    for data in v.values():
+        if isinstance(data, str) and ("TOTAL" in data.upper()):
+            skip = True
+    if not skip:
+        copy[k] = v
+_TABLE = copy
+
 
 def _next_id() -> str:
     return f"{max(_TABLE.keys())}{max(_TABLE.keys())}"
@@ -45,6 +57,8 @@ def _cast(type_: Optional[type], val: Any) -> Any:
     if not type_:
         return val
     try:
+        if (type_ == bool) and (val == "False"):
+            return False
         return type_(val)
     except ValueError as e:
         raise tornado.web.HTTPError(400, reason=f"(ValueError) {e}")
@@ -150,6 +164,7 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
         """Handle GET."""
         institution = self.get_argument("institution", default=None)
         labor = self.get_argument("labor", default=None)
+        total_rows = self.get_argument("total_rows", default=False, type_=bool)
 
         table = list(deepcopy(_TABLE).values())  # very important to deep-copy here
 
@@ -166,20 +181,23 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
                 if record[field] is None:
                     record[field] = ""
 
-        # On-the-fly fields
+        # On-the-fly fields/rows
         for record in table:
             utils.add_on_the_fly_fields(record)
+        if total_rows:
+            utils.add_total_rows(table)
 
         # sort
+        max_str = "ZZZZ"  # HACK: this will sort empty/missing values last
         table.sort(
             key=lambda k: (
-                k[tc.WBS_L2],
-                k[tc.WBS_L3],
-                k[tc.US_NON_US],
-                k[tc.INSTITUTION],
-                k[tc.LABOR_CAT],
-                k[tc.NAMES],
-                k[tc.SOURCE_OF_FUNDS_US_ONLY],
+                k.get(tc.WBS_L2, max_str),
+                k.get(tc.WBS_L3, max_str),
+                k.get(tc.US_NON_US, max_str),
+                k.get(tc.INSTITUTION, max_str),
+                k.get(tc.LABOR_CAT, max_str),
+                k.get(tc.NAMES, max_str),
+                k.get(tc.SOURCE_OF_FUNDS_US_ONLY, max_str),
             ),
         )
 
@@ -222,6 +240,7 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
     def delete(self) -> None:
         """Handle DELETE."""
         record = self.get_argument("record")
+        # TODO: don't actually delete, just mark as deleted
         # try:
         del _TABLE[record[tc.ID]]
         print(f"DELETED {record[tc.ID]} --- table now has {len(_TABLE)} entries")

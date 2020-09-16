@@ -91,7 +91,7 @@ def _get_style_data_conditional(tconfig: TableConfig) -> TSDCond:
                 "filter_query": util.get_changed_data_filter_query(col),
             },
             "fontWeight": "bold",
-            # "color": "darkgreen",  # doesn't color dropdown-type value
+            # "color": "#258835",  # doesn't color dropdown-type value
             "fontStyle": "oblique",
         }
         for col in tconfig.get_table_columns()
@@ -101,7 +101,31 @@ def _get_style_data_conditional(tconfig: TableConfig) -> TSDCond:
         {
             "if": {"state": "selected"},  # 'active' | 'selected'
             "backgroundColor": "transparent",
-            "border": "2px solid darkgreen",
+            "border": "2px solid #258835",
+        },
+        {
+            "if": {"filter_query": "{Total Of?} contains 'GRAND TOTAL'"},
+            "backgroundColor": "#258835",
+            "color": "whitesmoke",
+            "fontWeight": "bold",
+        },
+        {
+            "if": {"filter_query": "{Total Of?} contains 'L2'"},
+            "backgroundColor": "#23272B",
+            "color": "whitesmoke",
+            "fontWeight": "normal",
+        },
+        {
+            "if": {"filter_query": "{Total Of?} contains 'L3'"},
+            "backgroundColor": "#20A1B6",
+            "color": "whitesmoke",
+            "fontWeight": "normal",
+        },
+        {
+            "if": {"filter_query": "{Total Of?} contains 'US TOTAL'"},
+            "backgroundColor": "#9FA5AA",
+            "color": "whitesmoke",
+            "fontWeight": "normal",
         },
     ]
 
@@ -314,6 +338,7 @@ def layout() -> html.Div:
                         "↻",
                         id="tab-1-refresh-button",
                         n_clicks=0,
+                        outline=True,
                         color="success",
                         style={"margin-left": "1em", "font-weight": "bold"},
                     ),
@@ -365,7 +390,7 @@ def layout() -> html.Div:
 # Table Callbacks
 
 
-def _totals(n_clicks: int) -> Tuple[bool, str, str, bool]:
+def _totals(n_clicks: int) -> Tuple[bool, str, str, bool, int]:
     """Figure out whether to include totals, and format the button.
 
     Returns:
@@ -373,10 +398,18 @@ def _totals(n_clicks: int) -> Tuple[bool, str, str, bool]:
         str  -- button label
         str  -- button color
         bool -- button outline
+        int  -- auto n_clicks for "tab-1-show-all-columns-button"
     """
-    if (util.triggered_id() == "tab-1-show-totals-button") and (n_clicks % 2 == 1):
-        return True, "Hide Totals", BTN_OFF, False
-    return False, "Show Totals", BTN_ON, True
+    # Just clicked "Show Totals"
+    if n_clicks % 2 == 1:
+        return True, "Hide Totals", BTN_OFF, False, 1
+
+    # Just clicked "Hide Totals"
+    if util.triggered_id() == "tab-1-show-totals-button":
+        return False, "Show Totals", BTN_ON, True, 1
+
+    # Currently showing Totals, but the click wasn't the triggering event
+    return False, "Show Totals", BTN_ON, True, 2
 
 
 def _add_new_data(
@@ -423,6 +456,7 @@ def _get_table(institution: str, labor: str, show_totals: bool) -> Table:
         Output("tab-1-show-totals-button", "children"),
         Output("tab-1-show-totals-button", "color"),
         Output("tab-1-show-totals-button", "outline"),
+        Output("tab-1-show-all-columns-button", "n_clicks"),
     ],
     [
         Input("tab-1-filter-inst", "value"),
@@ -443,7 +477,7 @@ def table_data_exterior_controls(
     totals_n_clicks: int,
     state_table: Table,
     state_columns: TColumns,
-) -> Tuple[Table, TFocus, int, str, dbc.Toast, str, str, bool]:
+) -> Tuple[Table, TFocus, int, str, dbc.Toast, str, str, bool, int]:
     """Exterior control signaled that the table should be updated.
 
     This is either a filter, "add new", refresh, or "show totals". Only
@@ -466,7 +500,7 @@ def table_data_exterior_controls(
         focus = {"row": 0, "column": 0}
 
     # format "Show Totals" button
-    show_totals, totals_label, totals_color, totals_outline = _totals(totals_n_clicks)
+    show_totals, tot_label, tot_color, tot_outline, all_cols = _totals(totals_n_clicks)
 
     # Add New Data
     if util.triggered_id() in ["tab-1-new-data-btn-top", "tab-1-new-data-btn-bottom"]:
@@ -475,15 +509,26 @@ def table_data_exterior_controls(
     else:
         table = _get_table(institution, labor, show_totals)
 
-    timestamp = util.get_now()
-    return table, focus, 0, timestamp, toast, totals_label, totals_color, totals_outline
+    return (
+        table,
+        focus,
+        0,
+        util.get_now(),
+        toast,
+        tot_label,
+        tot_color,
+        tot_outline,
+        all_cols,
+    )
 
 
 def _push_modified_records(
     current_table: Table, previous_table: Table
 ) -> List[DataEntry]:
     """For each row that changed, push the record to the DS."""
-    modified_records = [r for r in current_table if r not in previous_table]
+    modified_records = [
+        r for r in current_table if (r not in previous_table) and ("id" in r)
+    ]
     for record in modified_records:
         src.push_record(util.without_original_copies_from_record(record))
 
@@ -498,7 +543,9 @@ def _delete_deleted_records(
     toast = None
 
     delete_these = [
-        r for r in previous_table if (r not in current_table) and (r["id"] not in keeps)
+        r
+        for r in previous_table
+        if (r not in current_table) and ("id" in r) and (r["id"] not in keeps)
     ]
 
     failures = []

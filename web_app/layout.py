@@ -27,7 +27,7 @@ app.layout = html.Div(
             children="MoU Dashboard",
         ),
         html.Div(
-            style={"backgroundColor": "white"},
+            style={"backgroundColor": "whitesmoke"},
             children=[
                 dcc.Tabs(
                     id="mou-dash-tabs",
