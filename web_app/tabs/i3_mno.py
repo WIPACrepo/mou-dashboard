@@ -162,7 +162,11 @@ def layout() -> html.Div:
             html.Div(
                 # Institution Leader Sign-In
                 children=[
-                    html.H4("Institution Leader Sign-In"),
+                    html.Div(
+                        "Institution Leader Sign-In",
+                        className="caps",
+                        style={"margin-left": "5%"},
+                    ),
                     html.Div(
                         className="row",
                         style={"margin-left": "5%"},
@@ -200,7 +204,7 @@ def layout() -> html.Div:
             html.Div(
                 style={"margin-bottom": "2em"},
                 children=[
-                    html.H4("Staffing Matrix Data"),
+                    # html.H4("Staffing Matrix Data"),
                     # SOW Filter
                     html.Div(
                         className="row",
@@ -209,7 +213,7 @@ def layout() -> html.Div:
                             html.Div(
                                 style=WIDTH_45,
                                 children=[
-                                    html.Div(children="Institution"),
+                                    html.Div(children="Institution", className="caps"),
                                     # Institution filter dropdown menu
                                     dcc.Dropdown(
                                         id="tab-1-filter-inst",
@@ -226,7 +230,9 @@ def layout() -> html.Div:
                                 style=WIDTH_45,
                                 children=[
                                     # Labor Category filter dropdown menu
-                                    html.Div(children="Labor Category"),
+                                    html.Div(
+                                        children="Labor Category", className="caps"
+                                    ),
                                     dcc.Dropdown(
                                         id="tab-1-filter-labor",
                                         options=[
@@ -248,8 +254,14 @@ def layout() -> html.Div:
             html.Div(
                 style=CENTERED_100,
                 children=[
-                    html.H6(
-                        id="tab-1-how-to-edit-message", style={"font-style": "oblique"},
+                    html.Div(
+                        id="tab-1-how-to-edit-message",
+                        style={
+                            "font-style": "oblique",
+                            "fontWeight": "bold",
+                            "fontSize": "20px",
+                        },
+                        className="caps",
                     ),
                 ],
             ),
@@ -274,7 +286,6 @@ def layout() -> html.Div:
                 },
                 style_header={
                     "backgroundColor": "gainsboro",
-                    "fontWeight": "bold",
                     "whiteSpace": "normal",
                     "height": "auto",
                     "lineHeight": "15px",
@@ -364,7 +375,9 @@ def layout() -> html.Div:
             ),
             dbc.Row(
                 html.Label(
-                    id="tab-1-last-updated-label", style={"font-style": "italic"}
+                    id="tab-1-last-updated-label",
+                    style={"font-style": "italic", "fontSize": "14px"},
+                    className="caps",
                 ),
                 justify="center",
                 style={"margin-top": "15px"},
@@ -691,9 +704,9 @@ def table_dropdown(_: bool) -> Tuple[TDDown, TDDownCond]:
     [
         Output("tab-1-name-email-icon", "children"),
         Output("tab-1-data-table", "editable"),
-        Output("tab-1-new-data-btn-top", "disabled"),
-        Output("tab-1-new-data-btn-bottom", "disabled"),
-        Output("tab-1-make-snapshot-button", "disabled"),
+        Output("tab-1-new-data-btn-top", "hidden"),
+        Output("tab-1-new-data-btn-bottom", "hidden"),
+        Output("tab-1-make-snapshot-button", "hidden"),
         Output("tab-1-how-to-edit-message", "children"),
         Output("tab-1-data-table", "row_deletable"),
     ],
@@ -707,19 +720,19 @@ def sign_in(name: str, email: str) -> Tuple[str, bool, bool, bool, bool, str, bo
         return (
             "✔",
             True,  # data-table editable
-            False,  # new-data-button-top NOT disabled
-            False,  # new-data-button-bottom NOT disabled
-            False,  # make-snapshot-button NOT disabled
-            "click a cell to edit",
+            False,  # new-data-button-top NOT hidden
+            False,  # new-data-button-bottom NOT hidden
+            False,  # make-snapshot-button NOT hidden
+            "",
             True,  # row is deletable
         )
     return (
         "✖",
         False,  # data-table NOT editable
-        True,  # new-data-button-top disabled
-        True,  # new-data-button-bottom disabled
-        True,  # make-snapshot-button disabled
-        "sign in to edit",
+        True,  # new-data-button-top hidden
+        True,  # new-data-button-bottom hidden
+        True,  # make-snapshot-button hidden
+        "- sign in to edit -",
         False,  # row NOT deletable
     )
 

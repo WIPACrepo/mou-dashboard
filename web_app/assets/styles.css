@@ -1,5 +1,11 @@
 
 
+.caps {
+    text-transform: uppercase;
+    letter-spacing: .075rem;
+    font: 12px Arial;
+}
+
 /*------------------------------------------------------------------------------------*/
 /* Dropdown Menus */
 
@@ -61,6 +67,8 @@
 
 .dash-header{
     padding-right: 0.5em !important;
+    text-transform: uppercase;
+    letter-spacing: .075rem;
 }
 
 
@@ -86,3 +94,4 @@
     --selected-background: #258835 !important;
     --selected-color: #258835 !important;
 }
+

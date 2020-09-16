@@ -42,8 +42,26 @@ SHORT_HR = {"margin-left": "15%", "margin-right": "15%"}
 
 _TAB_HEIGHT = "5vh"
 
-TAB_SELECTED_STYLE = {"padding": "0", "line-height": _TAB_HEIGHT}
+TAB_SELECTED_STYLE = {
+    "padding": "0",
+    "line-height": _TAB_HEIGHT,
+    "backgroundColor": "whitesmoke",
+    "color": "#23272B",
+    "border-top": "2.5px solid #20A1B6",
+    "font-weight": "bold",
+}
 
-TAB_STYLE = {"padding": "0", "line-height": _TAB_HEIGHT}
+TAB_STYLE = {
+    "padding": "0",
+    "line-height": _TAB_HEIGHT,
+    "backgroundColor": "lightgrey",
+    "color": "#23272B",
+    "border-bottom": "2.5px solid #258835",
+}
 
-TABS_STYLE = {"height": _TAB_HEIGHT, "font-size": "120%"}
+TABS_STYLE = {
+    "height": _TAB_HEIGHT,
+    "text-transform": "uppercase",
+    "letter-spacing": ".075rem",
+    "font": "15px Arial",
+}

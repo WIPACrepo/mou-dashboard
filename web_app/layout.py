@@ -10,7 +10,11 @@ from .tabs import i3_mno
 from .utils.styles import CONTENT_STYLE, TAB_SELECTED_STYLE, TAB_STYLE, TABS_STYLE
 
 app.layout = html.Div(
-    style={"padding-left": "5%", "padding-right": "5%", "backgroundColor": "#D3D7CFFF"},
+    style={
+        "padding-left": "5%",
+        "padding-right": "5%",
+        "backgroundColor": "lightgrey",
+    },
     children=[
         html.Label(
             style={
@@ -49,7 +53,6 @@ app.layout = html.Div(
                             disabled_style=TAB_STYLE,
                         ),
                     ],
-                    colors={"primary": "green", "background": "#F3F3F3FF",},
                 ),
                 html.Div(id="tab-content", style=CONTENT_STYLE),
             ],
