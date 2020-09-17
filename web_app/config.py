@@ -18,6 +18,8 @@ app = dash.Dash(
     external_stylesheets=[
         dbc.themes.BOOTSTRAP,
         "https://codepen.io/chriddyp/pen/bWLwgP.css",
+        "https://fonts.googleapis.com/css2?family=Syncopate",
+        "https://fonts.googleapis.com/css2?family=Sarpanch",
     ],
 )
 

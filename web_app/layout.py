@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """MoU Dashboard application."""
 
+import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore
 import dash_html_components as html  # type: ignore
 from dash.dependencies import Input, Output  # type: ignore
@@ -16,19 +17,29 @@ app.layout = html.Div(
         "backgroundColor": "lightgrey",
     },
     children=[
-        html.Label(
-            style={
-                "fontSize": 55,
-                "font-family": [
-                    "Palatino Linotype",
-                    "Book Antiqua",
-                    "Palatino",
-                    "serif",
-                ],
-                "font-weight": "550",
-                "font-style": "oblique",
-            },
-            children="MoU Dashboard",
+        dbc.Row(
+            [
+                html.Label(
+                    children="MoU", className="title", style={"align-text": "bottom"}
+                ),
+                html.Div(
+                    html.Label(
+                        children="Dashboard",
+                        className="titleb",
+                        style={"align-text": "bottom"},
+                    ),
+                    style={
+                        "display": "flex",
+                        "border": "2.5px solid #23272B",
+                        "margin-top": "2.4rem",
+                        "margin-left": "0.25rem",
+                        "height": "3rem",
+                        "border-radius": ".25rem",
+                    },
+                ),
+            ],
+            justify="start",
+            style={"display": "flex"},
         ),
         html.Div(
             style={"backgroundColor": "whitesmoke"},

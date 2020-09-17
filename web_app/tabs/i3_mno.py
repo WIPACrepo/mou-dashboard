@@ -35,7 +35,7 @@ BTN_ON = "secondary"
 
 def _new_data_button(_id: str, block: bool = True) -> dbc.Button:
     return dbc.Button(
-        "+ Add New Data", id=_id, block=block, n_clicks=0, color=BTN_ON, disabled=True,
+        "+ Add New Data", id=_id, block=block, n_clicks=0, color=BTN_ON, disabled=False,
     )
 
 
@@ -50,7 +50,7 @@ def _style_cell_conditional_fixed_width(
     }
 
     if border_left:
-        style["border-left"] = "1px solid black"
+        style["border-left"] = "2.5px solid #23272B"
 
     if align_right:
         style["textAlign"] = "right"

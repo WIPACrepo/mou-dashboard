@@ -1,10 +1,41 @@
 
 
+
+.title {
+    font-family: 'Sarpanch', sans-serif;
+    font-weight: bold;
+    font-size: 65px;
+    letter-spacing: 0.25rem;
+    line-height: 1;
+    padding-left: 1rem;
+    color: #23272B;
+    align-self: flex-end;
+}
+
+.titleb {
+    font-family: Arial;
+    text-transform: uppercase;
+    font-size: 25px;
+    letter-spacing: 0.2rem;
+    line-height: 1;
+    color: #23272B;
+    align-self: flex-end;
+    margin-left: 0.5rem;
+    margin-right: 0.3rem;
+}
+
+
 .caps {
     text-transform: uppercase;
-    letter-spacing: .075rem;
+    letter-spacing: .075em;
     font: 12px Arial;
 }
+
+.Select-control{
+    border-radius: .25rem;
+}
+
+
 
 /*------------------------------------------------------------------------------------*/
 /* Dropdown Menus */
@@ -39,6 +70,7 @@
     padding: .375rem 2rem;
     line-height: 1.5;
     transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    border-radius: .25rem;
 }
 
 .export:hover, .show-hide:hover{ /* copy "btn btn-outline-secondary" */
@@ -68,7 +100,7 @@
 .dash-header{
     padding-right: 0.5em !important;
     text-transform: uppercase;
-    letter-spacing: .075rem;
+    letter-spacing: .075em;
 }
 
 
