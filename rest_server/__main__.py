@@ -4,18 +4,25 @@
 import asyncio
 import logging
 
+from motor.motor_tornado import MotorClient  # type: ignore
+
 # local imports
 from rest_tools.server import RestHandlerSetup, RestServer  # type: ignore
 
 from . import routes
 from .config import (
+    AUTH_ALGORITHM,
+    AUTH_ISSUER,
+    AUTH_SECRET,
     log_environment,
-    MOU_AUTH_ALGORITHM,
-    MOU_AUTH_ISSUER,
-    MOU_AUTH_SECRET,
-    MOU_REST_HOST,
-    MOU_REST_PORT,
+    MONGODB_AUTH_PASS,
+    MONGODB_AUTH_USER,
+    MONGODB_HOST,
+    MONGODB_PORT,
+    REST_HOST,
+    REST_PORT,
 )
+from .utils import db_utils
 
 
 def start(debug: bool = False) -> RestServer:
@@ -25,26 +32,31 @@ def start(debug: bool = False) -> RestServer:
     args = RestHandlerSetup(
         {
             "auth": {
-                "secret": MOU_AUTH_SECRET,
-                "issuer": MOU_AUTH_ISSUER,
-                "algorithm": MOU_AUTH_ALGORITHM,
+                "secret": AUTH_SECRET,
+                "issuer": AUTH_ISSUER,
+                "algorithm": AUTH_ALGORITHM,
             },
             "debug": debug,
         }
     )
 
-    # Configure Snapshot DB
-    # TODO
+    # Setup DB
+    mongodb_url = f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}"
+    if MONGODB_AUTH_USER and MONGODB_AUTH_PASS:
+        mongodb_url = f"mongodb://{MONGODB_AUTH_USER}:{MONGODB_AUTH_PASS}@{MONGODB_HOST}:{MONGODB_PORT}"
+    db = db_utils.MoUMotorClient(MotorClient(mongodb_url))
+    asyncio.get_event_loop().run_until_complete(db.ensure_all_databases_indexes())
+    args["db_client"] = db
 
     # Configure REST Routes
     server = RestServer(debug=debug)
-
+    server.add_route(r"/$", routes.MainHandler, args)
     server.add_route(r"/table/data$", routes.TableHandler, args)  # get
     # server.add_route(r"/table/data/snapshot$", SnapshotHandler, args)  # get, push
     server.add_route(r"/record$", routes.RecordHandler, args)  # push, delete
     server.add_route(r"/table/config$", routes.TableConfigHandler, args)  # get
 
-    server.startup(address=MOU_REST_HOST, port=MOU_REST_PORT)
+    server.startup(address=REST_HOST, port=REST_PORT)
     return server
 
 

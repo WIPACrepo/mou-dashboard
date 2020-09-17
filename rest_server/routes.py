@@ -12,8 +12,8 @@ from rest_tools.client.json_util import json_decode  # type: ignore
 from rest_tools.server import handler, RestHandler  # type: ignore
 
 from . import table_config as tc
-from .config import MOU_AUTH_PREFIX
-from .utils import utils
+from .config import AUTH_PREFIX
+from .utils import db_utils, utils
 
 # read data from excel file
 _TABLE = pd.read_excel("WBS.xlsx").fillna("")
@@ -71,15 +71,11 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
     """BaseMoUHandler is a RestHandler for all MoU routes."""
 
     def initialize(  # pylint: disable=W0221
-        # self, motor_client: MotorClient, *args: Any, **kwargs: Any
-        self,
-        *args: Any,
-        **kwargs: Any,
+        self, db_client: db_utils.MoUMotorClient, *args: Any, **kwargs: Any
     ) -> None:
         """Initialize a BaseMoUHandler object."""
         super().initialize(*args, **kwargs)
-
-        # self.motor = MoUMotorClient(motor_client)  # pylint: disable=W0201
+        self.db = db_client  # pylint: disable=W0201
 
     def get_json_body_argument(
         self,
