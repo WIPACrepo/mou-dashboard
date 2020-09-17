@@ -1,6 +1,7 @@
 """Root python script for MoU REST API server interface."""
 
 
+import argparse
 import asyncio
 import logging
 
@@ -25,7 +26,7 @@ from .config import (
 from .utils import db_utils
 
 
-def start(debug: bool = False) -> RestServer:
+def start(debug: bool = False, xlsx: str = "") -> RestServer:
     """Start a Mad Dash REST service."""
     log_environment()
 
@@ -44,9 +45,7 @@ def start(debug: bool = False) -> RestServer:
     mongodb_url = f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}"
     if MONGODB_AUTH_USER and MONGODB_AUTH_PASS:
         mongodb_url = f"mongodb://{MONGODB_AUTH_USER}:{MONGODB_AUTH_PASS}@{MONGODB_HOST}:{MONGODB_PORT}"
-    db = db_utils.MoUMotorClient(MotorClient(mongodb_url))
-    asyncio.get_event_loop().run_until_complete(db.ensure_all_databases_indexes())
-    args["db_client"] = db
+    args["db_client"] = db_utils.MoUMotorClient(MotorClient(mongodb_url), xlsx=xlsx)
 
     # Configure REST Routes
     server = RestServer(debug=debug)
@@ -60,13 +59,19 @@ def start(debug: bool = False) -> RestServer:
     return server
 
 
-def main() -> None:
+def main(xlsx: str) -> None:
     """Configure logging and start a MoU data service."""
-    logging.basicConfig(level=logging.DEBUG)
-    start(debug=True)
+    start(debug=True, xlsx=xlsx)
     loop = asyncio.get_event_loop()
     loop.run_forever()
 
 
 if __name__ == "__main__":
-    main()
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-x", "--xlsx", help=".xlsx file to ingest as a collection.")
+    parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
+    args = parser.parse_args()
+
+    logging.basicConfig(level=getattr(logging, args.log.upper()))
+    main(args.xlsx)

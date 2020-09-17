@@ -4,7 +4,6 @@
 from copy import deepcopy
 from typing import Any, Optional
 
-import pandas as pd  # type: ignore[import]
 import tornado.web
 
 # local imports
@@ -14,25 +13,6 @@ from rest_tools.server import handler, RestHandler  # type: ignore
 from . import table_config as tc
 from .config import AUTH_PREFIX
 from .utils import db_utils, utils
-
-# read data from excel file
-_TABLE = pd.read_excel("WBS.xlsx").fillna("")
-_TABLE = [r for r in _TABLE.to_dict("records") if any(r.values())]
-_TABLE = {f"Z{r[tc.ID]}": r for r in _TABLE}
-for key in _TABLE.keys():
-    _TABLE[key][tc.ID] = key
-
-# remove rows with "total" in them (case-insensitive)
-copy = {}
-for k, v in _TABLE.items():
-    # pylint: disable=C0103
-    skip = False
-    for data in v.values():
-        if isinstance(data, str) and ("TOTAL" in data.upper()):
-            skip = True
-    if not skip:
-        copy[k] = v
-_TABLE = copy
 
 
 def _next_id() -> str:
@@ -75,7 +55,7 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
     ) -> None:
         """Initialize a BaseMoUHandler object."""
         super().initialize(*args, **kwargs)
-        self.db = db_client  # pylint: disable=W0201
+        self.dbms = db_client  # pylint: disable=W0201
 
     def get_json_body_argument(
         self,
@@ -156,13 +136,14 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
 
     # FIXME: figure out why auth isn't working
     # @handler.scope_role_auth(prefix=MOU_AUTH_PREFIX, roles=["web"])  # type: ignore
-    def get(self) -> None:
+    async def get(self) -> None:
         """Handle GET."""
+        collection = self.get_argument("collection")
         institution = self.get_argument("institution", default=None)
         labor = self.get_argument("labor", default=None)
         total_rows = self.get_argument("total_rows", default=False, type_=bool)
 
-        table = list(deepcopy(_TABLE).values())  # very important to deep-copy here
+        table = self.dbms.get_collection(collection)
 
         # filter by labor
         if labor:
@@ -208,8 +189,9 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
 
     # FIXME: figure out why auth isn't working
     # @handler.scope_role_auth(prefix=MOU_AUTH_PREFIX, roles=["web"])  # type: ignore
-    def post(self) -> None:
+    async def post(self) -> None:
         """Handle POST."""
+        collection = self.get_argument("collection")
         record = self.get_argument("record")
         if inst := self.get_argument("institution", default=None):
             record[tc.INSTITUTION] = inst
@@ -217,29 +199,41 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
             record[tc.LABOR_CAT] = labor
 
         record = utils.remove_on_the_fly_fields(record)
+        collection_obj = self.dbms.get_collection(collection)
 
         # New
         if not record[tc.ID] and record[tc.ID] != 0:
-            record[tc.ID] = _next_id()
-            _TABLE[record[tc.ID]] = record  # add
-            print(f"PUSHED NEW {record[tc.ID]} --- table now has {len(_TABLE)} entries")
+            result = await collection_obj.insert_one(record)
+            # record[tc.ID] = _next_id()
+            # _TABLE[record[tc.ID]] = record  # add
+            record[tc.ID] = result.inserted_id
+            print(
+                f"PUSHED NEW {record[tc.ID]} {result.inserted_id} --- table now has len(_TABLE) entries"
+            )
 
         # Changed
         else:
-            print(f"PUSHED {record[tc.ID]}")
-            _TABLE[record[tc.ID]] = record  # replace record
+            record["id_"] = record[tc.ID]
+            result = await collection_obj.insert_one(record)
+            print(f"PUSHED {record[tc.ID]} {result.inserted_id}")
+            # _TABLE[record[tc.ID]] = record  # replace record
 
         self.write({"record": record})
 
     # FIXME: figure out why auth isn't working
     # @handler.scope_role_auth(prefix=MOU_AUTH_PREFIX, roles=["web"])  # type: ignore
-    def delete(self) -> None:
+    async def delete(self) -> None:
         """Handle DELETE."""
+        collection = self.get_argument("collection")
         record = self.get_argument("record")
         # TODO: don't actually delete, just mark as deleted
         # try:
-        del _TABLE[record[tc.ID]]
-        print(f"DELETED {record[tc.ID]} --- table now has {len(_TABLE)} entries")
+        # del _TABLE[record[tc.ID]]
+        collection_obj = self.dbms.get_collection(collection)
+        result = await collection_obj.delete_one({"id_": record[tc.ID]})
+        print(
+            f"DELETED {record[tc.ID]} {result.inserted_id} --- table now has len(_TABLE) entries"
+        )
         # return True
         # except KeyError:
         #     print(f"couldn't delete {id_}")

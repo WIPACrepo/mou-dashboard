@@ -1,7 +1,9 @@
-"""MotorClient with additional guardrails for MoU things."""
+"""Database utilities."""
 
+import asyncio
 from typing import List
 
+import pandas as pd  # type: ignore[import]
 from motor.motor_tornado import (  # type: ignore
     MotorClient,
     MotorCollection,
@@ -9,61 +11,96 @@ from motor.motor_tornado import (  # type: ignore
 )
 from tornado import web
 
+from .. import table_config as tc
 from ..config import EXCLUDE_DBS
+
+DB = "MoUDefaultDB"
 
 
 class MoUMotorClient:
     """MotorClient with additional guardrails for MoU things."""
 
-    def __init__(self, motor_client: MotorClient) -> None:
-        self.motor_client = motor_client
+    def __init__(self, motor_client: MotorClient, xlsx: str = "") -> None:
+        self._client = motor_client
 
-    async def get_database_names(self) -> List[str]:
+        # ingest xlsx
+        if xlsx and not self.list_collections(DB):
+            asyncio.get_event_loop().run_until_complete(self._ingest_xlsx(xlsx))
+
+        asyncio.get_event_loop().run_until_complete(self.ensure_all_databases_indexes())
+
+    async def _ingest_xlsx(self, xlsx: str) -> None:
+        """Create a collection and ingest the xlsx's data."""
+        coll_obj = await self.create_collection(xlsx)
+
+        # read data from excel file
+        table = pd.read_excel(xlsx).fillna("")
+        table = [r for r in table.to_dict("records") if any(r.values())]
+        table = {f"Z{r[tc.ID]}": r for r in table}
+        for key in table.keys():
+            table[key][tc.ID] = key
+
+        # remove rows with "total" in them (case-insensitive)
+        table_copy = {}
+        for k, row in table.items():  # pylint: disable=C0103
+            # pylint: disable=C0103
+            is_a_total_row = False
+            for data in row.values():
+                if isinstance(data, str) and ("TOTAL" in data.upper()):
+                    is_a_total_row = True
+            if not is_a_total_row:
+                table_copy[k] = row
+        table = table_copy
+
+        # ingest
+        for record in table:
+            await coll_obj.insert_one(record)
+
+    async def _list_dbs(self) -> List[str]:
         """Return all databases' names."""
-        database_names = [
-            n
-            for n in await self.motor_client.list_database_names()
-            if n not in EXCLUDE_DBS
-        ]
-        return database_names
+        return [n for n in await self._client.list_dbs() if n not in EXCLUDE_DBS]
 
-    def get_database(self, database_name: str) -> MotorDatabase:
+    def _get_db(self, db: str = DB) -> MotorDatabase:
         """Return database instance."""
         try:
-            return self.motor_client[database_name]
+            return self._client[db]
         except (KeyError, TypeError):
-            raise web.HTTPError(400, reason=f"database not found ({database_name})")
+            raise web.HTTPError(400, reason=f"database not found ({db})")
 
-    async def get_collection_names(self, database_name: str) -> List[str]:
+    async def list_collections(self, db: str = DB) -> List[str]:
         """Return collection names in database."""
-        database = self.get_database(database_name)
-        collection_names = [
-            n for n in await database.list_collection_names() if n != "system.indexes"
+        return [
+            n
+            for n in await self._get_db(db).list_collections()
+            if n != "system.indexes"
         ]
 
-        return collection_names
-
-    def get_collection(
-        self, database_name: str, collection_name: str
-    ) -> MotorCollection:
+    def get_collection(self, collection: str, db: str = DB) -> MotorCollection:
         """Return collection instance."""
-        database = self.get_database(database_name)
         try:
-            return database[collection_name]
+            return self._get_db(db)[collection]
         except KeyError:
-            raise web.HTTPError(400, reason=f"collection not found ({collection_name})")
+            raise web.HTTPError(400, reason=f"collection not found ({collection})")
 
-    async def ensure_collection_indexes(
-        self, database_name: str, collection_name: str
-    ) -> None:
+    async def create_collection(self, collection: str, db: str = DB) -> MotorCollection:
+        """Return collection instance, if it doesn't exist, create it."""
+        db_obj = self._get_db(db)
+        try:
+            return db_obj[collection]
+        except KeyError:
+            coll_obj = db_obj.create_collection(collection)
+            await self._ensure_collection_indexes(collection, db)
+            return coll_obj
+
+    async def _ensure_collection_indexes(self, collection: str, db: str = DB) -> None:
         """Create indexes in collection."""
-        collection = self.get_collection(database_name, collection_name)
-        await collection.create_index("name", name="name_index", unique=True)
-        async for index in collection.list_indexes():
+        coll_obj = self.get_collection(collection, db)
+        await coll_obj.create_index("name", name="name_index", unique=True)
+        async for index in coll_obj.list_indexes():
             print(index)
 
     async def ensure_all_databases_indexes(self) -> None:
         """Create all indexes in all databases."""
-        for database_name in await self.get_database_names():
-            for collection_name in await self.get_collection_names(database_name):
-                await self.ensure_collection_indexes(database_name, collection_name)
+        for db in await self._list_dbs():
+            for collection in await self.list_collections(db):
+                await self._ensure_collection_indexes(collection, db)
