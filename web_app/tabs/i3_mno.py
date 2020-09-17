@@ -392,7 +392,7 @@ def layout() -> html.Div:
 # Table Callbacks
 
 
-def _totals(n_clicks: int) -> Tuple[bool, str, str, bool, int]:
+def _totals(n_clicks: int, state_all_cols: int) -> Tuple[bool, str, str, bool, int]:
     """Figure out whether to include totals, and format the button.
 
     Returns:
@@ -402,16 +402,17 @@ def _totals(n_clicks: int) -> Tuple[bool, str, str, bool, int]:
         bool -- button outline
         int  -- auto n_clicks for "tab-1-show-all-columns-button"
     """
-    # Just clicked "Show Totals"
-    if n_clicks % 2 == 1:
+    on = n_clicks % 2 == 1
+    triggered = util.triggered_id() == "tab-1-show-totals-button"
+
+    if not on:  # off -> don't trigger "show-all-columns"
+        return False, "Show Totals", Color.GRAY, True, state_all_cols
+
+    if triggered:  # on and triggered -> trigger "show-all-columns"
         return True, "Hide Totals", Color.DARK, False, 1
 
-    # Just clicked "Hide Totals"
-    if util.triggered_id() == "tab-1-show-totals-button":
-        return False, "Show Totals", Color.GRAY, True, 1
-
-    # Currently showing Totals, but the click wasn't the triggering event
-    return False, "Show Totals", Color.GRAY, True, 2
+    # on and not triggered, AKA already on -> don't trigger "show-all-columns"
+    return True, "Hide Totals", Color.DARK, False, state_all_cols
 
 
 def _add_new_data(
@@ -468,7 +469,11 @@ def _get_table(institution: str, labor: str, show_totals: bool) -> Table:
         Input("tab-1-refresh-button", "n_clicks"),
         Input("tab-1-show-totals-button", "n_clicks"),
     ],
-    [State("tab-1-data-table", "data"), State("tab-1-data-table", "columns")],
+    [
+        State("tab-1-data-table", "data"),
+        State("tab-1-data-table", "columns"),
+        State("tab-1-show-all-columns-button", "n_clicks"),
+    ],
 )  # pylint: disable=R0913
 def table_data_exterior_controls(
     institution: str,
@@ -479,6 +484,7 @@ def table_data_exterior_controls(
     totals_n_clicks: int,
     state_table: Table,
     state_columns: TColumns,
+    state_all_cols: int,
 ) -> Tuple[Table, TFocus, int, str, dbc.Toast, str, str, bool, int]:
     """Exterior control signaled that the table should be updated.
 
@@ -502,7 +508,9 @@ def table_data_exterior_controls(
         focus = {"row": 0, "column": 0}
 
     # format "Show Totals" button
-    show_totals, tot_label, tot_color, tot_outline, all_cols = _totals(totals_n_clicks)
+    show_totals, tot_label, tot_color, tot_outline, all_cols = _totals(
+        totals_n_clicks, state_all_cols
+    )
 
     # Add New Data
     if util.triggered_id() in ["tab-1-new-data-btn-top", "tab-1-new-data-btn-bottom"]:
