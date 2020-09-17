@@ -1,6 +1,5 @@
 
 
-
 .title {
     font-family: 'Sarpanch', sans-serif;
     font-weight: bold;
@@ -34,7 +33,6 @@
 .Select-control{
     border-radius: .25rem;
 }
-
 
 
 /*------------------------------------------------------------------------------------*/
@@ -122,8 +120,7 @@
 }
 
 .dash-spreadsheet-container table {
-    --accent: #258835 !important;
-    --selected-background: #258835 !important;
-    --selected-color: #258835 !important;
+    --accent: #20A1B6 !important;
+    --selected-background: #20A1B6 !important;
+    --selected-color: #20A1B6 !important;
 }
-

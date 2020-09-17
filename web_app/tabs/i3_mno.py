@@ -254,14 +254,17 @@ def layout() -> html.Div:
             html.Div(
                 style=CENTERED_100,
                 children=[
-                    html.Div(
-                        id="tab-1-how-to-edit-message",
+                    dbc.Alert(
+                        "- sign in to edit -",
+                        id="tab-1-how-to-edit-alert",
                         style={
-                            "font-style": "oblique",
                             "fontWeight": "bold",
                             "fontSize": "20px",
+                            "width": "100%",
+                            "text-align": "center",
                         },
                         className="caps",
+                        color="dark",
                     ),
                 ],
             ),
@@ -285,8 +288,10 @@ def layout() -> html.Div:
                     "padding-left": "1em",
                 },
                 style_header={
-                    "backgroundColor": "gainsboro",
+                    "backgroundColor": "#6C757D",
+                    "color": "whitesmoke",
                     "whiteSpace": "normal",
+                    "fontWeight": "normal",
                     "height": "auto",
                     "lineHeight": "15px",
                 },
@@ -707,12 +712,12 @@ def table_dropdown(_: bool) -> Tuple[TDDown, TDDownCond]:
         Output("tab-1-new-data-btn-top", "hidden"),
         Output("tab-1-new-data-btn-bottom", "hidden"),
         Output("tab-1-make-snapshot-button", "hidden"),
-        Output("tab-1-how-to-edit-message", "children"),
+        Output("tab-1-how-to-edit-alert", "hidden"),
         Output("tab-1-data-table", "row_deletable"),
     ],
     [Input("tab-1-input-name", "value"), Input("tab-1-input-email", "value")],
 )
-def sign_in(name: str, email: str) -> Tuple[str, bool, bool, bool, bool, str, bool]:
+def sign_in(name: str, email: str) -> Tuple[str, bool, bool, bool, bool, bool, bool]:
     """Enter name & email callback."""
     # TODO -- check auth
 
@@ -723,7 +728,7 @@ def sign_in(name: str, email: str) -> Tuple[str, bool, bool, bool, bool, str, bo
             False,  # new-data-button-top NOT hidden
             False,  # new-data-button-bottom NOT hidden
             False,  # make-snapshot-button NOT hidden
-            "",
+            True,  # how-to-edit-alert hidden
             True,  # row is deletable
         )
     return (
@@ -732,7 +737,7 @@ def sign_in(name: str, email: str) -> Tuple[str, bool, bool, bool, bool, str, bo
         True,  # new-data-button-top hidden
         True,  # new-data-button-bottom hidden
         True,  # make-snapshot-button hidden
-        "- sign in to edit -",
+        False,  # how-to-edit-alert NOT hidden
         False,  # row NOT deletable
     )
 
