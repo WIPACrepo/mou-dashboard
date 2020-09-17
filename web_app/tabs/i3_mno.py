@@ -392,7 +392,9 @@ def layout() -> html.Div:
 # Table Callbacks
 
 
-def _totals(n_clicks: int, state_all_cols: int) -> Tuple[bool, str, str, bool, int]:
+def _totals_button_logic(
+    n_clicks: int, state_all_cols: int
+) -> Tuple[bool, str, str, bool, int]:
     """Figure out whether to include totals, and format the button.
 
     Returns:
@@ -481,7 +483,7 @@ def table_data_exterior_controls(
     _: int,
     __: int,
     ___: int,
-    totals_n_clicks: int,
+    tot_n_clicks: int,
     state_table: Table,
     state_columns: TColumns,
     state_all_cols: int,
@@ -508,8 +510,8 @@ def table_data_exterior_controls(
         focus = {"row": 0, "column": 0}
 
     # format "Show Totals" button
-    show_totals, tot_label, tot_color, tot_outline, all_cols = _totals(
-        totals_n_clicks, state_all_cols
+    show_totals, tot_label, tot_color, tot_outline, all_cols = _totals_button_logic(
+        tot_n_clicks, state_all_cols
     )
 
     # Add New Data
