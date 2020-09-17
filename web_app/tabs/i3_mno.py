@@ -1,6 +1,6 @@
 """Conditional in-cell drop-down menu with IceCube WBS MoU info."""
 
-from typing import Collection, Dict, List, Tuple
+from typing import Collection, Dict, List, Optional, Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -11,8 +11,8 @@ from dash.dependencies import Input, Output, State  # type: ignore[import]
 from ..config import app
 from ..utils import dash_utils as util
 from ..utils import data_source as src
+from ..utils.dash_utils import Color
 from ..utils.data_source import TableConfig
-from ..utils.styles import CENTERED_100, WIDTH_45
 from ..utils.types import (
     DataEntry,
     Record,
@@ -25,17 +25,23 @@ from ..utils.types import (
 )
 
 REFRESH_MSG = "Refresh page and try again."
-BTN_OFF = "dark"
-BTN_ON = "secondary"
 
 
 # --------------------------------------------------------------------------------------
 # Layout
 
 
-def _new_data_button(_id: str, block: bool = True) -> dbc.Button:
+def _new_data_button(
+    _id: str, block: bool = True, style: Optional[Dict[str, str]] = None
+) -> dbc.Button:
     return dbc.Button(
-        "+ Add New Data", id=_id, block=block, n_clicks=0, color=BTN_ON, disabled=False,
+        "+ Add New Data",
+        id=_id,
+        block=block,
+        n_clicks=0,
+        color=Color.DARK,
+        disabled=False,
+        style=style,
     )
 
 
@@ -160,89 +166,72 @@ def layout() -> html.Div:
     return html.Div(
         children=[
             html.Div(
-                # Institution Leader Sign-In
+                "Institution Leader Sign-In",
+                className="caps",
+                style={"margin-left": "11rem", "margin-top": "2rem"},
+            ),
+            dbc.Row(
+                style={"margin-left": "11rem"},
                 children=[
-                    html.Div(
-                        "Institution Leader Sign-In",
-                        className="caps",
-                        style={"margin-left": "5%"},
+                    dcc.Input(
+                        id="tab-1-input-name",
+                        value="",
+                        type="text",
+                        placeholder="name",
+                        style={"width": "22%"},
                     ),
-                    html.Div(
-                        className="row",
-                        style={"margin-left": "5%"},
-                        children=[
-                            dcc.Input(
-                                id="tab-1-input-name",
-                                value="",
-                                type="text",
-                                placeholder="name",
-                                style={"width": "24%"},
-                            ),
-                            dcc.Input(
-                                id="tab-1-input-email",
-                                value="",
-                                type="text",
-                                placeholder="email",
-                                style={"width": "23%"},
-                            ),
-                            html.I(
-                                id="tab-1-name-email-icon",
-                                n_clicks=0,
-                                style={
-                                    "margin-left": "0.5em",
-                                    "align-text": "bottom",
-                                    "fontSize": 25,
-                                },
-                            ),
-                        ],
+                    dcc.Input(
+                        id="tab-1-input-email",
+                        value="",
+                        type="text",
+                        placeholder="email",
+                        style={"width": "21%"},
+                    ),
+                    html.I(
+                        id="tab-1-name-email-icon",
+                        n_clicks=0,
+                        style={"margin-left": "1.5rem", "fontSize": 25},
                     ),
                 ],
             ),
             ####
-            html.Hr(style={"margin-top": "3em", "margin-bottom": "3em"}),
+            html.Hr(style={"margin-top": "4rem", "margin-bottom": "4rem"}),
             ####
-            html.Div(
-                style={"margin-bottom": "2em"},
+            dbc.Row(
+                justify="center",
+                style={"margin-bottom": "2.5rem"},
                 children=[
-                    # html.H4("Staffing Matrix Data"),
-                    # SOW Filter
-                    html.Div(
-                        className="row",
-                        style=CENTERED_100,
+                    dbc.Col(
+                        width=5,
+                        # style=WIDTH_45,
                         children=[
-                            html.Div(
-                                style=WIDTH_45,
-                                children=[
-                                    html.Div(children="Institution", className="caps"),
-                                    # Institution filter dropdown menu
-                                    dcc.Dropdown(
-                                        id="tab-1-filter-inst",
-                                        options=[
-                                            {"label": st, "value": st}
-                                            for st in tconfig.get_institutions()
-                                        ],
-                                        value="",
-                                        # multi=True
-                                    ),
+                            html.Div(children="Institution", className="caps"),
+                            # Institution filter dropdown menu
+                            dcc.Dropdown(
+                                id="tab-1-filter-inst",
+                                options=[
+                                    {"label": st, "value": st}
+                                    for st in tconfig.get_institutions()
                                 ],
+                                value="",
+                                # multi=True
                             ),
-                            html.Div(
-                                style=WIDTH_45,
-                                children=[
-                                    # Labor Category filter dropdown menu
-                                    html.Div(
-                                        children="Labor Category", className="caps"
-                                    ),
-                                    dcc.Dropdown(
-                                        id="tab-1-filter-labor",
-                                        options=[
-                                            {"label": st, "value": st}
-                                            for st in tconfig.get_labor_categories()
-                                        ],
-                                        value="",
-                                        # multi=True
-                                    ),
+                        ],
+                    ),
+                    dbc.Col(
+                        width=5,
+                        # style=WIDTH_45,
+                        children=[
+                            # Labor Category filter dropdown menu
+                            html.Div(children="Labor Category", className="caps"),
+                            dcc.Dropdown(
+                                id="tab-1-filter-labor",
+                                options=[
+                                    {"label": st, "value": st}
+                                    for st in tconfig.get_labor_categories()
                                 ],
+                                value="",
+                                # multi=True
                             ),
                         ],
                     ),
@@ -251,27 +240,22 @@ def layout() -> html.Div:
             ####
             # html.Hr(style=SHORT_HR),
             ####
-            html.Div(
-                style=CENTERED_100,
-                children=[
-                    dbc.Alert(
-                        "- sign in to edit -",
-                        id="tab-1-how-to-edit-alert",
-                        style={
-                            "fontWeight": "bold",
-                            "fontSize": "20px",
-                            "width": "100%",
-                            "text-align": "center",
-                        },
-                        className="caps",
-                        color="dark",
-                    ),
-                ],
+            dbc.Alert(
+                "- sign in to edit -",
+                id="tab-1-how-to-edit-alert",
+                style={
+                    "fontWeight": "bold",
+                    "fontSize": "20px",
+                    "width": "100%",
+                    "text-align": "center",
+                },
+                className="caps",
+                color="dark",
             ),
             # Add Button
-            html.Div(
-                style={"margin-bottom": "0.8em"},
-                children=[_new_data_button("tab-1-new-data-btn-top")],
+            _new_data_button(
+                "tab-1-new-data-btn-top",
+                style={"margin-bottom": "1rem", "height": "40px"},
             ),
             # Table
             dash_table.DataTable(
@@ -337,7 +321,7 @@ def layout() -> html.Div:
                         id="tab-1-load-snapshot-button",
                         n_clicks=0,
                         outline=True,
-                        color="info",
+                        color=Color.TEAL,
                         style={"margin-left": "1em"},
                     ),
                     # Make Snapshot
@@ -346,7 +330,7 @@ def layout() -> html.Div:
                         id="tab-1-make-snapshot-button",
                         n_clicks=0,
                         outline=True,
-                        color="success",
+                        color=Color.GREEN,
                         style={"margin-left": "1em"},
                     ),
                     # Refresh
@@ -355,7 +339,7 @@ def layout() -> html.Div:
                         id="tab-1-refresh-button",
                         n_clicks=0,
                         outline=True,
-                        color="success",
+                        color=Color.GREEN,
                         style={"margin-left": "1em", "font-weight": "bold"},
                     ),
                     # Show All Rows
@@ -420,14 +404,14 @@ def _totals(n_clicks: int) -> Tuple[bool, str, str, bool, int]:
     """
     # Just clicked "Show Totals"
     if n_clicks % 2 == 1:
-        return True, "Hide Totals", BTN_OFF, False, 1
+        return True, "Hide Totals", Color.DARK, False, 1
 
     # Just clicked "Hide Totals"
     if util.triggered_id() == "tab-1-show-totals-button":
-        return False, "Show Totals", BTN_ON, True, 1
+        return False, "Show Totals", Color.GRAY, True, 1
 
     # Currently showing Totals, but the click wasn't the triggering event
-    return False, "Show Totals", BTN_ON, True, 2
+    return False, "Show Totals", Color.GRAY, True, 2
 
 
 def _add_new_data(
@@ -447,9 +431,9 @@ def _add_new_data(
     if new_record := src.push_record(new_record, labor=labor, institution=institution):  # type: ignore[assignment]
         new_record = util.add_original_copies_to_record(new_record, novel=True)
         table.insert(0, new_record)
-        toast = _make_toast("Record Added", f"id: {new_record['id']}", "success", 5)
+        toast = _make_toast("Record Added", f"id: {new_record['id']}", Color.GREEN, 5)
     else:
-        toast = _make_toast("Failed to Make Record", REFRESH_MSG, "danger")
+        toast = _make_toast("Failed to Make Record", REFRESH_MSG, Color.RED)
 
     return table, toast
 
@@ -577,7 +561,7 @@ def _delete_deleted_records(
     # make toast message if any records failed to be deleted
     if failures:
         toast = _make_toast(
-            f"Failed to Delete Record {record['id']}", REFRESH_MSG, "danger",
+            f"Failed to Delete Record {record['id']}", REFRESH_MSG, Color.RED,
         )
 
     return toast
@@ -756,9 +740,9 @@ def toggle_pagination(n_clicks: int) -> Tuple[str, str, bool, int, str]:
     """Toggle whether the table is paginated."""
     if n_clicks % 2 == 0:
         tconfig = TableConfig()
-        return "Show All Rows", BTN_ON, True, tconfig.get_page_size(), "native"
+        return "Show All Rows", Color.GRAY, True, tconfig.get_page_size(), "native"
     # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
-    return "Collapse Rows to Pages", BTN_OFF, False, 9999999999, "none"
+    return "Collapse Rows to Pages", Color.DARK, False, 9999999999, "none"
 
 
 @app.callback(  # type: ignore[misc]
@@ -774,8 +758,8 @@ def toggle_hidden_columns(n_clicks: int) -> Tuple[str, str, bool, List[str]]:
     """Toggle hiding/showing the default hidden columns."""
     if n_clicks % 2 == 0:
         tconfig = TableConfig()
-        return "Show All Columns", BTN_ON, True, tconfig.get_hidden_columns()
-    return "Show Default Columns", BTN_OFF, False, []
+        return "Show All Columns", Color.GRAY, True, tconfig.get_hidden_columns()
+    return "Show Default Columns", Color.DARK, False, []
 
 
 @app.callback(  # type: ignore[misc]

@@ -14,6 +14,17 @@ _OC_SUFFIX: Final[str] = "_original"
 _RECENT_THRESHOLD: Final[float] = 1.0
 
 
+class Color:  # pylint: disable=R0903
+    """Dash Colors."""
+
+    DARK = "dark"
+    GRAY = "secondary"
+    GREEN = "success"
+    TEAL = "info"
+    RED = "danger"
+    YELLOW = "warning"
+
+
 # --------------------------------------------------------------------------------------
 # Function(s) that really should be in a dash library
 

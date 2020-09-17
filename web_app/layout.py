@@ -8,7 +8,43 @@ from dash.dependencies import Input, Output  # type: ignore
 
 from .config import app
 from .tabs import i3_mno
-from .utils.styles import CONTENT_STYLE, TAB_SELECTED_STYLE, TAB_STYLE, TABS_STYLE
+
+# Styles for Tabs
+
+_TAB_HEIGHT = "5vh"
+
+CONTENT_STYLE = {
+    "padding-top": "2em",
+    "padding-left": "2em",
+    "padding-right": "2em",
+}
+
+TAB_SELECTED_STYLE = {
+    "padding": "0",
+    "line-height": _TAB_HEIGHT,
+    "backgroundColor": "whitesmoke",
+    "color": "#23272B",
+    "border-top": "2.5px solid #20A1B6",
+    "font-weight": "bold",
+}
+
+TAB_STYLE = {
+    "padding": "0",
+    "line-height": _TAB_HEIGHT,
+    "backgroundColor": "lightgrey",
+    "color": "#23272B",
+    "border-bottom": "2.5px solid #258835",
+}
+
+TABS_STYLE = {
+    "height": _TAB_HEIGHT,
+    "text-transform": "uppercase",
+    "letter-spacing": ".075rem",
+    "font": "15px Arial",
+}
+
+
+# Layout
 
 app.layout = html.Div(
     style={
@@ -30,11 +66,12 @@ app.layout = html.Div(
                     ),
                     style={
                         "display": "flex",
-                        "border": "2.5px solid #23272B",
+                        # "border": "2.5px solid #23272B",
                         "margin-top": "2.4rem",
                         "margin-left": "0.25rem",
                         "height": "3rem",
                         "border-radius": ".25rem",
+                        "backgroundColor": "#23272B",
                     },
                 ),
             ],
