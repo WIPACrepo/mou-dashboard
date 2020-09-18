@@ -434,7 +434,7 @@ def _add_new_data(
     if new_record := src.push_record(new_record, labor=labor, institution=institution):  # type: ignore[assignment]
         new_record = util.add_original_copies_to_record(new_record, novel=True)
         table.insert(0, new_record)
-        toast = _make_toast("Record Added", f"id: {new_record['id']}", Color.GREEN, 5)
+        toast = _make_toast("Record Added", f"id: {new_record[src.ID]}", Color.GREEN, 5)
     else:
         toast = _make_toast("Failed to Make Record", REFRESH_MSG, Color.RED)
 
@@ -539,12 +539,12 @@ def _push_modified_records(
 ) -> List[DataEntry]:
     """For each row that changed, push the record to the DS."""
     modified_records = [
-        r for r in current_table if (r not in previous_table) and ("id" in r)
+        r for r in current_table if (r not in previous_table) and (src.ID in r)
     ]
     for record in modified_records:
         src.push_record(util.without_original_copies_from_record(record))
 
-    ids = [c["id"] for c in modified_records]
+    ids = [c[src.ID] for c in modified_records]
     return ids
 
 
@@ -557,13 +557,13 @@ def _delete_deleted_records(
     delete_these = [
         r
         for r in previous_table
-        if (r not in current_table) and ("id" in r) and (r["id"] not in keeps)
+        if (r not in current_table) and (src.ID in r) and (r[src.ID] not in keeps)
     ]
 
     failures = []
     record = None
     for record in delete_these:
-        toast = _make_toast(f"Deleted Record {record['id']}", "", "dark")
+        toast = _make_toast(f"Deleted Record {record[src.ID]}", "", "dark")
         # try to delete
         if not src.delete_record(record):
             failures.append(record)
@@ -571,7 +571,7 @@ def _delete_deleted_records(
     # make toast message if any records failed to be deleted
     if failures:
         toast = _make_toast(
-            f"Failed to Delete Record {record['id']}", REFRESH_MSG, Color.RED,
+            f"Failed to Delete Record {record[src.ID]}", REFRESH_MSG, Color.RED,
         )
 
     return toast

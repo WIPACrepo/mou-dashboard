@@ -1,7 +1,6 @@
 """Routes handlers for the MoU REST API server interface."""
 
 
-from copy import deepcopy
 from typing import Any, Optional
 
 import tornado.web
@@ -13,11 +12,6 @@ from rest_tools.server import handler, RestHandler  # type: ignore
 from . import table_config as tc
 from .config import AUTH_PREFIX
 from .utils import db_utils, utils
-
-
-def _next_id() -> str:
-    return f"{max(_TABLE.keys())}{max(_TABLE.keys())}"
-
 
 # -----------------------------------------------------------------------------
 
@@ -138,31 +132,20 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
     # @handler.scope_role_auth(prefix=MOU_AUTH_PREFIX, roles=["web"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
-        collection = self.get_argument("collection")
+        collection = self.get_argument("snapshot", "")
         institution = self.get_argument("institution", default=None)
         labor = self.get_argument("labor", default=None)
         total_rows = self.get_argument("total_rows", default=False, type_=bool)
 
-        table = self.dbms.get_collection(collection)
-
-        # filter by labor
-        if labor:
-            table = [r for r in table if r[tc.LABOR_CAT] == labor]
-
-        # filter by institution
-        if institution:
-            table = [r for r in table if r[tc.INSTITUTION] == institution]
-
-        for record in table:
-            for field in record.keys():
-                if record[field] is None:
-                    record[field] = ""
+        table = await self.dbms.get_table(
+            collection, labor=labor, institution=institution
+        )
 
         # On-the-fly fields/rows
         for record in table:
             utils.add_on_the_fly_fields(record)
         if total_rows:
-            utils.add_total_rows(table)
+            utils.insert_total_rows(table)
 
         # sort
         max_str = "ZZZZ"  # HACK: this will sort empty/missing values last
@@ -191,32 +174,15 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
     # @handler.scope_role_auth(prefix=MOU_AUTH_PREFIX, roles=["web"])  # type: ignore
     async def post(self) -> None:
         """Handle POST."""
-        collection = self.get_argument("collection")
+        collection = self.get_argument("snapshot", "")
         record = self.get_argument("record")
         if inst := self.get_argument("institution", default=None):
-            record[tc.INSTITUTION] = inst
+            record[tc.INSTITUTION] = inst  # insert
         if labor := self.get_argument("labor", default=None):
-            record[tc.LABOR_CAT] = labor
+            record[tc.LABOR_CAT] = labor  # insert
 
         record = utils.remove_on_the_fly_fields(record)
-        collection_obj = self.dbms.get_collection(collection)
-
-        # New
-        if not record[tc.ID] and record[tc.ID] != 0:
-            result = await collection_obj.insert_one(record)
-            # record[tc.ID] = _next_id()
-            # _TABLE[record[tc.ID]] = record  # add
-            record[tc.ID] = result.inserted_id
-            print(
-                f"PUSHED NEW {record[tc.ID]} {result.inserted_id} --- table now has len(_TABLE) entries"
-            )
-
-        # Changed
-        else:
-            record["id_"] = record[tc.ID]
-            result = await collection_obj.insert_one(record)
-            print(f"PUSHED {record[tc.ID]} {result.inserted_id}")
-            # _TABLE[record[tc.ID]] = record  # replace record
+        record = await self.dbms.upsert_record(record, collection=collection)
 
         self.write({"record": record})
 
@@ -224,21 +190,12 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
     # @handler.scope_role_auth(prefix=MOU_AUTH_PREFIX, roles=["web"])  # type: ignore
     async def delete(self) -> None:
         """Handle DELETE."""
-        collection = self.get_argument("collection")
+        collection = self.get_argument("snapshot", "")
         record = self.get_argument("record")
-        # TODO: don't actually delete, just mark as deleted
-        # try:
-        # del _TABLE[record[tc.ID]]
-        collection_obj = self.dbms.get_collection(collection)
-        result = await collection_obj.delete_one({"id_": record[tc.ID]})
-        print(
-            f"DELETED {record[tc.ID]} {result.inserted_id} --- table now has len(_TABLE) entries"
-        )
-        # return True
-        # except KeyError:
-        #     print(f"couldn't delete {id_}")
-        #     return False
-        # raise tornado.web.HTTPError(400, reason=f"(Va")
+
+        await self.dbms.delete_record(record, collection=collection)
+
+        self.write({})
 
 
 # -----------------------------------------------------------------------------
@@ -251,7 +208,7 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
     # @handler.scope_role_auth(prefix=MOU_AUTH_PREFIX, roles=["web"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
-        # TODO: (short-term) grab these values from the db
+        # TODO: (short-term) grab these values from 'TableConfig' db
         # TODO: (goal) store timestamp and duration to cache most recent version from Smartsheet
 
         self.write(

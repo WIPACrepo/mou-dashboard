@@ -13,6 +13,8 @@ from rest_tools.client import RestClient  # type: ignore
 from ..config import AUTH_PREFIX, REST_SERVER_URL, TOKEN_SERVER_URL
 from .types import Record, Table
 
+ID = "_id"
+
 
 def _ds_rest_connection() -> RestClient:
     """Return REST Client connection object."""

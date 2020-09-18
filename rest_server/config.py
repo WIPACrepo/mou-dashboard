@@ -48,6 +48,10 @@ EXCLUDE_DBS = [
     "admin",
 ]
 
+EXCLUDE_COLLECTIONS = ["system.indexes"]
+
+SNAPSHOTS_DB = "SnapshotsDB"
+
 
 def log_environment() -> None:
     """Log the environment variables."""

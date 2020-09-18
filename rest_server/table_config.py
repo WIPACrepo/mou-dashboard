@@ -4,7 +4,7 @@
 # local imports
 from keycloak_setup.icecube_setup import ICECUBE_INSTS  # type: ignore[import]
 
-ID = "id"
+ID = "_id"
 WBS_L2 = "WBS L2"
 WBS_L3 = "WBS L3"
 LABOR_CAT = "Labor Cat."

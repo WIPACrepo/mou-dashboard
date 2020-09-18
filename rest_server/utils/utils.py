@@ -56,7 +56,7 @@ def add_on_the_fly_fields(record: Record) -> Record:
     return record
 
 
-def add_total_rows(table: Table) -> Table:
+def insert_total_rows(table: Table) -> Table:
     """Add rows with totals of each category (cascadingly)."""
 
     ####
@@ -68,6 +68,7 @@ def add_total_rows(table: Table) -> Table:
             for r in table
             if r
             and tc.TOTAL_COL not in r.keys()  # skip any total rows
+            and r[tc.FTE]  # skip blanks (also 0s)
             and (not l2 or r[tc.WBS_L2] == l2)
             and (not l3 or r[tc.WBS_L3] == l3)
             and (not fund_src or r[tc.SOURCE_OF_FUNDS_US_ONLY] == fund_src)
