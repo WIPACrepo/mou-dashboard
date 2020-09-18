@@ -1,7 +1,38 @@
+/* Custom & Overriding CSS */
 
 
-.title {
-    font-family: 'Sarpanch', sans-serif;
+/*------------------------------------------------------------------------------------*/
+/* General/Misc. */
+
+.caps {
+    text-transform: uppercase;
+    letter-spacing: .075em;
+    font: 12px Arial;
+}
+
+
+/*------------------------------------------------------------------------------------*/
+/* Backgrounds/Bodies */
+
+.background {
+    padding-left: 5%;
+    padding-right: 5%;
+    background-color: lightgrey;
+}
+
+.content {
+    padding-top: 2em;
+    padding-left: 2em;
+    padding-right: 2em;
+    background-color: whitesmoke;
+}
+
+
+/*------------------------------------------------------------------------------------*/
+/* Site Title */
+
+.mou-title {
+    font-family: Sarpanch, sans-serif;
     font-weight: bold;
     font-size: 65px;
     letter-spacing: 0.25rem;
@@ -11,24 +42,75 @@
     align-self: flex-end;
 }
 
-.titleb {
+.dashboard-title {
+    font-weight: bold;
     font-family: Arial;
     text-transform: uppercase;
     font-size: 25px;
-    letter-spacing: 0.2rem;
-    line-height: 1.2;
-    color: lightgrey;
+    letter-spacing: 0.3rem;
+    line-height: 1.15;
     align-self: flex-end;
+    margin-bottom: 1rem;
+    display: flex;
+    height: 3.35rem;
+}
+
+.dash-title {
+    color: lightgrey;
+    background-color: #23272B;
+    border-top: 2.5px solid #23272B;
+    border-top-left-radius: .6rem;
+    border-left: 2.5px solid #23272B;
+    border-bottom-left-radius: .6rem;
+    border-bottom: 2.5px solid #23272B;
+    padding-left: 0.4rem;
     margin-left: 0.5rem;
-    margin-right: 0.3rem;
+}
+
+.board-title {
+    color: #23272B;
+    border-top: 2.5px solid #23272B;
+    border-top-right-radius: .6rem;
+    border-right: 2.5px solid #23272B;
+    border-bottom-right-radius: .6rem;
+    border-bottom: 2.5px solid #23272B;
+    padding-left: 0.2rem;
 }
 
 
-.caps {
-    text-transform: uppercase;
-    letter-spacing: .075em;
-    font: 12px Arial;
+/*------------------------------------------------------------------------------------*/
+/* Tabs */
+
+.tab-container {
+    height: 5vh !important;
+    text-transform: uppercase !important;
+    letter-spacing: .075rem !important;
+    font: 15px Arial !important;
+    line-height: 2.5 !important;
 }
+
+.tab {
+    padding: 0 !important;
+    background-color: lightgrey !important;
+    color: #23272B !important;
+    border-bottom: 2.5px solid #258835 !important;
+}
+
+.tab--disabled {
+    color: gray !important;
+}
+
+.tab--selected {
+    background-color: whitesmoke !important;
+    color: #23272B;
+    border-top: 2.5px solid #20A1B6 !important;
+    border-bottom: 0 !important;
+    font-weight: bold;
+}
+
+
+/*------------------------------------------------------------------------------------*/
+/* Dropdown Select Control */
 
 .Select-control{
     border-radius: .25rem;
@@ -36,7 +118,7 @@
 
 
 /*------------------------------------------------------------------------------------*/
-/* Dropdown Menus */
+/* Dropdown DataTable Menus */
 
 .Select-menu-outer {
     display : block !important; /* make visible */
@@ -59,7 +141,7 @@
     margin-left: 0.7em !important;
 }
 
-.export, .show-hide{ /* copy "btn btn-outline-secondary" */
+.export, .show-hide{ /* copy btn btn-outline-secondary */
     color: #6c757d;
     border-color: #6c757d;
     display: inline-block;
@@ -71,7 +153,7 @@
     border-radius: .25rem;
 }
 
-.export:hover, .show-hide:hover{ /* copy "btn btn-outline-secondary" */
+.export:hover, .show-hide:hover{ /* copy btn btn-outline-secondary */
     color: whitesmoke;
     background-color: #6c757d;
     border-color: #6c757d;
@@ -89,7 +171,7 @@
 /*------------------------------------------------------------------------------------*/
 /* DataTable */
 
-.column-header--hide{ /* Hide the column header "hide" icon */
+.column-header--hide{ /* Hide the column header hide icon */
     visibility: hidden !important;
     padding: 0 !important;
     width: 0 !important;
