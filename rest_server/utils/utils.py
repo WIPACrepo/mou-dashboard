@@ -13,7 +13,7 @@ from .types import Record, Table
 def remove_on_the_fly_fields(record: Record) -> Record:
     """Remove (del) any fields that are only to be calculated on-the-fly."""
     for field in record.copy().keys():
-        if field in tc.ON_THE_FLY_FIELDS:
+        if field in tc.get_on_the_fly_fields():
             # copy over grand total to FTE
             if (field == tc.GRAND_TOTAL) and (tc.FTE not in record.keys()):
                 record[tc.FTE] = record[field]
@@ -75,8 +75,8 @@ def insert_total_rows(table: Table) -> Table:
             and (not region or r[tc.US_NON_US] == region)
         )
 
-    for l2_cat in tc.L2_CATEGORIES:
-        for l3_cat in tc.L3_CATEGORIES_BY_L2[l2_cat]:
+    for l2_cat in tc.get_l2_categories():
+        for l3_cat in tc.get_l3_categories_by_l2(l2_cat):
             for region in [tc.US, tc.NON_US]:
 
                 # add US/Non-US

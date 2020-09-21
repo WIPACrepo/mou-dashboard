@@ -21,6 +21,10 @@ from .types import Record, Table
 IS_DELETED = "deleted"
 
 
+class NoCollectionsFoundError(Exception):
+    """Raise if there are no collections meeting conditions."""
+
+
 class MoUMotorClient:
     """MotorClient with additional guardrails for MoU things."""
 
@@ -51,7 +55,7 @@ class MoUMotorClient:
         for key in list(record.keys()):
             record[MoUMotorClient._mongofy_key_name(key)] = record.pop(key)
         # cast ID
-        if tc.ID in record.keys() and record[tc.ID]:
+        if record.get(tc.ID):
             record[tc.ID] = ObjectId(record[tc.ID])
 
         return record
@@ -66,7 +70,7 @@ class MoUMotorClient:
         for key in list(record.keys()):
             record[MoUMotorClient._demongofy_key_name(key)] = record.pop(key)
         record[tc.ID] = str(record[tc.ID])  # cast ID
-        if IS_DELETED in record.keys():
+        if record.get(IS_DELETED):
             record.pop(IS_DELETED)
 
         return record
@@ -164,18 +168,24 @@ class MoUMotorClient:
     async def most_recent_collection(self) -> str:
         """Get the most recently created collection.
 
-        Collections are named with the Unix epoch.
+        Collections are named with the Unix epoch. Raise
+        NoCollectionsFoundError if no collections are found.
         """
         timestamps = [int(c) for c in await self.list_collection_names()]
-        return str(max(timestamps))
+        try:
+            return str(max(timestamps))
+        except ValueError:
+            raise NoCollectionsFoundError
 
     async def get_table(
         self, collection: str = "", labor: str = "", institution: str = ""
     ) -> Table:
         """Return the table from the collection name."""
-        table: Table = []
         if not collection:
-            collection = await self.most_recent_collection()
+            try:
+                collection = await self.most_recent_collection()
+            except NoCollectionsFoundError:
+                return []
 
         query = {}
         if labor:
@@ -183,10 +193,11 @@ class MoUMotorClient:
         if institution:
             query[self._mongofy_key_name(tc.INSTITUTION)] = institution
 
-        # append outgoing version of record
+        # build demongofied table
+        table: Table = []
         i, dels = 0, 0
         async for record in self._get_collection(collection).find(query):
-            if IS_DELETED in record.keys() and record[IS_DELETED]:
+            if record.get(IS_DELETED):
                 dels += 1
                 continue
             table.append(self._demongofy_record(record))
@@ -205,12 +216,17 @@ class MoUMotorClient:
         record = self._mongofy_record(record)
 
         if not collection:
-            collection = await self.most_recent_collection()
+            try:
+                collection = await self.most_recent_collection()
+            except NoCollectionsFoundError:
+                return {}
         collection_obj = self._get_collection(collection)
 
-        if tc.ID in record.keys() and record[tc.ID]:
+        # if record has an ID -- replace it
+        if record.get(tc.ID):
             res = await collection_obj.replace_one({tc.ID: record[tc.ID]}, record)
             print(f"Updated {record}")
+        # otherwise -- create it
         else:
             record.pop(tc.ID)
             res = await collection_obj.insert_one(record)

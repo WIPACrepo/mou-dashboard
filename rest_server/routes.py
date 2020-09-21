@@ -148,18 +148,7 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
             utils.insert_total_rows(table)
 
         # sort
-        max_str = "ZZZZ"  # HACK: this will sort empty/missing values last
-        table.sort(
-            key=lambda k: (
-                k.get(tc.WBS_L2, max_str),
-                k.get(tc.WBS_L3, max_str),
-                k.get(tc.US_NON_US, max_str),
-                k.get(tc.INSTITUTION, max_str),
-                k.get(tc.LABOR_CAT, max_str),
-                k.get(tc.NAMES, max_str),
-                k.get(tc.SOURCE_OF_FUNDS_US_ONLY, max_str),
-            ),
-        )
+        table.sort(key=tc.sort_key)
 
         self.write({"table": table})
 
@@ -213,18 +202,18 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
 
         self.write(
             {
-                "columns": tc.COLUMNS,
-                "simple_dropdown_menus": tc.SIMPLE_DROPDOWN_MENUS,
-                "institutions": tc.SIMPLE_DROPDOWN_MENUS[tc.INSTITUTION],
-                "labor_categories": tc.SIMPLE_DROPDOWN_MENUS[tc.LABOR_CAT],
-                "conditional_dropdown_menus": tc.CONDITIONAL_DROPDOWN_MENUS,
-                "dropdowns": tc.DROPDOWNS,
-                "numerics": tc.NUMERICS,
-                "non_editables": tc.NON_EDITABLES,
-                "hiddens": tc.HIDDENS,
-                "widths": tc.WIDTHS,
-                "border_left_columns": tc.BORDER_LEFT_COLUMNS,
-                "page_size": tc.PAGE_SIZE,
+                "columns": tc.get_columns(),
+                "simple_dropdown_menus": tc.get_simple_dropdown_menus(),
+                "institutions": tc.get_institutions(),
+                "labor_categories": tc.get_labor_cats(),
+                "conditional_dropdown_menus": tc.get_conditional_dropdown_menus(),
+                "dropdowns": tc.get_dropdowns(),
+                "numerics": tc.get_numerics(),
+                "non_editables": tc.get_non_editables(),
+                "hiddens": tc.get_hiddens(),
+                "widths": tc.get_widths(),
+                "border_left_columns": tc.get_border_left_columns(),
+                "page_size": tc.get_page_size(),
             }
         )
 
