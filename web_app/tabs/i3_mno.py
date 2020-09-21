@@ -240,6 +240,7 @@ def layout() -> html.Div:
             ####
             # html.Hr(style=SHORT_HR),
             ####
+            # Sign-In Alert
             dbc.Alert(
                 "- sign in to edit -",
                 id="tab-1-how-to-edit-alert",
@@ -250,12 +251,36 @@ def layout() -> html.Div:
                     "text-align": "center",
                 },
                 className="caps",
-                color="dark",
+                color=Color.DARK,
             ),
             # Add Button
             _new_data_button(
                 "tab-1-new-data-btn-top",
                 style={"margin-bottom": "1rem", "height": "40px"},
+            ),
+            # "Viewing Snapshot" Alert
+            dbc.Alert(
+                [
+                    html.Div("Viewing Snapshot From"),
+                    html.Div("", id="tab-1-snapshot-name"),
+                    dbc.Button(
+                        "View Live",
+                        id="tab-1-view-live-button",
+                        n_clicks=0,
+                        outline=True,
+                        color=Color.GREEN,
+                    ),
+                ],
+                id="tab-1-viewing-snapshot-alert",
+                style={
+                    "fontWeight": "bold",
+                    "fontSize": "20px",
+                    "width": "100%",
+                    "text-align": "center",
+                },
+                className="caps",
+                color=Color.TEAL,
+                is_open=False,
             ),
             # Table
             dash_table.DataTable(
@@ -441,10 +466,10 @@ def _add_new_data(
     return table, toast
 
 
-def _get_table(institution: str, labor: str, show_totals: bool) -> Table:
+def _get_table(institution: str, labor: str, show_totals: bool, snapshot: str) -> Table:
     """Pull from data source."""
     table = src.pull_data_table(
-        institution=institution, labor=labor, with_totals=show_totals
+        institution=institution, labor=labor, with_totals=show_totals, snapshot=snapshot
     )
     table = util.add_original_copies(table)
 
@@ -470,6 +495,7 @@ def _get_table(institution: str, labor: str, show_totals: bool) -> Table:
         Input("tab-1-new-data-btn-bottom", "n_clicks"),
         Input("tab-1-refresh-button", "n_clicks"),
         Input("tab-1-show-totals-button", "n_clicks"),
+        Input("tab-1-snapshot-name", "children"),
     ],
     [
         State("tab-1-data-table", "data"),
@@ -478,12 +504,15 @@ def _get_table(institution: str, labor: str, show_totals: bool) -> Table:
     ],
 )  # pylint: disable=R0913
 def table_data_exterior_controls(
+    # inputs
     institution: str,
     labor: str,
     _: int,
     __: int,
     ___: int,
     tot_n_clicks: int,
+    snapshot: str,
+    # states
     state_table: Table,
     state_columns: TColumns,
     state_all_cols: int,
@@ -519,7 +548,7 @@ def table_data_exterior_controls(
         table, toast = _add_new_data(state_table, state_columns, labor, institution)
     # OR Pull Table (optionally filtered)
     else:
-        table = _get_table(institution, labor, show_totals)
+        table = _get_table(institution, labor, show_totals, snapshot)
 
     return (
         table,
@@ -709,13 +738,19 @@ def table_dropdown(_: bool) -> Tuple[TDDown, TDDownCond]:
         Output("tab-1-how-to-edit-alert", "hidden"),
         Output("tab-1-data-table", "row_deletable"),
     ],
-    [Input("tab-1-input-name", "value"), Input("tab-1-input-email", "value")],
+    [
+        Input("tab-1-input-name", "value"),
+        Input("tab-1-input-email", "value"),
+        Input("tab-1-viewing-snapshot-alert", "is_open"),
+    ],
 )
-def sign_in(name: str, email: str) -> Tuple[str, bool, bool, bool, bool, bool, bool]:
+def sign_in(
+    name: str, email: str, viewing_snapshot: bool
+) -> Tuple[str, bool, bool, bool, bool, bool, bool]:
     """Enter name & email callback."""
     # TODO -- check auth
 
-    if name and email:
+    if name and email and (not viewing_snapshot):
         return (
             "✔",
             True,  # data-table editable
@@ -773,14 +808,30 @@ def toggle_hidden_columns(n_clicks: int) -> Tuple[str, str, bool, List[str]]:
 
 
 @app.callback(  # type: ignore[misc]
-    Output("tab-1-dialog-1", "children"),
+    # Output("tab-1-dialog-1", "children"),
+    [
+        Output("tab-1-viewing-snapshot-alert", "is_open"),
+        Output("tab-1-snapshot-name", "children"),
+    ],
     [
         Input("tab-1-load-snapshot-button", "n_clicks"),
-        Input("tab-1-make-snapshot-button", "n_clicks"),
+        Input("tab-1-view-live-button", "n_clicks"),
     ],
     prevent_initial_call=True,
 )
-def launch_not_implemented_dialog(_: int, __: int) -> dcc.ConfirmDialog:
+def launch_load_snapshot(_: int, __: int) -> Tuple[bool, str]:
+    """Launch modal for loading snapshot."""
+    if util.triggered_id() == "tab-1-load-snapshot-button":
+        return True, "yyyy-mm-dd HERE"
+    return False, ""
+
+
+@app.callback(  # type: ignore[misc]
+    Output("tab-1-dialog-1", "children"),
+    [Input("tab-1-make-snapshot-button", "n_clicks")],
+    prevent_initial_call=True,
+)
+def launch_not_implemented_dialog(_: int) -> dcc.ConfirmDialog:
     """Launch a dialog for not-yet-implemented features."""
     return dcc.ConfirmDialog(
         id="not-implemented", message="Feature not yet implemented.", displayed=True

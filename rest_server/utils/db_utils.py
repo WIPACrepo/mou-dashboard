@@ -185,6 +185,7 @@ class MoUMotorClient:
             try:
                 collection = await self.most_recent_collection()
             except NoCollectionsFoundError:
+                print("NoCollectionsFoundError")
                 return []
 
         query = {}

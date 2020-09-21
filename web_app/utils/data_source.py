@@ -37,10 +37,21 @@ def _request(method: str, url: str, body: Any = None) -> Dict[str, Any]:
 
 
 def pull_data_table(
-    institution: str = "", labor: str = "", with_totals: bool = False
+    institution: str = "",
+    labor: str = "",
+    with_totals: bool = False,
+    snapshot: str = "",
 ) -> Table:
-    """Get table, optionally filtered by institution and/or labor."""
-    body = {"institution": institution, "labor": labor, "total_rows": with_totals}
+    """Get table, optionally filtered by institution and/or labor.
+
+    Grab a snapshot table, if snapshot is given. "" gives live table.
+    """
+    body = {
+        "institution": institution,
+        "labor": labor,
+        "total_rows": with_totals,
+        "snapshot": snapshot,
+    }
     response = _request("GET", "/table/data", body)
 
     return cast(Table, response["table"])
