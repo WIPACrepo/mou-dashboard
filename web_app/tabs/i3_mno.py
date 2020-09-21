@@ -673,16 +673,16 @@ def table_dropdown(_: bool) -> Tuple[TDDown, TDDownCond]:
 
         # Add conditional dropdowns
         elif tconfig.is_conditional_dropdown(col):
-            # get dependee column and its options
-            dep_col, dep_col_opts = tconfig.get_conditional_column_dependee(col)
-            # make filter_query for each dependee-column option
-            for opt in dep_col_opts:
-                dropdown = tconfig.get_conditional_column_dropdown_menu(col, opt)
+            # get parent column and its options
+            parent_col, parent_col_opts = tconfig.get_conditional_column_parent(col)
+            # make filter_query for each parent-column option
+            for parent_opt in parent_col_opts:
+                dropdown = tconfig.get_conditional_column_dropdown_menu(col, parent_opt)
                 conditional_dropdowns.append(
                     {
                         "if": {
                             "column_id": col,
-                            "filter_query": f'''{{{dep_col}}} eq "{opt}"''',
+                            "filter_query": f'''{{{parent_col}}} eq "{parent_opt}"''',
                         },
                         "options": _options(dropdown),
                     }

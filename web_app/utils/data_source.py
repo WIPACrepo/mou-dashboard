@@ -145,20 +145,18 @@ class TableConfig:
         """Return whether column is a conditional dropdown-type."""
         return column in self.config["conditional_dropdown_menus"].keys()
 
-    def get_conditional_column_dependee(self, column: str) -> Tuple[str, List[str]]:
-        """Get the dependee column's (name and list of options)."""
+    def get_conditional_column_parent(self, column: str) -> Tuple[str, List[str]]:
+        """Get the parent column's (name, list of options)."""
         return (
             self.config["conditional_dropdown_menus"][column][0],
             list(self.config["conditional_dropdown_menus"][column][1].keys()),
         )
 
     def get_conditional_column_dropdown_menu(
-        self, column: str, dependee_column_option: str
+        self, column: str, parent_col_option: str
     ) -> List[str]:
         """Get the dropdown menu for a conditional dropdown-column."""
-        return self.config["conditional_dropdown_menus"][column][1][
-            dependee_column_option
-        ]
+        return self.config["conditional_dropdown_menus"][column][1][parent_col_option]
 
     def get_column_width(self, column: str) -> int:
         """Return the pixel width of a given column."""
