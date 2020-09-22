@@ -1,6 +1,6 @@
 """Conditional in-cell drop-down menu with IceCube WBS MoU info."""
 
-from typing import Collection, Dict, List, Optional, Tuple
+from typing import Any, Collection, Dict, List, Optional, Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -159,6 +159,33 @@ def _make_toast(header: str, message: str, icon: str, duration: float = 0) -> db
     )
 
 
+def _snapshot_modal() -> dbc.Modal:
+    return dbc.Modal(
+        id="tab-1-load-snapshot-modal",
+        size="lg",
+        is_open=False,
+        backdrop="static",
+        children=[
+            dbc.ModalHeader("Snapshots", className="caps snapshots-title"),
+            dbc.ModalBody(
+                dcc.RadioItems(
+                    options=[], id="tab-1-snapshot-selection", className="snapshots"
+                )
+            ),
+            dbc.ModalFooter(
+                children=[
+                    dbc.Button(
+                        "View Live Table",
+                        id="tab-1-view-live-btn-modal",
+                        n_clicks=0,
+                        color=Color.SUCCESS,
+                    )
+                ]
+            ),
+        ],
+    )
+
+
 def layout() -> html.Div:
     """Construct the HTML."""
     tconfig = TableConfig()
@@ -261,14 +288,16 @@ def layout() -> html.Div:
             # "Viewing Snapshot" Alert
             dbc.Alert(
                 [
-                    html.Div("Viewing Snapshot From"),
-                    html.Div("", id="tab-1-snapshot-name"),
+                    html.Div("Viewing Snapshot", style={"margin-bottom": "0.5rem"}),
+                    html.Div(
+                        id="tab-1-snapshot-human", style={"margin-bottom": "0.5rem"}
+                    ),
+                    html.Div(id="tab-1-snapshot-timestamp", hidden=True),
                     dbc.Button(
-                        "View Live",
-                        id="tab-1-view-live-button",
+                        "View Live Table",
+                        id="tab-1-view-live-btn",
                         n_clicks=0,
-                        outline=True,
-                        color=Color.GREEN,
+                        color=Color.SUCCESS,
                     ),
                 ],
                 id="tab-1-viewing-snapshot-alert",
@@ -279,7 +308,7 @@ def layout() -> html.Div:
                     "text-align": "center",
                 },
                 className="caps",
-                color=Color.TEAL,
+                color=Color.LIGHT,
                 is_open=False,
             ),
             # Table
@@ -346,7 +375,7 @@ def layout() -> html.Div:
                         id="tab-1-load-snapshot-button",
                         n_clicks=0,
                         outline=True,
-                        color=Color.TEAL,
+                        color=Color.INFO,
                         style={"margin-left": "1em"},
                     ),
                     # Make Snapshot
@@ -355,7 +384,7 @@ def layout() -> html.Div:
                         id="tab-1-make-snapshot-button",
                         n_clicks=0,
                         outline=True,
-                        color=Color.GREEN,
+                        color=Color.SUCCESS,
                         style={"margin-left": "1em"},
                     ),
                     # Refresh
@@ -364,7 +393,7 @@ def layout() -> html.Div:
                         id="tab-1-refresh-button",
                         n_clicks=0,
                         outline=True,
-                        color=Color.GREEN,
+                        color=Color.SUCCESS,
                         style={"margin-left": "1em", "font-weight": "bold"},
                     ),
                     # Show All Rows
@@ -405,10 +434,12 @@ def layout() -> html.Div:
             html.Label(
                 "", id="tab-1-table-exterior-control-timestamp-dummy-label", hidden=True
             ),
-            # Dummy Divs -- for adding toasts, modals, etc.
-            html.Div(id="tab-1-toast-1"),
-            html.Div(id="tab-1-toast-2"),
-            html.Div(id="tab-1-dialog-1"),
+            # Dummy Divs -- for adding dynamic toasts, dialogs, etc.
+            html.Div(id="tab-1-toast-A"),
+            html.Div(id="tab-1-toast-B"),
+            html.Div(id="tab-1-dialog-A"),
+            # Modals
+            _snapshot_modal(),
         ]
     )
 
@@ -433,7 +464,7 @@ def _totals_button_logic(
     triggered = util.triggered_id() == "tab-1-show-totals-button"
 
     if not on:  # off -> don't trigger "show-all-columns"
-        return False, "Show Totals", Color.GRAY, True, state_all_cols
+        return False, "Show Totals", Color.SECONDARY, True, state_all_cols
 
     if triggered:  # on and triggered -> trigger "show-all-columns"
         return True, "Hide Totals", Color.DARK, False, 1
@@ -459,9 +490,11 @@ def _add_new_data(
     if new_record := src.push_record(new_record, labor=labor, institution=institution):  # type: ignore[assignment]
         new_record = util.add_original_copies_to_record(new_record, novel=True)
         table.insert(0, new_record)
-        toast = _make_toast("Record Added", f"id: {new_record[src.ID]}", Color.GREEN, 5)
+        toast = _make_toast(
+            "Record Added", f"id: {new_record[src.ID]}", Color.SUCCESS, 5
+        )
     else:
-        toast = _make_toast("Failed to Make Record", REFRESH_MSG, Color.RED)
+        toast = _make_toast("Failed to Make Record", REFRESH_MSG, Color.DANGER)
 
     return table, toast
 
@@ -482,7 +515,7 @@ def _get_table(institution: str, labor: str, show_totals: bool, snapshot: str) -
         Output("tab-1-data-table", "active_cell"),
         Output("tab-1-data-table", "page_current"),
         Output("tab-1-table-exterior-control-timestamp-dummy-label", "children"),
-        Output("tab-1-toast-1", "children"),
+        Output("tab-1-toast-A", "children"),
         Output("tab-1-show-totals-button", "children"),
         Output("tab-1-show-totals-button", "color"),
         Output("tab-1-show-totals-button", "outline"),
@@ -495,7 +528,7 @@ def _get_table(institution: str, labor: str, show_totals: bool, snapshot: str) -
         Input("tab-1-new-data-btn-bottom", "n_clicks"),
         Input("tab-1-refresh-button", "n_clicks"),
         Input("tab-1-show-totals-button", "n_clicks"),
-        Input("tab-1-snapshot-name", "children"),
+        Input("tab-1-snapshot-timestamp", "children"),
     ],
     [
         State("tab-1-data-table", "data"),
@@ -600,7 +633,7 @@ def _delete_deleted_records(
     # make toast message if any records failed to be deleted
     if failures:
         toast = _make_toast(
-            f"Failed to Delete Record {record[src.ID]}", REFRESH_MSG, Color.RED,
+            f"Failed to Delete Record {record[src.ID]}", REFRESH_MSG, Color.DANGER,
         )
 
     return toast
@@ -609,7 +642,7 @@ def _delete_deleted_records(
 @app.callback(  # type: ignore[misc]
     [
         Output("tab-1-data-table", "data_previous"),
-        Output("tab-1-toast-2", "children"),
+        Output("tab-1-toast-B", "children"),
         Output("tab-1-last-updated-label", "children"),
     ],
     [Input("tab-1-data-table", "data")],
@@ -725,6 +758,48 @@ def table_dropdown(_: bool) -> Tuple[TDDown, TDDownCond]:
 
 
 # --------------------------------------------------------------------------------------
+# Snapshot Callbacks
+
+
+@app.callback(  # type: ignore[misc]
+    [
+        Output("tab-1-load-snapshot-modal", "is_open"),
+        Output("tab-1-snapshot-selection", "options"),
+        Output("tab-1-snapshot-human", "children"),
+        Output("tab-1-snapshot-timestamp", "children"),
+        Output("tab-1-viewing-snapshot-alert", "is_open"),
+    ],
+    [
+        Input("tab-1-load-snapshot-button", "n_clicks"),
+        Input("tab-1-view-live-btn-modal", "n_clicks"),
+        Input("tab-1-view-live-btn", "n_clicks"),
+        Input("tab-1-snapshot-selection", "value"),
+    ],
+    prevent_initial_call=True,
+)
+def open_snapshot_modal(
+    _: int, __: int, ___: int, snapshot: str
+) -> Tuple[bool, List[dbc.ListGroupItem], str, str, bool]:
+    """Launch modal for loading snapshot."""
+    # state_snapshots_list = args[-1]
+
+    # Load Live Table
+    if util.triggered_id() in ["tab-1-view-live-btn-modal", "tab-1-view-live-btn"]:
+        return False, [], "", "", False
+
+    # Load List of Snapshots
+    if util.triggered_id() == "tab-1-load-snapshot-button":
+        snapshots_options = [
+            {"label": util.get_human_time(ts), "value": ts}
+            for ts in src.list_snapshot_timestamps()
+        ]
+        return True, snapshots_options, "", "", False
+
+    # Selected a Snapshot
+    return False, [], f"({util.get_human_time(snapshot)})", snapshot, True
+
+
+# --------------------------------------------------------------------------------------
 # Other Callbacks
 
 
@@ -750,7 +825,18 @@ def sign_in(
     """Enter name & email callback."""
     # TODO -- check auth
 
-    if name and email and (not viewing_snapshot):
+    if viewing_snapshot:
+        return (
+            "✔" if name and email else "✖",
+            False,  # data-table NOT editable
+            True,  # new-data-button-top hidden
+            True,  # new-data-button-bottom hidden
+            True,  # make-snapshot-button hidden
+            True,  # how-to-edit-alert hidden
+            False,  # row NOT deletable
+        )
+
+    if name and email:
         return (
             "✔",
             True,  # data-table editable
@@ -785,7 +871,7 @@ def toggle_pagination(n_clicks: int) -> Tuple[str, str, bool, int, str]:
     """Toggle whether the table is paginated."""
     if n_clicks % 2 == 0:
         tconfig = TableConfig()
-        return "Show All Rows", Color.GRAY, True, tconfig.get_page_size(), "native"
+        return "Show All Rows", Color.SECONDARY, True, tconfig.get_page_size(), "native"
     # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
     return "Collapse Rows to Pages", Color.DARK, False, 9999999999, "none"
 
@@ -803,31 +889,12 @@ def toggle_hidden_columns(n_clicks: int) -> Tuple[str, str, bool, List[str]]:
     """Toggle hiding/showing the default hidden columns."""
     if n_clicks % 2 == 0:
         tconfig = TableConfig()
-        return "Show All Columns", Color.GRAY, True, tconfig.get_hidden_columns()
+        return "Show All Columns", Color.SECONDARY, True, tconfig.get_hidden_columns()
     return "Show Default Columns", Color.DARK, False, []
 
 
 @app.callback(  # type: ignore[misc]
-    # Output("tab-1-dialog-1", "children"),
-    [
-        Output("tab-1-viewing-snapshot-alert", "is_open"),
-        Output("tab-1-snapshot-name", "children"),
-    ],
-    [
-        Input("tab-1-load-snapshot-button", "n_clicks"),
-        Input("tab-1-view-live-button", "n_clicks"),
-    ],
-    prevent_initial_call=True,
-)
-def launch_load_snapshot(_: int, __: int) -> Tuple[bool, str]:
-    """Launch modal for loading snapshot."""
-    if util.triggered_id() == "tab-1-load-snapshot-button":
-        return True, "yyyy-mm-dd HERE"
-    return False, ""
-
-
-@app.callback(  # type: ignore[misc]
-    Output("tab-1-dialog-1", "children"),
+    Output("tab-1-dialog-A", "children"),
     [Input("tab-1-make-snapshot-button", "n_clicks")],
     prevent_initial_call=True,
 )

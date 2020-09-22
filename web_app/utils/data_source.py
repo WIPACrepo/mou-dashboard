@@ -81,6 +81,13 @@ def delete_record(record: Record) -> bool:
         return False
 
 
+def list_snapshot_timestamps() -> List[str]:
+    """Get the list of snapshots."""
+    response = _request("GET", "/snapshots/timestamps")
+
+    return cast(List[str], response["timestamps"])
+
+
 # --------------------------------------------------------------------------------------
 # Column functions
 

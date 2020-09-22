@@ -1,3 +1,3 @@
 """Init."""
 
-from . import i3_mno  # noqa: F401
+from . import i3  # noqa: F401

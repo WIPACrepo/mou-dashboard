@@ -24,11 +24,11 @@ GRAND_TOTAL = "Grand Total"
 TOTAL_COL = "Total Of?"
 
 
-_US = "US"
+US = "US"
 NON_US = "Non-US"
 
 
-class _ColumnConfig(TypedDict, total=False):
+class _ColumnConfigTypedDict(TypedDict, total=False):
     """TypedDict for column configs."""
 
     width: int
@@ -44,7 +44,7 @@ class _ColumnConfig(TypedDict, total=False):
     numeric: bool
 
 
-_COLUMN_CONFIGS: Final[Dict[str, _ColumnConfig]] = {
+_COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
     ID: {"width": 100, "non_editable": True, "hidden": True},
     WBS_L2: {
         "width": 350,
@@ -138,7 +138,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfig]] = {
         "width": 185,
         "conditional_parent": US_NON_US,
         "conditional_options": {
-            _US: [NSF_MO_CORE, NSF_BASE_GRANTS, US_IN_KIND],
+            US: [NSF_MO_CORE, NSF_BASE_GRANTS, US_IN_KIND],
             NON_US: [NON_US_IN_KIND],
         },
         "border_left": True,

@@ -7,7 +7,7 @@ import dash_html_components as html  # type: ignore
 from dash.dependencies import Input, Output  # type: ignore
 
 from .config import app
-from .tabs import i3_mno
+from .tabs import i3
 
 # Layout
 app.layout = html.Div(
@@ -43,6 +43,6 @@ app.layout = html.Div(
 )  # type: ignore
 def render_content(tab: str) -> html.Div:
     """Create HTML for tab."""
-    layouts = {"tab1": i3_mno.layout}
+    layouts = {"tab1": i3.layout}
 
     return layouts[tab]()

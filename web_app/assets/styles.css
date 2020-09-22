@@ -73,6 +73,7 @@
     border-bottom-right-radius: .6rem;
     border-bottom: 2.5px solid #23272B;
     padding-left: 0.2rem;
+    padding-right: 0.05rem;
 }
 
 
@@ -110,7 +111,7 @@
 /*------------------------------------------------------------------------------------*/
 /* Dropdown Select Control */
 
-.Select-control{
+.Select-control {
     border-radius: .25rem;
 }
 
@@ -128,7 +129,7 @@
 /*------------------------------------------------------------------------------------*/
 /* Buttons above DataTable */
 
-.dash-spreadsheet-menu{
+.dash-spreadsheet-menu {
     position: relative;
     float: right;
     margin-bottom: 0.8em;
@@ -139,7 +140,7 @@
     margin-left: 0.7em !important;
 }
 
-.export, .show-hide{ /* copy btn btn-outline-secondary */
+.export, .show-hide { /* copy btn btn-outline-secondary */
     color: #6c757d;
     border-color: #6c757d;
     display: inline-block;
@@ -151,7 +152,7 @@
     border-radius: .25rem;
 }
 
-.export:hover, .show-hide:hover{ /* copy btn btn-outline-secondary */
+.export:hover, .show-hide:hover { /* copy btn btn-outline-secondary */
     color: whitesmoke;
     background-color: #6c757d;
     border-color: #6c757d;
@@ -169,34 +170,44 @@
 /*------------------------------------------------------------------------------------*/
 /* DataTable */
 
-.column-header--hide{ /* Hide the column header hide icon */
+.column-header--hide { /* Hide the column header hide icon */
     visibility: hidden !important;
     padding: 0 !important;
     width: 0 !important;
 }
 
-.dash-header{
+.dash-header {
     padding-right: 0.5em !important;
     text-transform: uppercase;
     letter-spacing: .075em;
 }
 
+.dash-header > div {
+    display: flex;
+    align-items: center;
+    flex-direction: row-reverse;
+}
 
-.current-page{
+.column-header--sort {
+    float: right !important;
+    margin-left: 0.5em;
+    text-align: right;
+    flex-basis: 1%;
+}
+
+.column-header-name {
+    flex-basis: 99%;
+}
+
+.current-page {
     width: 35px !important;
     padding-right: 0 !important;
     padding-left: 0 !important;
 }
 
-.dash-delete-cell{
+.dash-delete-cell {
     text-align:center !important;
     padding: 0 !important;
-}
-
-.column-header--sort{
-    float: right !important;
-    vertical-align: middle !important;
-    margin-left: 0.5em;
 }
 
 .dash-spreadsheet-container table {
@@ -204,3 +215,29 @@
     --selected-background: #20A1B6 !important;
     --selected-color: #20A1B6 !important;
 }
+
+
+/*------------------------------------------------------------------------------------*/
+/* Snapshots Modal */
+
+.snapshots label {
+    height: 40px;
+    border-color: black !important;
+    border-width: 2px !important;
+    border-radius: .25rem;
+    text-align: center;
+    line-height: 2.75;
+}
+
+.snapshots label:hover {
+    color: whitesmoke;
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+.snapshots input {
+    visibility: hidden;
+    height: 0;
+    width: 0;
+}
+
