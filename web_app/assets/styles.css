@@ -206,7 +206,7 @@
 }
 
 .dash-delete-cell {
-    text-align:center !important;
+    text-align: center !important;
     padding: 0 !important;
 }
 
@@ -222,8 +222,6 @@
 
 .snapshots label {
     height: 40px;
-    border-color: black !important;
-    border-width: 2px !important;
     border-radius: .25rem;
     text-align: center;
     line-height: 2.75;
@@ -241,3 +239,9 @@
     width: 0;
 }
 
+.snapshots input[type='radio']:checked {
+    visibility: visible;
+    height: 10px;
+    width: 10px;
+    margin-right: 10px;
+}

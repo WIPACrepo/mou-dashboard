@@ -19,6 +19,7 @@ from ..config import EXCLUDE_COLLECTIONS, EXCLUDE_DBS, SNAPSHOTS_DB
 from .types import Record, Table
 
 IS_DELETED = "deleted"
+_LIVE_COLLECTION = "LIVE_COLLECTION"
 
 
 class NoCollectionsFoundError(Exception):
@@ -77,8 +78,6 @@ class MoUMotorClient:
 
     async def _ingest_xlsx(self, xlsx: str) -> str:
         """Create a collection and ingest the xlsx's data."""
-        collection = str(int(time.time()))
-        coll_obj = await self._create_collection(collection)
 
         def _is_a_total_row(row: Record) -> bool:
             for data in row.values():
@@ -95,7 +94,12 @@ class MoUMotorClient:
         ]
 
         # ingest
-        await coll_obj.insert_many(table)
+        collection = await self._ingest_new_snapshot_collection(table)
+
+        # if there isn't already a live collection, ingest it too
+        if _LIVE_COLLECTION not in await self._list_collection_names():
+            coll_obj = await self._create_collection(_LIVE_COLLECTION)
+            await coll_obj.insert_many(table)
 
         return collection
 
@@ -112,7 +116,7 @@ class MoUMotorClient:
         except (KeyError, TypeError):
             raise web.HTTPError(400, reason=f"database not found ({db})")
 
-    async def list_collection_names(self, db: str = SNAPSHOTS_DB) -> List[str]:
+    async def _list_collection_names(self, db: str = SNAPSHOTS_DB) -> List[str]:
         """Return collection names in database."""
         return [
             n
@@ -162,31 +166,17 @@ class MoUMotorClient:
     async def _ensure_all_databases_indexes(self) -> None:
         """Create all indexes in all databases."""
         for db in await self._list_database_names():
-            for collection in await self.list_collection_names(db):
+            for collection in await self._list_collection_names(db):
                 await self._ensure_collection_indexes(collection, db)
-
-    async def most_recent_collection(self) -> str:
-        """Get the most recently created collection.
-
-        Collections are named with the Unix epoch. Raise
-        NoCollectionsFoundError if no collections are found.
-        """
-        timestamps = [int(c) for c in await self.list_collection_names()]
-        try:
-            return str(max(timestamps))
-        except ValueError:
-            raise NoCollectionsFoundError
 
     async def get_table(
         self, collection: str = "", labor: str = "", institution: str = ""
     ) -> Table:
         """Return the table from the collection name."""
         if not collection:
-            try:
-                collection = await self.most_recent_collection()
-            except NoCollectionsFoundError:
-                print("NoCollectionsFoundError")
-                return []
+            collection = _LIVE_COLLECTION
+
+        print(f"Getting from {collection}...")
 
         query = {}
         if labor:
@@ -209,19 +199,13 @@ class MoUMotorClient:
         )
         return table
 
-    async def upsert_record(self, record: Record, collection: str = "") -> Record:
+    async def upsert_record(self, record: Record) -> Record:
         """Insert a record.
 
         Update if it already exists.
         """
         record = self._mongofy_record(record)
-
-        if not collection:
-            try:
-                collection = await self.most_recent_collection()
-            except NoCollectionsFoundError:
-                return {}
-        collection_obj = self._get_collection(collection)
+        collection_obj = self._get_collection(_LIVE_COLLECTION)
 
         # if record has an ID -- replace it
         if record.get(tc.ID):
@@ -236,10 +220,32 @@ class MoUMotorClient:
 
         return self._demongofy_record(record)
 
-    async def delete_record(self, record: Record, collection: str = "") -> Record:
+    async def delete_record(self, record: Record) -> Record:
         """Mark the record as deleted."""
         record.update({IS_DELETED: True})
-        record = await self.upsert_record(record, collection=collection)
+        record = await self.upsert_record(record)
 
         print(f"Deleted {record}")
         return record
+
+    async def _ingest_new_snapshot_collection(self, table: Table) -> str:
+        """Create a collection by ingesting `table`."""
+        collection = str(int(time.time()))
+        coll_obj = await self._create_collection(collection)
+
+        table = [self._mongofy_record(r) for r in table]
+
+        await coll_obj.insert_many(table)
+
+        return collection
+
+    async def snapshot_live_collection(self) -> str:
+        """Create a collection by copying the live collection."""
+        table = await self.get_table(_LIVE_COLLECTION)
+        collection = await self._ingest_new_snapshot_collection(table)
+
+        return collection
+
+    async def list_snapshot_timestamps(self) -> List[str]:
+        """Return a list of the snapshot collections."""
+        return [c for c in await self._list_collection_names() if c != _LIVE_COLLECTION]

@@ -163,7 +163,6 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
     # @handler.scope_role_auth(prefix=MOU_AUTH_PREFIX, roles=["web"])  # type: ignore
     async def post(self) -> None:
         """Handle POST."""
-        collection = self.get_argument("snapshot", "")
         record = self.get_argument("record")
         if inst := self.get_argument("institution", default=None):
             record[tc.INSTITUTION] = inst  # insert
@@ -171,7 +170,7 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
             record[tc.LABOR_CAT] = labor  # insert
 
         record = utils.remove_on_the_fly_fields(record)
-        record = await self.dbms.upsert_record(record, collection=collection)
+        record = await self.dbms.upsert_record(record)
 
         self.write({"record": record})
 
@@ -228,6 +227,19 @@ class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
     # @handler.scope_role_auth(prefix=MOU_AUTH_PREFIX, roles=["web"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
-        snapshots = await self.dbms.list_collection_names()
+        snapshots = await self.dbms.list_snapshot_timestamps()
+        snapshots.sort(reverse=True)
 
         self.write({"timestamps": snapshots})
+
+
+class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
+    """Handle requests for making snapshots."""
+
+    # FIXME: figure out why auth isn't working
+    # @handler.scope_role_auth(prefix=MOU_AUTH_PREFIX, roles=["web"])  # type: ignore
+    async def post(self) -> None:
+        """Handle POST."""
+        snapshot = await self.dbms.snapshot_live_collection()
+
+        self.write({"timestamp": snapshot})

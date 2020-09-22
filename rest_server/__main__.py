@@ -52,6 +52,7 @@ def start(debug: bool = False, xlsx: str = "") -> RestServer:
     server.add_route(r"/$", routes.MainHandler, args)
     server.add_route(r"/table/data$", routes.TableHandler, args)  # get
     server.add_route(r"/snapshots/timestamps$", routes.SnapshotsHandler, args)  # get
+    server.add_route(r"/snapshots/make$", routes.MakeSnapshotHandler, args)  # post
     server.add_route(r"/record$", routes.RecordHandler, args)  # push, delete
     server.add_route(r"/table/config$", routes.TableConfigHandler, args)  # get
 

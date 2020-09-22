@@ -88,6 +88,12 @@ def list_snapshot_timestamps() -> List[str]:
     return cast(List[str], response["timestamps"])
 
 
+def create_snapshot() -> str:
+    response = _request("POST", "/snapshots/make")
+
+    return cast(str, response["timestamp"])
+
+
 # --------------------------------------------------------------------------------------
 # Column functions
 

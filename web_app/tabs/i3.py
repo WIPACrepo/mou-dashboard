@@ -437,7 +437,7 @@ def layout() -> html.Div:
             # Dummy Divs -- for adding dynamic toasts, dialogs, etc.
             html.Div(id="tab-1-toast-A"),
             html.Div(id="tab-1-toast-B"),
-            html.Div(id="tab-1-dialog-A"),
+            html.Div(id="tab-1-toast-C"),
             # Modals
             _snapshot_modal(),
         ]
@@ -799,6 +799,21 @@ def open_snapshot_modal(
     return False, [], f"({util.get_human_time(snapshot)})", snapshot, True
 
 
+@app.callback(  # type: ignore[misc]
+    Output("tab-1-toast-C", "children"),
+    [Input("tab-1-make-snapshot-button", "n_clicks")],
+    prevent_initial_call=True,
+)
+def make_snapshot(_: int) -> dcc.ConfirmDialog:
+    """Launch a dialog for not-yet-implemented features."""
+    if snapshot := src.create_snapshot():
+        return _make_toast(
+            "Snapshot Created", util.get_human_time(snapshot), Color.SUCCESS
+        )
+    else:
+        return _make_toast("Failed to Make Snapshot", REFRESH_MSG, Color.DANGER)
+
+
 # --------------------------------------------------------------------------------------
 # Other Callbacks
 
@@ -891,15 +906,3 @@ def toggle_hidden_columns(n_clicks: int) -> Tuple[str, str, bool, List[str]]:
         tconfig = TableConfig()
         return "Show All Columns", Color.SECONDARY, True, tconfig.get_hidden_columns()
     return "Show Default Columns", Color.DARK, False, []
-
-
-@app.callback(  # type: ignore[misc]
-    Output("tab-1-dialog-A", "children"),
-    [Input("tab-1-make-snapshot-button", "n_clicks")],
-    prevent_initial_call=True,
-)
-def launch_not_implemented_dialog(_: int) -> dcc.ConfirmDialog:
-    """Launch a dialog for not-yet-implemented features."""
-    return dcc.ConfirmDialog(
-        id="not-implemented", message="Feature not yet implemented.", displayed=True
-    )
