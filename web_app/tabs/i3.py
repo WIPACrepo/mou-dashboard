@@ -1,6 +1,6 @@
 """Conditional in-cell drop-down menu with IceCube WBS MoU info."""
 
-from typing import Any, Collection, Dict, List, Optional, Tuple
+from typing import Collection, Dict, List, Optional, Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -460,7 +460,7 @@ def _totals_button_logic(
         bool -- button outline
         int  -- auto n_clicks for "tab-1-show-all-columns-button"
     """
-    on = n_clicks % 2 == 1
+    on = n_clicks % 2 == 1  # pylint: disable=C0103
     triggered = util.triggered_id() == "tab-1-show-totals-button"
 
     if not on:  # off -> don't trigger "show-all-columns"
@@ -810,8 +810,7 @@ def make_snapshot(_: int) -> dcc.ConfirmDialog:
         return _make_toast(
             "Snapshot Created", util.get_human_time(snapshot), Color.SUCCESS
         )
-    else:
-        return _make_toast("Failed to Make Snapshot", REFRESH_MSG, Color.DANGER)
+    return _make_toast("Failed to Make Snapshot", REFRESH_MSG, Color.DANGER)
 
 
 # --------------------------------------------------------------------------------------

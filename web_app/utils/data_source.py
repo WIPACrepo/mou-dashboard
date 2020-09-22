@@ -26,9 +26,15 @@ def _ds_rest_connection() -> RestClient:
 
 
 def _request(method: str, url: str, body: Any = None) -> Dict[str, Any]:
-    logging.info(f"{method} @ {url}, body: {body}")
+    logging.info(f"REQUEST :: {method} @ {url}, body: {body}")
+
     response = _ds_rest_connection().request_seq(method, url, body)
-    # logging.debug(f"{response}")
+
+    resp_log = [
+        f"{k}:{str(type(v).__name__)}({len(v) if isinstance(v, (dict, list)) else v})"
+        for k, v in response.items()
+    ]
+    logging.info(f"RESPONSE :: {method} @ {url}, body: {body} -> {resp_log}")
     return cast(Dict[str, Any], response)
 
 
@@ -89,6 +95,7 @@ def list_snapshot_timestamps() -> List[str]:
 
 
 def create_snapshot() -> str:
+    """Create a snapshot."""
     response = _request("POST", "/snapshots/make")
 
     return cast(str, response["timestamp"])

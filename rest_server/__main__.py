@@ -5,6 +5,7 @@ import argparse
 import asyncio
 import logging
 
+import coloredlogs  # type: ignore[import]
 from motor.motor_tornado import MotorClient  # type: ignore
 
 # local imports
@@ -74,5 +75,5 @@ if __name__ == "__main__":
     parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
     args = parser.parse_args()
 
-    logging.basicConfig(level=getattr(logging, args.log.upper()))
+    coloredlogs.install(level=getattr(logging, args.log.upper()))
     main(args.xlsx)

@@ -1,6 +1,7 @@
 """Database utilities."""
 
 import asyncio
+import logging
 import pprint
 import time
 from typing import Any, Coroutine, List
@@ -22,10 +23,6 @@ IS_DELETED = "deleted"
 _LIVE_COLLECTION = "LIVE_COLLECTION"
 
 
-class NoCollectionsFoundError(Exception):
-    """Raise if there are no collections meeting conditions."""
-
-
 class MoUMotorClient:
     """MotorClient with additional guardrails for MoU things."""
 
@@ -37,8 +34,7 @@ class MoUMotorClient:
 
         # ingest xlsx
         if xlsx:
-            collection = _run(self._ingest_xlsx(xlsx))
-            pprint.pprint(_run(self.get_table(collection)))
+            _run(self._ingest_xlsx(xlsx))
 
         # check indexes
         _run(self._ensure_all_databases_indexes())
@@ -76,8 +72,18 @@ class MoUMotorClient:
 
         return record
 
+    async def _create_live_collection(self, table: Table) -> None:
+        """Create the live collection."""
+        logging.debug("Creating Live Collection...")
+
+        coll_obj = await self._create_collection(_LIVE_COLLECTION)
+        await coll_obj.insert_many(table)
+
+        logging.debug(f"Created Live Collection: {len(table)} records.")
+
     async def _ingest_xlsx(self, xlsx: str) -> str:
         """Create a collection and ingest the xlsx's data."""
+        logging.info(f"Ingesting xlsx {xlsx}...")
 
         def _is_a_total_row(row: Record) -> bool:
             for data in row.values():
@@ -92,15 +98,16 @@ class MoUMotorClient:
             for row in pd.read_excel(xlsx).fillna("").to_dict("records")
             if any(row.values()) and not _is_a_total_row(row)
         ]
+        logging.debug(f"xlsx table has {len(table)} records.")
 
         # ingest
         collection = await self._ingest_new_snapshot_collection(table)
 
         # if there isn't already a live collection, ingest it too
         if _LIVE_COLLECTION not in await self._list_collection_names():
-            coll_obj = await self._create_collection(_LIVE_COLLECTION)
-            await coll_obj.insert_many(table)
+            self._create_live_collection(table)
 
+        logging.debug(f"Ingested xlsx {xlsx}; Collection {collection}.")
         return collection
 
     async def _list_database_names(self) -> List[str]:
@@ -161,13 +168,17 @@ class MoUMotorClient:
         await coll_obj.create_index(_labor, name=f"{_labor}_index", unique=False)
 
         async for index in coll_obj.list_indexes():
-            print(index)
+            logging.debug(index)
 
     async def _ensure_all_databases_indexes(self) -> None:
         """Create all indexes in all databases."""
+        logging.debug("Ensuring All Databases' Indexes...")
+
         for db in await self._list_database_names():
             for collection in await self._list_collection_names(db):
                 await self._ensure_collection_indexes(collection, db)
+
+        logging.debug("Ensured All Databases' Indexes.")
 
     async def get_table(
         self, collection: str = "", labor: str = "", institution: str = ""
@@ -176,7 +187,7 @@ class MoUMotorClient:
         if not collection:
             collection = _LIVE_COLLECTION
 
-        print(f"Getting from {collection}...")
+        logging.debug(f"Getting from {collection}...")
 
         query = {}
         if labor:
@@ -194,8 +205,8 @@ class MoUMotorClient:
             table.append(self._demongofy_record(record))
             i += 1
 
-        print(
-            f"Table ({institution=}, {labor=}) has {i} records (and {dels} deleted records)."
+        logging.info(
+            f"Table [{collection=}] ({institution=}, {labor=}) has {i} records (and {dels} deleted records)."
         )
         return table
 
@@ -204,28 +215,32 @@ class MoUMotorClient:
 
         Update if it already exists.
         """
+        logging.debug(f"Upsetting {record}...")
+
         record = self._mongofy_record(record)
         collection_obj = self._get_collection(_LIVE_COLLECTION)
 
         # if record has an ID -- replace it
         if record.get(tc.ID):
             res = await collection_obj.replace_one({tc.ID: record[tc.ID]}, record)
-            print(f"Updated {record}")
+            logging.info(f"Updated {record}.")
         # otherwise -- create it
         else:
             record.pop(tc.ID)
             res = await collection_obj.insert_one(record)
             record[tc.ID] = res.inserted_id
-            print(f"Inserted {record}")
+            logging.info(f"Inserted {record}.")
 
         return self._demongofy_record(record)
 
     async def delete_record(self, record: Record) -> Record:
         """Mark the record as deleted."""
+        logging.debug(f"Deleting {record}...")
+
         record.update({IS_DELETED: True})
         record = await self.upsert_record(record)
 
-        print(f"Deleted {record}")
+        logging.info(f"Deleted {record}.")
         return record
 
     async def _ingest_new_snapshot_collection(self, table: Table) -> str:
@@ -241,11 +256,21 @@ class MoUMotorClient:
 
     async def snapshot_live_collection(self) -> str:
         """Create a collection by copying the live collection."""
+        logging.debug("Snapshotting...")
+
         table = await self.get_table(_LIVE_COLLECTION)
         collection = await self._ingest_new_snapshot_collection(table)
 
+        logging.info(f"Snapshotted {collection}.")
         return collection
 
     async def list_snapshot_timestamps(self) -> List[str]:
         """Return a list of the snapshot collections."""
-        return [c for c in await self._list_collection_names() if c != _LIVE_COLLECTION]
+        logging.info("Getting Snapshot Timestamps...")
+
+        snapshots = [
+            c for c in await self._list_collection_names() if c != _LIVE_COLLECTION
+        ]
+
+        logging.debug(f"Snapshot Timestamps {snapshots}.")
+        return snapshots
