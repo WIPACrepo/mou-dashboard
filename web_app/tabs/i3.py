@@ -31,16 +31,18 @@ REFRESH_MSG = "Refresh page and try again."
 # Layout
 
 
-def _new_data_button(
-    _id: str, block: bool = True, style: Optional[Dict[str, str]] = None
-) -> dbc.Button:
-    return dbc.Button(
-        "+ Add New Data",
-        id=_id,
-        block=block,
-        n_clicks=0,
-        color=Color.DARK,
-        disabled=False,
+def _new_data_button(num: int, style: Optional[Dict[str, str]] = None) -> html.Div:
+    return html.Div(
+        id=f"tab-1-new-data-div-{num}",
+        children=dbc.Button(
+            "+ Add New Data",
+            id="tab-1-new-data-button",
+            block=True,
+            n_clicks=0,
+            color=Color.DARK,
+            disabled=False,
+        ),
+        hidden=True,
         style=style,
     )
 
@@ -138,16 +140,36 @@ def _get_style_data_conditional(tconfig: TableConfig) -> TSDCond:
     return style_data_conditional
 
 
-def _make_toast(header: str, message: str, icon: str, duration: float = 0) -> dbc.Toast:
+def _make_toast(
+    header: str,
+    message: str,
+    icon_color: str,
+    duration: float = 0,
+    undo_button: bool = False,
+) -> dbc.Toast:
+    """Dynamically make a toast."""
+    children = [html.Div(message)]
+    if undo_button:
+        children.append(
+            html.Div(
+                dbc.Button(
+                    "Undo Delete",
+                    id="tab-1-undo-last-delete",
+                    color=Color.DANGER,
+                    outline=True,
+                ),
+                style={"text-align": "center", "margin-top": "2rem"},
+            )
+        )
+
     return dbc.Toast(
-        [html.P(message, className="mb-0")],
         id=f"tab-1-toast-{util.get_now()}",
         header=header,
         is_open=True,
         dismissable=True,
         duration=duration * 1000,  # 0 = forever
         fade=False,
-        icon=icon,
+        icon=icon_color,
         # top: 66 positions the toast below the navbar
         style={
             "position": "fixed",
@@ -156,6 +178,7 @@ def _make_toast(header: str, message: str, icon: str, duration: float = 0) -> db
             "width": 350,
             "font-size": "1.1em",
         },
+        children=children,
     )
 
 
@@ -281,10 +304,7 @@ def layout() -> html.Div:
                 color=Color.DARK,
             ),
             # Add Button
-            _new_data_button(
-                "tab-1-new-data-btn-top",
-                style={"margin-bottom": "1rem", "height": "40px"},
-            ),
+            _new_data_button(1, style={"margin-bottom": "1rem", "height": "40px"}),
             # "Viewing Snapshot" Alert
             dbc.Alert(
                 [
@@ -364,55 +384,69 @@ def layout() -> html.Div:
                 # fixed_rows={"headers": True, "data": 0},
             ),
             # Bottom Buttons
-            html.Div(
+            dbc.Row(
                 style={"margin-top": "0.8em"},
                 children=[
-                    # New Data
-                    _new_data_button("tab-1-new-data-btn-bottom", block=False),
-                    # Load Snapshot
-                    dbc.Button(
-                        "Load Snapshot",
-                        id="tab-1-load-snapshot-button",
-                        n_clicks=0,
-                        outline=True,
-                        color=Color.INFO,
-                        style={"margin-left": "1em"},
+                    # Leftward Buttons
+                    dbc.Row(
+                        style={"width": "52rem", "margin-left": "0.25rem"},
+                        children=[
+                            # New Data
+                            _new_data_button(
+                                2, style={"width": "15rem", "margin-right": "1rem"}
+                            ),
+                            # Load Snapshot
+                            dbc.Button(
+                                "Load Snapshot",
+                                id="tab-1-load-snapshot-button",
+                                n_clicks=0,
+                                outline=True,
+                                color=Color.INFO,
+                                style={"margin-right": "1rem"},
+                            ),
+                            # Make Snapshot
+                            dbc.Button(
+                                "Make Snapshot",
+                                id="tab-1-make-snapshot-button",
+                                n_clicks=0,
+                                outline=True,
+                                color=Color.SUCCESS,
+                                style={"margin-right": "1rem"},
+                            ),
+                            # Refresh
+                            dbc.Button(
+                                "↻",
+                                id="tab-1-refresh-button",
+                                n_clicks=0,
+                                outline=True,
+                                color=Color.SUCCESS,
+                                style={"font-weight": "bold"},
+                            ),
+                        ],
                     ),
-                    # Make Snapshot
-                    dbc.Button(
-                        "Make Snapshot",
-                        id="tab-1-make-snapshot-button",
-                        n_clicks=0,
-                        outline=True,
-                        color=Color.SUCCESS,
-                        style={"margin-left": "1em"},
-                    ),
-                    # Refresh
-                    dbc.Button(
-                        "↻",
-                        id="tab-1-refresh-button",
-                        n_clicks=0,
-                        outline=True,
-                        color=Color.SUCCESS,
-                        style={"margin-left": "1em", "font-weight": "bold"},
-                    ),
-                    # Show All Rows
-                    dbc.Button(
-                        id="tab-1-show-all-rows-button",
-                        n_clicks=0,
-                        style={"margin-right": "1em", "float": "right"},
-                    ),
-                    # Show All Columns
-                    dbc.Button(
-                        id="tab-1-show-all-columns-button",
-                        n_clicks=0,
-                        style={"margin-right": "1em", "float": "right"},
-                    ),
-                    # Show Totals
-                    dbc.Button(
-                        id="tab-1-show-totals-button",
-                        n_clicks=0,
-                        style={"margin-right": "1em", "float": "right"},
+                    # Rightward Buttons
+                    dbc.Row(
+                        style={"flex-basis": "55%", "justify-content": "flex-end"},
+                        children=[
+                            # Show Totals
+                            dbc.Button(
+                                id="tab-1-show-totals-button",
+                                n_clicks=0,
+                                style={"margin-right": "1rem"},
+                            ),
+                            # Show All Columns
+                            dbc.Button(
+                                id="tab-1-show-all-columns-button",
+                                n_clicks=0,
+                                style={"margin-right": "1rem"},
+                            ),
+                            # Show All Rows
+                            dbc.Button(
+                                id="tab-1-show-all-rows-button",
+                                n_clicks=0,
+                                style={"margin-right": "1rem"},
+                            ),
+                        ],
                     ),
                 ],
             ),
@@ -438,6 +472,8 @@ def layout() -> html.Div:
             html.Div(id="tab-1-toast-A"),
             html.Div(id="tab-1-toast-B"),
             html.Div(id="tab-1-toast-C"),
+            # Hack for adding dynamic elements (these remain hidden, their clones are visible)
+            html.Div(dbc.Button(id="tab-1-undo-last-delete"), hidden=True),
             # Modals
             _snapshot_modal(),
         ]
@@ -499,10 +535,20 @@ def _add_new_data(
     return table, toast
 
 
-def _get_table(institution: str, labor: str, show_totals: bool, snapshot: str) -> Table:
+def _get_table(
+    institution: str,
+    labor: str,
+    show_totals: bool,
+    snapshot: str,
+    undo_last_delete: bool = False,
+) -> Table:
     """Pull from data source."""
     table = src.pull_data_table(
-        institution=institution, labor=labor, with_totals=show_totals, snapshot=snapshot
+        institution=institution,
+        labor=labor,
+        with_totals=show_totals,
+        snapshot=snapshot,
+        undo_last_delete=undo_last_delete,
     )
     table = util.add_original_copies(table)
 
@@ -524,11 +570,11 @@ def _get_table(institution: str, labor: str, show_totals: bool, snapshot: str) -
     [
         Input("tab-1-filter-inst", "value"),
         Input("tab-1-filter-labor", "value"),
-        Input("tab-1-new-data-btn-top", "n_clicks"),
-        Input("tab-1-new-data-btn-bottom", "n_clicks"),
+        Input("tab-1-new-data-button", "n_clicks"),
         Input("tab-1-refresh-button", "n_clicks"),
         Input("tab-1-show-totals-button", "n_clicks"),
         Input("tab-1-snapshot-timestamp", "children"),
+        Input("tab-1-undo-last-delete", "n_clicks"),
     ],
     [
         State("tab-1-data-table", "data"),
@@ -542,9 +588,9 @@ def table_data_exterior_controls(
     labor: str,
     _: int,
     __: int,
-    ___: int,
     tot_n_clicks: int,
     snapshot: str,
+    ___: int,
     # states
     state_table: Table,
     state_columns: TColumns,
@@ -564,8 +610,7 @@ def table_data_exterior_controls(
     if util.triggered_id() in [
         "tab-1-filter-inst",
         "tab-1-filter-labor",
-        "tab-1-new-data-btn-top",
-        "tab-1-new-data-btn-bottom",
+        "tab-1-new-data-button",
         "tab-1-refresh-button",
         "tab-1-show-totals-button",
     ]:
@@ -577,11 +622,17 @@ def table_data_exterior_controls(
     )
 
     # Add New Data
-    if util.triggered_id() in ["tab-1-new-data-btn-top", "tab-1-new-data-btn-bottom"]:
+    if util.triggered_id() == "tab-1-new-data-button":
         table, toast = _add_new_data(state_table, state_columns, labor, institution)
     # OR Pull Table (optionally filtered)
     else:
-        table = _get_table(institution, labor, show_totals, snapshot)
+        table = _get_table(
+            institution,
+            labor,
+            show_totals,
+            snapshot,
+            undo_last_delete=util.triggered_id() == "tab-1-undo-last-delete",
+        )
 
     return (
         table,
@@ -625,7 +676,9 @@ def _delete_deleted_records(
     failures = []
     record = None
     for record in delete_these:
-        toast = _make_toast(f"Deleted Record {record[src.ID]}", "", "dark")
+        toast = _make_toast(
+            "Deleted Record", f"id: {record[src.ID]}", "dark", undo_button=True
+        )
         # try to delete
         if not src.delete_record(record):
             failures.append(record)
@@ -775,25 +828,29 @@ def table_dropdown(_: bool) -> Tuple[TDDown, TDDownCond]:
         Input("tab-1-view-live-btn", "n_clicks"),
         Input("tab-1-snapshot-selection", "value"),
     ],
+    [State("tab-1-snapshot-timestamp", "children")],
     prevent_initial_call=True,
 )
-def open_snapshot_modal(
-    _: int, __: int, ___: int, snapshot: str
+def manage_snpshots(
+    _: int, __: int, ___: int, snapshot: str, state_snapshot: str
 ) -> Tuple[bool, List[dbc.ListGroupItem], str, str, bool]:
-    """Launch modal for loading snapshot."""
-    # state_snapshots_list = args[-1]
+    """Launch snapshot modal, load live table, or select a snapshot.
 
+    Must be one function b/c all triggers control whether the modal is
+    open.
+    """
+    #
     # Load Live Table
     if util.triggered_id() in ["tab-1-view-live-btn-modal", "tab-1-view-live-btn"]:
-        return False, [], "", "", False
+        return False, [], "", state_snapshot, False
 
-    # Load List of Snapshots
+    # Load Modal List of Snapshots
     if util.triggered_id() == "tab-1-load-snapshot-button":
         snapshots_options = [
             {"label": util.get_human_time(ts), "value": ts}
             for ts in src.list_snapshot_timestamps()
         ]
-        return True, snapshots_options, "", "", False
+        return True, snapshots_options, "", state_snapshot, False
 
     # Selected a Snapshot
     return False, [], f"({util.get_human_time(snapshot)})", snapshot, True
@@ -821,8 +878,8 @@ def make_snapshot(_: int) -> dcc.ConfirmDialog:
     [
         Output("tab-1-name-email-icon", "children"),
         Output("tab-1-data-table", "editable"),
-        Output("tab-1-new-data-btn-top", "hidden"),
-        Output("tab-1-new-data-btn-bottom", "hidden"),
+        Output("tab-1-new-data-div-1", "hidden"),
+        Output("tab-1-new-data-div-2", "hidden"),
         Output("tab-1-make-snapshot-button", "hidden"),
         Output("tab-1-how-to-edit-alert", "hidden"),
         Output("tab-1-data-table", "row_deletable"),
@@ -843,8 +900,8 @@ def sign_in(
         return (
             "✔" if name and email else "✖",
             False,  # data-table NOT editable
-            True,  # new-data-button-top hidden
-            True,  # new-data-button-bottom hidden
+            True,  # new-data-div-1 hidden
+            True,  # new-data-div-2 hidden
             True,  # make-snapshot-button hidden
             True,  # how-to-edit-alert hidden
             False,  # row NOT deletable
@@ -854,8 +911,8 @@ def sign_in(
         return (
             "✔",
             True,  # data-table editable
-            False,  # new-data-button-top NOT hidden
-            False,  # new-data-button-bottom NOT hidden
+            False,  # new-data-div-1 NOT hidden
+            False,  # new-data-div-2 NOT hidden
             False,  # make-snapshot-button NOT hidden
             True,  # how-to-edit-alert hidden
             True,  # row is deletable
@@ -863,8 +920,8 @@ def sign_in(
     return (
         "✖",
         False,  # data-table NOT editable
-        True,  # new-data-button-top hidden
-        True,  # new-data-button-bottom hidden
+        True,  # new-data-div-1 hidden
+        True,  # new-data-div-2 hidden
         True,  # make-snapshot-button hidden
         False,  # how-to-edit-alert NOT hidden
         False,  # row NOT deletable

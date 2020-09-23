@@ -129,7 +129,7 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
     """MainHandler is a BaseMoUHandler that handles the root route."""
 
     # FIXME: figure out why auth isn't working
-    # @handler.scope_role_auth(prefix=MOU_AUTH_PREFIX, roles=["web"])  # type: ignore
+    # @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["web"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
         collection = self.get_argument("snapshot", "")
@@ -160,7 +160,7 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
     """MainHandler is a BaseMoUHandler that handles the root route."""
 
     # FIXME: figure out why auth isn't working
-    # @handler.scope_role_auth(prefix=MOU_AUTH_PREFIX, roles=["web"])  # type: ignore
+    # @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["web"])  # type: ignore
     async def post(self) -> None:
         """Handle POST."""
         record = self.get_argument("record")
@@ -175,13 +175,12 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
         self.write({"record": record})
 
     # FIXME: figure out why auth isn't working
-    # @handler.scope_role_auth(prefix=MOU_AUTH_PREFIX, roles=["web"])  # type: ignore
+    # @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["web"])  # type: ignore
     async def delete(self) -> None:
         """Handle DELETE."""
-        collection = self.get_argument("snapshot", "")
         record = self.get_argument("record")
 
-        await self.dbms.delete_record(record, collection=collection)
+        await self.dbms.delete_record(record)
 
         self.write({})
 
@@ -193,7 +192,7 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
     """Handle requests for the table config dict."""
 
     # FIXME: figure out why auth isn't working
-    # @handler.scope_role_auth(prefix=MOU_AUTH_PREFIX, roles=["web"])  # type: ignore
+    # @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["web"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
         # TODO: (short-term) grab these values from 'TableConfig' db
@@ -224,7 +223,7 @@ class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
     """Handle requests for listing the snapshots."""
 
     # FIXME: figure out why auth isn't working
-    # @handler.scope_role_auth(prefix=MOU_AUTH_PREFIX, roles=["web"])  # type: ignore
+    # @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["web"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
         snapshots = await self.dbms.list_snapshot_timestamps()
@@ -237,7 +236,7 @@ class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
     """Handle requests for making snapshots."""
 
     # FIXME: figure out why auth isn't working
-    # @handler.scope_role_auth(prefix=MOU_AUTH_PREFIX, roles=["web"])  # type: ignore
+    # @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["web"])  # type: ignore
     async def post(self) -> None:
         """Handle POST."""
         snapshot = await self.dbms.snapshot_live_collection()
