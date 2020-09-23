@@ -27,7 +27,6 @@ MarkupSafe==1.1.1
 motor==2.2.0
 numpy==1.19.2
 packaging==20.4
-pandas==1.1.2
 plotly==4.10.0
 pycparser==2.20
 Pygments==2.6.1
