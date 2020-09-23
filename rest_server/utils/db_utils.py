@@ -274,3 +274,14 @@ class MoUMotorClient:
 
         logging.debug(f"Snapshot Timestamps {snapshots}.")
         return snapshots
+
+    async def restore_record(self, id_: str) -> None:
+        """Mark the record as not deleted."""
+        logging.debug(f"Restoring {id_}...")
+
+        query = self._mongofy_record({tc.ID: id_})
+        record = await self._get_collection(_LIVE_COLLECTION).find_one(query)
+        record.update({IS_DELETED: False})
+        record = await self.upsert_record(record)
+
+        logging.info(f"Restored {id_}.")

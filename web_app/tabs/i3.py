@@ -1,6 +1,6 @@
 """Conditional in-cell drop-down menu with IceCube WBS MoU info."""
 
-from typing import Collection, Dict, List, Optional, Tuple
+from typing import cast, Collection, Dict, List, Optional, Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -140,17 +140,25 @@ def _get_style_data_conditional(tconfig: TableConfig) -> TSDCond:
     return style_data_conditional
 
 
-def _make_toast(
-    header: str,
-    message: str,
-    icon_color: str,
-    duration: float = 0,
-    undo_button: bool = False,
-) -> dbc.Toast:
-    """Dynamically make a toast."""
-    children = [html.Div(message)]
-    if undo_button:
-        children.append(
+def _deletion_toast() -> dbc.Toast:
+    return dbc.Toast(
+        id="tab-1-deletion-toast",
+        header="Deleted Record",
+        is_open=False,
+        dismissable=True,
+        duration=0,  # 0 = forever
+        fade=False,
+        icon=Color.DARK,
+        # top: 66 positions the toast below the navbar
+        style={
+            "position": "fixed",
+            "top": 66,
+            "right": 10,
+            "width": 350,
+            "font-size": "1.1em",
+        },
+        children=[
+            html.Div(id="tab-1-last-deleted-id"),  # f"id: {record[src.ID]}"
             html.Div(
                 dbc.Button(
                     "Undo Delete",
@@ -159,9 +167,15 @@ def _make_toast(
                     outline=True,
                 ),
                 style={"text-align": "center", "margin-top": "2rem"},
-            )
-        )
+            ),
+        ],
+    )
 
+
+def _make_toast(
+    header: str, message: str, icon_color: str, duration: float = 0,
+) -> dbc.Toast:
+    """Dynamically make a toast."""
     return dbc.Toast(
         id=f"tab-1-toast-{util.get_now()}",
         header=header,
@@ -178,7 +192,7 @@ def _make_toast(
             "width": 350,
             "font-size": "1.1em",
         },
-        children=children,
+        children=[html.Div(message)],
     )
 
 
@@ -472,10 +486,9 @@ def layout() -> html.Div:
             html.Div(id="tab-1-toast-A"),
             html.Div(id="tab-1-toast-B"),
             html.Div(id="tab-1-toast-C"),
-            # Hack for adding dynamic elements (these remain hidden, their clones are visible)
-            html.Div(dbc.Button(id="tab-1-undo-last-delete"), hidden=True),
-            # Modals
+            # Modals & Toasts
             _snapshot_modal(),
+            _deletion_toast(),
         ]
     )
 
@@ -540,7 +553,7 @@ def _get_table(
     labor: str,
     show_totals: bool,
     snapshot: str,
-    undo_last_delete: bool = False,
+    restore_id: str = "",
 ) -> Table:
     """Pull from data source."""
     table = src.pull_data_table(
@@ -548,7 +561,7 @@ def _get_table(
         labor=labor,
         with_totals=show_totals,
         snapshot=snapshot,
-        undo_last_delete=undo_last_delete,
+        restore_id=restore_id,
     )
     table = util.add_original_copies(table)
 
@@ -580,6 +593,7 @@ def _get_table(
         State("tab-1-data-table", "data"),
         State("tab-1-data-table", "columns"),
         State("tab-1-show-all-columns-button", "n_clicks"),
+        State("tab-1-last-deleted-id", "children"),
     ],
 )  # pylint: disable=R0913
 def table_data_exterior_controls(
@@ -595,6 +609,7 @@ def table_data_exterior_controls(
     state_table: Table,
     state_columns: TColumns,
     state_all_cols: int,
+    state_deleted_id: str,
 ) -> Tuple[Table, TFocus, int, str, dbc.Toast, str, str, bool, int]:
     """Exterior control signaled that the table should be updated.
 
@@ -624,15 +639,15 @@ def table_data_exterior_controls(
     # Add New Data
     if util.triggered_id() == "tab-1-new-data-button":
         table, toast = _add_new_data(state_table, state_columns, labor, institution)
-    # OR Pull Table (optionally filtered)
-    else:
+    # OR Restore a Record and Pull Table (optionally filtered)
+    elif util.triggered_id() == "tab-1-undo-last-delete":
         table = _get_table(
-            institution,
-            labor,
-            show_totals,
-            snapshot,
-            undo_last_delete=util.triggered_id() == "tab-1-undo-last-delete",
+            institution, labor, show_totals, snapshot, restore_id=state_deleted_id
         )
+        toast = _make_toast("Record Restored", f"id: {state_deleted_id}", Color.SUCCESS)
+    # OR Just Pull Table (optionally filtered)
+    else:
+        table = _get_table(institution, labor, show_totals, snapshot)
 
     return (
         table,
@@ -663,9 +678,10 @@ def _push_modified_records(
 
 def _delete_deleted_records(
     current_table: Table, previous_table: Table, keeps: List[DataEntry]
-) -> dbc.Toast:
+) -> Tuple[dbc.Toast, str]:
     """For each row that was deleted by the user, delete its DS record."""
-    toast = None
+    toast: dbc.Toast = None
+    last_deletion = ""
 
     delete_these = [
         r
@@ -676,12 +692,11 @@ def _delete_deleted_records(
     failures = []
     record = None
     for record in delete_these:
-        toast = _make_toast(
-            "Deleted Record", f"id: {record[src.ID]}", "dark", undo_button=True
-        )
         # try to delete
         if not src.delete_record(record):
             failures.append(record)
+        else:
+            last_deletion = cast(str, record[src.ID])
 
     # make toast message if any records failed to be deleted
     if failures:
@@ -689,7 +704,7 @@ def _delete_deleted_records(
             f"Failed to Delete Record {record[src.ID]}", REFRESH_MSG, Color.DANGER,
         )
 
-    return toast
+    return toast, last_deletion
 
 
 @app.callback(  # type: ignore[misc]
@@ -697,6 +712,8 @@ def _delete_deleted_records(
         Output("tab-1-data-table", "data_previous"),
         Output("tab-1-toast-B", "children"),
         Output("tab-1-last-updated-label", "children"),
+        Output("tab-1-last-deleted-id", "children"),
+        Output("tab-1-deletion-toast", "is_open"),
     ],
     [Input("tab-1-data-table", "data")],
     [
@@ -706,7 +723,7 @@ def _delete_deleted_records(
 )
 def table_data_interior_controls(
     current_table: Table, previous_table: Table, table_exterior_control_ts: str,
-) -> Tuple[Table, dbc.Toast, str]:
+) -> Tuple[Table, dbc.Toast, str, str, bool]:
     """Interior control signaled that the table should be updated.
 
     This is either a row deletion or a field edit. The table's view has
@@ -720,16 +737,18 @@ def table_data_interior_controls(
 
     # On page load OR table was just updated via exterior controls
     if (not previous_table) or util.was_recent(table_exterior_control_ts):
-        return current_table, None, updated_message
+        return current_table, None, updated_message, "", False
 
     # Push (if any)
     mod_ids = _push_modified_records(current_table, previous_table)
 
     # Delete (if any)
-    toast = _delete_deleted_records(current_table, previous_table, mod_ids)
+    toast, last_deletion = _delete_deleted_records(
+        current_table, previous_table, mod_ids
+    )
 
     # Update data_previous
-    return current_table, toast, updated_message
+    return current_table, toast, updated_message, last_deletion, bool(last_deletion)
 
 
 @app.callback(  # type: ignore[misc]

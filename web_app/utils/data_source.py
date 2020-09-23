@@ -47,7 +47,7 @@ def pull_data_table(
     labor: str = "",
     with_totals: bool = False,
     snapshot: str = "",
-    undo_last_delete: bool = False,
+    restore_id: str = "",
 ) -> Table:
     """Get table, optionally filtered by institution and/or labor.
 
@@ -58,7 +58,7 @@ def pull_data_table(
         "labor": labor,
         "total_rows": with_totals,
         "snapshot": snapshot,
-        "undo_last_delete": undo_last_delete,
+        "restore_id": restore_id,
     }
     response = _request("GET", "/table/data", body)
 

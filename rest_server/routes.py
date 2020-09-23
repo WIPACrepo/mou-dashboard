@@ -134,8 +134,12 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
         """Handle GET."""
         collection = self.get_argument("snapshot", "")
         institution = self.get_argument("institution", default=None)
+        restore_id = self.get_argument("restore_id", default=None)
         labor = self.get_argument("labor", default=None)
         total_rows = self.get_argument("total_rows", default=False, type_=bool)
+
+        if restore_id:
+            await self.dbms.restore_record(restore_id)
 
         table = await self.dbms.get_table(
             collection, labor=labor, institution=institution
