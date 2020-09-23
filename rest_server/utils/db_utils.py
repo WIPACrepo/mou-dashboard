@@ -67,7 +67,7 @@ class MoUMotorClient:
         for key in list(record.keys()):
             record[MoUMotorClient._demongofy_key_name(key)] = record.pop(key)
         record[tc.ID] = str(record[tc.ID])  # cast ID
-        if record.get(IS_DELETED):
+        if IS_DELETED in record.keys():
             record.pop(IS_DELETED)
 
         return record
