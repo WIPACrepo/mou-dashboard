@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import pprint
 import time
 from typing import Any, Coroutine, List
 
@@ -158,9 +157,6 @@ class MoUMotorClient:
         """Create indexes in collection."""
         coll_obj = self._get_collection(collection, db)
 
-        # _id = self._mongofy_key_name(tc.ID)
-        # await coll_obj.create_index(_id, name=f"{_id}_index", unique=True)
-
         _inst = self._mongofy_key_name(tc.INSTITUTION)
         await coll_obj.create_index(_inst, name=f"{_inst}_index", unique=False)
 
@@ -215,7 +211,7 @@ class MoUMotorClient:
 
         Update if it already exists.
         """
-        logging.debug(f"Upsetting {record}...")
+        logging.debug(f"Upserting {record}...")
 
         record = self._mongofy_record(record)
         collection_obj = self._get_collection(_LIVE_COLLECTION)
