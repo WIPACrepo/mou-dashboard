@@ -23,7 +23,7 @@ A REST server that interfaces with a local MongoDB server *(future: also Smartsh
     ./rest_server/resources/token_test_server.sh
 
 ### Running the Server
-    python -m rest_server
+    python -m rest_server [-x PATH_TO_XLSX_FILE]
 
 
 ## Web App
