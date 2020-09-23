@@ -104,7 +104,7 @@ class MoUMotorClient:
 
         # if there isn't already a live collection, ingest it too
         if _LIVE_COLLECTION not in await self._list_collection_names():
-            self._create_live_collection(table)
+            await self._create_live_collection(table)
 
         logging.debug(f"Ingested xlsx {xlsx}; Collection {collection}.")
         return collection
