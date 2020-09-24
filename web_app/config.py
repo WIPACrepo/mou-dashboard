@@ -1,13 +1,11 @@
 """Config file."""
 
 import logging
+from typing import Any, Dict, TypedDict
 
 import dash  # type: ignore
 import dash_bootstrap_components as dbc  # type: ignore
 import flask
-
-# local imports
-from rest_tools.server.config import from_environment  # type: ignore[import]
 
 # --------------------------------------------------------------------------------------
 # Set-up Dash server
@@ -28,26 +26,25 @@ app.config.suppress_callback_exceptions = True
 
 
 # --------------------------------------------------------------------------------------
-# Get constants from environment variables
+# Constants
 
 
-_config_env = from_environment(
-    {
-        "MOU_REST_SERVER_URL": "http://localhost:8080",
-        "MOU_TOKEN_SERVER_URL": "http://localhost:8888",
-        "MOU_WEB_SERVER_PORT": 8050,
-        "MOU_AUTH_PREFIX": "mou",
-    }
-)
+class _ConfigTypedDict(TypedDict):
+    REST_SERVER_URL: str
+    TOKEN_SERVER_URL: str
+    WEB_SERVER_PORT: int
+    AUTH_PREFIX: str
 
 
-REST_SERVER_URL = _config_env["MOU_REST_SERVER_URL"]
-TOKEN_SERVER_URL = _config_env["MOU_TOKEN_SERVER_URL"]
-WEB_SERVER_PORT = int(_config_env["MOU_WEB_SERVER_PORT"])
-AUTH_PREFIX = _config_env["MOU_AUTH_PREFIX"]
+CONFIG: _ConfigTypedDict = {
+    "REST_SERVER_URL": "http://localhost:8080",
+    "TOKEN_SERVER_URL": "http://localhost:8888",
+    "WEB_SERVER_PORT": 8050,
+    "AUTH_PREFIX": "mou",
+}
 
 
-def log_environment() -> None:
-    """Log the environment variables."""
-    for name in _config_env:
-        logging.info(f"{name} \t {_config_env[name]}")
+def log_config() -> None:
+    """Log the CONFIG dict, key-value."""
+    for key, val in CONFIG.items():
+        logging.info(f"{key} \t {val}")

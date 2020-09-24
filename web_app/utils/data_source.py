@@ -10,7 +10,7 @@ import requests
 # local imports
 from rest_tools.client import RestClient  # type: ignore
 
-from ..config import AUTH_PREFIX, REST_SERVER_URL, TOKEN_SERVER_URL
+from ..config import CONFIG
 from .types import Record, Table
 
 ID = "_id"
@@ -18,10 +18,14 @@ ID = "_id"
 
 def _ds_rest_connection() -> RestClient:
     """Return REST Client connection object."""
-    token_request_url = urljoin(TOKEN_SERVER_URL, f"token?scope={AUTH_PREFIX}:web")
+    token_request_url = urljoin(
+        CONFIG["TOKEN_SERVER_URL"], f"token?scope={CONFIG['AUTH_PREFIX']}:web"
+    )
     token_json = requests.get(token_request_url).json()
 
-    rc = RestClient(REST_SERVER_URL, token=token_json["access"], timeout=5, retries=0)
+    rc = RestClient(
+        CONFIG["REST_SERVER_URL"], token=token_json["access"], timeout=5, retries=0
+    )
     return rc
 
 
