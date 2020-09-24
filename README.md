@@ -13,8 +13,8 @@ A REST server that interfaces with a local MongoDB server *(future: also Smartsh
     . mou-dash-rest/bin/activate
     pip install -r rest_server/requirements.txt
 
-#### *Optional:* First Kill All Active MongoDB Daemons
-`sudo killall mongod`
+#### *Optional:*
+Kill All Active MongoDB Daemons
 
 #### Launch Local MongoDB Server via Docker
     ./rest_server/resources/mongo_test_server.sh

@@ -4,48 +4,44 @@
 import argparse
 import asyncio
 import logging
+from urllib.parse import quote_plus
 
 import coloredlogs  # type: ignore[import]
 from motor.motor_tornado import MotorClient  # type: ignore
 
 # local imports
 from rest_tools.server import RestHandlerSetup, RestServer  # type: ignore
+from rest_tools.server.config import from_environment  # type: ignore[import]
 
-from . import routes
-from .config import (
-    AUTH_ALGORITHM,
-    AUTH_ISSUER,
-    AUTH_SECRET,
-    log_environment,
-    MONGODB_AUTH_PASS,
-    MONGODB_AUTH_USER,
-    MONGODB_HOST,
-    MONGODB_PORT,
-    REST_HOST,
-    REST_PORT,
-)
+from . import config, routes
 from .utils import db_utils
 
 
 def start(debug: bool = False, xlsx: str = "") -> RestServer:
     """Start a Mad Dash REST service."""
-    log_environment()
+    config_env = from_environment(config.DEFAULT_ENV_CONFIG)
+    config.log_environment(config_env)
+
+    mongodb_auth_user = quote_plus(config_env["MOU_MONGODB_AUTH_USER"])
+    mongodb_auth_pass = quote_plus(config_env["MOU_MONGODB_AUTH_PASS"])
+    mongodb_host = config_env["MOU_MONGODB_HOST"]
+    mongodb_port = int(config_env["MOU_MONGODB_PORT"])
 
     args = RestHandlerSetup(
         {
             "auth": {
-                "secret": AUTH_SECRET,
-                "issuer": AUTH_ISSUER,
-                "algorithm": AUTH_ALGORITHM,
+                "secret": config_env["MOU_AUTH_SECRET"],
+                "issuer": config_env["MOU_AUTH_ISSUER"],
+                "algorithm": config_env["MOU_AUTH_ALGORITHM"],
             },
             "debug": debug,
         }
     )
 
     # Setup DB
-    mongodb_url = f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}"
-    if MONGODB_AUTH_USER and MONGODB_AUTH_PASS:
-        mongodb_url = f"mongodb://{MONGODB_AUTH_USER}:{MONGODB_AUTH_PASS}@{MONGODB_HOST}:{MONGODB_PORT}"
+    mongodb_url = f"mongodb://{mongodb_host}:{mongodb_port}"
+    if mongodb_auth_user and mongodb_auth_pass:
+        mongodb_url = f"mongodb://{mongodb_auth_user}:{mongodb_auth_pass}@{mongodb_host}:{mongodb_port}"
     args["db_client"] = db_utils.MoUMotorClient(MotorClient(mongodb_url), xlsx=xlsx)
 
     # Configure REST Routes
@@ -57,7 +53,9 @@ def start(debug: bool = False, xlsx: str = "") -> RestServer:
     server.add_route(r"/record$", routes.RecordHandler, args)  # push, delete
     server.add_route(r"/table/config$", routes.TableConfigHandler, args)  # get
 
-    server.startup(address=REST_HOST, port=REST_PORT)
+    server.startup(
+        address=config_env["MOU_REST_HOST"], port=int(config_env["MOU_REST_PORT"])
+    )
     return server
 
 
@@ -73,7 +71,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-x", "--xlsx", help=".xlsx file to ingest as a collection.")
     parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
-    args = parser.parse_args()
+    _args = parser.parse_args()
 
-    coloredlogs.install(level=getattr(logging, args.log.upper()))
-    main(args.xlsx)
+    coloredlogs.install(level=getattr(logging, _args.log.upper()))
+    main(_args.xlsx)

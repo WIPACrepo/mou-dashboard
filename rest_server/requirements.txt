@@ -1,24 +1,28 @@
 alabaster==0.7.12
 Babel==2.8.0
 certifi==2020.6.20
-cffi==1.14.2
+cffi==1.14.3
 chardet==3.0.4
 coloredlogs==14.0
-coverage==5.2.1
-cryptography==3.1
+coverage==5.3
+cryptography==3.1.1
 docutils==0.16
+humanfriendly==8.2
 idna==2.10
 imagesize==1.2.0
 Jinja2==2.11.2
 -e git+https://github.com/WIPACrepo/keycloak-rest-services@62ff9179f7ac8992eb18b3982043d2ede03d694c#egg=keycloak_rest_services
 MarkupSafe==1.1.1
 motor==2.2.0
+numpy==1.19.2
 packaging==20.4
+pandas==1.1.2
 pycparser==2.20
-Pygments==2.6.1
+Pygments==2.7.1
 PyJWT==1.7.1
 pymongo==3.11.0
 pyparsing==2.4.7
+python-dateutil==2.8.1
 pytz==2020.1
 requests==2.24.0
 requests-futures==1.0.0
@@ -37,3 +41,4 @@ sphinxcontrib-serializinghtml==1.1.4
 tornado==6.0.4
 Unidecode==1.1.1
 urllib3==1.25.10
+xlrd==1.2.0
