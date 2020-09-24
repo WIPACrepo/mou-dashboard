@@ -1,6 +1,9 @@
 """Integration test rest_server module."""
 
 
+# pylint: disable=W0212
+
+
 import sys
 
 sys.path.append(".")
