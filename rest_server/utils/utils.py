@@ -37,7 +37,6 @@ def _us_or_non_us(institution: str) -> str:
     return ""
 
 
-# TODO: move to front-end?
 def add_on_the_fly_fields(record: Record) -> Record:
     """Add fields that are only to be calculated on-the-fly."""
     record = remove_on_the_fly_fields(record)
@@ -58,9 +57,8 @@ def add_on_the_fly_fields(record: Record) -> Record:
 
 def insert_total_rows(table: Table) -> Table:
     """Add rows with totals of each category (cascadingly)."""
-
     ####
-    def grab_a_total(
+    def grab_a_total(  # pylint: disable=C0103
         l2: str = "", l3: str = "", fund_src: str = "", region: str = ""
     ) -> float:
         return sum(
