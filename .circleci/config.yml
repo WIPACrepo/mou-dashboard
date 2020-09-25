@@ -1,0 +1,31 @@
+version: 2.1
+
+jobs:
+  unit:
+    docker:
+      - image: circleci/python:3.8
+    steps:
+      - checkout
+      - run: pip install --use-feature=2020-resolver -r rest_server/requirements.txt -r web_app/requirements.txt && pytest --mypy --flake8 tests/unit
+
+  integrate:
+    docker:
+      - image: circleci/python:3.8
+      - image: circleci/mongo:3.7.9-ram
+      - image: wipac/token-service:latest
+        environment:
+          port: 8888
+          auth_secret: secret
+        command: [python, test_server.py]
+    steps:
+      - checkout
+      - run:
+          command: pip install -r rest_server/requirements.txt && python3 -m rest_server
+          background: true
+      - run: sleep 30 && pip install -r rest_server/requirements.txt && pytest tests/integration
+
+workflows:
+  build_and_test:
+    jobs:
+      - unit
+      - integrate
