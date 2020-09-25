@@ -72,12 +72,11 @@ class TestDashUtils:
 class TestDataSource:
     """Test data_source.py."""
 
-    REST_PATCH: Final[str] = "web_app.utils.data_source._ds_rest_connection"
-
+    @staticmethod
     @pytest.fixture  # type: ignore
-    def mock_rest(self, mocker: Any) -> Any:
+    def mock_rest(mocker: Any) -> Any:
         """Patch mock_rest."""
-        return mocker.patch(self.REST_PATCH)
+        return mocker.patch("web_app.utils.data_source._ds_rest_connection")
 
     @staticmethod
     def test_pull_data_table(mock_rest: Any) -> None:
