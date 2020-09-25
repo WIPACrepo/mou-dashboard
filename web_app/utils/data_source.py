@@ -195,12 +195,12 @@ class TableConfig:
         """Get the dropdown menu for a conditional dropdown-column."""
         return self.config["conditional_dropdown_menus"][column][1][parent_col_option]
 
-    def get_column_width(self, column: str) -> int:
+    def get_column_width(self, column: str, default: int = 35) -> int:
         """Return the pixel width of a given column."""
         try:
             return self.config["widths"][column]
         except KeyError:
-            return 35
+            return default
 
     def has_border_left(self, column: str) -> bool:
         """Return whether column has a border to its right."""
