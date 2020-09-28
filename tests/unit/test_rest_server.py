@@ -4,15 +4,17 @@
 import sys
 
 # pylint: disable=W0212
-from typing import Any
+from typing import Any, List
 from unittest.mock import ANY, AsyncMock, MagicMock, Mock, patch, sentinel
 
 import pytest
+from bson.objectid import ObjectId  # type: ignore[import]
 
 sys.path.append(".")
 from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
     db_utils,
     utils,
+    types,
 )
 
 
@@ -62,18 +64,63 @@ class TestDBUtils:  # pylint: disable=R0904
     @staticmethod
     def test_mongofy_key_name() -> None:
         """Test _mongofy_key_name()."""
+        keys = ["", "...", " ", "N;M"]
+        mongofied_keys = ["", ";;;", " ", "N;M"]
+
+        for key, mkey in zip(keys, mongofied_keys):
+            assert db_utils.MoUMotorClient._mongofy_key_name(key) == mkey
 
     @staticmethod
     def test_demongofy_key_name() -> None:
         """Test _demongofy_key_name()."""
+        keys = ["", ";;;", " ", "A;C", "."]
+        demongofied_keys = ["", "...", " ", "A.C", "."]
+
+        for key, dkey in zip(keys, demongofied_keys):
+            assert db_utils.MoUMotorClient._demongofy_key_name(key) == dkey
 
     @staticmethod
     def test_mongofy_record() -> None:
         """Test _mongofy_record()."""
+        records: List[types.Record] = [
+            {},
+            {"a.b": 5, "Foo;Bar": "Baz"},
+            {"_id": "5f725c6af0803660075769ab", "FOO": "bar"},
+        ]
+
+        mongofied_records: List[types.Record] = [
+            {},
+            {"a;b": 5, "Foo;Bar": "Baz"},
+            {"_id": ObjectId("5f725c6af0803660075769ab"), "FOO": "bar"},
+        ]
+
+        for record, mrecord in zip(records, mongofied_records):
+            assert db_utils.MoUMotorClient._mongofy_record(record) == mrecord
 
     @staticmethod
     def test_demongofy_record() -> None:
         """Test _demongofy_record()."""
+        records: List[types.Record] = [
+            {"_id": ANY},
+            {"_id": ANY, db_utils.IS_DELETED: True},
+            {"_id": ANY, db_utils.IS_DELETED: False},
+            {"_id": ANY, "a;b": 5, "Foo;Bar": "Baz"},
+            {"_id": ObjectId("5f725c6af0803660075769ab"), "FOO": "bar"},
+        ]
+
+        demongofied_records: List[types.Record] = [
+            {"_id": ANY},
+            {"_id": ANY},
+            {"_id": ANY},
+            {"_id": ANY, "a.b": 5, "Foo.Bar": "Baz"},
+            {"_id": "5f725c6af0803660075769ab", "FOO": "bar"},
+        ]
+
+        for record, drecord in zip(records, demongofied_records):
+            assert db_utils.MoUMotorClient._demongofy_record(record) == drecord
+
+        with pytest.raises(KeyError):
+            db_utils.MoUMotorClient._demongofy_record({"a;b": 5, "Foo;Bar": "Baz"})
 
     @staticmethod
     def test_create_live_collection() -> None:
