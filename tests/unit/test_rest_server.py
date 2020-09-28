@@ -5,7 +5,7 @@ import sys
 
 # pylint: disable=W0212
 from typing import Any
-from unittest.mock import ANY, AsyncMock, MagicMock, Mock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, Mock, patch, sentinel
 
 import pytest
 
@@ -19,6 +19,12 @@ from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0
 MOU_MOTOR_CLIENT = "rest_server.utils.db_utils.MoUMotorClient"
 
 
+def reset_mock(*args: Mock) -> None:
+    """Reset all the Mock objects given."""
+    for a in args:  # pylint: disable=C0103
+        a.reset_mock()
+
+
 class TestDBUtils:  # pylint: disable=R0904
     """Test db_utils.py."""
 
@@ -28,25 +34,30 @@ class TestDBUtils:  # pylint: disable=R0904
         """Patch mock_mongo."""
         mock_mongo = mocker.patch("motor.motor_tornado.MotorClient")
         mock_mongo.list_database_names.side_effect = AsyncMock()
+        # TODO: add other mocked async methods, as needed
         return mock_mongo
 
     @staticmethod
     @patch(MOU_MOTOR_CLIENT + "._ensure_all_databases_indexes")
     @patch(MOU_MOTOR_CLIENT + "._ingest_xlsx")
-    def test_init(mock_ix: Any, mock_eadi: Any, mock_mongo: Any) -> None:
+    def test_init(mock_ix: Any, mock_eadi: Any) -> None:
         """Test MoUMotorClient.__init__()."""
-        _ = db_utils.MoUMotorClient(mock_mongo)
+        moumc = db_utils.MoUMotorClient(sentinel._client)
+        assert moumc._client == sentinel._client
         mock_eadi.assert_called()
         mock_ix.assert_not_called()
 
-        with pytest.raises(AssertionError):
-            # NOTE: this won't work b/c we mocked the caller (mock_eadi)
-            # so, test further-down calls in their own tests (test_ensure_all_databases_indexes)
-            mock_mongo.list_database_names.assert_called()
+        # with pytest.raises(AssertionError):
+        #     # NOTE: this won't work b/c we mocked the caller (mock_eadi)
+        #     # so, test further-down calls in their own tests (test_ensure_all_databases_indexes)
+        #     mock_mongo.list_database_names.assert_called()
 
-        _ = db_utils.MoUMotorClient(mock_mongo, xlsx="./foo.xlsx")
+        # test w/ xlsx
+        reset_mock(mock_eadi, mock_ix)
+        moumc = db_utils.MoUMotorClient(sentinel._client, xlsx="./foo.xlsx")
+        assert moumc._client == sentinel._client
         mock_eadi.assert_called()
-        mock_ix.assert_called()
+        mock_ix.assert_called_with("./foo.xlsx")
 
     @staticmethod
     def test_mongofy_key_name() -> None:
