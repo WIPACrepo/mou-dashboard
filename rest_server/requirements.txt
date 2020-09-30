@@ -14,6 +14,7 @@ Jinja2==2.11.2
 -e git+https://github.com/WIPACrepo/keycloak-rest-services#egg=keycloak_rest_services
 MarkupSafe==1.1.1
 motor==2.2.0
+nest-asyncio==1.4.1
 numpy==1.19.2
 packaging==20.4
 pandas==1.1.2
@@ -23,6 +24,7 @@ PyJWT==1.7.1
 pymongo==3.11.0
 pyparsing==2.4.7
 pytest==6.0.2
+pytest-asyncio==0.14.0
 pytest-flake8==1.0.6
 pytest-mock==3.2.0
 pytest-mypy==0.6.2

@@ -28,7 +28,7 @@ from rest_server import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0
 )
 
 
-nest_asyncio.apply()
+nest_asyncio.apply()  # allows nested event loops
 
 
 MOU_MOTOR_CLIENT: Final[str] = "rest_server.utils.db_utils.MoUMotorClient"
