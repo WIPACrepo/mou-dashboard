@@ -97,7 +97,10 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
             except tornado.web.MissingArgumentError:
                 pass
             # check query and body arguments
-            return _cast(type_, super().get_argument(name, strip=strip))
+            try:
+                return _cast(type_, super().get_argument(name, strip=strip))
+            except tornado.web.MissingArgumentError as e:
+                raise tornado.web.HTTPError(400, reason=e.log_message)
 
         # Else:
         # Optional / Default
