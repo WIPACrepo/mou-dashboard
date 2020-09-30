@@ -6,7 +6,7 @@ jobs:
       - image: circleci/python:3.8
     steps:
       - checkout
-      - run: pip install --use-feature=2020-resolver -r rest_server/requirements.txt -r web_app/requirements.txt && pytest --mypy --flake8 tests/unit
+      - run: pip install --use-feature=2020-resolver -r rest_server/requirements.txt -r web_app/requirements.txt && pytest -vvv --mypy --flake8 tests/unit
 
   integrate:
     docker:
@@ -22,7 +22,7 @@ jobs:
       - run:
           command: pip install -r rest_server/requirements.txt && python3 -m rest_server -x WBS.xlsx
           background: true
-      - run: sleep 30 && pip install -r rest_server/requirements.txt -r web_app/requirements.txt && pytest tests/integration
+      - run: sleep 30 && pip install -r rest_server/requirements.txt -r web_app/requirements.txt && pytest -vvv tests/integration
 
 workflows:
   build_and_test:
