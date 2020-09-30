@@ -85,17 +85,34 @@ class MoUMotorClient:
         logging.info(f"Ingesting xlsx {xlsx}...")
 
         def _is_a_total_row(row: Record) -> bool:
-            for data in row.values():
+            # check L2, L3, Inst., & US/Non-US  columns for "total" substring
+            for key in [tc.WBS_L2, tc.WBS_L3, tc.INSTITUTION, tc.US_NON_US]:
+                data = row.get(key)
                 if isinstance(data, str) and ("TOTAL" in data.upper()):
+                    return True
+            return False
+
+        def _row_has_data(row: Record) -> bool:
+            # check purely blank rows
+            if not any(row.values()):  # purely blank rows
+                return False
+            # check blanks except tc.WBS_L2, tc.WBS_L3, & tc.US_NON_US
+            for key, val in row.items():
+                if key in [tc.WBS_L2, tc.WBS_L3, tc.US_NON_US]:
+                    continue
+                if val:  # just need one value
                     return True
             return False
 
         # read data from excel file
         # remove blanks and rows with "total" in them (case-insensitive)
+        # format as if this was done via POST @ '/record'
+        from . import utils  # pylint: disable=C0415
+
         table: Table = [
-            self._mongofy_record(row)
+            self._mongofy_record(utils.remove_on_the_fly_fields(row))
             for row in pd.read_excel(xlsx).fillna("").to_dict("records")
-            if any(row.values()) and not _is_a_total_row(row)
+            if _row_has_data(row) and not _is_a_total_row(row)
         ]
         logging.debug(f"xlsx table has {len(table)} records.")
 

@@ -1,6 +1,8 @@
 """Unit test rest_server module."""
 
 
+import copy
+import pprint
 import sys
 
 # pylint: disable=W0212
@@ -12,17 +14,19 @@ import pytest
 import tornado
 from bson.objectid import ObjectId  # type: ignore[import]
 
-from rest_server import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
-    config,
-    table_config,
-)
+from . import data
 
 sys.path.append(".")
-from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
+from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
     db_utils,
     utils,
     types,
 )
+from rest_server import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
+    config,
+    table_config as tc,
+)
+
 
 nest_asyncio.apply()
 
@@ -46,7 +50,6 @@ class TestDBUtils:  # pylint: disable=R0904
         """Patch mock_mongo."""
         mock_mongo = mocker.patch(MOTOR_CLIENT)
         mock_mongo.list_database_names.side_effect = AsyncMock()
-        # TODO: add other mocked async methods, as needed
         return mock_mongo
 
     @staticmethod
@@ -77,24 +80,29 @@ class TestDBUtils:  # pylint: disable=R0904
     @staticmethod
     def test_mongofy_key_name() -> None:
         """Test _mongofy_key_name()."""
+        # Set-Up
         keys = ["", "...", " ", "N;M"]
         mongofied_keys = ["", ";;;", " ", "N;M"]
 
+        # Call & Assert
         for key, mkey in zip(keys, mongofied_keys):
             assert db_utils.MoUMotorClient._mongofy_key_name(key) == mkey
 
     @staticmethod
     def test_demongofy_key_name() -> None:
         """Test _demongofy_key_name()."""
+        # Set-Up
         keys = ["", ";;;", " ", "A;C", "."]
         demongofied_keys = ["", "...", " ", "A.C", "."]
 
+        # Call & Assert
         for key, dkey in zip(keys, demongofied_keys):
             assert db_utils.MoUMotorClient._demongofy_key_name(key) == dkey
 
     @staticmethod
     def test_mongofy_record() -> None:
         """Test _mongofy_record()."""
+        # Set-Up
         records: List[types.Record] = [
             {},
             {"a.b": 5, "Foo;Bar": "Baz"},
@@ -107,12 +115,14 @@ class TestDBUtils:  # pylint: disable=R0904
             {"_id": ObjectId("5f725c6af0803660075769ab"), "FOO": "bar"},
         ]
 
+        # Call & Assert
         for record, mrecord in zip(records, mongofied_records):
             assert db_utils.MoUMotorClient._mongofy_record(record) == mrecord
 
     @staticmethod
     def test_demongofy_record() -> None:
         """Test _demongofy_record()."""
+        # Set-Up
         records: List[types.Record] = [
             {"_id": ANY},
             {"_id": ANY, db_utils.IS_DELETED: True},
@@ -129,9 +139,11 @@ class TestDBUtils:  # pylint: disable=R0904
             {"_id": "5f725c6af0803660075769ab", "FOO": "bar"},
         ]
 
+        # Call & Assert
         for record, drecord in zip(records, demongofied_records):
             assert db_utils.MoUMotorClient._demongofy_record(record) == drecord
 
+        # Error Case
         with pytest.raises(KeyError):
             db_utils.MoUMotorClient._demongofy_record({"a;b": 5, "Foo;Bar": "Baz"})
 
@@ -182,7 +194,7 @@ class TestDBUtils:  # pylint: disable=R0904
         # Assert
         assert mock_mr.call_count == len(rows)
         mock_mr.assert_called_with(rows[-1])
-        mock_insc.awaited_once()
+        mock_insc.assert_awaited_once()
         assert len(mock_insc.await_args) == len(rows)
         mock_lcn.assert_awaited_once()
         mock_clc.assert_awaited_once()
@@ -348,10 +360,7 @@ class TestDBUtils:  # pylint: disable=R0904
 
         # Assert
         assert mock_mkn.call_count == 2
-        assert mock_mkn.call_args_list == [
-            call(table_config.INSTITUTION),
-            call(table_config.LABOR_CAT),
-        ]
+        assert mock_mkn.call_args_list == [call("Institution"), call("Labor Cat.")]
         assert len(mock_gc.return_value.create_index.side_effect.await_args) == 2
 
     # NOTE: public methods are tested in integration tests
@@ -363,19 +372,207 @@ class TestUtils:
     @staticmethod
     def test_remove_on_the_fly_fields() -> None:
         """Test remove_on_the_fly_fields()."""
+        # Set-Up
+        before_records: List[types.Record] = [
+            {"_id": ANY},
+            {"Grand Total": 999.99, "FTE": 50},
+            {"NSF M&O Core": 100},
+            {"_id": ANY, "a;b": 5, "Foo;Bar": "Baz", "Grand Total": 999.99},
+        ]
+        after_records: List[types.Record] = [
+            {"_id": ANY},
+            {"FTE": 50},
+            {},
+            {"_id": ANY, "a;b": 5, "Foo;Bar": "Baz", "FTE": 999.99},
+        ]
 
-    @staticmethod
-    def test_get_fte_subcolumn() -> None:
-        """Test _get_fte_subcolumn()."""
+        # Call & Assert
+        for before, after in zip(before_records, after_records):
+            assert utils.remove_on_the_fly_fields(before) == after
+            assert utils.remove_on_the_fly_fields(after) == after
 
     @staticmethod
     def test_us_or_non_us() -> None:
-        """Test _us_or_non_us()."""
+        """Test _us_or_non_us().
+
+        Function is very simple, so also test ICECUBE_INSTS's format.
+        """
+        for inst in utils.ICECUBE_INSTS.values():
+            assert "abbreviation" in inst
+            assert "is_US" in inst
+            assert inst["is_US"] is True or inst["is_US"] is False
+            if inst["is_US"]:
+                assert utils._us_or_non_us(inst["abbreviation"]) == "US"
+            else:
+                assert utils._us_or_non_us(inst["abbreviation"]) == "Non-US"
 
     @staticmethod
     def test_add_on_the_fly_fields() -> None:
         """Test add_on_the_fly_fields()."""
+        # Set-Up
+        before_records: List[types.Record] = [
+            {
+                "_id": ANY,
+                "Institution": "SBU",
+                "Source of Funds (U.S. Only)": "NSF M&O Core",
+            },
+            {
+                "Institution": "SKKU",
+                "US / Non-US": "BLAH",  # will get overwritten
+                "Source of Funds (U.S. Only)": "Non-US In-Kind",
+                "Grand Total": 50,  # will get copied to FTE
+            },
+            {
+                "Institution": "MERCER",
+                "Source of Funds (U.S. Only)": "NSF Base Grants",
+                "FTE": 100,
+                "NSF Base Grants": 5555555555,  # will get overwritten w/ FTE
+            },
+            {
+                "_id": ANY,
+                "a;b": 5,
+                "Foo;Bar": "Baz",
+                "Institution": "UW",
+                "Source of Funds (U.S. Only)": "US In-Kind",
+                "FTE": 999.99,
+                "Grand Total": 5555555555,  # will get overwritten w/ FTE
+            },
+        ]
+        after_records: List[types.Record] = [
+            {
+                "_id": ANY,
+                "Institution": "SBU",
+                "US / Non-US": "US",
+                "Source of Funds (U.S. Only)": "NSF M&O Core",
+            },
+            {
+                "Institution": "SKKU",
+                "US / Non-US": "Non-US",
+                "Source of Funds (U.S. Only)": "Non-US In-Kind",
+                "FTE": 50,
+                "Non-US In-Kind": 50,
+                "Grand Total": 50,
+            },
+            {
+                "Institution": "MERCER",
+                "US / Non-US": "US",
+                "Source of Funds (U.S. Only)": "NSF Base Grants",
+                "FTE": 100,
+                "NSF Base Grants": 100,
+                "Grand Total": 100,
+            },
+            {
+                "_id": ANY,
+                "a;b": 5,
+                "Foo;Bar": "Baz",
+                "Institution": "UW",
+                "US / Non-US": "US",
+                "Source of Funds (U.S. Only)": "US In-Kind",
+                "FTE": 999.99,
+                "US In-Kind": 999.99,
+                "Grand Total": 999.99,
+            },
+        ]
+
+        # Call & Assert
+        for before, after in zip(before_records, after_records):
+            assert utils.add_on_the_fly_fields(before) == after
+            assert utils.add_on_the_fly_fields(after) == after
+
+        # Error Case
+        with pytest.raises(KeyError):
+            _ = utils.add_on_the_fly_fields({"foo": "bar", "FTE": 0})
+        with pytest.raises(KeyError):
+            _ = utils.add_on_the_fly_fields(
+                {"foo": "bar", "FTE": 0, "Institution": "UW"}
+            )
+        _ = utils.add_on_the_fly_fields({"foo": "bar", "Institution": "SUNY"})
+        with pytest.raises(KeyError):
+            _ = utils.add_on_the_fly_fields(
+                {
+                    "foo": "bar",
+                    "FTE": 0,
+                    "Source of Funds (U.S. Only)": "NSF Base Grants",
+                }
+            )
 
     @staticmethod
     def test_insert_total_rows() -> None:
-        """Test insert_total_rows()."""
+        """Test insert_total_rows().
+
+        No need to integration test this.
+        """
+        #
+        def _assert_funds_totals(_rows: types.Table, _total_row: types.Record) -> None:
+            print("\n-----------------------------------------------------\n")
+            pprint.pprint(_rows)
+            pprint.pprint(_total_row)
+            assert _total_row[tc.GRAND_TOTAL] == sum(r[tc.FTE] for r in _rows)
+            for fund in [
+                tc.NSF_MO_CORE,
+                tc.NSF_BASE_GRANTS,
+                tc.US_IN_KIND,
+                tc.NON_US_IN_KIND,
+            ]:
+                assert _total_row[fund] == sum(
+                    r[tc.FTE] for r in _rows if r[tc.SOURCE_OF_FUNDS_US_ONLY] == fund
+                )
+
+        # Test example table and empty table
+        test_tables: Final[List[types.Table]] = [copy.deepcopy(data.FTE_ROWS), []]
+        for table in test_tables:
+            # Call
+            totals = utils.get_total_rows(table)
+            # pprint.pprint(totals)
+
+            # Assert total sums
+            for total_row in totals:
+
+                # L3 US/Non-US Level
+                if (
+                    "L3 NON-US TOTAL" in total_row[tc.TOTAL_COL]  # type: ignore[operator]
+                    or "L3 US TOTAL" in total_row[tc.TOTAL_COL]  # type: ignore[operator]
+                ):
+                    _assert_funds_totals(
+                        [
+                            r
+                            for r in table
+                            if total_row[tc.WBS_L2] == r[tc.WBS_L2]
+                            and total_row[tc.WBS_L3] == r[tc.WBS_L3]
+                            and total_row[tc.US_NON_US] == r[tc.US_NON_US]
+                        ],
+                        total_row,
+                    )
+
+                # L3 Level
+                elif "L3 TOTAL" in total_row[tc.TOTAL_COL]:  # type: ignore[operator]
+                    _assert_funds_totals(
+                        [
+                            r
+                            for r in table
+                            if total_row[tc.WBS_L2] == r[tc.WBS_L2]
+                            and total_row[tc.WBS_L3] == r[tc.WBS_L3]
+                        ],
+                        total_row,
+                    )
+
+                # L2 Level
+                elif "L2 TOTAL" in total_row[tc.TOTAL_COL]:  # type: ignore[operator]
+                    _assert_funds_totals(
+                        [r for r in table if total_row[tc.WBS_L2] == r[tc.WBS_L2]],
+                        total_row,
+                    )
+
+                # Grand Total
+                elif "GRAND TOTAL" in total_row[tc.TOTAL_COL]:  # type: ignore[operator]
+                    _assert_funds_totals(table, total_row)
+
+                # Other Kind?
+                else:
+                    raise Exception(f"Unaccounted total row ({total_row}).")
+
+            # Assert that every possible total is there (including rows with only 0s)
+            for l2_cat in tc.get_l2_categories():
+                assert l2_cat in set(r.get(tc.WBS_L2) for r in totals)
+                for l3_cat in tc.get_l3_categories_by_l2(l2_cat):
+                    assert l3_cat in set(r.get(tc.WBS_L3) for r in totals)

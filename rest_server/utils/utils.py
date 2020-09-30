@@ -55,9 +55,10 @@ def add_on_the_fly_fields(record: Record) -> Record:
     return record
 
 
-def insert_total_rows(table: Table) -> Table:
-    """Add rows with totals of each category (cascadingly)."""
-    ####
+def get_total_rows(table: Table) -> Table:
+    """Calculate rows with totals of each category (cascadingly)."""
+    totals: Table = []
+
     def grab_a_total(  # pylint: disable=C0103
         l2: str = "", l3: str = "", fund_src: str = "", region: str = ""
     ) -> float:
@@ -78,7 +79,7 @@ def insert_total_rows(table: Table) -> Table:
             for region in [tc.US, tc.NON_US]:
 
                 # add US/Non-US
-                table.append(
+                totals.append(
                     {
                         tc.WBS_L2: l2_cat,
                         tc.WBS_L3: l3_cat,
@@ -115,7 +116,7 @@ def insert_total_rows(table: Table) -> Table:
                 )
 
             # add L3
-            table.append(
+            totals.append(
                 {
                     tc.WBS_L2: l2_cat,
                     tc.WBS_L3: l3_cat,
@@ -137,7 +138,7 @@ def insert_total_rows(table: Table) -> Table:
             )
 
         # add L2
-        table.append(
+        totals.append(
             {
                 tc.WBS_L2: l2_cat,
                 tc.TOTAL_COL: f"L2 total | {l2_cat}".upper(),
@@ -152,6 +153,15 @@ def insert_total_rows(table: Table) -> Table:
         )
 
     # Grand Total
-    table.append({tc.TOTAL_COL: "GRAND TOTAL", tc.GRAND_TOTAL: grab_a_total()})
+    totals.append(
+        {
+            tc.TOTAL_COL: "GRAND TOTAL",
+            tc.NSF_MO_CORE: grab_a_total(fund_src=tc.NSF_MO_CORE),
+            tc.NSF_BASE_GRANTS: grab_a_total(fund_src=tc.NSF_BASE_GRANTS),
+            tc.US_IN_KIND: grab_a_total(fund_src=tc.US_IN_KIND),
+            tc.NON_US_IN_KIND: grab_a_total(fund_src=tc.NON_US_IN_KIND),
+            tc.GRAND_TOTAL: grab_a_total(),
+        }
+    )
 
-    return table
+    return totals

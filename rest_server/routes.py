@@ -148,7 +148,7 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
         for record in table:
             utils.add_on_the_fly_fields(record)
         if total_rows:
-            utils.insert_total_rows(table)
+            table.extend(utils.get_total_rows(table))
 
         # sort
         table.sort(key=tc.sort_key)
