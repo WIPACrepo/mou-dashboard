@@ -117,6 +117,8 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
 class MainHandler(BaseMoUHandler):  # pylint: disable=W0223
     """MainHandler is a BaseMoUHandler that handles the root route."""
 
+    ROUTE = r"/$"
+
     def get(self) -> None:
         """Handle GET."""
         self.write({})
@@ -126,7 +128,9 @@ class MainHandler(BaseMoUHandler):  # pylint: disable=W0223
 
 
 class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
-    """MainHandler is a BaseMoUHandler that handles the root route."""
+    """Handle requests for a table."""
+
+    ROUTE = r"/table/data$"
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["web"])  # type: ignore
     async def get(self) -> None:
@@ -160,7 +164,9 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
 
 
 class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
-    """MainHandler is a BaseMoUHandler that handles the root route."""
+    """Handle requests for a record."""
+
+    ROUTE = r"/record$"
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["web"])  # type: ignore
     async def post(self) -> None:
@@ -192,6 +198,8 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
 class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
     """Handle requests for the table config dict."""
 
+    ROUTE = r"/table/config$"
+
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["web"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
@@ -221,6 +229,8 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
 class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
     """Handle requests for listing the snapshots."""
 
+    ROUTE = r"/snapshots/timestamps$"
+
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["web"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
@@ -232,6 +242,8 @@ class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
 
 class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
     """Handle requests for making snapshots."""
+
+    ROUTE = r"/snapshots/make$"
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["web"])  # type: ignore
     async def post(self) -> None:

@@ -13,7 +13,15 @@ from motor.motor_tornado import MotorClient  # type: ignore
 from rest_tools.server import RestHandlerSetup, RestServer  # type: ignore
 from rest_tools.server.config import from_environment  # type: ignore[import]
 
-from . import config, routes
+from . import config
+from .routes import (
+    MainHandler,
+    MakeSnapshotHandler,
+    RecordHandler,
+    SnapshotsHandler,
+    TableConfigHandler,
+    TableHandler,
+)
 from .utils import db_utils
 
 
@@ -46,12 +54,12 @@ def start(debug: bool = False, xlsx: str = "") -> RestServer:
 
     # Configure REST Routes
     server = RestServer(debug=debug)
-    server.add_route(r"/$", routes.MainHandler, args)
-    server.add_route(r"/table/data$", routes.TableHandler, args)  # get
-    server.add_route(r"/snapshots/timestamps$", routes.SnapshotsHandler, args)  # get
-    server.add_route(r"/snapshots/make$", routes.MakeSnapshotHandler, args)  # post
-    server.add_route(r"/record$", routes.RecordHandler, args)  # post, delete
-    server.add_route(r"/table/config$", routes.TableConfigHandler, args)  # get
+    server.add_route(MainHandler.ROUTE, MainHandler, args)  # get
+    server.add_route(TableHandler.ROUTE, TableHandler, args)  # get
+    server.add_route(SnapshotsHandler.ROUTE, SnapshotsHandler, args)  # get
+    server.add_route(MakeSnapshotHandler.ROUTE, MakeSnapshotHandler, args)  # post
+    server.add_route(RecordHandler.ROUTE, RecordHandler, args)  # post, delete
+    server.add_route(TableConfigHandler.ROUTE, TableConfigHandler, args)  # get
 
     server.startup(
         address=config_env["MOU_REST_HOST"], port=int(config_env["MOU_REST_PORT"])
