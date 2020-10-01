@@ -26,6 +26,7 @@ class Color:  # pylint: disable=R0903
     DANGER = "danger"  # red
     INFO = "info"  # teal
     LIGHT = "light"  # gray on white
+    LINK = "link"  # blue on transparent
 
 
 # --------------------------------------------------------------------------------------

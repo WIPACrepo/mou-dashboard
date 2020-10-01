@@ -7,6 +7,7 @@ import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 import dash_table  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
+from flask_login import current_user  # type: ignore[import]
 
 from ..config import app
 from ..utils import dash_utils as util
@@ -229,38 +230,6 @@ def layout() -> html.Div:
 
     return html.Div(
         children=[
-            html.Div(
-                "Institution Leader Sign-In",
-                className="caps",
-                style={"margin-left": "11rem", "margin-top": "2rem"},
-            ),
-            dbc.Row(
-                style={"margin-left": "11rem"},
-                children=[
-                    dcc.Input(
-                        id="tab-1-input-name",
-                        value="",
-                        type="text",
-                        placeholder="name",
-                        style={"width": "22%"},
-                    ),
-                    dcc.Input(
-                        id="tab-1-input-email",
-                        value="",
-                        type="text",
-                        placeholder="email",
-                        style={"width": "21%"},
-                    ),
-                    html.I(
-                        id="tab-1-name-email-icon",
-                        n_clicks=0,
-                        style={"margin-left": "1.5rem", "fontSize": 25},
-                    ),
-                ],
-            ),
-            ####
-            html.Hr(style={"margin-top": "4rem", "margin-bottom": "4rem"}),
-            ####
             dbc.Row(
                 justify="center",
                 style={"margin-bottom": "2.5rem"},
@@ -279,6 +248,7 @@ def layout() -> html.Div:
                                 ],
                                 value="",
                                 # multi=True
+                                disabled=False,
                             ),
                         ],
                     ),
@@ -895,55 +865,58 @@ def make_snapshot(_: int) -> dcc.ConfirmDialog:
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("tab-1-name-email-icon", "children"),
         Output("tab-1-data-table", "editable"),
         Output("tab-1-new-data-div-1", "hidden"),
         Output("tab-1-new-data-div-2", "hidden"),
         Output("tab-1-make-snapshot-button", "hidden"),
         Output("tab-1-how-to-edit-alert", "hidden"),
         Output("tab-1-data-table", "row_deletable"),
+        Output("tab-1-filter-inst", "disabled"),
+        Output("tab-1-filter-inst", "value"),
     ],
-    [
-        Input("tab-1-input-name", "value"),
-        Input("tab-1-input-email", "value"),
-        Input("tab-1-viewing-snapshot-alert", "is_open"),
-    ],
+    [Input("tab-1-viewing-snapshot-alert", "is_open"), Input("logout-div", "hidden")],
 )
 def sign_in(
-    name: str, email: str, viewing_snapshot: bool
-) -> Tuple[str, bool, bool, bool, bool, bool, bool]:
-    """Enter name & email callback."""
-    # TODO -- check auth
+    viewing_snapshot: bool, _: bool,
+) -> Tuple[bool, bool, bool, bool, bool, bool, bool, str]:
+    """Logged-in callback."""
+    username, institution = "", ""
+    if current_user.is_authenticated:
+        username = current_user.username
+        institution = current_user.institution
 
     if viewing_snapshot:
         return (
-            "✔" if name and email else "✖",
             False,  # data-table NOT editable
             True,  # new-data-div-1 hidden
             True,  # new-data-div-2 hidden
             True,  # make-snapshot-button hidden
             True,  # how-to-edit-alert hidden
             False,  # row NOT deletable
+            True,  # filter-inst disabled
+            institution,
         )
 
-    if name and email:
+    if username:
         return (
-            "✔",
             True,  # data-table editable
             False,  # new-data-div-1 NOT hidden
             False,  # new-data-div-2 NOT hidden
             False,  # make-snapshot-button NOT hidden
             True,  # how-to-edit-alert hidden
             True,  # row is deletable
+            True,  # filter-inst disabled
+            institution,
         )
     return (
-        "✖",
         False,  # data-table NOT editable
         True,  # new-data-div-1 hidden
         True,  # new-data-div-2 hidden
         True,  # make-snapshot-button hidden
         False,  # how-to-edit-alert NOT hidden
         False,  # row NOT deletable
+        False,  # filter-inst NOT disabled
+        "",
     )
 
 

@@ -29,6 +29,16 @@
 /*------------------------------------------------------------------------------------*/
 /* Site Title */
 
+.title-container {
+    flex-basis: 50%;
+    margin-left: 3rem;
+}
+
+.login-container {
+    flex-basis: 50%;
+    justify-content: flex-end;
+}
+
 .mou-title {
     font-family: Sarpanch, sans-serif;
     font-weight: bold;
