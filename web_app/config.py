@@ -31,6 +31,7 @@ server.config.update(SECRET_KEY=os.urandom(12))
 
 
 # Setup the LoginManager for the server
+# NOTE: https://github.com/RafaelMiquelino/dash-flask-login
 login_manager = LoginManager()
 login_manager.init_app(server)
 
