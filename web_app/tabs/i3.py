@@ -473,14 +473,14 @@ def layout() -> html.Div:
                 justify="center",
                 style={"margin-top": "15px"},
             ),
-            # Dummy Label -- for communicating when table was last updated by an exterior control
+            # Data Store -- for communicating when table was last updated by an exterior control
             # NOTE: If table_data_exterior_controls() is called, then
             # NOTE:    table_data_interior_controls() is called next b/c table.data changes.
             # NOTE: A timestamp is the best way of stopping table_data_interior_controls().
             # NOTE:    A simple flag wouldn't work b/c table_data_interior_controls()
             # NOTE:    couldn't de-flag it (label can't be in multiple outputs).
-            html.Label(
-                "", id="tab-1-table-exterior-control-timestamp-dummy-label", hidden=True
+            dcc.Store(
+                id="tab-1-table-exterior-control-last-timestamp", storage_type="memory",
             ),
             # Dummy Divs -- for adding dynamic toasts, dialogs, etc.
             html.Div(id="tab-1-toast-A"),
@@ -573,7 +573,7 @@ def _get_table(
         Output("tab-1-data-table", "data"),
         Output("tab-1-data-table", "active_cell"),
         Output("tab-1-data-table", "page_current"),
-        Output("tab-1-table-exterior-control-timestamp-dummy-label", "children"),
+        Output("tab-1-table-exterior-control-last-timestamp", "data"),
         Output("tab-1-toast-A", "children"),
         Output("tab-1-show-totals-button", "children"),
         Output("tab-1-show-totals-button", "color"),
@@ -718,7 +718,7 @@ def _delete_deleted_records(
     [Input("tab-1-data-table", "data")],
     [
         State("tab-1-data-table", "data_previous"),
-        State("tab-1-table-exterior-control-timestamp-dummy-label", "children"),
+        State("tab-1-table-exterior-control-last-timestamp", "data"),
     ],
 )
 def table_data_interior_controls(
