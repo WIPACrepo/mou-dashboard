@@ -55,8 +55,18 @@ def add_on_the_fly_fields(record: Record) -> Record:
     return record
 
 
-def get_total_rows(table: Table) -> Table:
-    """Calculate rows with totals of each category (cascadingly)."""
+def get_total_rows(table: Table, only_totals_w_data: bool = False) -> Table:
+    """Calculate rows with totals of each category (cascadingly).
+
+    Arguments:
+        table {Table} -- table with records (only read)
+
+    Keyword Arguments:
+        only_totals_w_data {bool} -- exclude totals that only have 0s (default: {False})
+
+    Returns:
+        Table -- a new table of rows with totals
+    """
     totals: Table = []
 
     def grab_a_total(  # pylint: disable=C0103
@@ -151,6 +161,10 @@ def get_total_rows(table: Table) -> Table:
                 tc.GRAND_TOTAL: grab_a_total(l2=l2_cat),
             }
         )
+
+    # filter out rows with just 0s
+    if only_totals_w_data:
+        totals = [r for r in totals if r[tc.GRAND_TOTAL] != 0]
 
     # Grand Total
     totals.append(

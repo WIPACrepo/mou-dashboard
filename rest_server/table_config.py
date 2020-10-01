@@ -274,7 +274,7 @@ def get_border_left_columns() -> List[str]:
 
 def get_page_size() -> int:
     """Get page size."""
-    return 15
+    return 17
 
 
 def get_on_the_fly_fields() -> List[str]:
