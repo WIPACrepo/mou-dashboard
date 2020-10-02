@@ -60,7 +60,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
     },
     WBS_L3: {
         "width": 300,
-        "conditional_parent": "WBS_L2",
+        "conditional_parent": WBS_L2,
         "conditional_options": {
             "2.1 Program Coordination": [
                 "2.1.0 Program Coordination",
