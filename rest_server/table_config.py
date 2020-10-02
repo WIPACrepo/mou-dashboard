@@ -35,7 +35,7 @@ class _ColumnConfigTypedDict(TypedDict, total=False):
     non_editable: bool
     hidden: bool
     options: List[str]
-    sort_order: int
+    sort_value: int
     conditional_parent: str
     conditional_options: Dict[str, List[str]]
     border_left: bool
@@ -56,7 +56,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
             "2.5 Software",
             "2.6 Calibration",
         ],
-        "sort_order": 1,
+        "sort_value": 70,
     },
     WBS_L3: {
         "width": 300,
@@ -109,7 +109,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
                 "2.6.2 Ice Properties",
             ],
         },
-        "sort_order": 2,
+        "sort_value": 60,
     },
     US_NON_US: {
         "width": 100,
@@ -117,20 +117,20 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "hidden": True,
         "border_left": True,
         "on_the_fly": True,
-        "sort_order": 3,
+        "sort_value": 50,
     },
     INSTITUTION: {
         "width": 140,
         "options": sorted(set(inst["abbreviation"] for inst in ICECUBE_INSTS.values())),
         "border_left": True,
-        "sort_order": 4,
+        "sort_value": 40,
     },
     LABOR_CAT: {
         "width": 125,
         "options": ["AD", "CS", "DS", "EN", "GR", "IT", "KE", "MA", "PO", "SC", "WO"],
-        "sort_order": 5,
+        "sort_value": 30,
     },
-    _NAMES: {"width": 150, "sort_order": 6},
+    _NAMES: {"width": 150, "sort_value": 20},
     _TASKS: {"width": 300},
     SOURCE_OF_FUNDS_US_ONLY: {
         "width": 185,
@@ -140,7 +140,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
             NON_US: [NON_US_IN_KIND],
         },
         "border_left": True,
-        "sort_order": 7,
+        "sort_value": 10,
     },
     FTE: {"width": 90, "numeric": True},
     TOTAL_COL: {
@@ -296,11 +296,13 @@ def sort_key(  # pylint: disable=C0103
     sort_keys: List[Union[int, float, str]] = []
 
     column_orders = {
-        col: config["sort_order"]
+        col: config["sort_value"]
         for col, config in _COLUMN_CONFIGS.items()
-        if "sort_order" in config
+        if "sort_value" in config
     }
-    columns_by_precedence = sorted(column_orders.keys(), key=lambda x: column_orders[x])
+    columns_by_precedence = sorted(
+        column_orders.keys(), key=lambda x: column_orders[x], reverse=True
+    )
 
     for col in columns_by_precedence:
         sort_keys.append(k.get(col, "ZZZZ"))  # HACK: sort empty/missing values last
