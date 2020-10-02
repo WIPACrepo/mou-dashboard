@@ -126,7 +126,7 @@ class TableConfigParser:
 
         columns: List[str]
         simple_dropdown_menus: Dict[str, List[str]]
-        institutions: List[str]
+        institutions: List[Tuple[str, str]]
         labor_categories: List[str]
         conditional_dropdown_menus: Dict[str, Tuple[str, Dict[str, List[str]]]]
         dropdowns: List[str]
@@ -154,15 +154,15 @@ class TableConfigParser:
 
     def get_simple_column_dropdown_menu(self, column: str) -> List[str]:
         """Return dropdown menu for a column."""
-        return self.config["simple_dropdown_menus"][column]
+        return sorted(self.config["simple_dropdown_menus"][column])
 
-    def get_institutions(self) -> List[str]:
-        """Return list of institutions."""
-        return self.config["institutions"]
+    def get_institutions_w_abbrevs(self) -> List[Tuple[str, str]]:
+        """Return list of institutions and their abbreviations."""
+        return sorted(self.config["institutions"], key=lambda k: k[1])
 
     def get_labor_categories(self) -> List[str]:
         """Return list of labors."""
-        return self.config["labor_categories"]
+        return sorted(self.config["labor_categories"])
 
     def is_column_dropdown(self, column: str) -> bool:
         """Return  whether column is a dropdown-type."""

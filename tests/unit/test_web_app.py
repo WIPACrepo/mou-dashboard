@@ -245,7 +245,7 @@ class TestDataSource:
 
         # no-argument methods
         assert table_config.get_table_columns() == response["columns"]
-        assert table_config.get_institutions() == response["institutions"]
+        assert table_config.get_institutions_w_abbrevs() == response["institutions"]
         assert table_config.get_labor_categories() == response["labor_categories"]
         assert table_config.get_hidden_columns() == response["hiddens"]
         assert table_config.get_dropdown_columns() == response["dropdowns"]

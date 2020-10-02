@@ -276,8 +276,8 @@ def layout() -> html.Div:
                             dcc.Dropdown(
                                 id="tab-1-filter-inst",
                                 options=[
-                                    {"label": st, "value": st}
-                                    for st in tconfig.get_institutions()
+                                    {"label": f"{abbrev} ({name})", "value": abbrev}
+                                    for name, abbrev in tconfig.get_institutions_w_abbrevs()
                                 ],
                                 value="",
                                 # multi=True

@@ -121,15 +121,13 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
     },
     INSTITUTION: {
         "width": 140,
-        "options": sorted(inst["abbreviation"] for inst in ICECUBE_INSTS.values()),
+        "options": sorted(set(inst["abbreviation"] for inst in ICECUBE_INSTS.values())),
         "border_left": True,
         "sort_order": 4,
     },
     LABOR_CAT: {
         "width": 125,
-        "options": sorted(
-            ["AD", "CS", "DS", "EN", "GR", "IT", "KE", "MA", "PO", "SC", "WO"]
-        ),
+        "options": ["AD", "CS", "DS", "EN", "GR", "IT", "KE", "MA", "PO", "SC", "WO"],
         "sort_order": 5,
     },
     _NAMES: {"width": 150, "sort_order": 6},
@@ -200,9 +198,18 @@ def get_columns() -> List[str]:
     return list(_COLUMN_CONFIGS.keys())
 
 
-def get_institutions() -> List[str]:
-    """Get the institutions."""
-    return _COLUMN_CONFIGS[INSTITUTION]["options"]
+def get_institutions_and_abbrevs() -> List[Tuple[str, str]]:
+    """Get the institutions and their abbreviations."""
+    abbrevs: Dict[str, str] = {}
+    for inst, val in ICECUBE_INSTS.items():
+        # for institutions with the same abbreviation (aka different departments)
+        # append their name
+        if val["abbreviation"] in abbrevs:
+            abbrevs[val["abbreviation"]] = f"{abbrevs[val['abbreviation']]} / {inst}"
+        else:
+            abbrevs[val["abbreviation"]] = inst
+
+    return [(name, abbrev) for abbrev, name in abbrevs.items()]
 
 
 def get_labor_cats() -> List[str]:
