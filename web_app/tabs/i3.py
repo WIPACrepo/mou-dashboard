@@ -1,5 +1,6 @@
 """Conditional in-cell drop-down menu with IceCube WBS MoU info."""
 
+
 from typing import cast, Collection, Dict, List, Optional, Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
@@ -276,7 +277,7 @@ def layout() -> html.Div:
             ####
             # Sign-In Alert
             dbc.Alert(
-                "- sign in to edit -",
+                "- log in to edit -",
                 id="tab-1-how-to-edit-alert",
                 style={
                     "fontWeight": "bold",
@@ -592,7 +593,7 @@ def table_data_exterior_controls(
     toast: dbc.Toast = None
 
     # focus on first cell, but not on page load
-    if util.triggered_id() in [
+    if current_user.is_authenticated and util.triggered_id() in [
         "tab-1-filter-inst",
         "tab-1-filter-labor",
         "tab-1-new-data-button",
@@ -876,15 +877,10 @@ def make_snapshot(_: int) -> dcc.ConfirmDialog:
     ],
     [Input("tab-1-viewing-snapshot-alert", "is_open"), Input("logout-div", "hidden")],
 )
-def sign_in(
+def log_in_change(
     viewing_snapshot: bool, _: bool,
 ) -> Tuple[bool, bool, bool, bool, bool, bool, bool, str]:
     """Logged-in callback."""
-    username, institution = "", ""
-    if current_user.is_authenticated:
-        username = current_user.username
-        institution = current_user.institution
-
     if viewing_snapshot:
         return (
             False,  # data-table NOT editable
@@ -894,10 +890,10 @@ def sign_in(
             True,  # how-to-edit-alert hidden
             False,  # row NOT deletable
             True,  # filter-inst disabled
-            institution,
+            current_user.institution if current_user.is_authenticated else "",
         )
 
-    if username:
+    if current_user.is_authenticated:
         return (
             True,  # data-table editable
             False,  # new-data-div-1 NOT hidden
@@ -906,7 +902,7 @@ def sign_in(
             True,  # how-to-edit-alert hidden
             True,  # row is deletable
             True,  # filter-inst disabled
-            institution,
+            current_user.institution,
         )
     return (
         False,  # data-table NOT editable

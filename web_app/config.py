@@ -37,32 +37,53 @@ login_manager.init_app(server)
 
 
 # Create User class with UserMixin
-# class User(UserMixin, base):
 class User(UserMixin):  # type: ignore[misc]
     """User log-in manager."""
 
     def __init__(self) -> None:
-        self.id: Optional[int] = None  # pylint: disable=C0103
-        self.username = ""
+        self.id = ""  # pylint: disable=C0103
+        self.name = ""
         self.email = ""
-        # self.password = ''
         self.institution = ""
 
     @staticmethod
-    def login(username: str, password: str) -> "User":
-        # TODO: look up user w/ password
+    def lookup_user(email: str) -> "User":
+        """Look-up user by their email."""
         user = User()
-        user.id = 1
-        user.username = "ric"
-        user.email = "UW"
-        # user.password = "UW"
+        # TODO: look up leader info
+        user.id = email
+        user.name = "Ric Evans"
+        user.email = email
         user.institution = "UW"
         return user
+
+    @staticmethod
+    def _ldap_login(email: str, pwd: str) -> bool:
+        # TODO: look up user w/ password
+        if email == "ric@mail" and pwd == "pwd":
+            return True
+        return False
+
+    @staticmethod
+    def login(email: str, pwd: str) -> Optional["User"]:
+        """Login user, return User object if successful."""
+        if User._ldap_login(email, pwd):
+            logging.info(f"Login: {email} | {pwd}")
+            return User.lookup_user(email)
+
+        logging.info(f"Bad login: {email} | {pwd}")
+        return None
 
 
 @login_manager.user_loader  # type: ignore[misc]
 def load_user(user_id: str) -> UserMixin:
-    """Callback to reload the user object."""
+    """Reload the user object.
+
+    This is the end point for `current_user`.
+    """
+    logging.warning(f"Grabbing user {user_id}")
+    if user_id:
+        return User.lookup_user(user_id)
     return User()
 
 
