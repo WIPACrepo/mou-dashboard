@@ -212,8 +212,8 @@ class TestDataSource:
         response: data_source.TableConfigParser.Cache = {
             "columns": ["a", "b", "c", "d"],
             "simple_dropdown_menus": {"a": ["1", "2", "3"], "c": ["4", "44", "444"]},
-            "institutions": ["foo", "bar"],
-            "labor_categories": ["foobar", "baz"],
+            "institutions": sorted([("foo", "F"), ("bar", "B")]),
+            "labor_categories": sorted(["foobar", "baz"]),
             "conditional_dropdown_menus": {
                 "column1": (
                     "parent_of_1",

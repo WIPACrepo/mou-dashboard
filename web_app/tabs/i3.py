@@ -761,7 +761,7 @@ def table_data_interior_controls(
 @app.callback(  # type: ignore[misc]
     Output("tab-1-data-table", "columns"),
     [Input("tab-1-data-table", "editable")],
-    State("tab-1-table-config-cache", "data"),
+    [State("tab-1-table-config-cache", "data")],
 )
 def table_columns(
     table_editable: bool, tconfig_state: TableConfigParser.Cache
@@ -800,7 +800,7 @@ def table_columns(
         Output("tab-1-data-table", "dropdown_conditional"),
     ],
     [Input("tab-1-data-table", "editable")],
-    State("tab-1-table-config-cache", "data"),
+    [State("tab-1-table-config-cache", "data")],
 )
 def table_dropdown(
     _: bool, tconfig_state: TableConfigParser.Cache
@@ -970,7 +970,7 @@ def sign_in(
         Output("tab-1-data-table", "page_action"),
     ],
     [Input("tab-1-show-all-rows-button", "n_clicks")],
-    State("tab-1-table-config-cache", "data"),
+    [State("tab-1-table-config-cache", "data")],
 )
 def toggle_pagination(
     n_clicks: int, tconfig_state: TableConfigParser.Cache
@@ -991,7 +991,7 @@ def toggle_pagination(
         Output("tab-1-data-table", "hidden_columns"),
     ],
     [Input("tab-1-show-all-columns-button", "n_clicks")],
-    State("tab-1-table-config-cache", "data"),
+    [State("tab-1-table-config-cache", "data")],
 )
 def toggle_hidden_columns(
     n_clicks: int, tconfig_state: TableConfigParser.Cache
