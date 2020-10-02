@@ -209,7 +209,7 @@ class TestDataSource:
     def test_table_config(mock_rest: Any) -> None:
         """Test TableConfig()."""
         # nonsense data, but correctly typed
-        response: data_source.TableConfig._ResponseTypedDict = {
+        response: data_source.TableConfigParser.Cache = {
             "columns": ["a", "b", "c", "d"],
             "simple_dropdown_menus": {"a": ["1", "2", "3"], "c": ["4", "44", "444"]},
             "institutions": ["foo", "bar"],
@@ -235,7 +235,7 @@ class TestDataSource:
 
         # Call
         mock_rest.return_value.request_seq.return_value = response
-        table_config = data_source.TableConfig()
+        table_config = data_source.TableConfigParser()
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
@@ -307,7 +307,7 @@ class TestDataSource:
         for col, wid in response["widths"].items():
             assert table_config.get_column_width(col) == wid
         mock_rest.return_value.request_seq.return_value = {}
-        table_config = data_source.TableConfig()
+        table_config = data_source.TableConfigParser()
         for col, wid in response["widths"].items():
             default = (
                 inspect.signature(table_config.get_column_width)

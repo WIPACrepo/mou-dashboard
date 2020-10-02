@@ -34,11 +34,18 @@ def _request(method: str, url: str, body: Any = None) -> Dict[str, Any]:
 
     response = _ds_rest_connection().request_seq(method, url, body)
 
-    resp_log = [
-        f"{k}:{str(type(v).__name__)}({len(v) if isinstance(v, (dict, list)) else v})"
-        for k, v in response.items()
-    ]
-    logging.info(f"RESPONSE :: {method} @ {url}, body: {body} -> {resp_log}")
+    def log_it(key: str, val: Any) -> Any:
+        if key == "table":
+            return f"{len(val)} records"
+        if isinstance(val, dict):
+            return val.keys()
+        return val
+
+    logging.info(f"RESPONSE ({method} @ {url}, body: {body}) ::")
+    for key, val in response.items():
+        logging.info(f"> {key}")
+        logging.debug(f"-> {str(type(val).__name__)}")
+        logging.debug(f"-> {log_it(key, val)}")
     return cast(Dict[str, Any], response)
 
 
@@ -111,10 +118,10 @@ def create_snapshot() -> str:
 # Column functions
 
 
-class TableConfig:
+class TableConfigParser:
     """Manage caching and parsing responses from '/table/config'."""
 
-    class _ResponseTypedDict(TypedDict):
+    class Cache(TypedDict):
         """The response dict from '/table/config'."""
 
         columns: List[str]
@@ -130,13 +137,16 @@ class TableConfig:
         border_left_columns: List[str]
         page_size: int
 
-    def __init__(self) -> None:
+    def __init__(self, cached_table_config: Optional[Cache] = None) -> None:
         """Return the dictionary of table configurations.
 
         Use the parser functions to access configurations.
         """
-        response = _request("GET", "/table/config")
-        self.config = cast(TableConfig._ResponseTypedDict, response)
+        if cached_table_config:
+            self.config = cached_table_config
+        else:
+            response = _request("GET", "/table/config")
+            self.config = cast(TableConfigParser.Cache, response)
 
     def get_table_columns(self) -> List[str]:
         """Return table column's names."""
