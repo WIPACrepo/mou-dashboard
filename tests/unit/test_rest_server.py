@@ -100,7 +100,8 @@ class TestDBUtils:  # pylint: disable=R0904
             assert db_utils.MoUMotorClient._demongofy_key_name(key) == dkey
 
     @staticmethod
-    def test_mongofy_record() -> None:
+    @patch(MOU_MOTOR_CLIENT + "._validate_record_data")
+    def test_mongofy_record(mock_vrd: Any) -> None:
         """Test _mongofy_record()."""
         # Set-Up
         records: List[types.Record] = [
@@ -114,6 +115,7 @@ class TestDBUtils:  # pylint: disable=R0904
             {"a;b": 5, "Foo;Bar": "Baz"},
             {"_id": ObjectId("5f725c6af0803660075769ab"), "FOO": "bar"},
         ]
+        mock_vrd.side_effect = None
 
         # Call & Assert
         for record, mrecord in zip(records, mongofied_records):

@@ -39,6 +39,29 @@ class MoUMotorClient:
         _run(self._ensure_all_databases_indexes())
 
     @staticmethod
+    def _validate_record_data(record: Record) -> None:
+        """Check that each value in a dropdown-type column is valid.
+
+        If not, raise Exception.
+        """
+        categories = {}
+        for col, opts in tc.get_simple_dropdown_menus().items():
+            categories[col] = opts
+        for col, conditions in tc.get_conditional_dropdown_menus().items():
+            categories[col] = [opt for menu in conditions[1].values() for opt in menu]
+
+        logging.debug(record)
+        for cat, options in categories.items():
+            try:
+                # assume record is demongofied
+                if record[cat] in options:
+                    continue
+            except KeyError:
+                if record[MoUMotorClient._mongofy_key_name(cat)] in options:
+                    continue
+            raise Exception(f"Invalid Data: column={cat} {record}")
+
+    @staticmethod
     def _mongofy_key_name(key: str) -> str:
         return key.replace(".", ";")
 
@@ -47,7 +70,11 @@ class MoUMotorClient:
         return key.replace(";", ".")
 
     @staticmethod
-    def _mongofy_record(record: Record) -> Record:
+    def _mongofy_record(record: Record, assert_data: bool = True) -> Record:
+        # assert data is valid
+        if assert_data:
+            MoUMotorClient._validate_record_data(record)
+        # mongofy key names
         for key in list(record.keys()):
             record[MoUMotorClient._mongofy_key_name(key)] = record.pop(key)
         # cast ID
