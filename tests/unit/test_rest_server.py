@@ -100,7 +100,8 @@ class TestDBUtils:  # pylint: disable=R0904
             assert db_utils.MoUMotorClient._demongofy_key_name(key) == dkey
 
     @staticmethod
-    def test_mongofy_record() -> None:
+    @patch(MOU_MOTOR_CLIENT + "._validate_record_data")
+    def test_mongofy_record(mock_vrd: Any) -> None:
         """Test _mongofy_record()."""
         # Set-Up
         records: List[types.Record] = [
@@ -114,6 +115,7 @@ class TestDBUtils:  # pylint: disable=R0904
             {"a;b": 5, "Foo;Bar": "Baz"},
             {"_id": ObjectId("5f725c6af0803660075769ab"), "FOO": "bar"},
         ]
+        mock_vrd.side_effect = None
 
         # Call & Assert
         for record, mrecord in zip(records, mongofied_records):
@@ -149,20 +151,20 @@ class TestDBUtils:  # pylint: disable=R0904
 
     @staticmethod
     @pytest.mark.asyncio  # type: ignore[misc]
-    @patch(MOU_MOTOR_CLIENT + "._create_collection")
-    async def test_create_live_collection(mock_cc: Any, mock_mongo: Any) -> None:
+    @patch(MOU_MOTOR_CLIENT + "._ingest_new_collection")
+    async def test_create_live_collection(mock_inc: Any, mock_mongo: Any) -> None:
         """Test _create_live_collection()."""
         # Mock
         db_utils._LIVE_COLLECTION = sentinel.live_collection
-        mock_cc.return_value = AsyncMock()
-        mock_cc.insert_many.side_effect = AsyncMock()
+        mock_inc.return_value = AsyncMock()
+        mock_inc.insert_many.side_effect = AsyncMock()
 
         # Call
         moumc = db_utils.MoUMotorClient(mock_mongo)
         await moumc._create_live_collection(MagicMock())
 
         # Assert
-        mock_cc.assert_called_with(sentinel.live_collection)
+        mock_inc.assert_called_with(sentinel.live_collection, ANY)
 
     @staticmethod
     @pytest.mark.asyncio  # type: ignore[misc]
@@ -313,35 +315,40 @@ class TestDBUtils:  # pylint: disable=R0904
     @pytest.mark.asyncio  # type: ignore[misc]
     @patch(MOU_MOTOR_CLIENT + "._get_db")
     @patch(MOU_MOTOR_CLIENT + "._ensure_collection_indexes")
-    async def test_create_collection(
-        mock_eci: Any, mock_gdb: Any, mock_mongo: Any
+    @patch(MOU_MOTOR_CLIENT + "._mongofy_record")
+    async def test_ingest_new_collection(
+        mock_mr: Any, mock_eci: Any, mock_gdb: Any, mock_mongo: Any
     ) -> None:
-        """Test _create_collection()."""
+        """Test _ingest_new_collection()."""
         # Mock
-        mock_gdb.return_value.__getitem__.return_value = sentinel.coll_obj
+        mock_gdb.return_value.__getitem__.return_value.insert_many.side_effect = (
+            AsyncMock()
+        )
         moumc = db_utils.MoUMotorClient(mock_mongo)
+        mock_mr.return_value = [ANY, ANY]
 
         # Call
-        ret = await moumc._create_collection(ANY)
+        await moumc._ingest_new_collection(MagicMock(), [ANY, ANY])
 
         # Assert
-        assert ret == sentinel.coll_obj
+        pass  # pylint: disable=W0107
 
         # test w/ Error
         # Mock
         reset_mock(mock_gdb, mock_mongo)
         mock_gdb.return_value.__getitem__.side_effect = KeyError
-        mock_gdb.return_value.create_collection.return_value = sentinel.coll_obj
+        mock_gdb.return_value.create_collection.return_value.insert_many.side_effect = (
+            AsyncMock()
+        )
         mock_eci.side_effect = AsyncMock()
         moumc = db_utils.MoUMotorClient(mock_mongo)
 
         # Call
-        ret = await moumc._create_collection(sentinel.coll)
+        await moumc._ingest_new_collection(sentinel.coll, [ANY, ANY])
 
         # Assert
         mock_gdb.return_value.create_collection.assert_called_once_with(sentinel.coll)
         mock_eci.assert_awaited_once_with(sentinel.coll, ANY)
-        assert ret == sentinel.coll_obj
 
     @staticmethod
     @pytest.mark.asyncio  # type: ignore[misc]

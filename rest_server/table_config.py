@@ -35,7 +35,7 @@ class _ColumnConfigTypedDict(TypedDict, total=False):
     non_editable: bool
     hidden: bool
     options: List[str]
-    sort_order: int
+    sort_value: int
     conditional_parent: str
     conditional_options: Dict[str, List[str]]
     border_left: bool
@@ -56,11 +56,11 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
             "2.5 Software",
             "2.6 Calibration",
         ],
-        "sort_order": 1,
+        "sort_value": 70,
     },
     WBS_L3: {
         "width": 300,
-        "conditional_parent": "WBS_L2",
+        "conditional_parent": WBS_L2,
         "conditional_options": {
             "2.1 Program Coordination": [
                 "2.1.0 Program Coordination",
@@ -109,7 +109,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
                 "2.6.2 Ice Properties",
             ],
         },
-        "sort_order": 2,
+        "sort_value": 60,
     },
     US_NON_US: {
         "width": 100,
@@ -117,22 +117,20 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "hidden": True,
         "border_left": True,
         "on_the_fly": True,
-        "sort_order": 3,
+        "sort_value": 50,
     },
     INSTITUTION: {
         "width": 140,
-        "options": sorted(inst["abbreviation"] for inst in ICECUBE_INSTS.values()),
+        "options": sorted(set(inst["abbreviation"] for inst in ICECUBE_INSTS.values())),
         "border_left": True,
-        "sort_order": 4,
+        "sort_value": 40,
     },
     LABOR_CAT: {
         "width": 125,
-        "options": sorted(
-            ["AD", "CS", "DS", "EN", "GR", "IT", "KE", "MA", "PO", "SC", "WO"]
-        ),
-        "sort_order": 5,
+        "options": ["AD", "CS", "DS", "EN", "GR", "IT", "KE", "MA", "PO", "SC", "WO"],
+        "sort_value": 30,
     },
-    _NAMES: {"width": 150, "sort_order": 6},
+    _NAMES: {"width": 150, "sort_value": 20},
     _TASKS: {"width": 300},
     SOURCE_OF_FUNDS_US_ONLY: {
         "width": 185,
@@ -142,7 +140,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
             NON_US: [NON_US_IN_KIND],
         },
         "border_left": True,
-        "sort_order": 7,
+        "sort_value": 10,
     },
     FTE: {"width": 90, "numeric": True},
     TOTAL_COL: {
@@ -200,9 +198,18 @@ def get_columns() -> List[str]:
     return list(_COLUMN_CONFIGS.keys())
 
 
-def get_institutions() -> List[str]:
-    """Get the institutions."""
-    return _COLUMN_CONFIGS[INSTITUTION]["options"]
+def get_institutions_and_abbrevs() -> List[Tuple[str, str]]:
+    """Get the institutions and their abbreviations."""
+    abbrevs: Dict[str, str] = {}
+    for inst, val in ICECUBE_INSTS.items():
+        # for institutions with the same abbreviation (aka different departments)
+        # append their name
+        if val["abbreviation"] in abbrevs:
+            abbrevs[val["abbreviation"]] = f"{abbrevs[val['abbreviation']]} / {inst}"
+        else:
+            abbrevs[val["abbreviation"]] = inst
+
+    return [(name, abbrev) for abbrev, name in abbrevs.items()]
 
 
 def get_labor_cats() -> List[str]:
@@ -274,7 +281,7 @@ def get_border_left_columns() -> List[str]:
 
 def get_page_size() -> int:
     """Get page size."""
-    return 15
+    return 17
 
 
 def get_on_the_fly_fields() -> List[str]:
@@ -289,11 +296,13 @@ def sort_key(  # pylint: disable=C0103
     sort_keys: List[Union[int, float, str]] = []
 
     column_orders = {
-        col: config["sort_order"]
+        col: config["sort_value"]
         for col, config in _COLUMN_CONFIGS.items()
-        if "sort_order" in config
+        if "sort_value" in config
     }
-    columns_by_precedence = sorted(column_orders.keys(), key=lambda x: column_orders[x])
+    columns_by_precedence = sorted(
+        column_orders.keys(), key=lambda x: column_orders[x], reverse=True
+    )
 
     for col in columns_by_precedence:
         sort_keys.append(k.get(col, "ZZZZ"))  # HACK: sort empty/missing values last

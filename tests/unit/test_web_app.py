@@ -209,11 +209,11 @@ class TestDataSource:
     def test_table_config(mock_rest: Any) -> None:
         """Test TableConfig()."""
         # nonsense data, but correctly typed
-        response: data_source.TableConfig._ResponseTypedDict = {
+        response: data_source.TableConfigParser.Cache = {
             "columns": ["a", "b", "c", "d"],
             "simple_dropdown_menus": {"a": ["1", "2", "3"], "c": ["4", "44", "444"]},
-            "institutions": ["foo", "bar"],
-            "labor_categories": ["foobar", "baz"],
+            "institutions": sorted([("foo", "F"), ("bar", "B")]),
+            "labor_categories": sorted(["foobar", "baz"]),
             "conditional_dropdown_menus": {
                 "column1": (
                     "parent_of_1",
@@ -235,7 +235,7 @@ class TestDataSource:
 
         # Call
         mock_rest.return_value.request_seq.return_value = response
-        table_config = data_source.TableConfig()
+        table_config = data_source.TableConfigParser()
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
@@ -245,7 +245,7 @@ class TestDataSource:
 
         # no-argument methods
         assert table_config.get_table_columns() == response["columns"]
-        assert table_config.get_institutions() == response["institutions"]
+        assert table_config.get_institutions_w_abbrevs() == response["institutions"]
         assert table_config.get_labor_categories() == response["labor_categories"]
         assert table_config.get_hidden_columns() == response["hiddens"]
         assert table_config.get_dropdown_columns() == response["dropdowns"]
@@ -307,7 +307,7 @@ class TestDataSource:
         for col, wid in response["widths"].items():
             assert table_config.get_column_width(col) == wid
         mock_rest.return_value.request_seq.return_value = {}
-        table_config = data_source.TableConfig()
+        table_config = data_source.TableConfigParser()
         for col, wid in response["widths"].items():
             default = (
                 inspect.signature(table_config.get_column_width)

@@ -14,7 +14,7 @@ from ..config import app
 from ..utils import dash_utils as util
 from ..utils import data_source as src
 from ..utils.dash_utils import Color
-from ..utils.data_source import TableConfig
+from ..utils.data_source import TableConfigParser
 from ..utils.types import (
     DataEntry,
     Record,
@@ -68,7 +68,9 @@ def _style_cell_conditional_fixed_width(
     return style
 
 
-def _style_cell_conditional(tconfig: TableConfig) -> List[Dict[str, Collection[str]]]:
+def _style_cell_conditional(
+    tconfig: TableConfigParser,
+) -> List[Dict[str, Collection[str]]]:
     style_cell_conditional = []
 
     for col_name in tconfig.get_table_columns():
@@ -86,7 +88,7 @@ def _style_cell_conditional(tconfig: TableConfig) -> List[Dict[str, Collection[s
     return style_cell_conditional
 
 
-def _get_style_data_conditional(tconfig: TableConfig) -> TSDCond:
+def _get_style_data_conditional(tconfig: TableConfigParser) -> TSDCond:
     """Style Data..."""
     # zebra-stripe
     style_data_conditional = [
@@ -227,7 +229,7 @@ def _snapshot_modal() -> dbc.Modal:
 
 def layout() -> html.Div:
     """Construct the HTML."""
-    tconfig = TableConfig()
+    tconfig = TableConfigParser()  # get fresh table config
 
     return html.Div(
         children=[
@@ -244,8 +246,8 @@ def layout() -> html.Div:
                             dcc.Dropdown(
                                 id="tab-1-filter-inst",
                                 options=[
-                                    {"label": st, "value": st}
-                                    for st in tconfig.get_institutions()
+                                    {"label": f"{abbrev} ({name})", "value": abbrev}
+                                    for name, abbrev in tconfig.get_institutions_w_abbrevs()
                                 ],
                                 value="",
                                 # multi=True
@@ -444,19 +446,24 @@ def layout() -> html.Div:
                 justify="center",
                 style={"margin-top": "15px"},
             ),
-            # Dummy Label -- for communicating when table was last updated by an exterior control
-            # NOTE: If table_data_exterior_controls() is called, then
-            # NOTE:    table_data_interior_controls() is called next b/c table.data changes.
-            # NOTE: A timestamp is the best way of stopping table_data_interior_controls().
-            # NOTE:    A simple flag wouldn't work b/c table_data_interior_controls()
-            # NOTE:    couldn't de-flag it (label can't be in multiple outputs).
-            html.Label(
-                "", id="tab-1-table-exterior-control-timestamp-dummy-label", hidden=True
+            #
+            # Data Stores aka Cookies
+            # - for communicating when table was last updated by an exterior control
+            dcc.Store(
+                id="tab-1-table-exterior-control-last-timestamp", storage_type="memory",
             ),
+            # - for caching the table config, to limit REST calls
+            dcc.Store(
+                id="tab-1-table-config-cache",
+                storage_type="memory",
+                data=tconfig.config,
+            ),
+            #
             # Dummy Divs -- for adding dynamic toasts, dialogs, etc.
             html.Div(id="tab-1-toast-A"),
             html.Div(id="tab-1-toast-B"),
             html.Div(id="tab-1-toast-C"),
+            #
             # Modals & Toasts
             _snapshot_modal(),
             _deletion_toast(),
@@ -544,7 +551,7 @@ def _get_table(
         Output("tab-1-data-table", "data"),
         Output("tab-1-data-table", "active_cell"),
         Output("tab-1-data-table", "page_current"),
-        Output("tab-1-table-exterior-control-timestamp-dummy-label", "children"),
+        Output("tab-1-table-exterior-control-last-timestamp", "data"),
         Output("tab-1-toast-A", "children"),
         Output("tab-1-show-totals-button", "children"),
         Output("tab-1-show-totals-button", "color"),
@@ -689,7 +696,7 @@ def _delete_deleted_records(
     [Input("tab-1-data-table", "data")],
     [
         State("tab-1-data-table", "data_previous"),
-        State("tab-1-table-exterior-control-timestamp-dummy-label", "children"),
+        State("tab-1-table-exterior-control-last-timestamp", "data"),
     ],
 )
 def table_data_interior_controls(
@@ -723,11 +730,15 @@ def table_data_interior_controls(
 
 
 @app.callback(  # type: ignore[misc]
-    Output("tab-1-data-table", "columns"), [Input("tab-1-data-table", "editable")],
+    Output("tab-1-data-table", "columns"),
+    [Input("tab-1-data-table", "editable")],
+    [State("tab-1-table-config-cache", "data")],
 )
-def table_columns(table_editable: bool) -> List[Dict[str, object]]:
+def table_columns(
+    table_editable: bool, tconfig_state: TableConfigParser.Cache
+) -> List[Dict[str, object]]:
     """Grab table columns."""
-    tconfig = TableConfig()
+    tconfig = TableConfigParser(tconfig_state)
 
     def _presentation(col_name: str) -> str:
         if tconfig.is_column_dropdown(col_name):
@@ -760,12 +771,15 @@ def table_columns(table_editable: bool) -> List[Dict[str, object]]:
         Output("tab-1-data-table", "dropdown_conditional"),
     ],
     [Input("tab-1-data-table", "editable")],
+    [State("tab-1-table-config-cache", "data")],
 )
-def table_dropdown(_: bool) -> Tuple[TDDown, TDDownCond]:
+def table_dropdown(
+    _: bool, tconfig_state: TableConfigParser.Cache
+) -> Tuple[TDDown, TDDownCond]:
     """Grab table dropdowns."""
     simple_dropdowns: TDDown = {}
     conditional_dropdowns: TDDownCond = []
-    tconfig = TableConfig()
+    tconfig = TableConfigParser(tconfig_state)
 
     def _options(menu: List[str]) -> List[Dict[str, str]]:
         return [{"label": m, "value": m} for m in menu]
@@ -925,11 +939,14 @@ def log_in_change(
         Output("tab-1-data-table", "page_action"),
     ],
     [Input("tab-1-show-all-rows-button", "n_clicks")],
+    [State("tab-1-table-config-cache", "data")],
 )
-def toggle_pagination(n_clicks: int) -> Tuple[str, str, bool, int, str]:
+def toggle_pagination(
+    n_clicks: int, tconfig_state: TableConfigParser.Cache
+) -> Tuple[str, str, bool, int, str]:
     """Toggle whether the table is paginated."""
     if n_clicks % 2 == 0:
-        tconfig = TableConfig()
+        tconfig = TableConfigParser(tconfig_state)
         return "Show All Rows", Color.SECONDARY, True, tconfig.get_page_size(), "native"
     # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
     return "Collapse Rows to Pages", Color.DARK, False, 9999999999, "none"
@@ -943,10 +960,18 @@ def toggle_pagination(n_clicks: int) -> Tuple[str, str, bool, int, str]:
         Output("tab-1-data-table", "hidden_columns"),
     ],
     [Input("tab-1-show-all-columns-button", "n_clicks")],
+    [State("tab-1-table-config-cache", "data")],
 )
-def toggle_hidden_columns(n_clicks: int) -> Tuple[str, str, bool, List[str]]:
+def toggle_hidden_columns(
+    n_clicks: int, tconfig_state: TableConfigParser.Cache
+) -> Tuple[str, str, bool, List[str]]:
     """Toggle hiding/showing the default hidden columns."""
     if n_clicks % 2 == 0:
-        tconfig = TableConfig()
-        return "Show All Columns", Color.SECONDARY, True, tconfig.get_hidden_columns()
+        tconfig = TableConfigParser(tconfig_state)
+        return (
+            "Show Hidden Columns",
+            Color.SECONDARY,
+            True,
+            tconfig.get_hidden_columns(),
+        )
     return "Show Default Columns", Color.DARK, False, []

@@ -39,6 +39,29 @@ class MoUMotorClient:
         _run(self._ensure_all_databases_indexes())
 
     @staticmethod
+    def _validate_record_data(record: Record) -> None:
+        """Check that each value in a dropdown-type column is valid.
+
+        If not, raise Exception.
+        """
+        categories = {}
+        for col, opts in tc.get_simple_dropdown_menus().items():
+            categories[col] = opts
+        for col, conditions in tc.get_conditional_dropdown_menus().items():
+            categories[col] = [opt for menu in conditions[1].values() for opt in menu]
+
+        logging.debug(record)
+        for cat, options in categories.items():
+            try:
+                # assume record is demongofied
+                if record[cat] in options:
+                    continue
+            except KeyError:
+                if record[MoUMotorClient._mongofy_key_name(cat)] in options:
+                    continue
+            raise Exception(f"Invalid Data: column={cat} {record}")
+
+    @staticmethod
     def _mongofy_key_name(key: str) -> str:
         return key.replace(".", ";")
 
@@ -47,7 +70,11 @@ class MoUMotorClient:
         return key.replace(";", ".")
 
     @staticmethod
-    def _mongofy_record(record: Record) -> Record:
+    def _mongofy_record(record: Record, assert_data: bool = True) -> Record:
+        # assert data is valid
+        if assert_data:
+            MoUMotorClient._validate_record_data(record)
+        # mongofy key names
         for key in list(record.keys()):
             record[MoUMotorClient._mongofy_key_name(key)] = record.pop(key)
         # cast ID
@@ -74,10 +101,7 @@ class MoUMotorClient:
     async def _create_live_collection(self, table: Table) -> None:
         """Create the live collection."""
         logging.debug("Creating Live Collection...")
-
-        coll_obj = await self._create_collection(_LIVE_COLLECTION)
-        await coll_obj.insert_many(table)
-
+        await self._ingest_new_collection(_LIVE_COLLECTION, table)
         logging.debug(f"Created Live Collection: {len(table)} records.")
 
     async def _ingest_xlsx(self, xlsx: str) -> str:
@@ -156,17 +180,23 @@ class MoUMotorClient:
         except KeyError:
             raise web.HTTPError(400, reason=f"collection not found ({collection})")
 
-    async def _create_collection(
-        self, collection: str, db: str = SNAPSHOTS_DB
-    ) -> MotorCollection:
-        """Return collection instance, if it doesn't exist, create it."""
+    async def _ingest_new_collection(
+        self, collection: str, table: Table, db: str = SNAPSHOTS_DB
+    ) -> None:
+        """Add table to a new collection.
+
+        If collection already exists, add more records.
+        """
+        # Create
         db_obj = self._get_db(db)
         try:
-            return db_obj[collection]
+            coll_obj = db_obj[collection]
         except KeyError:
             coll_obj = db_obj.create_collection(collection)
             await self._ensure_collection_indexes(collection, db)
-            return coll_obj
+
+        # Ingest
+        await coll_obj.insert_many([self._mongofy_record(r) for r in table])
 
     async def _ensure_collection_indexes(
         self, collection: str, db: str = SNAPSHOTS_DB
@@ -221,6 +251,7 @@ class MoUMotorClient:
         logging.info(
             f"Table [{collection=}] ({institution=}, {labor=}) has {i} records (and {dels} deleted records)."
         )
+
         return table
 
     async def upsert_record(self, record: Record) -> Record:
@@ -259,11 +290,7 @@ class MoUMotorClient:
     async def _ingest_new_snapshot_collection(self, table: Table) -> str:
         """Create a collection by ingesting `table`."""
         collection = str(int(time.time()))
-        coll_obj = await self._create_collection(collection)
-
-        table = [self._mongofy_record(r) for r in table]
-
-        await coll_obj.insert_many(table)
+        await self._ingest_new_collection(collection, table)
 
         return collection
 

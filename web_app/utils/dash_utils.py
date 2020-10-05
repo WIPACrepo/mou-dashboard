@@ -1,6 +1,7 @@
 """Utility module for front-end Dash functions."""
 
 
+import logging
 import time
 from datetime import datetime as dt
 from datetime import timezone as tz
@@ -124,8 +125,8 @@ def was_recent(timestamp: str) -> bool:
     diff = float(get_now()) - float(timestamp)
 
     if diff < _RECENT_THRESHOLD:
-        print(f"RECENT EVENT ({diff})")
+        logging.debug(f"RECENT EVENT ({diff})")
         return True
 
-    print(f" not recent event ({diff})")
+    logging.debug(f"NOT RECENT EVENT ({diff})")
     return False
