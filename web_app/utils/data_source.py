@@ -19,7 +19,7 @@ ID = "_id"
 def _ds_rest_connection() -> RestClient:
     """Return REST Client connection object."""
     token_request_url = urljoin(
-        CONFIG["TOKEN_SERVER_URL"], f"token?scope={CONFIG['AUTH_PREFIX']}:web"
+        CONFIG["TOKEN_SERVER_URL"], f"token?scope={CONFIG['AUTH_PREFIX']}:write"
     )
     token_json = requests.get(token_request_url).json()
 

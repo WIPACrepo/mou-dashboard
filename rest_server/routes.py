@@ -135,7 +135,7 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
 
     ROUTE = r"/table/data$"
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["web"])  # type: ignore
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
         collection = self.get_argument("snapshot", "")
@@ -173,7 +173,7 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
 
     ROUTE = r"/record$"
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["web"])  # type: ignore
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def post(self) -> None:
         """Handle POST."""
         record = self.get_argument("record")
@@ -187,7 +187,7 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
 
         self.write({"record": record})
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["web"])  # type: ignore
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def delete(self) -> None:
         """Handle DELETE."""
         record = self.get_argument("record")
@@ -205,7 +205,7 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
 
     ROUTE = r"/table/config$"
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["web"])  # type: ignore
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
         # TODO: (goal) store timestamp and duration to cache most recent version from Smartsheet in DB
@@ -236,7 +236,7 @@ class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
 
     ROUTE = r"/snapshots/timestamps$"
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["web"])  # type: ignore
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
         snapshots = await self.dbms.list_snapshot_timestamps()
@@ -250,7 +250,7 @@ class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
 
     ROUTE = r"/snapshots/make$"
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["web"])  # type: ignore
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def post(self) -> None:
         """Handle POST."""
         snapshot = await self.dbms.snapshot_live_collection()
