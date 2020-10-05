@@ -1,7 +1,10 @@
 """Utility module for front-end Dash functions."""
 
 
+import logging
 import time
+from datetime import datetime as dt
+from datetime import timezone as tz
 from typing import cast, Final
 
 import dash  # type: ignore[import]
@@ -11,6 +14,19 @@ from .types import Record, Table
 # Constants
 _OC_SUFFIX: Final[str] = "_original"
 _RECENT_THRESHOLD: Final[float] = 1.0
+
+
+class Color:  # pylint: disable=R0903
+    """Dash Colors."""
+
+    PRIMARY = "primary"  # blue
+    SECONDARY = "secondary"  # gray
+    DARK = "dark"  # black
+    SUCCESS = "success"  # green
+    WARNING = "warning"  # yellow
+    DANGER = "danger"  # red
+    INFO = "info"  # teal
+    LIGHT = "light"  # gray on white
 
 
 # --------------------------------------------------------------------------------------
@@ -87,6 +103,19 @@ def get_now() -> str:
     return str(time.time())
 
 
+def get_human_time(timestamp: str) -> str:
+    """Get the given date and time with timezone, human-readable."""
+    datetime = dt.fromtimestamp(float(timestamp))
+    timezone = dt.now(tz.utc).astimezone().tzinfo
+
+    return f"{datetime.strftime('%Y-%m-%d %H:%M:%S')} {timezone}"
+
+
+def get_human_now() -> str:
+    """Get the current date and time with timezone, human-readable."""
+    return get_human_time(get_now())
+
+
 def was_recent(timestamp: str) -> bool:
     """Return whether the event last occurred w/in the `_FILTER_THRESHOLD`."""
     if not timestamp:
@@ -95,8 +124,8 @@ def was_recent(timestamp: str) -> bool:
     diff = float(get_now()) - float(timestamp)
 
     if diff < _RECENT_THRESHOLD:
-        print(f"RECENT EVENT ({diff})")
+        logging.debug(f"RECENT EVENT ({diff})")
         return True
 
-    print(f" not recent event ({diff})")
+    logging.debug(f"NOT RECENT EVENT ({diff})")
     return False

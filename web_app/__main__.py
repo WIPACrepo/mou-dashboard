@@ -3,19 +3,29 @@
 import argparse
 import logging
 
+import coloredlogs  # type: ignore[import]
+
 # local imports
-from web_app.config import app
+from web_app.config import app, CONFIG, log_config
 
 if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser(
-        description="Find files under PATH(s), compute their metadata and "
-        "upload it to File Catalog.",
-        epilog="Notes: (1) symbolic links are never followed.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    # Parse Args
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-p",
+        "--port",
+        type=int,
+        default=CONFIG["WEB_SERVER_PORT"],
+        help="port to bind",
     )
-    parser.add_argument("-p", "--port", type=int, default=8050, help="port to bind")
+    parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
     args = parser.parse_args()
 
-    logging.getLogger().setLevel(logging.INFO)
+    # Log
+    coloredlogs.install(level=getattr(logging, args.log.upper()))
+    log_config()
+    if args.port != CONFIG["WEB_SERVER_PORT"]:
+        logging.warning(f"USING PORT {args.port} (NOT {CONFIG['WEB_SERVER_PORT']})")
+
+    # Run Server
     app.run_server(debug=True, host="localhost", port=args.port)

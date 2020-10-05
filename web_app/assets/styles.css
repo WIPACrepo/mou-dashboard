@@ -1,11 +1,127 @@
+/* Custom & Overriding CSS */
 
 
 /*------------------------------------------------------------------------------------*/
-/* Dropdown Menus */
+/* General/Misc. */
+
+.caps {
+    text-transform: uppercase;
+    letter-spacing: .075em;
+    font: 12px Arial;
+}
+
+
+/*------------------------------------------------------------------------------------*/
+/* Backgrounds/Bodies */
+
+.background {
+    padding-left: 5%;
+    padding-right: 5%;
+    background-color: lightgrey;
+}
+
+.content {
+    padding: 2em;
+    background-color: whitesmoke;
+}
+
+
+/*------------------------------------------------------------------------------------*/
+/* Site Title */
+
+.mou-title {
+    font-family: Sarpanch, sans-serif;
+    font-weight: bold;
+    font-size: 65px;
+    letter-spacing: 0.25rem;
+    line-height: 1;
+    padding-left: 1rem;
+    color: #23272B;
+    align-self: flex-end;
+}
+
+.dashboard-title {
+    font-weight: bold;
+    font-family: Arial;
+    text-transform: uppercase;
+    font-size: 25px;
+    letter-spacing: 0.3rem;
+    line-height: 1.15;
+    align-self: flex-end;
+    margin-bottom: 1rem;
+    display: flex;
+    height: 3.35rem;
+}
+
+.dash-title {
+    color: lightgrey;
+    background-color: #23272B;
+    border-top: 2.5px solid #23272B;
+    border-top-left-radius: .6rem;
+    border-left: 2.5px solid #23272B;
+    border-bottom-left-radius: .6rem;
+    border-bottom: 2.5px solid #23272B;
+    padding-left: 0.4rem;
+    margin-left: 0.5rem;
+}
+
+.board-title {
+    color: #23272B;
+    border-top: 2.5px solid #23272B;
+    border-top-right-radius: .6rem;
+    border-right: 2.5px solid #23272B;
+    border-bottom-right-radius: .6rem;
+    border-bottom: 2.5px solid #23272B;
+    padding-left: 0.2rem;
+    padding-right: 0.05rem;
+}
+
+
+/*------------------------------------------------------------------------------------*/
+/* Tabs */
+
+.tab-container {
+    height: 5vh !important;
+    text-transform: uppercase !important;
+    letter-spacing: .075rem !important;
+    font: 15px Arial !important;
+    line-height: 2.5 !important;
+}
+
+.tab {
+    padding: 0 !important;
+    background-color: lightgrey !important;
+    color: #23272B !important;
+    border-bottom: 2.5px solid #258835 !important;
+}
+
+.tab--disabled {
+    color: gray !important;
+}
+
+.tab--selected {
+    background-color: whitesmoke !important;
+    color: #23272B;
+    border-top: 2.5px solid #20A1B6 !important;
+    border-bottom: 0 !important;
+    font-weight: bold;
+}
+
+
+/*------------------------------------------------------------------------------------*/
+/* Dropdown Select Control */
+
+.Select-control {
+    border-radius: .25rem;
+}
+
+
+/*------------------------------------------------------------------------------------*/
+/* Dropdown DataTable Menus */
 
 .Select-menu-outer {
     display : block !important; /* make visible */
-    --accent : darkgreen;
+    --accent : #258835;
     padding-left: 1.5em;
 }
 
@@ -13,7 +129,7 @@
 /*------------------------------------------------------------------------------------*/
 /* Buttons above DataTable */
 
-.dash-spreadsheet-menu{
+.dash-spreadsheet-menu {
     position: relative;
     float: right;
     margin-bottom: 0.8em;
@@ -24,7 +140,7 @@
     margin-left: 0.7em !important;
 }
 
-.export, .show-hide{ /* copy "btn btn-outline-secondary" */
+.export, .show-hide { /* copy btn btn-outline-secondary */
     color: #6c757d;
     border-color: #6c757d;
     display: inline-block;
@@ -33,10 +149,11 @@
     padding: .375rem 2rem;
     line-height: 1.5;
     transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    border-radius: .25rem;
 }
 
-.export:hover, .show-hide:hover{ /* copy "btn btn-outline-secondary" */
-    color: white;
+.export:hover, .show-hide:hover { /* copy btn btn-outline-secondary */
+    color: whitesmoke;
     background-color: #6c757d;
     border-color: #6c757d;
 }
@@ -53,36 +170,78 @@
 /*------------------------------------------------------------------------------------*/
 /* DataTable */
 
-.column-header--hide{ /* Hide the column header "hide" icon */
+.column-header--hide { /* Hide the column header hide icon */
     visibility: hidden !important;
     padding: 0 !important;
     width: 0 !important;
 }
 
-.dash-header{
+.dash-header {
     padding-right: 0.5em !important;
+    text-transform: uppercase;
+    letter-spacing: .075em;
 }
 
+.dash-header > div {
+    display: flex;
+    align-items: center;
+    flex-direction: row-reverse;
+}
 
-.current-page{
+.column-header--sort {
+    float: right !important;
+    margin-left: 0.5em;
+    text-align: right;
+    flex-basis: 1%;
+}
+
+.column-header-name {
+    flex-basis: 99%;
+}
+
+.current-page {
     width: 35px !important;
     padding-right: 0 !important;
     padding-left: 0 !important;
 }
 
-.dash-delete-cell{
-    text-align:center !important;
+.dash-delete-cell {
+    text-align: center !important;
     padding: 0 !important;
 }
 
-.column-header--sort{
-    float: right !important;
-    vertical-align: middle !important;
-    margin-left: 0.5em;
+.dash-spreadsheet-container table {
+    --accent: #20A1B6 !important;
+    --selected-background: #20A1B6 !important;
+    --selected-color: #20A1B6 !important;
 }
 
-.dash-spreadsheet-container table {
-    --accent: darkgreen !important;
-    --selected-background: darkgreen !important;
-    --selected-color: darkgreen !important;
+
+/*------------------------------------------------------------------------------------*/
+/* Snapshots Modal */
+
+.snapshots label {
+    height: 40px;
+    border-radius: .25rem;
+    text-align: center;
+    line-height: 2.75;
+}
+
+.snapshots label:hover {
+    color: whitesmoke;
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+.snapshots input {
+    visibility: hidden;
+    height: 0;
+    width: 0;
+}
+
+.snapshots input[type='radio']:checked {
+    visibility: visible;
+    height: 10px;
+    width: 10px;
+    margin-right: 10px;
 }

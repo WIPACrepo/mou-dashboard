@@ -1,11 +1,11 @@
 """Config file."""
 
+import logging
+from typing import Any, Dict, TypedDict
+
 import dash  # type: ignore
 import dash_bootstrap_components as dbc  # type: ignore
 import flask
-
-# local imports
-from rest_tools.server.config import from_environment  # type: ignore[import]
 
 # --------------------------------------------------------------------------------------
 # Set-up Dash server
@@ -16,6 +16,8 @@ app = dash.Dash(
     external_stylesheets=[
         dbc.themes.BOOTSTRAP,
         "https://codepen.io/chriddyp/pen/bWLwgP.css",
+        "https://fonts.googleapis.com/css2?family=Syncopate",
+        "https://fonts.googleapis.com/css2?family=Sarpanch",
     ],
 )
 
@@ -24,15 +26,25 @@ app.config.suppress_callback_exceptions = True
 
 
 # --------------------------------------------------------------------------------------
-# Get constants from environment variables
+# Constants
 
 
-config_env = from_environment(
-    {
-        "DBMS_SERVER_URL": "http://localhost:8080",
-        "TOKEN_SERVER_URL": "http://localhost:8888",
-    }
-)
+class _ConfigTypedDict(TypedDict):
+    REST_SERVER_URL: str
+    TOKEN_SERVER_URL: str
+    WEB_SERVER_PORT: int
+    AUTH_PREFIX: str
 
-DBMS_SERVER_URL = config_env["DBMS_SERVER_URL"]
-TOKEN_SERVER_URL = config_env["TOKEN_SERVER_URL"]
+
+CONFIG: _ConfigTypedDict = {
+    "REST_SERVER_URL": "http://localhost:8080",
+    "TOKEN_SERVER_URL": "http://localhost:8888",
+    "WEB_SERVER_PORT": 8050,
+    "AUTH_PREFIX": "mou",
+}
+
+
+def log_config() -> None:
+    """Log the CONFIG dict, key-value."""
+    for key, val in CONFIG.items():
+        logging.info(f"{key} \t {val}")
