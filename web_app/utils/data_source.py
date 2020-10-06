@@ -114,6 +114,17 @@ def create_snapshot() -> str:
     return cast(str, response["timestamp"])
 
 
+def ingest_xlsx(base64_file: str) -> bool:
+    """Ingest .xlsx file as the new live collection."""
+    try:
+        body = {"file": base64_file}
+        _request("POST", "/ingest", body)
+        return True
+    except requests.exceptions.HTTPError as e:
+        logging.exception(f"EXCEPTED: {e}")
+        return False
+
+
 # --------------------------------------------------------------------------------------
 # Column functions
 

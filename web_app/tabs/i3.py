@@ -227,6 +227,66 @@ def _snapshot_modal() -> dbc.Modal:
     )
 
 
+def _upload_modal() -> dbc.Modal:
+    return dbc.Modal(
+        id="tab-1-upload-xlsx-modal",
+        size="lg",
+        is_open=False,
+        backdrop="static",
+        children=[
+            dbc.ModalHeader("Upload New Live Table", className="caps"),
+            dbc.ModalBody(
+                children=[
+                    dcc.Upload(
+                        id="tab-1-upload-xlsx",
+                        children=html.Div(
+                            ["Drag and Drop or ", html.A("Select Files")]
+                        ),
+                        style={
+                            "width": "100%",
+                            "height": "5rem",
+                            "lineHeight": "5rem",
+                            "borderWidth": "1px",
+                            "borderStyle": "dashed",
+                            "borderRadius": "5px",
+                            "textAlign": "center",
+                        },
+                        # Allow multiple files to be uploaded
+                        multiple=False,
+                    ),
+                    dbc.Alert(
+                        id="tab-1-upload-xlsx-filename-alert",
+                        style={
+                            "text-align": "center",
+                            "margin-top": "1rem",
+                            "margin-bottom": "0",
+                        },
+                    ),
+                ]
+            ),
+            dbc.ModalFooter(
+                children=[
+                    dbc.Button(
+                        "Cancel",
+                        id="tab-1-upload-xlsx-cancel",
+                        n_clicks=0,
+                        outline=True,
+                        color=Color.DANGER,
+                    ),
+                    dbc.Button(
+                        "Ingest",
+                        id="tab-1-upload-xlsx-ingest",
+                        n_clicks=0,
+                        outline=True,
+                        color=Color.SUCCESS,
+                        disabled=True,
+                    ),
+                ]
+            ),
+        ],
+    )
+
+
 def layout() -> html.Div:
     """Construct the HTML."""
     tconfig = TableConfigParser()  # get fresh table config
@@ -446,6 +506,21 @@ def layout() -> html.Div:
                 justify="center",
                 style={"margin-top": "15px"},
             ),
+            html.Div(
+                id="tab-1-upload-xlsx-launch-modal-button-div",
+                children=[
+                    dbc.Button(
+                        "Upload New Live Table From .xlsx",
+                        id="tab-1-upload-xlsx-launch-modal-button",
+                        block=True,
+                        n_clicks=0,
+                        color=Color.WARNING,
+                        disabled=False,
+                        style={"margin-top": "3rem"},
+                    ),
+                ],
+                hidden=True,
+            ),
             #
             # Data Stores aka Cookies
             # - for communicating when table was last updated by an exterior control
@@ -467,6 +542,7 @@ def layout() -> html.Div:
             # Modals & Toasts
             _snapshot_modal(),
             _deletion_toast(),
+            _upload_modal(),
         ]
     )
 
@@ -880,6 +956,45 @@ def make_snapshot(_: int) -> dcc.ConfirmDialog:
 
 @app.callback(  # type: ignore[misc]
     [
+        Output("tab-1-upload-xlsx-modal", "is_open"),
+        Output("tab-1-upload-xlsx-filename-alert", "children"),
+        Output("tab-1-upload-xlsx-filename-alert", "color"),
+        Output("tab-1-upload-xlsx-ingest", "disabled"),
+    ],
+    [
+        Input("tab-1-upload-xlsx-launch-modal-button", "n_clicks"),
+        Input("tab-1-upload-xlsx", "contents"),
+        Input("tab-1-upload-xlsx-cancel", "n_clicks"),
+        Input("tab-1-upload-xlsx-ingest", "n_clicks"),
+    ],
+    [State("tab-1-upload-xlsx", "filename")],
+    prevent_initial_call=True,
+)
+def handle_xlsx(
+    _: int, contents: str, __: int, ___: int, filename: str,
+) -> Tuple[bool, str, str, bool]:
+    """Manage uploading a new xlsx document as the new live table."""
+    if util.triggered_id() == "tab-1-upload-xlsx-launch-modal-button":
+        return True, "", "", True
+
+    if util.triggered_id() == "tab-1-upload-xlsx-cancel":
+        return False, "", "", True
+
+    if util.triggered_id() == "tab-1-upload-xlsx":
+        if not filename.endswith(".xlsx"):
+            return True, f'"{filename}" is not an .xlsx file', Color.DANGER, True
+        return True, f'Uploaded "{filename}"', Color.SUCCESS, False
+
+    if util.triggered_id() == "tab-1-upload-xlsx-ingest":
+        if src.ingest_xlsx(contents):
+            return False, "", "", True
+        return True, f'Error ingesting "{filename}"', Color.DANGER, True
+
+    raise Exception(f"Unaccounted for trigger {util.triggered_id()}")
+
+
+@app.callback(  # type: ignore[misc]
+    [
         Output("tab-1-data-table", "editable"),
         Output("tab-1-new-data-div-1", "hidden"),
         Output("tab-1-new-data-div-2", "hidden"),
@@ -888,12 +1003,13 @@ def make_snapshot(_: int) -> dcc.ConfirmDialog:
         Output("tab-1-data-table", "row_deletable"),
         Output("tab-1-filter-inst", "disabled"),
         Output("tab-1-filter-inst", "value"),
+        Output("tab-1-upload-xlsx-launch-modal-button-div", "hidden"),
     ],
     [Input("tab-1-viewing-snapshot-alert", "is_open"), Input("logout-div", "hidden")],
 )
-def log_in_change(
+def log_in_actions(
     viewing_snapshot: bool, _: bool,
-) -> Tuple[bool, bool, bool, bool, bool, bool, bool, str]:
+) -> Tuple[bool, bool, bool, bool, bool, bool, bool, str, bool]:
     """Logged-in callback."""
     if viewing_snapshot:
         return (
@@ -905,6 +1021,7 @@ def log_in_change(
             False,  # row NOT deletable
             False,  # filter-inst NOT disabled
             current_user.institution if current_user.is_authenticated else "",
+            True,  # upload-xlsx-ingest-div hidden
         )
 
     if current_user.is_authenticated:
@@ -917,6 +1034,7 @@ def log_in_change(
             True,  # row is deletable
             not current_user.is_admin,  # filter-inst disabled if user is not an admin
             current_user.institution,
+            not current_user.is_admin,  # upload-xlsx-ingest-div hidden if user is not an admin
         )
     return (
         False,  # data-table NOT editable
@@ -927,6 +1045,7 @@ def log_in_change(
         False,  # row NOT deletable
         False,  # filter-inst NOT disabled
         "",
+        True,  # upload-xlsx-ingest-div hidden
     )
 
 
