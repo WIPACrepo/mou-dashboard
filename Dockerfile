@@ -13,5 +13,5 @@ COPY . .
 
 ENV PYTHONPATH=/home/app
 
-CMD ["python", "-m", "rest_server", "-x", "WBS.xlsx"]
+CMD ["python", "-m", "rest_server"]
 CMD ["python", "-m", "web_app"]
