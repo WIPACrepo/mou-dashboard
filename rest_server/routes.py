@@ -164,6 +164,16 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
 
         self.write({"table": table})
 
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["admin"])  # type: ignore
+    async def post(self) -> None:
+        """Handle POST."""
+        base64_file = self.get_argument("base64_file")
+        filename = self.get_argument("filename")
+
+        await self.dbms.ingest_xlsx(base64_file, filename)
+
+        self.write({})
+
 
 # -----------------------------------------------------------------------------
 

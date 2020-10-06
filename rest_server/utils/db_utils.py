@@ -1,6 +1,8 @@
 """Database utilities."""
 
 import asyncio
+import base64
+import io
 import logging
 import time
 from typing import Any, Coroutine, List
@@ -25,15 +27,11 @@ _LIVE_COLLECTION = "LIVE_COLLECTION"
 class MoUMotorClient:
     """MotorClient with additional guardrails for MoU things."""
 
-    def __init__(self, motor_client: MotorClient, xlsx: str = "") -> None:
+    def __init__(self, motor_client: MotorClient) -> None:
         self._client = motor_client
 
         def _run(f: Coroutine[Any, Any, Any]) -> Any:
             return asyncio.get_event_loop().run_until_complete(f)
-
-        # ingest xlsx
-        if xlsx:
-            _run(self._ingest_xlsx(xlsx))
 
         # check indexes
         _run(self._ensure_all_databases_indexes())
@@ -104,9 +102,12 @@ class MoUMotorClient:
         await self._ingest_new_collection(_LIVE_COLLECTION, table)
         logging.debug(f"Created Live Collection: {len(table)} records.")
 
-    async def _ingest_xlsx(self, xlsx: str) -> str:
-        """Create a collection and ingest the xlsx's data."""
-        logging.info(f"Ingesting xlsx {xlsx}...")
+    async def ingest_xlsx(self, base64_xlsx: str, filename: str) -> str:
+        """Ingest the xlsx's data as the new Live Collection.
+
+        Also make snapshot.
+        """
+        logging.info(f"Ingesting xlsx {filename}...")
 
         def _is_a_total_row(row: Record) -> bool:
             # check L2, L3, Inst., & US/Non-US  columns for "total" substring
@@ -128,26 +129,30 @@ class MoUMotorClient:
                     return True
             return False
 
-        # read data from excel file
+        # decode & read data from excel file
         # remove blanks and rows with "total" in them (case-insensitive)
         # format as if this was done via POST @ '/record'
         from . import utils  # pylint: disable=C0415
 
+        try:
+            decoded = base64.b64decode(base64_xlsx)
+            df = pd.read_excel(io.BytesIO(decoded))
+        except Exception as e:
+            logging.error(str(e))
+            raise web.HTTPError(400, reason=str(e))
+
         table: Table = [
             self._mongofy_record(utils.remove_on_the_fly_fields(row))
-            for row in pd.read_excel(xlsx).fillna("").to_dict("records")
+            for row in df.fillna("").to_dict("records")
             if _row_has_data(row) and not _is_a_total_row(row)
         ]
         logging.debug(f"xlsx table has {len(table)} records.")
 
         # ingest
         collection = await self._ingest_new_snapshot_collection(table)
+        await self._create_live_collection(table)
 
-        # if there isn't already a live collection, ingest it too
-        if _LIVE_COLLECTION not in await self._list_collection_names():
-            await self._create_live_collection(table)
-
-        logging.debug(f"Ingested xlsx {xlsx}; Collection {collection}.")
+        logging.debug(f"Ingested xlsx {filename}; Collection {collection}.")
         return collection
 
     async def _list_database_names(self) -> List[str]:
@@ -185,15 +190,19 @@ class MoUMotorClient:
     ) -> None:
         """Add table to a new collection.
 
-        If collection already exists, add more records.
+        If collection already exists, replace.
         """
         # Create
         db_obj = self._get_db(db)
         try:
+            # drop the collection if it already exists.
             coll_obj = db_obj[collection]
+            await coll_obj.drop()
         except KeyError:
-            coll_obj = db_obj.create_collection(collection)
-            await self._ensure_collection_indexes(collection, db)
+            pass
+
+        coll_obj = await db_obj.create_collection(collection)
+        await self._ensure_collection_indexes(collection, db)
 
         # Ingest
         await coll_obj.insert_many([self._mongofy_record(r) for r in table])

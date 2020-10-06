@@ -509,6 +509,7 @@ def layout() -> html.Div:
             html.Div(
                 id="tab-1-upload-xlsx-launch-modal-button-div",
                 children=[
+                    html.Hr(),
                     dbc.Button(
                         "Upload New Live Table From .xlsx",
                         id="tab-1-upload-xlsx-launch-modal-button",
@@ -516,7 +517,7 @@ def layout() -> html.Div:
                         n_clicks=0,
                         color=Color.WARNING,
                         disabled=False,
-                        style={"margin-top": "3rem"},
+                        style={"margin-bottom": "1rem"},
                     ),
                 ],
                 hidden=True,
@@ -960,6 +961,7 @@ def make_snapshot(_: int) -> dcc.ConfirmDialog:
         Output("tab-1-upload-xlsx-filename-alert", "children"),
         Output("tab-1-upload-xlsx-filename-alert", "color"),
         Output("tab-1-upload-xlsx-ingest", "disabled"),
+        Output("tab-1-refresh-button", "n_clicks"),
     ],
     [
         Input("tab-1-upload-xlsx-launch-modal-button", "n_clicks"),
@@ -972,23 +974,25 @@ def make_snapshot(_: int) -> dcc.ConfirmDialog:
 )
 def handle_xlsx(
     _: int, contents: str, __: int, ___: int, filename: str,
-) -> Tuple[bool, str, str, bool]:
+) -> Tuple[bool, str, str, bool, int]:
     """Manage uploading a new xlsx document as the new live table."""
     if util.triggered_id() == "tab-1-upload-xlsx-launch-modal-button":
-        return True, "", "", True
+        return True, "", "", True, 0
 
     if util.triggered_id() == "tab-1-upload-xlsx-cancel":
-        return False, "", "", True
+        return False, "", "", True, 0
 
     if util.triggered_id() == "tab-1-upload-xlsx":
         if not filename.endswith(".xlsx"):
-            return True, f'"{filename}" is not an .xlsx file', Color.DANGER, True
-        return True, f'Uploaded "{filename}"', Color.SUCCESS, False
+            return True, f'"{filename}" is not an .xlsx file', Color.DANGER, True, 0
+        return True, f'Uploaded "{filename}"', Color.SUCCESS, False, 0
 
     if util.triggered_id() == "tab-1-upload-xlsx-ingest":
-        if src.ingest_xlsx(contents):
-            return False, "", "", True
-        return True, f'Error ingesting "{filename}"', Color.DANGER, True
+        base64_file = contents.split(",")[1]
+        # pylint: disable=C0325
+        if not (error := src.ingest_xlsx(base64_file, filename)):
+            return False, "", "", True, 1
+        return True, f'Error ingesting "{filename}" ({error})', Color.DANGER, True, 0
 
     raise Exception(f"Unaccounted for trigger {util.triggered_id()}")
 

@@ -191,7 +191,7 @@ class TestDBUtils:  # pylint: disable=R0904
 
         # Call
         moumc = db_utils.MoUMotorClient(mock_mongo)
-        await moumc._ingest_xlsx(MagicMock())
+        await moumc.ingest_xlsx(MagicMock())
 
         # Assert
         assert mock_mr.call_count == len(rows)
@@ -209,7 +209,7 @@ class TestDBUtils:  # pylint: disable=R0904
 
         # Call
         moumc = db_utils.MoUMotorClient(mock_mongo)
-        await moumc._ingest_xlsx(MagicMock())
+        await moumc.ingest_xlsx(MagicMock())
 
         # Assert
         assert mock_mr.call_count == len(rows)
