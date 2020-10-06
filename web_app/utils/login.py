@@ -1,16 +1,22 @@
 """Handle user log-in and account info."""
 
 import logging
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from flask_login import UserMixin  # type: ignore[import]
 
 from ..config import login_manager
 
 
-def _mock_account_lookup(email: str) -> Dict[str, str]:
-    inst = email.split("@")[1].upper()
-    return {"institution": inst, "name": f"{inst}-User"}
+def _mock_account_lookup(email: str) -> Dict[str, Any]:
+    name = email.split("@")[0]
+    if email.split("@")[1].upper() == "ADMIN":
+        response = {"name": name, "is_admin": True}
+    else:
+        inst = email.split("@")[1].upper()
+        response = {"institution": inst, "name": name}
+
+    return response
 
 
 # Create User class with UserMixin
@@ -22,6 +28,7 @@ class User(UserMixin):  # type: ignore[misc]
         self.name = ""
         self.email = ""
         self.institution = ""
+        self.is_admin = False
 
     @staticmethod
     def lookup_user(email: str) -> "User":
@@ -36,7 +43,8 @@ class User(UserMixin):  # type: ignore[misc]
         # TODO: look up leader info w/ email
         response = _mock_account_lookup(email)
         user.name = response["name"]
-        user.institution = response["institution"]
+        user.institution = response.get("institution", "")
+        user.is_admin = response.get("is_admin", False)
 
         return user
 

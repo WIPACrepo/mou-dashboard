@@ -903,7 +903,7 @@ def log_in_change(
             True,  # make-snapshot-button hidden
             True,  # how-to-edit-alert hidden
             False,  # row NOT deletable
-            True,  # filter-inst disabled
+            False,  # filter-inst NOT disabled
             current_user.institution if current_user.is_authenticated else "",
         )
 
@@ -915,7 +915,7 @@ def log_in_change(
             False,  # make-snapshot-button NOT hidden
             True,  # how-to-edit-alert hidden
             True,  # row is deletable
-            True,  # filter-inst disabled
+            not current_user.is_admin,  # filter-inst disabled if user is not an admin
             current_user.institution,
         )
     return (

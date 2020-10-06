@@ -138,7 +138,10 @@ def render_content(tab: str) -> html.Div:
 
 
 def _logged_in_return() -> Tuple[bool, bool, bool, bool, str]:
-    user_label = f"{current_user.name} ({current_user.institution})"
+    if current_user.is_admin:
+        user_label = f"{current_user.name} (Admin)"
+    else:
+        user_label = f"{current_user.name} ({current_user.institution})"
     return False, False, True, False, user_label
 
 
