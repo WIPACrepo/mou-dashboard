@@ -7,7 +7,7 @@ from typing import Optional, TypedDict
 import dash  # type: ignore
 import dash_bootstrap_components as dbc  # type: ignore
 import flask
-from flask_login import LoginManager, UserMixin  # type: ignore[import]
+from flask_login import LoginManager  # type: ignore[import]
 
 # --------------------------------------------------------------------------------------
 # Set-up Dash server
@@ -34,57 +34,6 @@ server.config.update(SECRET_KEY=os.urandom(12))
 # NOTE: https://github.com/RafaelMiquelino/dash-flask-login
 login_manager = LoginManager()
 login_manager.init_app(server)
-
-
-# Create User class with UserMixin
-class User(UserMixin):  # type: ignore[misc]
-    """User log-in manager."""
-
-    def __init__(self) -> None:
-        self.id = ""  # pylint: disable=C0103
-        self.name = ""
-        self.email = ""
-        self.institution = ""
-
-    @staticmethod
-    def lookup_user(email: str) -> "User":
-        """Look-up user by their email."""
-        user = User()
-        # TODO: look up leader info
-        user.id = email
-        user.name = "Ric Evans"
-        user.email = email
-        user.institution = "UW"
-        return user
-
-    @staticmethod
-    def _ldap_login(email: str, pwd: str) -> bool:
-        # TODO: look up user w/ password
-        if email == "ric@mail" and pwd == "pwd":
-            return True
-        return False
-
-    @staticmethod
-    def login(email: str, pwd: str) -> Optional["User"]:
-        """Login user, return User object if successful."""
-        if User._ldap_login(email, pwd):
-            logging.info(f"Login: {email} | {pwd}")
-            return User.lookup_user(email)
-
-        logging.info(f"Bad login: {email} | {pwd}")
-        return None
-
-
-@login_manager.user_loader  # type: ignore[misc]
-def load_user(user_id: str) -> UserMixin:
-    """Reload the user object.
-
-    This is the end point for `current_user`.
-    """
-    logging.warning(f"Grabbing user {user_id}")
-    if user_id:
-        return User.lookup_user(user_id)
-    return User()
 
 
 # --------------------------------------------------------------------------------------

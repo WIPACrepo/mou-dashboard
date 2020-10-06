@@ -2,7 +2,6 @@
 """MoU Dashboard application."""
 
 import logging
-import time
 from datetime import timedelta
 from typing import Tuple
 
@@ -12,9 +11,10 @@ import dash_html_components as html  # type: ignore
 from dash.dependencies import Input, Output, State  # type: ignore
 from flask_login import current_user, login_user, logout_user  # type: ignore[import]
 
-from .config import app, User
+from .config import app
 from .tabs import i3
 from .utils.dash_utils import Color, triggered_id
+from .utils.login import User
 
 # Layout
 app.layout = html.Div(
