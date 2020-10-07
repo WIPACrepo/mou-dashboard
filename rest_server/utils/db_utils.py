@@ -5,7 +5,7 @@ import base64
 import io
 import logging
 import time
-from typing import Any, Coroutine, List
+from typing import Any, Coroutine, List, Tuple
 
 import pandas as pd  # type: ignore[import]
 from bson.objectid import ObjectId  # type: ignore[import]
@@ -102,10 +102,10 @@ class MoUMotorClient:
         await self._ingest_new_collection(_LIVE_COLLECTION, table)
         logging.debug(f"Created Live Collection: {len(table)} records.")
 
-    async def ingest_xlsx(self, base64_xlsx: str, filename: str) -> str:
+    async def ingest_xlsx(self, base64_xlsx: str, filename: str) -> Tuple[str, str]:
         """Ingest the xlsx's data as the new Live Collection.
 
-        Also make snapshot.
+        Also make snapshots of the previous live table and the new one.
         """
         logging.info(f"Ingesting xlsx {filename}...")
 
@@ -148,12 +148,15 @@ class MoUMotorClient:
         ]
         logging.debug(f"xlsx table has {len(table)} records.")
 
-        # ingest
+        # snapshot, ingest, snapshot
+        previous_snapshot = await self.snapshot_live_collection()
         await self._create_live_collection(table)
-        collection = await self.snapshot_live_collection()
+        current_snapshot = await self.snapshot_live_collection()
 
-        logging.debug(f"Ingested xlsx {filename}; Collection {collection}.")
-        return collection
+        logging.debug(
+            f"Ingested xlsx {filename}; Collection {current_snapshot}; Previous {previous_snapshot}."
+        )
+        return previous_snapshot, current_snapshot
 
     async def _list_database_names(self) -> List[str]:
         """Return all databases' names."""

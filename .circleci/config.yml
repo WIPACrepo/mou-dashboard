@@ -20,7 +20,7 @@ jobs:
     steps:
       - checkout
       - run:
-          command: pip install -r rest_server/requirements.txt && python3 -m rest_server -x WBS.xlsx
+          command: pip install -r rest_server/requirements.txt && python3 -m rest_server
           background: true
       - run: sleep 30 && pip install -r rest_server/requirements.txt -r web_app/requirements.txt && pytest -vvv tests/integration
   deploy:

@@ -4,6 +4,7 @@
 # pylint: disable=W0212,W0621
 
 
+import base64
 import pprint
 import sys
 import time
@@ -26,6 +27,37 @@ import web_app.utils.data_source  # isort:skip  # noqa # pylint: disable=E0401,C
 def ds_rc() -> RestClient:
     """Get data source REST client via web_app."""
     return web_app.utils.data_source._ds_rest_connection()
+
+
+def test_ingest(ds_rc: RestClient) -> None:
+    """Test POST /table/data.
+
+    Execute first, so other tests have data in the db.
+    """
+    filename = "./WBS.xlsx"
+    with open(filename, "rb") as f:
+        base64_bin = base64.b64encode(f.read())
+        base64_file = base64_bin.decode(encoding="utf-8")
+
+    body = {"base64_file": base64_file, "filename": filename}
+    resp = ds_rc.request_seq("POST", "/table/data", body)
+
+    assert resp["n_records"]
+    assert not resp["previous_snapshot"]
+    assert (current_1 := resp["current_snapshot"])  # pylint: disable=C0325
+
+    # Do it again...
+    resp = ds_rc.request_seq("POST", "/table/data", body)
+
+    assert resp["n_records"]
+    assert (previous_2 := resp["previous_snapshot"])  # pylint: disable=C0325
+    assert (current_2 := resp["current_snapshot"])  # pylint: disable=C0325
+    assert float(current_1) < float(previous_2) < float(current_2)
+
+    # Now fail...
+    with pytest.raises(requests.exceptions.HTTPError):
+        body = {"base64_file": "123456789", "filename": filename}
+        resp = ds_rc.request_seq("POST", "/table/data", body)
 
 
 class TestNoArgumentRoutes:
@@ -56,21 +88,21 @@ class TestNoArgumentRoutes:
         assert routes.MakeSnapshotHandler.ROUTE == r"/snapshots/make$"
         assert "post" in dir(routes.MakeSnapshotHandler)
 
-        # NOTE: reserve testing POSTing for test_snapshots()
+        # NOTE: reserve testing POST for test_snapshots()
 
     @staticmethod
     def test_snapshots(ds_rc: RestClient) -> None:
         """Test `POST` @ `/snapshots/make` and `GET` @ `/snapshots/timestamps`."""
-        # the first snapshot is the "-xlsx"-ingested excel doc
-        assert len(ds_rc.request_seq("GET", "/snapshots/timestamps")["timestamps"]) == 1
+        # 3 snapshots were taken in test_ingest()
+        assert len(ds_rc.request_seq("GET", "/snapshots/timestamps")["timestamps"]) == 3
 
-        for i in range(2, 100):
+        for i in range(4, 100):
             time.sleep(1)
             print(i)
             resp = ds_rc.request_seq("POST", "/snapshots/make")
             assert list(resp.keys()) == ["timestamp"]
-            now = int(time.time())
-            assert now - int(resp["timestamp"]) < 2  # account for travel time
+            now = time.time()
+            assert now - float(resp["timestamp"]) < 2  # account for travel time
 
             timestamps = ds_rc.request_seq("GET", "/snapshots/timestamps")["timestamps"]
             assert len(timestamps) == i
