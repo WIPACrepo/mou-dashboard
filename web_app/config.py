@@ -47,7 +47,7 @@ class _ConfigTypedDict(TypedDict):
     AUTH_PREFIX: str
 
 
-CONFIG: _ConfigTypedDict = {
+_CONFIG: _ConfigTypedDict = {
     "REST_SERVER_URL": "http://localhost:8080",
     "TOKEN_SERVER_URL": "http://localhost:8888",
     "WEB_SERVER_PORT": 8050,
