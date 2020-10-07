@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+from urllib.parse import urljoin
 
 import coloredlogs  # type: ignore[import]
 from flask import g
@@ -12,6 +13,9 @@ from web_app.config import _CONFIG, app, log_config
 
 if __name__ == "__main__":
     env = from_environment(_CONFIG)
+    env["TOKEN_REQUEST_URL"] = urljoin(
+        env.pop("TOKEN_SERVER_URL"), f"token?scope={env.pop('AUTH_PREFIX')}:admin"
+    )
     g.update(env)
 
     # Parse Args

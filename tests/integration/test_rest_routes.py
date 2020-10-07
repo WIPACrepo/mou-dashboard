@@ -8,6 +8,7 @@ import base64
 import pprint
 import sys
 import time
+from urllib.parse import urljoin
 
 import pytest
 import requests
@@ -26,7 +27,10 @@ import web_app.utils.data_source  # isort:skip  # noqa # pylint: disable=E0401,C
 @pytest.fixture  # type: ignore
 def ds_rc() -> RestClient:
     """Get data source REST client via web_app."""
-    return web_app.utils.data_source._ds_rest_connection()
+    return web_app.utils.data_source._ds_rest_connection(
+        token_request_url=urljoin("http://localhost:8888", "token?scope=mou:admin"),
+        rest_server_url="http://localhost:8080",
+    )
 
 
 def test_ingest(ds_rc: RestClient) -> None:

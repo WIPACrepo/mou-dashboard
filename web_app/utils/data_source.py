@@ -3,7 +3,6 @@
 
 import logging
 from typing import Any, cast, Dict, List, Optional, Tuple, TypedDict
-from urllib.parse import urljoin
 
 import requests
 from flask import g
@@ -16,16 +15,18 @@ from .types import Record, Table
 ID = "_id"
 
 
-def _ds_rest_connection() -> RestClient:
+def _ds_rest_connection(
+    token_request_url: str = "", rest_server_url: str = ""
+) -> RestClient:
     """Return REST Client connection object."""
-    token_request_url = urljoin(
-        g["TOKEN_SERVER_URL"], f"token?scope={g['AUTH_PREFIX']}:admin"
-    )
+    if not token_request_url:
+        token_request_url = g["TOKEN_REQUEST_URL"]
+    if not rest_server_url:
+        rest_server_url = g["REST_SERVER_URL"]
+
     token_json = requests.get(token_request_url).json()
 
-    rc = RestClient(
-        g["REST_SERVER_URL"], token=token_json["access"], timeout=5, retries=0
-    )
+    rc = RestClient(rest_server_url, token=token_json["access"], timeout=5, retries=0)
     return rc
 
 
