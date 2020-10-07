@@ -2,7 +2,7 @@
 
 import logging
 import os
-from typing import Optional, TypedDict
+from typing import TypedDict
 
 import dash  # type: ignore
 import dash_bootstrap_components as dbc  # type: ignore
@@ -55,7 +55,7 @@ CONFIG: _ConfigTypedDict = {
 }
 
 
-def log_config() -> None:
-    """Log the CONFIG dict, key-value."""
-    for key, val in CONFIG.items():
+def log_config(config: _ConfigTypedDict) -> None:
+    """Log the `config` dict, key-value."""
+    for key, val in config.items():
         logging.info(f"{key} \t {val}")
