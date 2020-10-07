@@ -19,7 +19,7 @@ ID = "_id"
 def _ds_rest_connection() -> RestClient:
     """Return REST Client connection object."""
     token_request_url = urljoin(
-        CONFIG["TOKEN_SERVER_URL"], f"token?scope={CONFIG['AUTH_PREFIX']}:web"
+        CONFIG["TOKEN_SERVER_URL"], f"token?scope={CONFIG['AUTH_PREFIX']}:admin"
     )
     token_json = requests.get(token_request_url).json()
 
@@ -104,7 +104,7 @@ def list_snapshot_timestamps() -> List[str]:
     """Get the list of snapshots."""
     response = _request("GET", "/snapshots/timestamps")
 
-    return cast(List[str], response["timestamps"])
+    return cast(List[str], sorted(response["timestamps"], reverse=True))
 
 
 def create_snapshot() -> str:
@@ -112,6 +112,25 @@ def create_snapshot() -> str:
     response = _request("POST", "/snapshots/make")
 
     return cast(str, response["timestamp"])
+
+
+def override_table(base64_file: str, filename: str) -> Tuple[str, int, str, str]:
+    """Ingest .xlsx file as the new live collection.
+
+    Return "" if successful, otherwise an error message.
+    """
+    try:
+        body = {"base64_file": base64_file, "filename": filename}
+        response = _request("POST", "/table/data", body)
+        return (
+            "",
+            response["n_records"],
+            response["previous_snapshot"],
+            response["current_snapshot"],
+        )
+    except requests.exceptions.HTTPError as e:
+        logging.exception(f"EXCEPTED: {e}")
+        return str(e), 0, "", ""
 
 
 # --------------------------------------------------------------------------------------

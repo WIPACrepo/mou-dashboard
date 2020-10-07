@@ -25,7 +25,7 @@ from .routes import (
 from .utils import db_utils
 
 
-def start(debug: bool = False, xlsx: str = "") -> RestServer:
+def start(debug: bool = False) -> RestServer:
     """Start a Mad Dash REST service."""
     config_env = from_environment(config.DEFAULT_ENV_CONFIG)
     config.log_environment(config_env)
@@ -50,12 +50,12 @@ def start(debug: bool = False, xlsx: str = "") -> RestServer:
     mongodb_url = f"mongodb://{mongodb_host}:{mongodb_port}"
     if mongodb_auth_user and mongodb_auth_pass:
         mongodb_url = f"mongodb://{mongodb_auth_user}:{mongodb_auth_pass}@{mongodb_host}:{mongodb_port}"
-    args["db_client"] = db_utils.MoUMotorClient(MotorClient(mongodb_url), xlsx=xlsx)
+    args["db_client"] = db_utils.MoUMotorClient(MotorClient(mongodb_url))
 
     # Configure REST Routes
     server = RestServer(debug=debug)
     server.add_route(MainHandler.ROUTE, MainHandler, args)  # get
-    server.add_route(TableHandler.ROUTE, TableHandler, args)  # get
+    server.add_route(TableHandler.ROUTE, TableHandler, args)  # get, post
     server.add_route(SnapshotsHandler.ROUTE, SnapshotsHandler, args)  # get
     server.add_route(MakeSnapshotHandler.ROUTE, MakeSnapshotHandler, args)  # post
     server.add_route(RecordHandler.ROUTE, RecordHandler, args)  # post, delete
@@ -67,9 +67,9 @@ def start(debug: bool = False, xlsx: str = "") -> RestServer:
     return server
 
 
-def main(xlsx: str) -> None:
+def main() -> None:
     """Configure logging and start a MoU data service."""
-    start(debug=True, xlsx=xlsx)
+    start(debug=True)
     loop = asyncio.get_event_loop()
     loop.run_forever()
 
@@ -77,9 +77,8 @@ def main(xlsx: str) -> None:
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-x", "--xlsx", help=".xlsx file to ingest as a collection.")
     parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
     _args = parser.parse_args()
 
     coloredlogs.install(level=getattr(logging, _args.log.upper()))
-    main(_args.xlsx)
+    main()

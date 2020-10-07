@@ -20,12 +20,35 @@ jobs:
     steps:
       - checkout
       - run:
-          command: pip install -r rest_server/requirements.txt && python3 -m rest_server -x WBS.xlsx
+          command: pip install -r rest_server/requirements.txt && python3 -m rest_server
           background: true
       - run: sleep 30 && pip install -r rest_server/requirements.txt -r web_app/requirements.txt && pytest -vvv tests/integration
+  deploy:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+        environment:
+          IMAGE_NAME: wipac/mou-dashboard-services
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run: |
+          echo 'export TAG="${CIRCLE_TAG:=latest}"' >> $BASH_ENV
+      - run: |
+          docker build -t $IMAGE_NAME:$TAG .
+      - run: |
+          echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
+          docker push $IMAGE_NAME:$TAG
 
 workflows:
   build_and_test:
     jobs:
       - unit
       - integrate
+      - deploy:
+          context: docker
+          requires:
+            - unit
+            - integrate
+          filters:
+            branches:
+              only: master

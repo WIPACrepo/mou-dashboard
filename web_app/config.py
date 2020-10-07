@@ -1,11 +1,13 @@
 """Config file."""
 
 import logging
-from typing import Any, Dict, TypedDict
+import os
+from typing import Optional, TypedDict
 
 import dash  # type: ignore
 import dash_bootstrap_components as dbc  # type: ignore
 import flask
+from flask_login import LoginManager  # type: ignore[import]
 
 # --------------------------------------------------------------------------------------
 # Set-up Dash server
@@ -21,8 +23,17 @@ app = dash.Dash(
     ],
 )
 
+
+# config
 server = app.server
 app.config.suppress_callback_exceptions = True
+server.config.update(SECRET_KEY=os.urandom(12))
+
+
+# Setup the LoginManager for the server
+# NOTE: https://github.com/RafaelMiquelino/dash-flask-login
+login_manager = LoginManager()
+login_manager.init_app(server)
 
 
 # --------------------------------------------------------------------------------------

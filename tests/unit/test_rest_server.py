@@ -54,8 +54,7 @@ class TestDBUtils:  # pylint: disable=R0904
 
     @staticmethod
     @patch(MOU_MOTOR_CLIENT + "._ensure_all_databases_indexes")
-    @patch(MOU_MOTOR_CLIENT + "._ingest_xlsx")
-    def test_init(mock_ix: Any, mock_eadi: Any) -> None:
+    def test_init(mock_eadi: Any) -> None:
         """Test MoUMotorClient.__init__()."""
         # Call
         moumc = db_utils.MoUMotorClient(sentinel._client)
@@ -63,19 +62,17 @@ class TestDBUtils:  # pylint: disable=R0904
         # Assert
         assert moumc._client == sentinel._client
         mock_eadi.assert_called()
-        mock_ix.assert_not_called()
 
         # --- test w/ xlsx
         # Mock
-        reset_mock(mock_eadi, mock_ix)
+        reset_mock(mock_eadi)
 
         # Call
-        moumc = db_utils.MoUMotorClient(sentinel._client, xlsx="./foo.xlsx")
+        moumc = db_utils.MoUMotorClient(sentinel._client)
 
         # Assert
         assert moumc._client == sentinel._client
         mock_eadi.assert_called()
-        mock_ix.assert_called_with("./foo.xlsx")
 
     @staticmethod
     def test_mongofy_key_name() -> None:
@@ -165,59 +162,6 @@ class TestDBUtils:  # pylint: disable=R0904
 
         # Assert
         mock_inc.assert_called_with(sentinel.live_collection, ANY)
-
-    @staticmethod
-    @pytest.mark.asyncio  # type: ignore[misc]
-    @patch(MOU_MOTOR_CLIENT + "._ingest_new_snapshot_collection")
-    @patch(MOU_MOTOR_CLIENT + "._create_live_collection")
-    @patch(MOU_MOTOR_CLIENT + "._mongofy_record")
-    @patch(MOU_MOTOR_CLIENT + "._list_collection_names")
-    @patch("pandas.read_excel")
-    async def test_ingest_xlsx(  # pylint: disable=R0913
-        mock_pre: Any,
-        mock_lcn: Any,
-        mock_mr: Any,
-        mock_clc: Any,
-        mock_insc: Any,
-        mock_mongo: Any,
-    ) -> None:
-        """Test _ingest_xlsx()."""
-        # Mock
-        rows = [
-            {sentinel.key1: sentinel.val1, sentinel.key2: sentinel.val2},
-            {sentinel.key3: sentinel.val3},
-        ]
-        mock_pre.return_value.fillna.return_value.to_dict.return_value = rows
-
-        # Call
-        moumc = db_utils.MoUMotorClient(mock_mongo)
-        await moumc._ingest_xlsx(MagicMock())
-
-        # Assert
-        assert mock_mr.call_count == len(rows)
-        mock_mr.assert_called_with(rows[-1])
-        mock_insc.assert_awaited_once()
-        assert len(mock_insc.await_args) == len(rows)
-        mock_lcn.assert_awaited_once()
-        mock_clc.assert_awaited_once()
-        assert len(mock_clc.await_args) == len(rows)
-
-        # test w/ live collection
-        # Mock
-        reset_mock(mock_pre, mock_lcn, mock_mr, mock_clc, mock_insc, mock_mongo)
-        mock_lcn.return_value = [db_utils._LIVE_COLLECTION]
-
-        # Call
-        moumc = db_utils.MoUMotorClient(mock_mongo)
-        await moumc._ingest_xlsx(MagicMock())
-
-        # Assert
-        assert mock_mr.call_count == len(rows)
-        mock_mr.assert_called_with(rows[-1])
-        mock_insc.assert_awaited_once()
-        assert len(mock_insc.await_args) == len(rows)
-        mock_lcn.assert_awaited_once()
-        mock_clc.assert_not_called()
 
     @staticmethod
     @pytest.mark.asyncio  # type: ignore[misc]
@@ -317,30 +261,29 @@ class TestDBUtils:  # pylint: disable=R0904
     @patch(MOU_MOTOR_CLIENT + "._ensure_collection_indexes")
     @patch(MOU_MOTOR_CLIENT + "._mongofy_record")
     async def test_ingest_new_collection(
-        mock_mr: Any, mock_eci: Any, mock_gdb: Any, mock_mongo: Any
+        _: Any, mock_eci: Any, mock_gdb: Any, mock_mongo: Any
     ) -> None:
         """Test _ingest_new_collection()."""
+        # test w/ drop & replace
         # Mock
-        mock_gdb.return_value.__getitem__.return_value.insert_many.side_effect = (
-            AsyncMock()
-        )
+        mock_gdb.return_value.__getitem__.return_value = AsyncMock()
+        mock_gdb.return_value.create_collection.side_effect = AsyncMock()
         moumc = db_utils.MoUMotorClient(mock_mongo)
-        mock_mr.return_value = [ANY, ANY]
 
         # Call
-        await moumc._ingest_new_collection(MagicMock(), [ANY, ANY])
+        await moumc._ingest_new_collection(sentinel.coll, [ANY, ANY])
 
         # Assert
-        pass  # pylint: disable=W0107
-
-        # test w/ Error
-        # Mock
-        reset_mock(mock_gdb, mock_mongo)
-        mock_gdb.return_value.__getitem__.side_effect = KeyError
-        mock_gdb.return_value.create_collection.return_value.insert_many.side_effect = (
-            AsyncMock()
+        mock_gdb.return_value.__getitem__.return_value.drop.assert_awaited_once()
+        mock_gdb.return_value.create_collection.side_effect.assert_awaited_once_with(
+            sentinel.coll
         )
-        mock_eci.side_effect = AsyncMock()
+        mock_eci.assert_awaited_once_with(sentinel.coll, ANY)
+
+        # test w/ new
+        # Mock
+        reset_mock(mock_eci, mock_gdb, mock_mongo)
+        mock_gdb.return_value.__getitem__.side_effect = KeyError
         moumc = db_utils.MoUMotorClient(mock_mongo)
 
         # Call

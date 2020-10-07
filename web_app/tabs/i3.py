@@ -1,5 +1,6 @@
 """Conditional in-cell drop-down menu with IceCube WBS MoU info."""
 
+
 from typing import cast, Collection, Dict, List, Optional, Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
@@ -7,6 +8,7 @@ import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 import dash_table  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
+from flask_login import current_user  # type: ignore[import]
 
 from ..config import app
 from ..utils import dash_utils as util
@@ -225,44 +227,72 @@ def _snapshot_modal() -> dbc.Modal:
     )
 
 
+def _upload_modal() -> dbc.Modal:
+    return dbc.Modal(
+        id="tab-1-upload-xlsx-modal",
+        size="lg",
+        is_open=False,
+        backdrop="static",
+        children=[
+            dbc.ModalHeader("Override Live Table", className="caps"),
+            dbc.ModalBody(
+                children=[
+                    dcc.Upload(
+                        id="tab-1-upload-xlsx",
+                        children=html.Div(
+                            ["Drag and Drop or ", html.A("Select Files")]
+                        ),
+                        style={
+                            "width": "100%",
+                            "height": "5rem",
+                            "lineHeight": "5rem",
+                            "borderWidth": "1px",
+                            "borderStyle": "dashed",
+                            "borderRadius": "5px",
+                            "textAlign": "center",
+                        },
+                        # Allow multiple files to be uploaded
+                        multiple=False,
+                    ),
+                    dbc.Alert(
+                        id="tab-1-upload-xlsx-filename-alert",
+                        style={
+                            "text-align": "center",
+                            "margin-top": "1rem",
+                            "margin-bottom": "0",
+                        },
+                    ),
+                ]
+            ),
+            dbc.ModalFooter(
+                children=[
+                    dbc.Button(
+                        "Cancel",
+                        id="tab-1-upload-xlsx-cancel",
+                        n_clicks=0,
+                        outline=True,
+                        color=Color.DANGER,
+                    ),
+                    dbc.Button(
+                        "Override Live Table",
+                        id="tab-1-upload-xlsx-override-table",
+                        n_clicks=0,
+                        outline=True,
+                        color=Color.SUCCESS,
+                        disabled=True,
+                    ),
+                ]
+            ),
+        ],
+    )
+
+
 def layout() -> html.Div:
     """Construct the HTML."""
     tconfig = TableConfigParser()  # get fresh table config
 
     return html.Div(
         children=[
-            html.Div(
-                "Institution Leader Sign-In",
-                className="caps",
-                style={"margin-left": "11rem", "margin-top": "2rem"},
-            ),
-            dbc.Row(
-                style={"margin-left": "11rem"},
-                children=[
-                    dcc.Input(
-                        id="tab-1-input-name",
-                        value="",
-                        type="text",
-                        placeholder="name",
-                        style={"width": "22%"},
-                    ),
-                    dcc.Input(
-                        id="tab-1-input-email",
-                        value="",
-                        type="text",
-                        placeholder="email",
-                        style={"width": "21%"},
-                    ),
-                    html.I(
-                        id="tab-1-name-email-icon",
-                        n_clicks=0,
-                        style={"margin-left": "1.5rem", "fontSize": 25},
-                    ),
-                ],
-            ),
-            ####
-            html.Hr(style={"margin-top": "4rem", "margin-bottom": "4rem"}),
-            ####
             dbc.Row(
                 justify="center",
                 style={"margin-bottom": "2.5rem"},
@@ -281,6 +311,7 @@ def layout() -> html.Div:
                                 ],
                                 value="",
                                 # multi=True
+                                disabled=False,
                             ),
                         ],
                     ),
@@ -308,7 +339,7 @@ def layout() -> html.Div:
             ####
             # Sign-In Alert
             dbc.Alert(
-                "- sign in to edit -",
+                "- log in to edit -",
                 id="tab-1-how-to-edit-alert",
                 style={
                     "fontWeight": "bold",
@@ -475,6 +506,22 @@ def layout() -> html.Div:
                 justify="center",
                 style={"margin-top": "15px"},
             ),
+            html.Div(
+                id="tab-1-upload-xlsx-launch-modal-button-div",
+                children=[
+                    html.Hr(),
+                    dbc.Button(
+                        "Override Live Table with .xlsx",
+                        id="tab-1-upload-xlsx-launch-modal-button",
+                        block=True,
+                        n_clicks=0,
+                        color=Color.WARNING,
+                        disabled=False,
+                        style={"margin-bottom": "1rem"},
+                    ),
+                ],
+                hidden=True,
+            ),
             #
             # Data Stores aka Cookies
             # - for communicating when table was last updated by an exterior control
@@ -489,13 +536,15 @@ def layout() -> html.Div:
             ),
             #
             # Dummy Divs -- for adding dynamic toasts, dialogs, etc.
-            html.Div(id="tab-1-toast-A"),
-            html.Div(id="tab-1-toast-B"),
-            html.Div(id="tab-1-toast-C"),
+            html.Div(id="tab-1-toast-via-exterior-control-div"),
+            html.Div(id="tab-1-toast-via-interior-control-div"),
+            html.Div(id="tab-1-toast-via-snapshot-div"),
+            html.Div(id="tab-1-toast-via-upload-div"),
             #
             # Modals & Toasts
             _snapshot_modal(),
             _deletion_toast(),
+            _upload_modal(),
         ]
     )
 
@@ -581,7 +630,7 @@ def _get_table(
         Output("tab-1-data-table", "active_cell"),
         Output("tab-1-data-table", "page_current"),
         Output("tab-1-table-exterior-control-last-timestamp", "data"),
-        Output("tab-1-toast-A", "children"),
+        Output("tab-1-toast-via-exterior-control-div", "children"),
         Output("tab-1-show-totals-button", "children"),
         Output("tab-1-show-totals-button", "color"),
         Output("tab-1-show-totals-button", "outline"),
@@ -629,7 +678,7 @@ def table_data_exterior_controls(
     toast: dbc.Toast = None
 
     # focus on first cell, but not on page load
-    if util.triggered_id() in [
+    if current_user.is_authenticated and util.triggered_id() in [
         "tab-1-filter-inst",
         "tab-1-filter-labor",
         "tab-1-new-data-button",
@@ -717,7 +766,7 @@ def _delete_deleted_records(
 @app.callback(  # type: ignore[misc]
     [
         Output("tab-1-data-table", "data_previous"),
-        Output("tab-1-toast-B", "children"),
+        Output("tab-1-toast-via-interior-control-div", "children"),
         Output("tab-1-last-updated-label", "children"),
         Output("tab-1-last-deleted-id", "children"),
         Output("tab-1-deletion-toast", "is_open"),
@@ -890,7 +939,7 @@ def manage_snpshots(
 
 
 @app.callback(  # type: ignore[misc]
-    Output("tab-1-toast-C", "children"),
+    Output("tab-1-toast-via-snapshot-div", "children"),
     [Input("tab-1-make-snapshot-button", "n_clicks")],
     prevent_initial_call=True,
 )
@@ -909,55 +958,117 @@ def make_snapshot(_: int) -> dcc.ConfirmDialog:
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("tab-1-name-email-icon", "children"),
+        Output("tab-1-upload-xlsx-modal", "is_open"),
+        Output("tab-1-upload-xlsx-filename-alert", "children"),
+        Output("tab-1-upload-xlsx-filename-alert", "color"),
+        Output("tab-1-upload-xlsx-override-table", "disabled"),
+        Output("tab-1-refresh-button", "n_clicks"),
+        Output("tab-1-toast-via-upload-div", "children"),
+    ],
+    [
+        Input("tab-1-upload-xlsx-launch-modal-button", "n_clicks"),
+        Input("tab-1-upload-xlsx", "contents"),
+        Input("tab-1-upload-xlsx-cancel", "n_clicks"),
+        Input("tab-1-upload-xlsx-override-table", "n_clicks"),
+    ],
+    [State("tab-1-upload-xlsx", "filename")],
+    prevent_initial_call=True,
+)
+def handle_xlsx(
+    _: int, contents: str, __: int, ___: int, filename: str,
+) -> Tuple[bool, str, str, bool, int, dbc.Toast]:
+    """Manage uploading a new xlsx document as the new live table."""
+    if util.triggered_id() == "tab-1-upload-xlsx-launch-modal-button":
+        return True, "", "", True, 0, None
+
+    if util.triggered_id() == "tab-1-upload-xlsx-cancel":
+        return False, "", "", True, 0, None
+
+    if util.triggered_id() == "tab-1-upload-xlsx":
+        if not filename.endswith(".xlsx"):
+            return (
+                True,
+                f'"{filename}" is not an .xlsx file',
+                Color.DANGER,
+                True,
+                0,
+                None,
+            )
+        return True, f'Uploaded "{filename}"', Color.SUCCESS, False, 0, None
+
+    if util.triggered_id() == "tab-1-upload-xlsx-override-table":
+        base64_file = contents.split(",")[1]
+        # pylint: disable=C0325
+        error, n_records, previous, current = src.override_table(base64_file, filename)
+        if error:
+            error_message = f'Error overriding "{filename}" ({error})'
+            return True, error_message, Color.DANGER, True, 0, None
+        success_toast = _make_toast(
+            f'Live Table Updated with "{filename}"',
+            f"Uploaded {n_records} records.\n"
+            f"A snapshot was made of "
+            f"{f'the previous ({util.get_human_time(previous)}) table and ' if previous else ''}"
+            f"the current ({util.get_human_time(current)}) table.\n",
+            Color.SUCCESS,
+        )
+        return False, "", "", True, 1, success_toast
+
+    raise Exception(f"Unaccounted for trigger {util.triggered_id()}")
+
+
+@app.callback(  # type: ignore[misc]
+    [
         Output("tab-1-data-table", "editable"),
         Output("tab-1-new-data-div-1", "hidden"),
         Output("tab-1-new-data-div-2", "hidden"),
         Output("tab-1-make-snapshot-button", "hidden"),
         Output("tab-1-how-to-edit-alert", "hidden"),
         Output("tab-1-data-table", "row_deletable"),
+        Output("tab-1-filter-inst", "disabled"),
+        Output("tab-1-filter-inst", "value"),
+        Output("tab-1-upload-xlsx-launch-modal-button-div", "hidden"),
     ],
-    [
-        Input("tab-1-input-name", "value"),
-        Input("tab-1-input-email", "value"),
-        Input("tab-1-viewing-snapshot-alert", "is_open"),
-    ],
+    [Input("tab-1-viewing-snapshot-alert", "is_open"), Input("logout-div", "hidden")],
 )
-def sign_in(
-    name: str, email: str, viewing_snapshot: bool
-) -> Tuple[str, bool, bool, bool, bool, bool, bool]:
-    """Enter name & email callback."""
-    # TODO -- check auth
-
+def log_in_actions(
+    viewing_snapshot: bool, _: bool,
+) -> Tuple[bool, bool, bool, bool, bool, bool, bool, str, bool]:
+    """Logged-in callback."""
     if viewing_snapshot:
         return (
-            "✔" if name and email else "✖",
             False,  # data-table NOT editable
             True,  # new-data-div-1 hidden
             True,  # new-data-div-2 hidden
             True,  # make-snapshot-button hidden
             True,  # how-to-edit-alert hidden
             False,  # row NOT deletable
+            False,  # filter-inst NOT disabled
+            current_user.institution if current_user.is_authenticated else "",
+            True,  # upload-xlsx-override-div hidden
         )
 
-    if name and email:
+    if current_user.is_authenticated:
         return (
-            "✔",
             True,  # data-table editable
             False,  # new-data-div-1 NOT hidden
             False,  # new-data-div-2 NOT hidden
             False,  # make-snapshot-button NOT hidden
             True,  # how-to-edit-alert hidden
             True,  # row is deletable
+            not current_user.is_admin,  # filter-inst disabled if user is not an admin
+            current_user.institution,
+            not current_user.is_admin,  # upload-xlsx-override-div hidden if user is not an admin
         )
     return (
-        "✖",
         False,  # data-table NOT editable
         True,  # new-data-div-1 hidden
         True,  # new-data-div-2 hidden
         True,  # make-snapshot-button hidden
         False,  # how-to-edit-alert NOT hidden
         False,  # row NOT deletable
+        False,  # filter-inst NOT disabled
+        "",
+        True,  # upload-xlsx-override-div hidden
     )
 
 
