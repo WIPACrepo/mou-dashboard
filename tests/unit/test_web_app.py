@@ -188,7 +188,7 @@ class TestDataSource:
         mock_rest.return_value.request_seq.assert_called_with(
             "GET", "/snapshots/timestamps", None
         )
-        assert ret == response["timestamps"]
+        assert sorted(ret) == sorted(response["timestamps"])
 
     @staticmethod
     def test_create_snapshot(mock_rest: Any) -> None:
