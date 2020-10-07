@@ -106,7 +106,11 @@ def get_now() -> str:
 
 def get_human_time(timestamp: str) -> str:
     """Get the given date and time with timezone, human-readable."""
-    datetime = dt.fromtimestamp(float(timestamp))
+    try:
+        datetime = dt.fromtimestamp(float(timestamp))
+    except ValueError:
+        return timestamp
+
     timezone = dt.now(tz.utc).astimezone().tzinfo
 
     return f"{datetime.strftime('%Y-%m-%d %H:%M:%S')} {timezone}"

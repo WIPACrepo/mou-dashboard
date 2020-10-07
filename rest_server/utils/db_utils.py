@@ -149,8 +149,8 @@ class MoUMotorClient:
         logging.debug(f"xlsx table has {len(table)} records.")
 
         # ingest
-        collection = await self._ingest_new_snapshot_collection(table)
         await self._create_live_collection(table)
+        collection = await self.snapshot_live_collection()
 
         logging.debug(f"Ingested xlsx {filename}; Collection {collection}.")
         return collection
@@ -296,19 +296,17 @@ class MoUMotorClient:
         logging.info(f"Deleted {record}.")
         return record
 
-    async def _ingest_new_snapshot_collection(self, table: Table) -> str:
-        """Create a collection by ingesting `table`."""
-        collection = str(int(time.time()))
-        await self._ingest_new_collection(collection, table)
-
-        return collection
-
     async def snapshot_live_collection(self) -> str:
         """Create a collection by copying the live collection."""
         logging.debug("Snapshotting...")
 
         table = await self.get_table(_LIVE_COLLECTION)
-        collection = await self._ingest_new_snapshot_collection(table)
+        if not table:
+            logging.info("Snapshot aborted -- no previous live collection.")
+            return ""
+
+        collection = str(time.time())
+        await self._ingest_new_collection(collection, table)
 
         logging.info(f"Snapshotted {collection}.")
         return collection

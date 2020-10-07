@@ -234,7 +234,7 @@ def _upload_modal() -> dbc.Modal:
         is_open=False,
         backdrop="static",
         children=[
-            dbc.ModalHeader("Upload New Live Table", className="caps"),
+            dbc.ModalHeader("Override Live Table", className="caps"),
             dbc.ModalBody(
                 children=[
                     dcc.Upload(
@@ -274,8 +274,8 @@ def _upload_modal() -> dbc.Modal:
                         color=Color.DANGER,
                     ),
                     dbc.Button(
-                        "Ingest",
-                        id="tab-1-upload-xlsx-ingest",
+                        "Override Live Table",
+                        id="tab-1-upload-xlsx-override-table",
                         n_clicks=0,
                         outline=True,
                         color=Color.SUCCESS,
@@ -511,7 +511,7 @@ def layout() -> html.Div:
                 children=[
                     html.Hr(),
                     dbc.Button(
-                        "Upload New Live Table From .xlsx",
+                        "Override Live Table with .xlsx",
                         id="tab-1-upload-xlsx-launch-modal-button",
                         block=True,
                         n_clicks=0,
@@ -536,9 +536,10 @@ def layout() -> html.Div:
             ),
             #
             # Dummy Divs -- for adding dynamic toasts, dialogs, etc.
-            html.Div(id="tab-1-toast-A"),
-            html.Div(id="tab-1-toast-B"),
-            html.Div(id="tab-1-toast-C"),
+            html.Div(id="tab-1-toast-via-exterior-control-div"),
+            html.Div(id="tab-1-toast-via-interior-control-div"),
+            html.Div(id="tab-1-toast-via-snapshot-div"),
+            html.Div(id="tab-1-toast-via-upload-div"),
             #
             # Modals & Toasts
             _snapshot_modal(),
@@ -629,7 +630,7 @@ def _get_table(
         Output("tab-1-data-table", "active_cell"),
         Output("tab-1-data-table", "page_current"),
         Output("tab-1-table-exterior-control-last-timestamp", "data"),
-        Output("tab-1-toast-A", "children"),
+        Output("tab-1-toast-via-exterior-control-div", "children"),
         Output("tab-1-show-totals-button", "children"),
         Output("tab-1-show-totals-button", "color"),
         Output("tab-1-show-totals-button", "outline"),
@@ -765,7 +766,7 @@ def _delete_deleted_records(
 @app.callback(  # type: ignore[misc]
     [
         Output("tab-1-data-table", "data_previous"),
-        Output("tab-1-toast-B", "children"),
+        Output("tab-1-toast-via-interior-control-div", "children"),
         Output("tab-1-last-updated-label", "children"),
         Output("tab-1-last-deleted-id", "children"),
         Output("tab-1-deletion-toast", "is_open"),
@@ -938,7 +939,7 @@ def manage_snpshots(
 
 
 @app.callback(  # type: ignore[misc]
-    Output("tab-1-toast-C", "children"),
+    Output("tab-1-toast-via-snapshot-div", "children"),
     [Input("tab-1-make-snapshot-button", "n_clicks")],
     prevent_initial_call=True,
 )
@@ -960,39 +961,57 @@ def make_snapshot(_: int) -> dcc.ConfirmDialog:
         Output("tab-1-upload-xlsx-modal", "is_open"),
         Output("tab-1-upload-xlsx-filename-alert", "children"),
         Output("tab-1-upload-xlsx-filename-alert", "color"),
-        Output("tab-1-upload-xlsx-ingest", "disabled"),
+        Output("tab-1-upload-xlsx-override-table", "disabled"),
         Output("tab-1-refresh-button", "n_clicks"),
+        Output("tab-1-toast-via-upload-div", "children"),
     ],
     [
         Input("tab-1-upload-xlsx-launch-modal-button", "n_clicks"),
         Input("tab-1-upload-xlsx", "contents"),
         Input("tab-1-upload-xlsx-cancel", "n_clicks"),
-        Input("tab-1-upload-xlsx-ingest", "n_clicks"),
+        Input("tab-1-upload-xlsx-override-table", "n_clicks"),
     ],
     [State("tab-1-upload-xlsx", "filename")],
     prevent_initial_call=True,
 )
 def handle_xlsx(
     _: int, contents: str, __: int, ___: int, filename: str,
-) -> Tuple[bool, str, str, bool, int]:
+) -> Tuple[bool, str, str, bool, int, dbc.Toast]:
     """Manage uploading a new xlsx document as the new live table."""
     if util.triggered_id() == "tab-1-upload-xlsx-launch-modal-button":
-        return True, "", "", True, 0
+        return True, "", "", True, 0, None
 
     if util.triggered_id() == "tab-1-upload-xlsx-cancel":
-        return False, "", "", True, 0
+        return False, "", "", True, 0, None
 
     if util.triggered_id() == "tab-1-upload-xlsx":
         if not filename.endswith(".xlsx"):
-            return True, f'"{filename}" is not an .xlsx file', Color.DANGER, True, 0
-        return True, f'Uploaded "{filename}"', Color.SUCCESS, False, 0
+            return (
+                True,
+                f'"{filename}" is not an .xlsx file',
+                Color.DANGER,
+                True,
+                0,
+                None,
+            )
+        return True, f'Uploaded "{filename}"', Color.SUCCESS, False, 0, None
 
-    if util.triggered_id() == "tab-1-upload-xlsx-ingest":
+    if util.triggered_id() == "tab-1-upload-xlsx-override-table":
         base64_file = contents.split(",")[1]
         # pylint: disable=C0325
-        if not (error := src.ingest_xlsx(base64_file, filename)):
-            return False, "", "", True, 1
-        return True, f'Error ingesting "{filename}" ({error})', Color.DANGER, True, 0
+        error, n_records, previous, current = src.override_table(base64_file, filename)
+        if error:
+            error_message = f'Error overriding "{filename}" ({error})'
+            return True, error_message, Color.DANGER, True, 0, None
+        success_toast = _make_toast(
+            f'Live Table Updated with "{filename}"',
+            f"Uploaded {n_records} records.\n"
+            f"A snapshot was made of "
+            f"{f'the previous ({util.get_human_time(previous)}) table and ' if previous else ''}"
+            f"the current ({util.get_human_time(current)}) table.\n",
+            Color.SUCCESS,
+        )
+        return False, "", "", True, 1, success_toast
 
     raise Exception(f"Unaccounted for trigger {util.triggered_id()}")
 
@@ -1025,7 +1044,7 @@ def log_in_actions(
             False,  # row NOT deletable
             False,  # filter-inst NOT disabled
             current_user.institution if current_user.is_authenticated else "",
-            True,  # upload-xlsx-ingest-div hidden
+            True,  # upload-xlsx-override-div hidden
         )
 
     if current_user.is_authenticated:
@@ -1038,7 +1057,7 @@ def log_in_actions(
             True,  # row is deletable
             not current_user.is_admin,  # filter-inst disabled if user is not an admin
             current_user.institution,
-            not current_user.is_admin,  # upload-xlsx-ingest-div hidden if user is not an admin
+            not current_user.is_admin,  # upload-xlsx-override-div hidden if user is not an admin
         )
     return (
         False,  # data-table NOT editable
@@ -1049,7 +1068,7 @@ def log_in_actions(
         False,  # row NOT deletable
         False,  # filter-inst NOT disabled
         "",
-        True,  # upload-xlsx-ingest-div hidden
+        True,  # upload-xlsx-override-div hidden
     )
 
 

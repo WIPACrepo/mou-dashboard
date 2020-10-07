@@ -170,9 +170,16 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
         base64_file = self.get_argument("base64_file")
         filename = self.get_argument("filename")
 
-        await self.dbms.ingest_xlsx(base64_file, filename)
+        previous_snapshot = await self.dbms.snapshot_live_collection()
+        current_snapshot = await self.dbms.ingest_xlsx(base64_file, filename)
 
-        self.write({})
+        self.write(
+            {
+                "n_records": len(await self.dbms.get_table()),
+                "previous_snapshot": previous_snapshot,
+                "current_snapshot": current_snapshot,
+            }
+        )
 
 
 # -----------------------------------------------------------------------------
