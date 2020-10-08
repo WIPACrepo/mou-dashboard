@@ -21,11 +21,13 @@ from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0
     types,
 )
 import web_app.utils.data_source  # isort:skip  # noqa # pylint: disable=E0401,C0413
+import web_app.config  # isort:skip  # noqa # pylint: disable=E0401,C0413
 
 
 @pytest.fixture  # type: ignore
 def ds_rc() -> RestClient:
     """Get data source REST client via web_app."""
+    web_app.config.update_config_global()
     return web_app.utils.data_source._ds_rest_connection()
 
 

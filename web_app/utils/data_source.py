@@ -3,7 +3,6 @@
 
 import logging
 from typing import Any, cast, Dict, List, Optional, Tuple, TypedDict
-from urllib.parse import urljoin
 
 import requests
 
@@ -18,14 +17,11 @@ ID = "_id"
 
 def _ds_rest_connection() -> RestClient:
     """Return REST Client connection object."""
-    token_request_url = urljoin(
-        CONFIG["TOKEN_SERVER_URL"], f"token?scope={CONFIG['AUTH_PREFIX']}:admin"
-    )
-    token_json = requests.get(token_request_url).json()
-
+    token_json = requests.get(CONFIG["TOKEN_REQUEST_URL"]).json()
     rc = RestClient(
         CONFIG["REST_SERVER_URL"], token=token_json["access"], timeout=5, retries=0
     )
+
     return rc
 
 
