@@ -8,8 +8,6 @@ import coloredlogs  # type: ignore[import]
 # local imports
 from web_app.config import app, CONFIG, update_config_global
 
-# from flask import g
-
 
 def main() -> None:
     """Start up application context."""

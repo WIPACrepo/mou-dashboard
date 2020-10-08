@@ -17,10 +17,13 @@ ID = "_id"
 
 def _ds_rest_connection() -> RestClient:
     """Return REST Client connection object."""
-    token_json = requests.get(CONFIG["TOKEN_REQUEST_URL"]).json()
-    rc = RestClient(
-        CONFIG["REST_SERVER_URL"], token=token_json["access"], timeout=5, retries=0
-    )
+    if CONFIG["TOKEN"]:
+        token = CONFIG["TOKEN"]
+    else:
+        token_json = requests.get(CONFIG["TOKEN_REQUEST_URL"]).json()
+        token = token_json["access"]
+
+    rc = RestClient(CONFIG["REST_SERVER_URL"], token=token, timeout=5, retries=0)
 
     return rc
 

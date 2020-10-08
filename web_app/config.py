@@ -49,6 +49,7 @@ class _ConfigTypedDict(TypedDict, total=False):
     WEB_SERVER_PORT: int
     AUTH_PREFIX: str
     TOKEN_REQUEST_URL: str
+    TOKEN: str
 
 
 CONFIG: _ConfigTypedDict = {
@@ -56,6 +57,7 @@ CONFIG: _ConfigTypedDict = {
     "TOKEN_SERVER_URL": "http://localhost:8888",
     "WEB_SERVER_PORT": 8050,
     "AUTH_PREFIX": "mou",
+    "TOKEN": "",
 }
 
 
