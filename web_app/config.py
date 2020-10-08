@@ -65,8 +65,8 @@ def update_config_global() -> Dict[str, Any]:
 
     config_vars = from_environment(CONFIG)
     config_vars["TOKEN_REQUEST_URL"] = urljoin(
-        config_vars.pop("TOKEN_SERVER_URL"),
-        f"token?scope={config_vars.pop('AUTH_PREFIX')}:admin",
+        config_vars["TOKEN_SERVER_URL"],
+        f"token?scope={config_vars['AUTH_PREFIX']}:admin",
     )
 
     CONFIG.update(config_vars)
