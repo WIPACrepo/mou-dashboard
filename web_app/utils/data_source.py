@@ -5,28 +5,23 @@ import logging
 from typing import Any, cast, Dict, List, Optional, Tuple, TypedDict
 
 import requests
-from flask import g
 
 # local imports
 from rest_tools.client import RestClient  # type: ignore
 
+from ..config import CONFIG
 from .types import Record, Table
 
 ID = "_id"
 
 
-def _ds_rest_connection(
-    token_request_url: str = "", rest_server_url: str = ""
-) -> RestClient:
+def _ds_rest_connection() -> RestClient:
     """Return REST Client connection object."""
-    if not token_request_url:
-        token_request_url = g["TOKEN_REQUEST_URL"]
-    if not rest_server_url:
-        rest_server_url = g["REST_SERVER_URL"]
+    token_json = requests.get(CONFIG["TOKEN_REQUEST_URL"]).json()
+    rc = RestClient(
+        CONFIG["REST_SERVER_URL"], token=token_json["access"], timeout=5, retries=0
+    )
 
-    token_json = requests.get(token_request_url).json()
-
-    rc = RestClient(rest_server_url, token=token_json["access"], timeout=5, retries=0)
     return rc
 
 

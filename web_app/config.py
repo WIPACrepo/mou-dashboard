@@ -2,12 +2,16 @@
 
 import logging
 import os
-from typing import TypedDict
+from typing import Any, cast, Dict, TypedDict
+from urllib.parse import urljoin
 
 import dash  # type: ignore
 import dash_bootstrap_components as dbc  # type: ignore
 import flask
 from flask_login import LoginManager  # type: ignore[import]
+
+# local imports
+from rest_tools.server.config import from_environment  # type: ignore[import]
 
 # --------------------------------------------------------------------------------------
 # Set-up Dash server
@@ -23,7 +27,6 @@ app = dash.Dash(
     ],
 )
 
-
 # config
 server = app.server
 app.config.suppress_callback_exceptions = True
@@ -37,17 +40,18 @@ login_manager.init_app(server)
 
 
 # --------------------------------------------------------------------------------------
-# Constants
+# configure CONFIG global
 
 
-class _ConfigTypedDict(TypedDict):
+class _ConfigTypedDict(TypedDict, total=False):
     REST_SERVER_URL: str
     TOKEN_SERVER_URL: str
     WEB_SERVER_PORT: int
     AUTH_PREFIX: str
+    TOKEN_REQUEST_URL: str
 
 
-_CONFIG: _ConfigTypedDict = {
+CONFIG: _ConfigTypedDict = {
     "REST_SERVER_URL": "http://localhost:8080",
     "TOKEN_SERVER_URL": "http://localhost:8888",
     "WEB_SERVER_PORT": 8050,
@@ -55,7 +59,23 @@ _CONFIG: _ConfigTypedDict = {
 }
 
 
-def log_config(config: _ConfigTypedDict) -> None:
-    """Log the `config` dict, key-value."""
-    for key, val in config.items():
+def update_config_global() -> Dict[str, Any]:
+    """Update `CONFIG` using environment variables."""
+    global CONFIG  # pylint: disable=W0603
+
+    config_vars = from_environment(CONFIG)
+    config_vars["TOKEN_REQUEST_URL"] = urljoin(
+        config_vars.pop("TOKEN_SERVER_URL"),
+        f"token?scope={config_vars.pop('AUTH_PREFIX')}:admin",
+    )
+
+    CONFIG.update(config_vars)
+    _log_config()
+
+    return cast(Dict[str, Any], config_vars)
+
+
+def _log_config() -> None:
+    """Log the `CONFIG` dict, key-value."""
+    for key, val in CONFIG.items():
         logging.info(f"{key} \t {val}")

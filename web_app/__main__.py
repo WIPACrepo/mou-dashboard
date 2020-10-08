@@ -2,22 +2,24 @@
 
 import argparse
 import logging
-from urllib.parse import urljoin
 
 import coloredlogs  # type: ignore[import]
-from flask import g
 
 # local imports
-from rest_tools.server.config import from_environment  # type: ignore[import]
-from web_app.config import _CONFIG, app, log_config
+from web_app.config import app, CONFIG, update_config_global
+
+# from flask import g
+
+
+def main() -> None:
+    """Start up application context."""
+    update_config_global()
+
+    # Run Server
+    app.run_server(debug=True, host="localhost", port=CONFIG["WEB_SERVER_PORT"])
+
 
 if __name__ == "__main__":
-    env = from_environment(_CONFIG)
-    env["TOKEN_REQUEST_URL"] = urljoin(
-        env.pop("TOKEN_SERVER_URL"), f"token?scope={env.pop('AUTH_PREFIX')}:admin"
-    )
-    g.update(env)
-
     # Parse Args
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
@@ -25,7 +27,4 @@ if __name__ == "__main__":
 
     # Log
     coloredlogs.install(level=getattr(logging, args.log.upper()))
-    log_config(env)
-
-    # Run Server
-    app.run_server(debug=True, host="localhost", port=g["WEB_SERVER_PORT"])
+    main()
