@@ -237,7 +237,11 @@ def get_simple_dropdown_menus() -> Dict[str, List[str]]:
 
 
 def get_conditional_dropdown_menus() -> Dict[str, Tuple[str, Dict[str, List[str]]]]:
-    """Get the columns (and conditions) that are conditionally dropdowns."""
+    """Get the columns (and conditions) that are conditionally dropdowns.
+
+    Example:
+    {'Col-Name-A' : ('Parent-Col-Name-1', {'Parent-Val-I' : ['Option-Alpha', ...] } ) }
+    """
     return {
         col: (config["conditional_parent"], config["conditional_options"])
         for col, config in _COLUMN_CONFIGS.items()

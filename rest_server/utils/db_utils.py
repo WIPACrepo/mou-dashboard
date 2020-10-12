@@ -42,22 +42,43 @@ class MoUMotorClient:
 
         If not, raise Exception.
         """
-        categories = {}
-        for col, opts in tc.get_simple_dropdown_menus().items():
-            categories[col] = opts
-        for col, conditions in tc.get_conditional_dropdown_menus().items():
-            categories[col] = [opt for menu in conditions[1].values() for opt in menu]
-
         logging.debug(record)
-        for cat, options in categories.items():
-            try:
-                # assume record is demongofied
-                if record[cat] in options:
+
+        for col_raw, value in record.items():
+            col = MoUMotorClient._demongofy_key_name(col_raw)
+
+            # Blanks are okay
+            if not value:
+                continue
+
+            # Validate a simple dropdown column
+            if col in tc.get_simple_dropdown_menus():
+                if value in tc.get_simple_dropdown_menus()[col]:
                     continue
-            except KeyError:
-                if record[MoUMotorClient._mongofy_key_name(cat)] in options:
+                raise Exception(f"Invalid Simple-Dropdown Data: {col=} {record=}")
+
+            # Validate a conditional dropdown column
+            if col in tc.get_conditional_dropdown_menus():
+                parent_col, menus = tc.get_conditional_dropdown_menus()[col]
+
+                # Get parent value
+                if parent_col in record:
+                    parent_value = record[parent_col]
+                # Check mongofied version  # pylint: disable=C0325
+                elif (mpc := MoUMotorClient._mongofy_key_name(parent_col)) in record:
+                    parent_value = record[mpc]
+                # Parent column is missing (*NOT* '' value)
+                else:  # validate with any/all parents
+                    if value in [v for _, vals in menus.items() for v in vals]:
+                        continue
+                    raise Exception(
+                        f"{menus} Invalid Conditional-Dropdown (Orphan) Data: {col=} {record=}"
+                    )
+
+                # validate with parent value
+                if parent_value and (value in menus[parent_value]):  # type: ignore[index]
                     continue
-            raise Exception(f"Invalid Data: column={cat} {record}")
+                raise Exception(f"Invalid Conditional-Dropdown Data: {col=} {record=}")
 
     @staticmethod
     def _mongofy_key_name(key: str) -> str:

@@ -36,7 +36,7 @@ def test_ingest(ds_rc: RestClient) -> None:
 
     Execute first, so other tests have data in the db.
     """
-    filename = "./WBS.xlsx"
+    filename = "./tests/integration/WBS.xlsx"
     with open(filename, "rb") as f:
         base64_bin = base64.b64encode(f.read())
         base64_file = base64_bin.decode(encoding="utf-8")

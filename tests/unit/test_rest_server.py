@@ -1,11 +1,11 @@
 """Unit test rest_server module."""
 
+# pylint: disable=W0212
+
 
 import copy
 import pprint
 import sys
-
-# pylint: disable=W0212
 from typing import Any, Final, List
 from unittest.mock import ANY, AsyncMock, call, MagicMock, Mock, patch, sentinel
 
@@ -33,6 +33,7 @@ nest_asyncio.apply()  # allows nested event loops
 
 MOU_MOTOR_CLIENT: Final[str] = "rest_server.utils.db_utils.MoUMotorClient"
 MOTOR_CLIENT: Final[str] = "motor.motor_tornado.MotorClient"
+TABLE_CONFIG: Final[str] = "rest_server.table_config"
 
 
 def reset_mock(*args: Mock) -> None:
@@ -73,6 +74,98 @@ class TestDBUtils:  # pylint: disable=R0904
         # Assert
         assert moumc._client == sentinel._client
         mock_eadi.assert_called()
+
+    @staticmethod
+    @patch(TABLE_CONFIG + ".get_conditional_dropdown_menus")
+    @patch(TABLE_CONFIG + ".get_simple_dropdown_menus")
+    def test_validate_record_data(mock_gsdm: Any, mock_gcdm: Any) -> None:
+        """Test _validate_record_data()."""
+        mock_gsdm.return_value = {
+            "F.o.o": ["foo-1", "foo-2"],
+            "B.a.r": ["bar-1", "bar-2", "bar-3"],
+            "Baz": [],
+        }
+
+        mock_gcdm.return_value = {
+            "Ham": (
+                "F.o.o",
+                {
+                    "foo-1": ["1A-I", "1A-II"],
+                    "foo-2": ["1B-I", "1B-II", "1B-III", "1B-IV"],
+                },
+            ),
+            "Eggs": (
+                "B.a.r",
+                {
+                    "bar-1": ["2A-I", "2A-II", "2A-III", "2A-IV", "2A-V", "2A-VI"],
+                    "bar-2": [],
+                },
+            ),
+        }
+
+        # Test good records
+        good_records: List[types.Record] = [
+            {
+                "F.o.o": "foo-2",
+                "B.a.r": "bar-1",
+                "Baz": "",
+                "Ham": "1B-III",
+                "Eggs": "2A-IV",
+            },  # full record
+            {
+                "F;o;o": "foo-2",
+                "B;a;r": "bar-1",
+                "Baz": "",
+                "Ham": "1B-III",
+                "Eggs": "2A-IV",
+            },  # mongofied & full record
+            {
+                "F.o.o": "foo-2",
+                "B.a.r": "bar-2",
+                "Ham": "1B-III",
+                "Eggs": "",
+            },  # missing columns
+            {
+                "F.o.o": "foo-2",
+                "B.a.r": "bar-2",
+                "Ham": "",
+                "Eggs": "",
+            },  # blank values & missing columns
+            {
+                "F.o.o": "foo-2",
+                "B.a.r": "",
+                "Ham": "",
+                "Eggs": "",
+            },  # blank values & missing columns
+            {"F;o;o": "foo-2"},  # mongofied & missing columns
+            {"F;o;o": ""},  # mongofied & blank values & missing columns
+            {"Ham": "1B-III"},  # missing conditional-parent column
+            {},  # no columns
+        ]
+
+        for record in good_records:
+            db_utils.MoUMotorClient._validate_record_data(record)
+
+        # Test bad records
+        bad_records: List[types.Record] = [
+            {"F.o.o": "foo-2", "Ham": 357},  # bad conditional column
+            {
+                "F.o.o": "pork",
+                "Ham": "1B-III",
+            },  # bad simple (conditional-parent) column
+            {
+                "F;o;o": "foo-2",
+                "B;a;r": "bar-2",
+                "Ham": "1B-III",
+                "Eggs": "spam",
+            },  # bad conditional column
+            {"Baz": "beef"},  # bad simple column
+            {"F.o.o": "", "Ham": "1B-III"},  # bad conditional column w/ blank parent
+        ]
+
+        for record in bad_records:
+            with pytest.raises(Exception):
+                db_utils.MoUMotorClient._validate_record_data(record)
 
     @staticmethod
     def test_mongofy_key_name() -> None:
