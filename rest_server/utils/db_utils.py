@@ -310,12 +310,21 @@ class MoUMotorClient:
 
         return self._demongofy_record(record)
 
-    async def delete_record(self, record: Record) -> Record:
-        """Mark the record as deleted."""
-        logging.debug(f"Deleting {record}...")
+    async def _set_is_deleted_status(self, record_id: str, is_deleted: bool) -> Record:
+        """Mark the record as deleted/not-deleted."""
+        query = self._mongofy_record({tc.ID: record_id})
+        record: Record = await self._get_collection(_LIVE_COLLECTION).find_one(query)
 
-        record.update({IS_DELETED: True})
+        record.update({IS_DELETED: is_deleted})
         record = await self.upsert_record(record)
+
+        return record
+
+    async def delete_record(self, record_id: str) -> Record:
+        """Mark the record as deleted."""
+        logging.debug(f"Deleting {record_id}...")
+
+        record = await self._set_is_deleted_status(record_id, True)
 
         logging.info(f"Deleted {record}.")
         return record
@@ -346,13 +355,10 @@ class MoUMotorClient:
         logging.debug(f"Snapshot Timestamps {snapshots}.")
         return snapshots
 
-    async def restore_record(self, id_: str) -> None:
+    async def restore_record(self, record_id: str) -> None:
         """Mark the record as not deleted."""
-        logging.debug(f"Restoring {id_}...")
+        logging.debug(f"Restoring {record_id}...")
 
-        query = self._mongofy_record({tc.ID: id_})
-        record = await self._get_collection(_LIVE_COLLECTION).find_one(query)
-        record.update({IS_DELETED: False})
-        record = await self.upsert_record(record)
+        record = await self._set_is_deleted_status(record_id, False)
 
-        logging.info(f"Restored {id_}.")
+        logging.info(f"Restored {record}.")

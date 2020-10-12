@@ -153,25 +153,25 @@ class TestDataSource:
     @staticmethod
     def test_delete_record(mock_rest: Any) -> None:
         """Test delete_record()."""
-        record = {"BAR": 23}
+        record_id = "23"
 
         # Call
-        ret = data_source.delete_record(record)  # type: ignore[arg-type]
+        ret = data_source.delete_record(record_id)
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
-            "DELETE", "/record", {"record": record}
+            "DELETE", "/record", {"record_id": record_id}
         )
         assert ret
 
         # Fail Test #
         # Call
         mock_rest.return_value.request_seq.side_effect = requests.exceptions.HTTPError
-        ret = data_source.delete_record(record)  # type: ignore[arg-type]
+        ret = data_source.delete_record(record_id)
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
-            "DELETE", "/record", {"record": record}
+            "DELETE", "/record", {"record_id": record_id}
         )
         assert not ret
 

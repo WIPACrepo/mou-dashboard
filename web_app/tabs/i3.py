@@ -749,7 +749,7 @@ def _delete_deleted_records(
     record = None
     for record in delete_these:
         # try to delete
-        if not src.delete_record(record):
+        if not src.delete_record(cast(str, record[src.ID])):
             failures.append(record)
         else:
             last_deletion = cast(str, record[src.ID])

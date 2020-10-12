@@ -88,10 +88,10 @@ def push_record(
         return None
 
 
-def delete_record(record: Record) -> bool:
+def delete_record(record_id: str) -> bool:
     """Delete the record, return True if successful."""
     try:
-        body = {"record": record}
+        body = {"record_id": record_id}
         _request("DELETE", "/record", body)
         return True
     except requests.exceptions.HTTPError as e:

@@ -208,9 +208,9 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def delete(self) -> None:
         """Handle DELETE."""
-        record = self.get_argument("record")
+        record_id = self.get_argument("record_id")
 
-        await self.dbms.delete_record(record)
+        await self.dbms.delete_record(record_id)
 
         self.write({})
 
