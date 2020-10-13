@@ -1,7 +1,7 @@
 """Conditional in-cell drop-down menu with IceCube WBS MoU info."""
 
 
-from typing import cast, Collection, Dict, Final, List, Optional, Tuple
+from typing import cast, Dict, List, Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -13,277 +13,10 @@ from flask_login import current_user  # type: ignore[import]
 from ..config import app
 from ..utils import dash_utils as util
 from ..utils import data_source as src
-from ..utils.types import (
-    DataEntry,
-    Record,
-    Table,
-    TColumns,
-    TDDown,
-    TDDownCond,
-    TFocus,
-    TSDCond,
-)
-
-# constants
-REFRESH_MSG: Final[str] = "Refresh page and try again."
-
+from ..utils.types import DataEntry, Record, Table, TColumns, TDDown, TDDownCond, TFocus
 
 # --------------------------------------------------------------------------------------
 # Layout
-
-
-def _new_data_button(num: int, style: Optional[Dict[str, str]] = None) -> html.Div:
-    return html.Div(
-        id=f"tab-1-new-data-div-{num}",
-        children=dbc.Button(
-            "+ Add New Data",
-            id="tab-1-new-data-button",
-            block=True,
-            n_clicks=0,
-            color=util.Color.DARK,
-            disabled=False,
-        ),
-        hidden=True,
-        style=style,
-    )
-
-
-def _style_cell_conditional_fixed_width(
-    _id: str, width: str, border_left: bool = False, align_right: bool = False
-) -> Dict[str, Collection[str]]:
-    style = {
-        "if": {"column_id": _id},
-        "minWidth": width,
-        "width": width,
-        "maxWidth": width,
-    }
-
-    if border_left:
-        style["border-left"] = "2.5px solid #23272B"
-
-    if align_right:
-        style["textAlign"] = "right"
-
-    return style
-
-
-def _style_cell_conditional(
-    tconfig: src.TableConfigParser,
-) -> List[Dict[str, Collection[str]]]:
-    style_cell_conditional = []
-
-    for col_name in tconfig.get_table_columns():
-        # get values
-        width = f"{tconfig.get_column_width(col_name)}px"
-        border_left = tconfig.has_border_left(col_name)
-        align_right = tconfig.is_column_numeric(col_name)
-
-        # set & add style
-        fixed_width = _style_cell_conditional_fixed_width(
-            col_name, width, border_left=border_left, align_right=align_right
-        )
-        style_cell_conditional.append(fixed_width)
-
-    return style_cell_conditional
-
-
-def _get_style_data_conditional(tconfig: src.TableConfigParser) -> TSDCond:
-    """Style Data..."""
-    # zebra-stripe
-    style_data_conditional = [
-        {"if": {"row_index": "odd"}, "backgroundColor": "whitesmoke"},
-    ]
-    # stylize changed data
-    # https://community.plotly.com/t/highlight-cell-in-datatable-if-it-has-been-edited/28808/3
-    style_data_conditional += [
-        {
-            "if": {
-                "column_id": col,
-                "filter_query": f"{{{col}}} != {{{src.get_touchstone_name(col)}}}",
-            },
-            "fontWeight": "bold",
-            # "color": "#258835",  # doesn't color dropdown-type value
-            "fontStyle": "oblique",
-        }
-        for col in tconfig.get_table_columns()
-    ]
-
-    style_data_conditional += [
-        {
-            "if": {"state": "selected"},  # 'active' | 'selected'
-            "backgroundColor": "transparent",
-            "border": "2px solid #258835",
-        },
-        {
-            "if": {"filter_query": "{Total Of?} contains 'GRAND TOTAL'"},
-            "backgroundColor": "#258835",
-            "color": "whitesmoke",
-            "fontWeight": "bold",
-        },
-        {
-            "if": {"filter_query": "{Total Of?} contains 'L2'"},
-            "backgroundColor": "#23272B",
-            "color": "whitesmoke",
-            "fontWeight": "normal",
-        },
-        {
-            "if": {"filter_query": "{Total Of?} contains 'L3'"},
-            "backgroundColor": "#20A1B6",
-            "color": "whitesmoke",
-            "fontWeight": "normal",
-        },
-        {
-            "if": {"filter_query": "{Total Of?} contains 'US TOTAL'"},
-            "backgroundColor": "#9FA5AA",
-            "color": "whitesmoke",
-            "fontWeight": "normal",
-        },
-    ]
-
-    return style_data_conditional
-
-
-def _deletion_toast() -> dbc.Toast:
-    return dbc.Toast(
-        id="tab-1-deletion-toast",
-        header="Deleted Record",
-        is_open=False,
-        dismissable=True,
-        duration=0,  # 0 = forever
-        fade=False,
-        icon=util.Color.DARK,
-        # top: 66 positions the toast below the navbar
-        style={
-            "position": "fixed",
-            "top": 66,
-            "right": 10,
-            "width": 350,
-            "font-size": "1.1em",
-        },
-        children=[
-            html.Div(id="tab-1-last-deleted-id"),  # f"id: {record[src.ID]}"
-            html.Div(
-                dbc.Button(
-                    "Undo Delete",
-                    id="tab-1-undo-last-delete",
-                    color=util.Color.DANGER,
-                    outline=True,
-                ),
-                style={"text-align": "center", "margin-top": "2rem"},
-            ),
-        ],
-    )
-
-
-def _make_toast(
-    header: str, message: str, icon_color: str, duration: float = 0,
-) -> dbc.Toast:
-    """Dynamically make a toast."""
-    return dbc.Toast(
-        id=f"tab-1-toast-{util.get_now()}",
-        header=header,
-        is_open=True,
-        dismissable=True,
-        duration=duration * 1000,  # 0 = forever
-        fade=False,
-        icon=icon_color,
-        # top: 66 positions the toast below the navbar
-        style={
-            "position": "fixed",
-            "top": 66,
-            "right": 10,
-            "width": 350,
-            "font-size": "1.1em",
-        },
-        children=[html.Div(message)],
-    )
-
-
-def _snapshot_modal() -> dbc.Modal:
-    return dbc.Modal(
-        id="tab-1-load-snapshot-modal",
-        size="lg",
-        is_open=False,
-        backdrop="static",
-        children=[
-            dbc.ModalHeader("Snapshots", className="caps snapshots-title"),
-            dbc.ModalBody(
-                dcc.RadioItems(
-                    options=[], id="tab-1-snapshot-selection", className="snapshots"
-                )
-            ),
-            dbc.ModalFooter(
-                children=[
-                    dbc.Button(
-                        "View Live Table",
-                        id="tab-1-view-live-btn-modal",
-                        n_clicks=0,
-                        color=util.Color.SUCCESS,
-                    )
-                ]
-            ),
-        ],
-    )
-
-
-def _upload_modal() -> dbc.Modal:
-    return dbc.Modal(
-        id="tab-1-upload-xlsx-modal",
-        size="lg",
-        is_open=False,
-        backdrop="static",
-        children=[
-            dbc.ModalHeader("Override Live Table", className="caps"),
-            dbc.ModalBody(
-                children=[
-                    dcc.Upload(
-                        id="tab-1-upload-xlsx",
-                        children=html.Div(
-                            ["Drag and Drop or ", html.A("Select Files")]
-                        ),
-                        style={
-                            "width": "100%",
-                            "height": "5rem",
-                            "lineHeight": "5rem",
-                            "borderWidth": "1px",
-                            "borderStyle": "dashed",
-                            "borderRadius": "5px",
-                            "textAlign": "center",
-                        },
-                        # Allow multiple files to be uploaded
-                        multiple=False,
-                    ),
-                    dbc.Alert(
-                        id="tab-1-upload-xlsx-filename-alert",
-                        style={
-                            "text-align": "center",
-                            "margin-top": "1rem",
-                            "margin-bottom": "0",
-                        },
-                    ),
-                ]
-            ),
-            dbc.ModalFooter(
-                children=[
-                    dbc.Button(
-                        "Cancel",
-                        id="tab-1-upload-xlsx-cancel",
-                        n_clicks=0,
-                        outline=True,
-                        color=util.Color.DANGER,
-                    ),
-                    dbc.Button(
-                        "Override Live Table",
-                        id="tab-1-upload-xlsx-override-table",
-                        n_clicks=0,
-                        outline=True,
-                        color=util.Color.SUCCESS,
-                        disabled=True,
-                    ),
-                ]
-            ),
-        ],
-    )
 
 
 def layout() -> html.Div:
@@ -350,7 +83,7 @@ def layout() -> html.Div:
                 color=util.Color.DARK,
             ),
             # Add Button
-            _new_data_button(1, style={"margin-bottom": "1rem", "height": "40px"}),
+            util.new_data_button(1, style={"margin-bottom": "1rem", "height": "40px"}),
             # "Viewing Snapshot" Alert
             dbc.Alert(
                 [
@@ -409,14 +142,14 @@ def layout() -> html.Div:
                     "width": "10px",
                     "maxWidth": "10px",
                 },
-                style_cell_conditional=_style_cell_conditional(tconfig),
+                style_cell_conditional=util.style_cell_conditional(tconfig),
                 style_data={
                     "whiteSpace": "normal",
                     "height": "auto",
                     "lineHeight": "20px",
                     "wordBreak": "normal",
                 },
-                style_data_conditional=_get_style_data_conditional(tconfig),
+                style_data_conditional=util.get_style_data_conditional(tconfig),
                 # row_deletable set in callback
                 # hidden_columns set in callback
                 # page_size set in callback
@@ -438,7 +171,7 @@ def layout() -> html.Div:
                         style={"width": "52rem", "margin-left": "0.25rem"},
                         children=[
                             # New Data
-                            _new_data_button(
+                            util.new_data_button(
                                 2, style={"width": "15rem", "margin-right": "1rem"}
                             ),
                             # Load Snapshot
@@ -541,9 +274,9 @@ def layout() -> html.Div:
             html.Div(id="tab-1-toast-via-upload-div"),
             #
             # Modals & Toasts
-            _snapshot_modal(),
-            _deletion_toast(),
-            _upload_modal(),
+            util.snapshot_modal(),
+            util.deletion_toast(),
+            util.upload_modal(),
         ]
     )
 
@@ -593,11 +326,13 @@ def _add_new_data(
     # push to data source AND auto-fill labor and/or institution
     if new_record := src.push_record(new_record, labor=labor, institution=institution, novel=True):  # type: ignore[assignment]
         table.insert(0, new_record)
-        toast = _make_toast(
+        toast = util.make_toast(
             "Record Added", f"id: {new_record[src.ID]}", util.Color.SUCCESS, 5
         )
     else:
-        toast = _make_toast("Failed to Make Record", REFRESH_MSG, util.Color.DANGER)
+        toast = util.make_toast(
+            "Failed to Make Record", util.REFRESH_MSG, util.Color.DANGER
+        )
 
     return table, toast
 
@@ -682,7 +417,7 @@ def table_data_exterior_controls(
             snapshot=snapshot,
             restore_id=state_deleted_id,
         )
-        toast = _make_toast(
+        toast = util.make_toast(
             "Record Restored", f"id: {state_deleted_id}", util.Color.SUCCESS
         )
     # OR Just Pull Table (optionally filtered)
@@ -745,8 +480,10 @@ def _delete_deleted_records(
 
     # make toast message if any records failed to be deleted
     if failures:
-        toast = _make_toast(
-            f"Failed to Delete Record {record[src.ID]}", REFRESH_MSG, util.Color.DANGER,
+        toast = util.make_toast(
+            f"Failed to Delete Record {record[src.ID]}",
+            util.REFRESH_MSG,
+            util.Color.DANGER,
         )
 
     return toast, last_deletion
@@ -935,10 +672,12 @@ def manage_snpshots(
 def make_snapshot(_: int) -> dcc.ConfirmDialog:
     """Launch a dialog for not-yet-implemented features."""
     if snapshot := src.create_snapshot():
-        return _make_toast(
+        return util.make_toast(
             "Snapshot Created", util.get_human_time(snapshot), util.Color.SUCCESS
         )
-    return _make_toast("Failed to Make Snapshot", REFRESH_MSG, util.Color.DANGER)
+    return util.make_toast(
+        "Failed to Make Snapshot", util.REFRESH_MSG, util.Color.DANGER
+    )
 
 
 # --------------------------------------------------------------------------------------
@@ -992,7 +731,7 @@ def handle_xlsx(
         if error:
             error_message = f'Error overriding "{filename}" ({error})'
             return True, error_message, util.Color.DANGER, True, 0, None
-        success_toast = _make_toast(
+        success_toast = util.make_toast(
             f'Live Table Updated with "{filename}"',
             f"Uploaded {n_records} records.\n"
             f"A snapshot was made of "

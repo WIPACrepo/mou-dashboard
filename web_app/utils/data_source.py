@@ -10,7 +10,7 @@ import requests
 from rest_tools.client import RestClient  # type: ignore
 
 from ..config import CONFIG
-from .types import Record, Table
+from ..utils.types import Record, Table
 
 # constants
 ID: Final[str] = "_id"
