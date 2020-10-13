@@ -13,7 +13,6 @@ import requests
 
 sys.path.append(".")
 from web_app.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
-    dash_utils,
     data_source,
     types,
 )
@@ -33,13 +32,13 @@ class TestDashUtils:
         record_orig = deepcopy(record)
 
         for _ in range(2):
-            record_out = dash_utils.add_original_copies_to_record(record)
+            record_out = data_source._convert_record_rest_to_dash(record)
             assert record_out == record  # check in-place update
             assert len(record) == 2 * len(record_orig)
             # check copied values
             for key in record_orig.keys():
                 assert record_orig[key] == record[key]
-                assert record_orig[key] == record[key + dash_utils._OC_SUFFIX]
+                assert record_orig[key] == record[data_source.get_touchstone_name(key)]
 
     def test_add_original_copies_to_record_novel(self) -> None:
         """Test add_original_copies_to_record(novel=True)."""
@@ -47,23 +46,23 @@ class TestDashUtils:
         record_orig = deepcopy(record)
 
         for _ in range(2):
-            record_out = dash_utils.add_original_copies_to_record(record, novel=True)
+            record_out = data_source._convert_record_rest_to_dash(record, novel=True)
             assert record_out == record  # check in-place update
             assert len(record) == 2 * len(record_orig)
             # check copied values
             for key in record_orig.keys():
                 assert record_orig[key] == record[key]
-                # check only keys were copied with _OC_SUFFIX, not values
-                assert record_orig[key] != record[key + dash_utils._OC_SUFFIX]
-                assert record[key + dash_utils._OC_SUFFIX] == ""
+                # check only keys were copied with touchstone columns, not values
+                assert record_orig[key] != record[data_source.get_touchstone_name(key)]
+                assert record[data_source.get_touchstone_name(key)] == ""
 
     def test_without_original_copies_from_record(self) -> None:
         """Test without_original_copies_from_record()."""
         record = self._get_new_record()
         record_orig = deepcopy(record)
 
-        dash_utils.add_original_copies_to_record(record)
-        record_out = dash_utils.without_original_copies_from_record(record)
+        data_source._convert_record_rest_to_dash(record)
+        record_out = data_source._convert_record_dash_to_rest(record)
 
         assert record_out != record
         assert record_out == record_orig
@@ -76,7 +75,7 @@ class TestDataSource:
     @pytest.fixture  # type: ignore
     def mock_rest(mocker: Any) -> Any:
         """Patch mock_rest."""
-        return mocker.patch("web_app.utils.data_source._ds_rest_connection")
+        return mocker.patch("web_app.utils.data_source._rest_connection")
 
     @staticmethod
     def test_pull_data_table(mock_rest: Any) -> None:

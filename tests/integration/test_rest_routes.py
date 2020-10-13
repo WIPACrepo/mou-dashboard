@@ -28,7 +28,7 @@ import web_app.config  # isort:skip  # noqa # pylint: disable=E0401,C0413
 def ds_rc() -> RestClient:
     """Get data source REST client via web_app."""
     web_app.config.update_config_global()
-    return web_app.utils.data_source._ds_rest_connection()
+    return web_app.utils.data_source._rest_connection()
 
 
 def test_ingest(ds_rc: RestClient) -> None:

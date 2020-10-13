@@ -1,7 +1,7 @@
 """Conditional in-cell drop-down menu with IceCube WBS MoU info."""
 
 
-from typing import cast, Collection, Dict, List, Optional, Tuple
+from typing import cast, Collection, Dict, Final, List, Optional, Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -13,8 +13,6 @@ from flask_login import current_user  # type: ignore[import]
 from ..config import app
 from ..utils import dash_utils as util
 from ..utils import data_source as src
-from ..utils.dash_utils import Color
-from ..utils.data_source import TableConfigParser
 from ..utils.types import (
     DataEntry,
     Record,
@@ -26,7 +24,8 @@ from ..utils.types import (
     TSDCond,
 )
 
-REFRESH_MSG = "Refresh page and try again."
+# constants
+REFRESH_MSG: Final[str] = "Refresh page and try again."
 
 
 # --------------------------------------------------------------------------------------
@@ -41,7 +40,7 @@ def _new_data_button(num: int, style: Optional[Dict[str, str]] = None) -> html.D
             id="tab-1-new-data-button",
             block=True,
             n_clicks=0,
-            color=Color.DARK,
+            color=util.Color.DARK,
             disabled=False,
         ),
         hidden=True,
@@ -69,7 +68,7 @@ def _style_cell_conditional_fixed_width(
 
 
 def _style_cell_conditional(
-    tconfig: TableConfigParser,
+    tconfig: src.TableConfigParser,
 ) -> List[Dict[str, Collection[str]]]:
     style_cell_conditional = []
 
@@ -88,7 +87,7 @@ def _style_cell_conditional(
     return style_cell_conditional
 
 
-def _get_style_data_conditional(tconfig: TableConfigParser) -> TSDCond:
+def _get_style_data_conditional(tconfig: src.TableConfigParser) -> TSDCond:
     """Style Data..."""
     # zebra-stripe
     style_data_conditional = [
@@ -100,7 +99,7 @@ def _get_style_data_conditional(tconfig: TableConfigParser) -> TSDCond:
         {
             "if": {
                 "column_id": col,
-                "filter_query": util.get_changed_data_filter_query(col),
+                "filter_query": f"{{{col}}} != {{{src.get_touchstone_name(col)}}}",
             },
             "fontWeight": "bold",
             # "color": "#258835",  # doesn't color dropdown-type value
@@ -152,7 +151,7 @@ def _deletion_toast() -> dbc.Toast:
         dismissable=True,
         duration=0,  # 0 = forever
         fade=False,
-        icon=Color.DARK,
+        icon=util.Color.DARK,
         # top: 66 positions the toast below the navbar
         style={
             "position": "fixed",
@@ -167,7 +166,7 @@ def _deletion_toast() -> dbc.Toast:
                 dbc.Button(
                     "Undo Delete",
                     id="tab-1-undo-last-delete",
-                    color=Color.DANGER,
+                    color=util.Color.DANGER,
                     outline=True,
                 ),
                 style={"text-align": "center", "margin-top": "2rem"},
@@ -219,7 +218,7 @@ def _snapshot_modal() -> dbc.Modal:
                         "View Live Table",
                         id="tab-1-view-live-btn-modal",
                         n_clicks=0,
-                        color=Color.SUCCESS,
+                        color=util.Color.SUCCESS,
                     )
                 ]
             ),
@@ -271,14 +270,14 @@ def _upload_modal() -> dbc.Modal:
                         id="tab-1-upload-xlsx-cancel",
                         n_clicks=0,
                         outline=True,
-                        color=Color.DANGER,
+                        color=util.Color.DANGER,
                     ),
                     dbc.Button(
                         "Override Live Table",
                         id="tab-1-upload-xlsx-override-table",
                         n_clicks=0,
                         outline=True,
-                        color=Color.SUCCESS,
+                        color=util.Color.SUCCESS,
                         disabled=True,
                     ),
                 ]
@@ -289,7 +288,7 @@ def _upload_modal() -> dbc.Modal:
 
 def layout() -> html.Div:
     """Construct the HTML."""
-    tconfig = TableConfigParser()  # get fresh table config
+    tconfig = src.TableConfigParser()  # get fresh table config
 
     return html.Div(
         children=[
@@ -348,7 +347,7 @@ def layout() -> html.Div:
                     "text-align": "center",
                 },
                 className="caps",
-                color=Color.DARK,
+                color=util.Color.DARK,
             ),
             # Add Button
             _new_data_button(1, style={"margin-bottom": "1rem", "height": "40px"}),
@@ -364,7 +363,7 @@ def layout() -> html.Div:
                         "View Live Table",
                         id="tab-1-view-live-btn",
                         n_clicks=0,
-                        color=Color.SUCCESS,
+                        color=util.Color.SUCCESS,
                     ),
                 ],
                 id="tab-1-viewing-snapshot-alert",
@@ -375,7 +374,7 @@ def layout() -> html.Div:
                     "text-align": "center",
                 },
                 className="caps",
-                color=Color.LIGHT,
+                color=util.Color.LIGHT,
                 is_open=False,
             ),
             # Table
@@ -448,7 +447,7 @@ def layout() -> html.Div:
                                 id="tab-1-load-snapshot-button",
                                 n_clicks=0,
                                 outline=True,
-                                color=Color.INFO,
+                                color=util.Color.INFO,
                                 style={"margin-right": "1rem"},
                             ),
                             # Make Snapshot
@@ -457,7 +456,7 @@ def layout() -> html.Div:
                                 id="tab-1-make-snapshot-button",
                                 n_clicks=0,
                                 outline=True,
-                                color=Color.SUCCESS,
+                                color=util.Color.SUCCESS,
                                 style={"margin-right": "1rem"},
                             ),
                             # Refresh
@@ -466,7 +465,7 @@ def layout() -> html.Div:
                                 id="tab-1-refresh-button",
                                 n_clicks=0,
                                 outline=True,
-                                color=Color.SUCCESS,
+                                color=util.Color.SUCCESS,
                                 style={"font-weight": "bold"},
                             ),
                         ],
@@ -515,7 +514,7 @@ def layout() -> html.Div:
                         id="tab-1-upload-xlsx-launch-modal-button",
                         block=True,
                         n_clicks=0,
-                        color=Color.WARNING,
+                        color=util.Color.WARNING,
                         disabled=False,
                         style={"margin-bottom": "1rem"},
                     ),
@@ -569,13 +568,13 @@ def _totals_button_logic(
     triggered = util.triggered_id() == "tab-1-show-totals-button"
 
     if not on:  # off -> don't trigger "show-all-columns"
-        return False, "Show Totals", Color.SECONDARY, True, state_all_cols
+        return False, "Show Totals", util.Color.SECONDARY, True, state_all_cols
 
     if triggered:  # on and triggered -> trigger "show-all-columns"
-        return True, "Hide Totals", Color.DARK, False, 1
+        return True, "Hide Totals", util.Color.DARK, False, 1
 
     # on and not triggered, AKA already on -> don't trigger "show-all-columns"
-    return True, "Hide Totals", Color.DARK, False, state_all_cols
+    return True, "Hide Totals", util.Color.DARK, False, state_all_cols
 
 
 def _add_new_data(
@@ -592,36 +591,15 @@ def _add_new_data(
     new_record: Record = {n: "" for n in column_names}
 
     # push to data source AND auto-fill labor and/or institution
-    if new_record := src.push_record(new_record, labor=labor, institution=institution):  # type: ignore[assignment]
-        new_record = util.add_original_copies_to_record(new_record, novel=True)
+    if new_record := src.push_record(new_record, labor=labor, institution=institution, novel=True):  # type: ignore[assignment]
         table.insert(0, new_record)
         toast = _make_toast(
-            "Record Added", f"id: {new_record[src.ID]}", Color.SUCCESS, 5
+            "Record Added", f"id: {new_record[src.ID]}", util.Color.SUCCESS, 5
         )
     else:
-        toast = _make_toast("Failed to Make Record", REFRESH_MSG, Color.DANGER)
+        toast = _make_toast("Failed to Make Record", REFRESH_MSG, util.Color.DANGER)
 
     return table, toast
-
-
-def _get_table(
-    institution: str,
-    labor: str,
-    show_totals: bool,
-    snapshot: str,
-    restore_id: str = "",
-) -> Table:
-    """Pull from data source."""
-    table = src.pull_data_table(
-        institution=institution,
-        labor=labor,
-        with_totals=show_totals,
-        snapshot=snapshot,
-        restore_id=restore_id,
-    )
-    table = util.add_original_copies(table)
-
-    return table
 
 
 @app.callback(  # type: ignore[misc]
@@ -651,7 +629,7 @@ def _get_table(
         State("tab-1-show-all-columns-button", "n_clicks"),
         State("tab-1-last-deleted-id", "children"),
     ],
-)  # pylint: disable=R0913
+)  # pylint: disable=R0913,R0914
 def table_data_exterior_controls(
     # inputs
     institution: str,
@@ -697,13 +675,24 @@ def table_data_exterior_controls(
         table, toast = _add_new_data(state_table, state_columns, labor, institution)
     # OR Restore a Record and Pull Table (optionally filtered)
     elif util.triggered_id() == "tab-1-undo-last-delete":
-        table = _get_table(
-            institution, labor, show_totals, snapshot, restore_id=state_deleted_id
+        table = src.pull_data_table(
+            institution=institution,
+            labor=labor,
+            with_totals=show_totals,
+            snapshot=snapshot,
+            restore_id=state_deleted_id,
         )
-        toast = _make_toast("Record Restored", f"id: {state_deleted_id}", Color.SUCCESS)
+        toast = _make_toast(
+            "Record Restored", f"id: {state_deleted_id}", util.Color.SUCCESS
+        )
     # OR Just Pull Table (optionally filtered)
     else:
-        table = _get_table(institution, labor, show_totals, snapshot)
+        table = src.pull_data_table(
+            institution=institution,
+            labor=labor,
+            with_totals=show_totals,
+            snapshot=snapshot,
+        )
 
     return (
         table,
@@ -726,7 +715,7 @@ def _push_modified_records(
         r for r in current_table if (r not in previous_table) and (src.ID in r)
     ]
     for record in modified_records:
-        src.push_record(util.without_original_copies_from_record(record))
+        src.push_record(record)
 
     ids = [c[src.ID] for c in modified_records]
     return ids
@@ -757,7 +746,7 @@ def _delete_deleted_records(
     # make toast message if any records failed to be deleted
     if failures:
         toast = _make_toast(
-            f"Failed to Delete Record {record[src.ID]}", REFRESH_MSG, Color.DANGER,
+            f"Failed to Delete Record {record[src.ID]}", REFRESH_MSG, util.Color.DANGER,
         )
 
     return toast, last_deletion
@@ -813,10 +802,10 @@ def table_data_interior_controls(
     [State("tab-1-table-config-cache", "data")],
 )
 def table_columns(
-    table_editable: bool, tconfig_state: TableConfigParser.Cache
+    table_editable: bool, tconfig_state: src.TableConfigParser.Cache
 ) -> List[Dict[str, object]]:
     """Grab table columns."""
-    tconfig = TableConfigParser(tconfig_state)
+    tconfig = src.TableConfigParser(tconfig_state)
 
     def _presentation(col_name: str) -> str:
         if tconfig.is_column_dropdown(col_name):
@@ -852,12 +841,12 @@ def table_columns(
     [State("tab-1-table-config-cache", "data")],
 )
 def table_dropdown(
-    _: bool, tconfig_state: TableConfigParser.Cache
+    _: bool, tconfig_state: src.TableConfigParser.Cache
 ) -> Tuple[TDDown, TDDownCond]:
     """Grab table dropdowns."""
     simple_dropdowns: TDDown = {}
     conditional_dropdowns: TDDownCond = []
-    tconfig = TableConfigParser(tconfig_state)
+    tconfig = src.TableConfigParser(tconfig_state)
 
     def _options(menu: List[str]) -> List[Dict[str, str]]:
         return [{"label": m, "value": m} for m in menu]
@@ -947,9 +936,9 @@ def make_snapshot(_: int) -> dcc.ConfirmDialog:
     """Launch a dialog for not-yet-implemented features."""
     if snapshot := src.create_snapshot():
         return _make_toast(
-            "Snapshot Created", util.get_human_time(snapshot), Color.SUCCESS
+            "Snapshot Created", util.get_human_time(snapshot), util.Color.SUCCESS
         )
-    return _make_toast("Failed to Make Snapshot", REFRESH_MSG, Color.DANGER)
+    return _make_toast("Failed to Make Snapshot", REFRESH_MSG, util.Color.DANGER)
 
 
 # --------------------------------------------------------------------------------------
@@ -989,12 +978,12 @@ def handle_xlsx(
             return (
                 True,
                 f'"{filename}" is not an .xlsx file',
-                Color.DANGER,
+                util.Color.DANGER,
                 True,
                 0,
                 None,
             )
-        return True, f'Uploaded "{filename}"', Color.SUCCESS, False, 0, None
+        return True, f'Uploaded "{filename}"', util.Color.SUCCESS, False, 0, None
 
     if util.triggered_id() == "tab-1-upload-xlsx-override-table":
         base64_file = contents.split(",")[1]
@@ -1002,14 +991,14 @@ def handle_xlsx(
         error, n_records, previous, current = src.override_table(base64_file, filename)
         if error:
             error_message = f'Error overriding "{filename}" ({error})'
-            return True, error_message, Color.DANGER, True, 0, None
+            return True, error_message, util.Color.DANGER, True, 0, None
         success_toast = _make_toast(
             f'Live Table Updated with "{filename}"',
             f"Uploaded {n_records} records.\n"
             f"A snapshot was made of "
             f"{f'the previous ({util.get_human_time(previous)}) table and ' if previous else ''}"
             f"the current ({util.get_human_time(current)}) table.\n",
-            Color.SUCCESS,
+            util.Color.SUCCESS,
         )
         return False, "", "", True, 1, success_toast
 
@@ -1084,14 +1073,20 @@ def log_in_actions(
     [State("tab-1-table-config-cache", "data")],
 )
 def toggle_pagination(
-    n_clicks: int, tconfig_state: TableConfigParser.Cache
+    n_clicks: int, tconfig_state: src.TableConfigParser.Cache
 ) -> Tuple[str, str, bool, int, str]:
     """Toggle whether the table is paginated."""
     if n_clicks % 2 == 0:
-        tconfig = TableConfigParser(tconfig_state)
-        return "Show All Rows", Color.SECONDARY, True, tconfig.get_page_size(), "native"
+        tconfig = src.TableConfigParser(tconfig_state)
+        return (
+            "Show All Rows",
+            util.Color.SECONDARY,
+            True,
+            tconfig.get_page_size(),
+            "native",
+        )
     # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
-    return "Collapse Rows to Pages", Color.DARK, False, 9999999999, "none"
+    return "Collapse Rows to Pages", util.Color.DARK, False, 9999999999, "none"
 
 
 @app.callback(  # type: ignore[misc]
@@ -1105,15 +1100,15 @@ def toggle_pagination(
     [State("tab-1-table-config-cache", "data")],
 )
 def toggle_hidden_columns(
-    n_clicks: int, tconfig_state: TableConfigParser.Cache
+    n_clicks: int, tconfig_state: src.TableConfigParser.Cache
 ) -> Tuple[str, str, bool, List[str]]:
     """Toggle hiding/showing the default hidden columns."""
     if n_clicks % 2 == 0:
-        tconfig = TableConfigParser(tconfig_state)
+        tconfig = src.TableConfigParser(tconfig_state)
         return (
             "Show Hidden Columns",
-            Color.SECONDARY,
+            util.Color.SECONDARY,
             True,
             tconfig.get_hidden_columns(),
         )
-    return "Show Default Columns", Color.DARK, False, []
+    return "Show Default Columns", util.Color.DARK, False, []
