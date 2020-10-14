@@ -12,7 +12,8 @@ import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 
-from ..utils import data_source as src
+from ..data_source import data_source as src
+from ..data_source import table_config as tc
 from ..utils.types import TSDCond
 
 # constants
@@ -129,7 +130,7 @@ def _style_cell_conditional_fixed_width(
 
 
 def style_cell_conditional(
-    tconfig: src.TableConfigParser,
+    tconfig: tc.TableConfigParser,
 ) -> List[Dict[str, Collection[str]]]:
     """Get the `style_cell_conditional` list.."""
     style_cell_conditional_list = []
@@ -149,7 +150,7 @@ def style_cell_conditional(
     return style_cell_conditional_list
 
 
-def get_style_data_conditional(tconfig: src.TableConfigParser) -> TSDCond:
+def get_style_data_conditional(tconfig: tc.TableConfigParser) -> TSDCond:
     """Style Data..."""
     # zebra-stripe
     style_data_conditional = [

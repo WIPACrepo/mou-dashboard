@@ -12,9 +12,10 @@ import pytest
 import requests
 
 sys.path.append(".")
-from web_app.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
-    data_source,
-    types,
+from web_app.utils import types  # isort:skip  # noqa # pylint: disable=E0401,C0413
+from web_app.data_source import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
+    data_source as src,
+    table_config as tc,
 )
 
 
@@ -32,13 +33,13 @@ class TestDashUtils:
         record_orig = deepcopy(record)
 
         for _ in range(2):
-            record_out = data_source._convert_record_rest_to_dash(record)
+            record_out = src._convert_record_rest_to_dash(record)
             assert record_out == record  # check in-place update
             assert len(record) == 2 * len(record_orig)
             # check copied values
             for key in record_orig.keys():
                 assert record_orig[key] == record[key]
-                assert record_orig[key] == record[data_source.get_touchstone_name(key)]
+                assert record_orig[key] == record[src.get_touchstone_name(key)]
 
     def test_add_original_copies_to_record_novel(self) -> None:
         """Test add_original_copies_to_record(novel=True)."""
@@ -46,23 +47,23 @@ class TestDashUtils:
         record_orig = deepcopy(record)
 
         for _ in range(2):
-            record_out = data_source._convert_record_rest_to_dash(record, novel=True)
+            record_out = src._convert_record_rest_to_dash(record, novel=True)
             assert record_out == record  # check in-place update
             assert len(record) == 2 * len(record_orig)
             # check copied values
             for key in record_orig.keys():
                 assert record_orig[key] == record[key]
                 # check only keys were copied with touchstone columns, not values
-                assert record_orig[key] != record[data_source.get_touchstone_name(key)]
-                assert record[data_source.get_touchstone_name(key)] == ""
+                assert record_orig[key] != record[src.get_touchstone_name(key)]
+                assert record[src.get_touchstone_name(key)] == ""
 
     def test_without_original_copies_from_record(self) -> None:
         """Test without_original_copies_from_record()."""
         record = self._get_new_record()
         record_orig = deepcopy(record)
 
-        data_source._convert_record_rest_to_dash(record)
-        record_out = data_source._convert_record_dash_to_rest(record)
+        src._convert_record_rest_to_dash(record)
+        record_out = src._convert_record_dash_to_rest(record)
 
         assert record_out != record
         assert record_out == record_orig
@@ -75,7 +76,7 @@ class TestDataSource:
     @pytest.fixture  # type: ignore
     def mock_rest(mocker: Any) -> Any:
         """Patch mock_rest."""
-        return mocker.patch("web_app.utils.data_source._rest_connection")
+        return mocker.patch("web_app.data_source.utils._rest_connection")
 
     @staticmethod
     def test_pull_data_table(mock_rest: Any) -> None:
@@ -103,10 +104,10 @@ class TestDataSource:
             mock_rest.return_value.request_seq.return_value = response
             # Default values
             if i == 0:
-                ret = data_source.pull_data_table()
+                ret = src.pull_data_table()
             # Other values
             else:
-                ret = data_source.pull_data_table(
+                ret = src.pull_data_table(
                     bodies[i]["institution"],  # type: ignore[arg-type]
                     bodies[i]["labor"],  # type: ignore[arg-type]
                     bodies[i]["total_rows"],  # type: ignore[arg-type]
@@ -136,10 +137,10 @@ class TestDataSource:
             mock_rest.return_value.request_seq.return_value = response
             # Default values
             if i == 0:
-                ret = data_source.push_record(bodies[0]["record"])  # type: ignore[arg-type]
+                ret = src.push_record(bodies[0]["record"])  # type: ignore[arg-type]
             # Other values
             else:
-                ret = data_source.push_record(
+                ret = src.push_record(
                     bodies[i]["record"], bodies[i]["labor"], bodies[i]["institution"]  # type: ignore[arg-type]
                 )
 
@@ -155,7 +156,7 @@ class TestDataSource:
         record_id = "23"
 
         # Call
-        ret = data_source.delete_record(record_id)
+        ret = src.delete_record(record_id)
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
@@ -166,7 +167,7 @@ class TestDataSource:
         # Fail Test #
         # Call
         mock_rest.return_value.request_seq.side_effect = requests.exceptions.HTTPError
-        ret = data_source.delete_record(record_id)
+        ret = src.delete_record(record_id)
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
@@ -181,7 +182,7 @@ class TestDataSource:
 
         # Call
         mock_rest.return_value.request_seq.return_value = response
-        ret = data_source.list_snapshot_timestamps()
+        ret = src.list_snapshot_timestamps()
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
@@ -196,7 +197,7 @@ class TestDataSource:
 
         # Call
         mock_rest.return_value.request_seq.return_value = response
-        ret = data_source.create_snapshot()
+        ret = src.create_snapshot()
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
@@ -208,7 +209,7 @@ class TestDataSource:
     def test_table_config(mock_rest: Any) -> None:
         """Test TableConfig()."""
         # nonsense data, but correctly typed
-        response: data_source.TableConfigParser.Cache = {
+        response: tc.TableConfigParser.Cache = {
             "columns": ["a", "b", "c", "d"],
             "simple_dropdown_menus": {"a": ["1", "2", "3"], "c": ["4", "44", "444"]},
             "institutions": sorted([("foo", "F"), ("bar", "B")]),
@@ -234,7 +235,7 @@ class TestDataSource:
 
         # Call
         mock_rest.return_value.request_seq.return_value = response
-        table_config = data_source.TableConfigParser()
+        table_config = tc.TableConfigParser()
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
@@ -306,7 +307,7 @@ class TestDataSource:
         for col, wid in response["widths"].items():
             assert table_config.get_column_width(col) == wid
         mock_rest.return_value.request_seq.return_value = {}
-        table_config = data_source.TableConfigParser()
+        table_config = tc.TableConfigParser()
         for col, wid in response["widths"].items():
             default = (
                 inspect.signature(table_config.get_column_width)
@@ -318,4 +319,4 @@ class TestDataSource:
     @staticmethod
     def test_id_constant() -> None:
         """Check the ID constant, this corresponds to the mongodb id field."""
-        assert data_source.ID == "_id"
+        assert src.ID == "_id"

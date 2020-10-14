@@ -20,7 +20,7 @@ from rest_server import routes  # isort:skip  # noqa # pylint: disable=E0401,C04
 from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
     types,
 )
-import web_app.utils.data_source  # isort:skip  # noqa # pylint: disable=E0401,C0413
+import web_app.data_source.utils  # isort:skip  # noqa # pylint: disable=E0401,C0413
 import web_app.config  # isort:skip  # noqa # pylint: disable=E0401,C0413
 
 
@@ -28,7 +28,7 @@ import web_app.config  # isort:skip  # noqa # pylint: disable=E0401,C0413
 def ds_rc() -> RestClient:
     """Get data source REST client via web_app."""
     web_app.config.update_config_global()
-    return web_app.utils.data_source._rest_connection()
+    return web_app.data_source.utils._rest_connection()
 
 
 def test_ingest(ds_rc: RestClient) -> None:
