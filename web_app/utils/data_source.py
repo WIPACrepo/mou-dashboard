@@ -33,7 +33,7 @@ def _rest_connection() -> RestClient:
 def _request(method: str, url: str, body: Any = None) -> Dict[str, Any]:
     logging.info(f"REQUEST :: {method} @ {url}, body: {body}")
 
-    response = _rest_connection().request_seq(method, url, body)
+    response: Dict[str, Any] = _rest_connection().request_seq(method, url, body)
 
     def log_it(key: str, val: Any) -> Any:
         if key == "table":
@@ -47,7 +47,8 @@ def _request(method: str, url: str, body: Any = None) -> Dict[str, Any]:
         logging.info(f"> {key}")
         logging.debug(f"-> {str(type(val).__name__)}")
         logging.debug(f"-> {log_it(key, val)}")
-    return cast(Dict[str, Any], response)
+
+    return response
 
 
 # --------------------------------------------------------------------------------------
@@ -136,6 +137,10 @@ def pull_data_table(
 
     Grab a snapshot table, if snapshot is given. "" gives live table.
     """
+
+    class RespTableData(TypedDict):  # pylint: disable=C0115,R0903
+        table: Table
+
     # request
     body = {
         "institution": institution,
@@ -144,25 +149,29 @@ def pull_data_table(
         "snapshot": snapshot,
         "restore_id": restore_id,
     }
-    response = _request("GET", "/table/data", body)
+    response = cast(RespTableData, _request("GET", "/table/data", body))
     # get & convert
-    table = cast(Table, response["table"])
-    table = _convert_table_rest_to_dash(table)
-    return table
+    return _convert_table_rest_to_dash(response["table"])
 
 
 def push_record(
     record: Record, labor: str = "", institution: str = "", novel: bool = False
 ) -> Optional[Record]:
     """Push new/changed record to source."""
+
+    class RespRecord(TypedDict):  # pylint: disable=C0115,R0903
+        record: Record
+
     try:
         # request
-        body = {"record": record, "institution": institution, "labor": labor}
-        response = _request("POST", "/record", body)
+        body = {
+            "record": _convert_record_dash_to_rest(record),
+            "institution": institution,
+            "labor": labor,
+        }
+        response = cast(RespRecord, _request("POST", "/record", body))
         # get & convert
-        record = cast(Record, response["record"])
-        record = _convert_record_rest_to_dash(record, novel=novel)
-        return record
+        return _convert_record_rest_to_dash(response["record"], novel=novel)
     except requests.exceptions.HTTPError as e:
         logging.exception(f"EXCEPTED: {e}")
         return None
@@ -181,16 +190,24 @@ def delete_record(record_id: str) -> bool:
 
 def list_snapshot_timestamps() -> List[str]:
     """Get the list of snapshots."""
-    response = _request("GET", "/snapshots/timestamps")
 
-    return cast(List[str], sorted(response["timestamps"], reverse=True))
+    class RespSnapshotsTimestamps(TypedDict):  # pylint: disable=C0115,R0903
+        timestamps: List[str]
+
+    response = cast(RespSnapshotsTimestamps, _request("GET", "/snapshots/timestamps"))
+
+    return sorted(response["timestamps"], reverse=True)
 
 
 def create_snapshot() -> str:
     """Create a snapshot."""
-    response = _request("POST", "/snapshots/make")
 
-    return cast(str, response["timestamp"])
+    class RespSnapshotsMake(TypedDict):  # pylint: disable=C0115,R0903
+        timestamp: str
+
+    response = cast(RespSnapshotsMake, _request("POST", "/snapshots/make"))
+
+    return response["timestamp"]
 
 
 def override_table(base64_file: str, filename: str) -> Tuple[str, int, str, str]:
@@ -206,9 +223,15 @@ def override_table(base64_file: str, filename: str) -> Tuple[str, int, str, str]
         str -- snapshot name of the previous live table ('' if no prior table)
         str -- snapshot name of the current live table
     """
+
+    class RespTableData(TypedDict):  # pylint: disable=C0115,R0903
+        n_records: int
+        previous_snapshot: str
+        current_snapshot: str
+
     try:
         body = {"base64_file": base64_file, "filename": filename}
-        response = _request("POST", "/table/data", body)
+        response = cast(RespTableData, _request("POST", "/table/data", body))
         return (
             "",
             response["n_records"],
@@ -227,7 +250,7 @@ def override_table(base64_file: str, filename: str) -> Tuple[str, int, str, str]
 class TableConfigParser:
     """Manage caching and parsing responses from '/table/config'."""
 
-    class Cache(TypedDict):
+    class Cache(TypedDict):  # pylint: disable=R0903
         """The response dict from '/table/config'."""
 
         columns: List[str]
@@ -251,8 +274,9 @@ class TableConfigParser:
         if cached_table_config:
             self.config = cached_table_config
         else:
-            response = _request("GET", "/table/config")
-            self.config = cast(TableConfigParser.Cache, response)
+            self.config = cast(
+                TableConfigParser.Cache, _request("GET", "/table/config")
+            )
 
     def get_table_columns(self) -> List[str]:
         """Return table column's names."""
