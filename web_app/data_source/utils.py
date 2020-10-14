@@ -25,7 +25,8 @@ def _rest_connection() -> RestClient:
     return rc
 
 
-def _request(method: str, url: str, body: Any = None) -> Dict[str, Any]:
+def mou_request(method: str, url: str, body: Any = None) -> Dict[str, Any]:
+    """Make a request to the MoU REST server."""
     logging.info(f"REQUEST :: {method} @ {url}, body: {body}")
 
     response: Dict[str, Any] = _rest_connection().request_seq(method, url, body)

@@ -7,6 +7,7 @@ from typing import cast, Final, List, Optional, Tuple, TypedDict
 import requests
 
 from ..utils.types import Record, Table
+from .utils import mou_request
 
 # constants
 ID: Final[str] = "_id"
@@ -107,7 +108,7 @@ def pull_data_table(
         "snapshot": snapshot,
         "restore_id": restore_id,
     }
-    response = cast(RespTableData, _request("GET", "/table/data", body))
+    response = cast(RespTableData, mou_request("GET", "/table/data", body))
     # get & convert
     return _convert_table_rest_to_dash(response["table"])
 
@@ -127,7 +128,7 @@ def push_record(
             "institution": institution,
             "labor": labor,
         }
-        response = cast(RespRecord, _request("POST", "/record", body))
+        response = cast(RespRecord, mou_request("POST", "/record", body))
         # get & convert
         return _convert_record_rest_to_dash(response["record"], novel=novel)
     except requests.exceptions.HTTPError as e:
@@ -139,7 +140,7 @@ def delete_record(record_id: str) -> bool:
     """Delete the record, return True if successful."""
     try:
         body = {"record_id": record_id}
-        _request("DELETE", "/record", body)
+        mou_request("DELETE", "/record", body)
         return True
     except requests.exceptions.HTTPError as e:
         logging.exception(f"EXCEPTED: {e}")
@@ -152,7 +153,9 @@ def list_snapshot_timestamps() -> List[str]:
     class RespSnapshotsTimestamps(TypedDict):  # pylint: disable=C0115,R0903
         timestamps: List[str]
 
-    response = cast(RespSnapshotsTimestamps, _request("GET", "/snapshots/timestamps"))
+    response = cast(
+        RespSnapshotsTimestamps, mou_request("GET", "/snapshots/timestamps")
+    )
 
     return sorted(response["timestamps"], reverse=True)
 
@@ -163,7 +166,7 @@ def create_snapshot() -> str:
     class RespSnapshotsMake(TypedDict):  # pylint: disable=C0115,R0903
         timestamp: str
 
-    response = cast(RespSnapshotsMake, _request("POST", "/snapshots/make"))
+    response = cast(RespSnapshotsMake, mou_request("POST", "/snapshots/make"))
 
     return response["timestamp"]
 
@@ -189,7 +192,7 @@ def override_table(base64_file: str, filename: str) -> Tuple[str, int, str, str]
 
     try:
         body = {"base64_file": base64_file, "filename": filename}
-        response = cast(RespTableData, _request("POST", "/table/data", body))
+        response = cast(RespTableData, mou_request("POST", "/table/data", body))
         return (
             "",
             response["n_records"],
