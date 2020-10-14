@@ -312,7 +312,11 @@ def _totals_button_logic(
 
 
 def _add_new_data(
-    state_table: Table, state_columns: TColumns, labor: str, institution: str,
+    state_table: Table,
+    state_columns: TColumns,
+    labor: str,
+    institution: str,
+    state_tconfig_cache: tc.TableConfigParser.Cache,
 ) -> Tuple[Table, dbc.Toast]:
     """Push new record to data source; add to table.
 
@@ -325,12 +329,19 @@ def _add_new_data(
     new_record: Record = {n: "" for n in column_names}
 
     # push to data source AND auto-fill labor and/or institution
-    if new_record := src.push_record(new_record, labor=labor, institution=institution, novel=True):  # type: ignore[assignment]
+    try:
+        new_record = src.push_record(
+            new_record,
+            labor=labor,
+            institution=institution,
+            novel=True,
+            tconfig_cache=state_tconfig_cache,
+        )
         table.insert(0, new_record)
         toast = du.make_toast(
             "Record Added", f"id: {new_record[src.ID]}", du.Color.SUCCESS, 5
         )
-    else:
+    except src.DataSourceException:
         toast = du.make_toast("Failed to Make Record", du.REFRESH_MSG, du.Color.DANGER)
 
     return table, toast
@@ -362,6 +373,7 @@ def _add_new_data(
         State("tab-1-data-table", "columns"),
         State("tab-1-show-all-columns-button", "n_clicks"),
         State("tab-1-last-deleted-id", "children"),
+        State("tab-1-table-config-cache", "data"),
     ],
 )  # pylint: disable=R0913,R0914
 def table_data_exterior_controls(
@@ -378,6 +390,7 @@ def table_data_exterior_controls(
     state_columns: TColumns,
     state_all_cols: int,
     state_deleted_id: str,
+    state_tconfig_cache: tc.TableConfigParser.Cache,
 ) -> Tuple[Table, TFocus, int, str, dbc.Toast, str, str, bool, int]:
     """Exterior control signaled that the table should be updated.
 
@@ -406,7 +419,9 @@ def table_data_exterior_controls(
 
     # Add New Data
     if du.triggered_id() == "tab-1-new-data-button":
-        table, toast = _add_new_data(state_table, state_columns, labor, institution)
+        table, toast = _add_new_data(
+            state_table, state_columns, labor, institution, state_tconfig_cache
+        )
     # OR Restore a Record and Pull Table (optionally filtered)
     elif du.triggered_id() == "tab-1-undo-last-delete":
         table = src.pull_data_table(
@@ -442,14 +457,19 @@ def table_data_exterior_controls(
 
 
 def _push_modified_records(
-    current_table: Table, previous_table: Table
+    current_table: Table,
+    previous_table: Table,
+    state_tconfig_cache: tc.TableConfigParser.Cache,
 ) -> List[DataEntry]:
     """For each row that changed, push the record to the DS."""
     modified_records = [
         r for r in current_table if (r not in previous_table) and (src.ID in r)
     ]
     for record in modified_records:
-        src.push_record(record)
+        try:
+            src.push_record(record, tconfig_cache=state_tconfig_cache)
+        except src.DataSourceException:
+            pass
 
     ids = [c[src.ID] for c in modified_records]
     return ids
@@ -500,10 +520,14 @@ def _delete_deleted_records(
     [
         State("tab-1-data-table", "data_previous"),
         State("tab-1-table-exterior-control-last-timestamp", "data"),
+        State("tab-1-table-config-cache", "data"),
     ],
 )
 def table_data_interior_controls(
-    current_table: Table, previous_table: Table, table_exterior_control_ts: str,
+    current_table: Table,
+    previous_table: Table,
+    table_exterior_control_ts: str,
+    state_tconfig_cache: tc.TableConfigParser.Cache,
 ) -> Tuple[Table, dbc.Toast, str, str, bool]:
     """Interior control signaled that the table should be updated.
 
@@ -521,7 +545,7 @@ def table_data_interior_controls(
         return current_table, None, updated_message, "", False
 
     # Push (if any)
-    mod_ids = _push_modified_records(current_table, previous_table)
+    mod_ids = _push_modified_records(current_table, previous_table, state_tconfig_cache)
 
     # Delete (if any)
     toast, last_deletion = _delete_deleted_records(
@@ -538,10 +562,10 @@ def table_data_interior_controls(
     [State("tab-1-table-config-cache", "data")],
 )
 def table_columns(
-    table_editable: bool, tconfig_state: tc.TableConfigParser.Cache
+    table_editable: bool, state_tconfig_cache: tc.TableConfigParser.Cache
 ) -> List[Dict[str, object]]:
     """Grab table columns."""
-    tconfig = tc.TableConfigParser(tconfig_state)
+    tconfig = tc.TableConfigParser(state_tconfig_cache)
 
     def _presentation(col_name: str) -> str:
         if tconfig.is_column_dropdown(col_name):
@@ -577,12 +601,12 @@ def table_columns(
     [State("tab-1-table-config-cache", "data")],
 )
 def table_dropdown(
-    _: bool, tconfig_state: tc.TableConfigParser.Cache
+    _: bool, state_tconfig_cache: tc.TableConfigParser.Cache
 ) -> Tuple[TDDown, TDDownCond]:
     """Grab table dropdowns."""
     simple_dropdowns: TDDown = {}
     conditional_dropdowns: TDDownCond = []
-    tconfig = tc.TableConfigParser(tconfig_state)
+    tconfig = tc.TableConfigParser(state_tconfig_cache)
 
     def _options(menu: List[str]) -> List[Dict[str, str]]:
         return [{"label": m, "value": m} for m in menu]
@@ -809,11 +833,11 @@ def log_in_actions(
     [State("tab-1-table-config-cache", "data")],
 )
 def toggle_pagination(
-    n_clicks: int, tconfig_state: tc.TableConfigParser.Cache
+    n_clicks: int, state_tconfig_cache: tc.TableConfigParser.Cache
 ) -> Tuple[str, str, bool, int, str]:
     """Toggle whether the table is paginated."""
     if n_clicks % 2 == 0:
-        tconfig = tc.TableConfigParser(tconfig_state)
+        tconfig = tc.TableConfigParser(state_tconfig_cache)
         return (
             "Show All Rows",
             du.Color.SECONDARY,
@@ -836,11 +860,11 @@ def toggle_pagination(
     [State("tab-1-table-config-cache", "data")],
 )
 def toggle_hidden_columns(
-    n_clicks: int, tconfig_state: tc.TableConfigParser.Cache
+    n_clicks: int, state_tconfig_cache: tc.TableConfigParser.Cache
 ) -> Tuple[str, str, bool, List[str]]:
     """Toggle hiding/showing the default hidden columns."""
     if n_clicks % 2 == 0:
-        tconfig = tc.TableConfigParser(tconfig_state)
+        tconfig = tc.TableConfigParser(state_tconfig_cache)
         return (
             "Show Hidden Columns",
             du.Color.SECONDARY,

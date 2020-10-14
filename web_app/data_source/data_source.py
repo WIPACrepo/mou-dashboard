@@ -7,11 +7,20 @@ from typing import cast, Final, List, Optional, Tuple, TypedDict
 import requests
 
 from ..utils.types import Record, Table
+from . import table_config as tc
 from .utils import mou_request
 
 # constants
 ID: Final[str] = "_id"
 _OC_SUFFIX: Final[str] = "_original"
+
+
+class DataSourceException(Exception):
+    """Exception class for bad data-source requests."""
+
+
+# --------------------------------------------------------------------------------------
+# Data/Table-Conversion Functions
 
 
 def get_touchstone_name(column: str) -> str:
@@ -68,7 +77,63 @@ def _convert_table_rest_to_dash(table: Table) -> Table:
     return table
 
 
-def _convert_record_dash_to_rest(record: Record) -> Record:
+def _is_invalid_simple_dropdown(
+    parser: tc.TableConfigParser, record: Record, field: str
+) -> bool:
+    if not parser.is_simple_dropdown(field):
+        return False
+
+    if record[field] not in parser.get_simple_column_dropdown_menu(field):
+        return True
+
+    return False
+
+
+def _is_invalid_conditional_dropdown(
+    parser: tc.TableConfigParser, record: Record, field: str
+) -> bool:
+    if not parser.is_conditional_dropdown(field):
+        return False
+
+    parent_field, _ = parser.get_conditional_column_parent(field)
+    parent_value = cast(str, record.get(parent_field, ""))
+
+    # missing/blank/invalid parent-fields are okay
+    if (not parent_value) or _is_invalid_simple_dropdown(parser, record, parent_field):
+        return False
+
+    if record[field] not in parser.get_conditional_column_dropdown_menu(
+        field, parent_value
+    ):
+        return True
+
+    return False
+
+
+def _remove_invalid_data(
+    record: Record, tconfig_cache: tc.TableConfigParser.Cache
+) -> Record:
+    """Remove items whose data aren't valid."""
+    parser = tc.TableConfigParser(tconfig_cache)
+
+    remove_keys: List[str] = []
+    for field in record:
+        if not record[field]:  # blank values are okay
+            continue
+        if _is_invalid_simple_dropdown(parser, record, field):
+            remove_keys.append(field)
+        if _is_invalid_conditional_dropdown(parser, record, field):
+            remove_keys.append(field)
+
+    for key in remove_keys:
+        del record[key]
+
+    return record
+
+
+def _convert_record_dash_to_rest(
+    record: Record, tconfig_cache: Optional[tc.TableConfigParser.Cache] = None
+) -> Record:
     """Convert a record from Dash's datatable to be sent to the rest server.
 
     Copy but leave out the touchstone columns used to detect changed
@@ -76,13 +141,14 @@ def _convert_record_dash_to_rest(record: Record) -> Record:
     """
     ds_record = {k: v for k, v in record.items() if not _is_touchstone_column(k)}
 
-    # if ds_record.get()
+    if tconfig_cache:
+        record = _remove_invalid_data(record, tconfig_cache)
 
     return ds_record
 
 
 # --------------------------------------------------------------------------------------
-# Data/Table functions
+# Data/Table Functions
 
 
 def pull_data_table(
@@ -95,6 +161,17 @@ def pull_data_table(
     """Get table, optionally filtered by institution and/or labor.
 
     Grab a snapshot table, if snapshot is given. "" gives live table.
+
+
+    Keyword Arguments:
+        institution {str} -- filter by institution (default: {""})
+        labor {str} -- filter by labor category (default: {""})
+        with_totals {bool} -- whether to include "total" rows (default: {False})
+        snapshot {str} -- name of snapshot (default: {""})
+        restore_id {str} -- id of a record to be restored (default: {""})
+
+    Returns:
+        Table -- the returned table
     """
 
     class RespTableData(TypedDict):  # pylint: disable=C0115,R0903
@@ -114,9 +191,26 @@ def pull_data_table(
 
 
 def push_record(
-    record: Record, labor: str = "", institution: str = "", novel: bool = False
-) -> Optional[Record]:
-    """Push new/changed record to source."""
+    record: Record,
+    labor: str = "",
+    institution: str = "",
+    novel: bool = False,
+    tconfig_cache: Optional[tc.TableConfigParser.Cache] = None,
+) -> Record:
+    """Push new/changed record to source.
+
+    Arguments:
+        record {Record} -- the record
+
+    Keyword Arguments:
+        tconfig_cache {Optional[tc.TableConfigParser.Cache]} -- pass to remove invalid record data (default: {None})
+        labor {str} -- labor category value to be inserted into record (default: {""})
+        institution {str} -- institution value to be inserted into record (default: {""})
+        novel {bool} -- whether the record is new (default: {False})
+
+    Returns:
+        Record -- the returned record
+    """
 
     class RespRecord(TypedDict):  # pylint: disable=C0115,R0903
         record: Record
@@ -124,7 +218,7 @@ def push_record(
     try:
         # request
         body = {
-            "record": _convert_record_dash_to_rest(record),
+            "record": _convert_record_dash_to_rest(record, tconfig_cache),
             "institution": institution,
             "labor": labor,
         }
@@ -133,7 +227,7 @@ def push_record(
         return _convert_record_rest_to_dash(response["record"], novel=novel)
     except requests.exceptions.HTTPError as e:
         logging.exception(f"EXCEPTED: {e}")
-        return None
+        raise DataSourceException(str(e))
 
 
 def delete_record(record_id: str) -> bool:

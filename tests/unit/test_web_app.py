@@ -1,11 +1,14 @@
 """Unit test web_app module."""
 
+
 # pylint: disable=W0212
 
 
 import inspect
+import itertools
 import sys
 from copy import deepcopy
+from enum import Enum
 from typing import Any, Final
 
 import pytest
@@ -120,6 +123,96 @@ class TestDataSource:
                 "GET", "/table/data", bodies[i]
             )
             assert ret == response["table"]
+
+    @staticmethod
+    def test_remove_invalid_data() -> None:
+        """Test _remove_invalid_data()."""
+        tconfig_cache: tc.TableConfigParser.Cache = {  # type: ignore[typeddict-item]
+            "simple_dropdown_menus": {"Alpha": ["A1", "A2"], "Beta": []},
+            "conditional_dropdown_menus": {
+                "Dish": (
+                    "Alpha",
+                    {
+                        "A1": ["chicken", "beef", "pork", "fish", "shrimp", "goat"],
+                        "A2": [],
+                    },
+                ),
+            },
+        }
+
+        def _assert(_orig: types.Record, _good: types.Record) -> None:
+            assert _good == src._remove_invalid_data(_orig, tconfig_cache=tconfig_cache)
+
+        class Scenario(Enum):  # pylint: disable=C0115
+            MISSING, GOOD, BAD, BLANK = 1, 2, 3, 4
+
+        # Test every combination of a simple-dropdown-type & a conditional-dropdown type
+        for alpha, dish in itertools.product(list(Scenario), list(Scenario)):
+            record: types.Record = {"F1": 0}
+
+            if alpha != Scenario.MISSING:
+                record["Alpha"] = {
+                    Scenario.GOOD: "A1",
+                    Scenario.BAD: "whatever",
+                    Scenario.BLANK: "",
+                }[alpha]
+
+            if dish != Scenario.MISSING:
+                record["Dish"] = {
+                    Scenario.GOOD: "pork",
+                    Scenario.BAD: "this",
+                    Scenario.BLANK: "",
+                }[dish]
+
+            if (alpha, dish) == (Scenario.MISSING, Scenario.MISSING):
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.MISSING, Scenario.GOOD):
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.MISSING, Scenario.BAD):
+                out = deepcopy(record)
+                del out["Dish"]
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.MISSING, Scenario.BLANK):
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.GOOD, Scenario.MISSING):
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.GOOD, Scenario.GOOD):
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.GOOD, Scenario.BAD):
+                out = deepcopy(record)
+                del out["Dish"]
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.GOOD, Scenario.BLANK):
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.BAD, Scenario.MISSING):
+                out = deepcopy(record)
+                del out["Alpha"]
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.BAD, Scenario.GOOD):
+                out = deepcopy(record)
+                del out["Alpha"]
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.BAD, Scenario.BAD):
+                out = deepcopy(record)
+                del out["Alpha"]
+                del out["Dish"]
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.BAD, Scenario.BLANK):
+                out = deepcopy(record)
+                del out["Alpha"]
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.BLANK, Scenario.MISSING):
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.BLANK, Scenario.GOOD):
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.BLANK, Scenario.BAD):
+                out = deepcopy(record)
+                del out["Dish"]
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.BLANK, Scenario.BLANK):
+                _assert(record, record)
+            else:
+                raise Exception(record)
 
     @staticmethod
     def test_push_record(mock_rest: Any) -> None:
