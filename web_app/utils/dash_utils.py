@@ -12,7 +12,7 @@ import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 
-from ..utils import data_source as src
+from ..data_source import data_source as src
 from ..utils.types import TSDCond
 
 # constants

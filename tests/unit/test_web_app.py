@@ -12,9 +12,9 @@ import pytest
 import requests
 
 sys.path.append(".")
-from web_app.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
+from web_app.utils import types  # isort:skip  # noqa # pylint: disable=E0401,C0413
+from web_app.data_source import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
     data_source,
-    types,
 )
 
 
@@ -75,7 +75,7 @@ class TestDataSource:
     @pytest.fixture  # type: ignore
     def mock_rest(mocker: Any) -> Any:
         """Patch mock_rest."""
-        return mocker.patch("web_app.utils.data_source._rest_connection")
+        return mocker.patch("web_app.data_source.data_source._rest_connection")
 
     @staticmethod
     def test_pull_data_table(mock_rest: Any) -> None:

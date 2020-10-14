@@ -11,8 +11,8 @@ from dash.dependencies import Input, Output, State  # type: ignore[import]
 from flask_login import current_user  # type: ignore[import]
 
 from ..config import app
+from ..data_source import data_source as src
 from ..utils import dash_utils as util
-from ..utils import data_source as src
 from ..utils.types import DataEntry, Record, Table, TColumns, TDDown, TDDownCond, TFocus
 
 # --------------------------------------------------------------------------------------
