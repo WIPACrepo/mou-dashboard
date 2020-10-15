@@ -173,7 +173,7 @@ def layout() -> html.Div:
                         children=[
                             # New Data
                             du.new_data_button(
-                                2, style={"width": "15rem", "margin-right": "1rem",},
+                                2, style={"width": "15rem", "margin-right": "1rem"},
                             ),
                             dcc.Loading(
                                 type="dot",
@@ -212,11 +212,13 @@ def layout() -> html.Div:
                     ),
                     # Rightward Buttons
                     dbc.Row(
-                        style={"flex-basis": "55%", "justify-content": "flex-end",},
+                        style={"flex-basis": "55%", "justify-content": "flex-end"},
                         children=[
                             dcc.Loading(
-                                type="dot",
-                                color="#258835",
+                                type="default",
+                                fullscreen=True,
+                                style={"background": "transparent"},  # float atop all
+                                color="#20A1B6",
                                 children=[
                                     # Show Totals
                                     dbc.Button(
@@ -247,7 +249,7 @@ def layout() -> html.Div:
             dcc.Loading(
                 type="default",
                 fullscreen=True,
-                style={"background": "transparent"},  # make it float atop
+                style={"background": "transparent"},  # float atop all
                 color="#20A1B6",
                 children=[
                     dbc.Row(
