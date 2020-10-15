@@ -164,25 +164,21 @@ def layout() -> html.Div:
                 # fixed_rows={"headers": True, "data": 0},
             ),
             # Bottom Buttons
-            dcc.Loading(
-                type="dot",
-                color="#20A1B6",
+            dbc.Row(
+                style={"margin-top": "0.8em"},
                 children=[
+                    # Leftward Buttons
                     dbc.Row(
-                        style={"margin-top": "0.8em"},
+                        style={"width": "52rem", "margin-left": "0.25rem"},
                         children=[
-                            # Leftward Buttons
-                            dbc.Row(
-                                style={"width": "52rem", "margin-left": "0.25rem"},
+                            # New Data
+                            du.new_data_button(
+                                2, style={"width": "15rem", "margin-right": "1rem",},
+                            ),
+                            dcc.Loading(
+                                type="dot",
+                                color="#258835",
                                 children=[
-                                    # New Data
-                                    du.new_data_button(
-                                        2,
-                                        style={
-                                            "width": "15rem",
-                                            "margin-right": "1rem",
-                                        },
-                                    ),
                                     # Load Snapshot
                                     dbc.Button(
                                         "Load Snapshot",
@@ -201,23 +197,26 @@ def layout() -> html.Div:
                                         color=du.Color.SUCCESS,
                                         style={"margin-right": "1rem"},
                                     ),
-                                    # Refresh
-                                    dbc.Button(
-                                        "↻",
-                                        id="tab-1-refresh-button",
-                                        n_clicks=0,
-                                        outline=True,
-                                        color=du.Color.SUCCESS,
-                                        style={"font-weight": "bold"},
-                                    ),
                                 ],
                             ),
-                            # Rightward Buttons
-                            dbc.Row(
-                                style={
-                                    "flex-basis": "55%",
-                                    "justify-content": "flex-end",
-                                },
+                            # Refresh
+                            dbc.Button(
+                                "↻",
+                                id="tab-1-refresh-button",
+                                n_clicks=0,
+                                outline=True,
+                                color=du.Color.SUCCESS,
+                                style={"font-weight": "bold"},
+                            ),
+                        ],
+                    ),
+                    # Rightward Buttons
+                    dbc.Row(
+                        style={"flex-basis": "55%", "justify-content": "flex-end",},
+                        children=[
+                            dcc.Loading(
+                                type="dot",
+                                color="#258835",
                                 children=[
                                     # Show Totals
                                     dbc.Button(
@@ -700,17 +699,26 @@ def manage_snpshots(
 
 
 @app.callback(  # type: ignore[misc]
-    Output("tab-1-toast-via-snapshot-div", "children"),
+    [
+        Output("tab-1-toast-via-snapshot-div", "children"),
+        Output("tab-1-make-snapshot-button", "color"),  # trigger "Loading" element
+    ],
     [Input("tab-1-make-snapshot-button", "n_clicks")],
     prevent_initial_call=True,
 )
-def make_snapshot(_: int) -> dcc.ConfirmDialog:
+def make_snapshot(_: int) -> Tuple[dcc.ConfirmDialog, str]:
     """Launch a dialog for not-yet-implemented features."""
     if snapshot := src.create_snapshot():
-        return du.make_toast(
-            "Snapshot Created", du.get_human_time(snapshot), du.Color.SUCCESS, 5
+        return (
+            du.make_toast(
+                "Snapshot Created", du.get_human_time(snapshot), du.Color.SUCCESS, 5
+            ),
+            du.Color.SUCCESS,
         )
-    return du.make_toast("Failed to Make Snapshot", du.REFRESH_MSG, du.Color.DANGER)
+    return (
+        du.make_toast("Failed to Make Snapshot", du.REFRESH_MSG, du.Color.DANGER),
+        du.Color.SUCCESS,
+    )
 
 
 # --------------------------------------------------------------------------------------
