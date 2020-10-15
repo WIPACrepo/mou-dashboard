@@ -22,8 +22,8 @@ from web_app.data_source import (  # isort:skip  # noqa # pylint: disable=E0401,
 )
 
 
-class TestDashUtils:
-    """Test dash_utils.py."""
+class TestPrivateDataSource:
+    """Test private functions in dash_source.py."""
 
     RECORD: Final[types.Record] = {"a": "AA", "b": "BB", "c": "CC"}
 
@@ -70,6 +70,101 @@ class TestDashUtils:
 
         assert record_out != record
         assert record_out == record_orig
+
+    @staticmethod
+    def test_remove_invalid_data() -> None:  # pylint: disable=R0915,R0912
+        """Test _remove_invalid_data() & _convert_record_dash_to_rest()."""
+        tconfig_cache: tc.TableConfigParser.Cache = {  # type: ignore[typeddict-item]
+            "simple_dropdown_menus": {"Alpha": ["A1", "A2"], "Beta": []},
+            "conditional_dropdown_menus": {
+                "Dish": (
+                    "Alpha",
+                    {
+                        "A1": ["chicken", "beef", "pork", "fish", "shrimp", "goat"],
+                        "A2": [],
+                    },
+                ),
+            },
+        }
+
+        def _assert(_orig: types.Record, _good: types.Record) -> None:
+            assert (
+                _good
+                == src._remove_invalid_data(_orig, tconfig_cache=tconfig_cache)
+                == src._convert_record_dash_to_rest(_orig, tconfig_cache=tconfig_cache)
+            )
+
+        class Scenario(Enum):  # pylint: disable=C0115
+            MISSING, GOOD, BAD, BLANK = 1, 2, 3, 4
+
+        # Test every combination of a simple-dropdown-type & a conditional-dropdown type
+        for alpha, dish in itertools.product(list(Scenario), list(Scenario)):
+            record: types.Record = {"F1": 0}
+
+            if alpha != Scenario.MISSING:
+                record["Alpha"] = {
+                    Scenario.GOOD: "A1",
+                    Scenario.BAD: "whatever",
+                    Scenario.BLANK: "",
+                }[alpha]
+
+            if dish != Scenario.MISSING:
+                record["Dish"] = {
+                    Scenario.GOOD: "pork",
+                    Scenario.BAD: "this",
+                    Scenario.BLANK: "",
+                }[dish]
+
+            # Test all 16 combinations
+            if (alpha, dish) == (Scenario.MISSING, Scenario.MISSING):
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.MISSING, Scenario.GOOD):
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.MISSING, Scenario.BAD):
+                out = deepcopy(record)
+                del out["Dish"]
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.MISSING, Scenario.BLANK):
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.GOOD, Scenario.MISSING):
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.GOOD, Scenario.GOOD):
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.GOOD, Scenario.BAD):
+                out = deepcopy(record)
+                del out["Dish"]
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.GOOD, Scenario.BLANK):
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.BAD, Scenario.MISSING):
+                out = deepcopy(record)
+                del out["Alpha"]
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.BAD, Scenario.GOOD):
+                out = deepcopy(record)
+                del out["Alpha"]
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.BAD, Scenario.BAD):
+                out = deepcopy(record)
+                del out["Alpha"]
+                del out["Dish"]
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.BAD, Scenario.BLANK):
+                out = deepcopy(record)
+                del out["Alpha"]
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.BLANK, Scenario.MISSING):
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.BLANK, Scenario.GOOD):
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.BLANK, Scenario.BAD):
+                out = deepcopy(record)
+                del out["Dish"]
+                _assert(record, record)
+            elif (alpha, dish) == (Scenario.BLANK, Scenario.BLANK):
+                _assert(record, record)
+            else:
+                raise Exception(record)
 
 
 class TestDataSource:
@@ -123,96 +218,6 @@ class TestDataSource:
                 "GET", "/table/data", bodies[i]
             )
             assert ret == response["table"]
-
-    @staticmethod
-    def test_remove_invalid_data() -> None:
-        """Test _remove_invalid_data()."""
-        tconfig_cache: tc.TableConfigParser.Cache = {  # type: ignore[typeddict-item]
-            "simple_dropdown_menus": {"Alpha": ["A1", "A2"], "Beta": []},
-            "conditional_dropdown_menus": {
-                "Dish": (
-                    "Alpha",
-                    {
-                        "A1": ["chicken", "beef", "pork", "fish", "shrimp", "goat"],
-                        "A2": [],
-                    },
-                ),
-            },
-        }
-
-        def _assert(_orig: types.Record, _good: types.Record) -> None:
-            assert _good == src._remove_invalid_data(_orig, tconfig_cache=tconfig_cache)
-
-        class Scenario(Enum):  # pylint: disable=C0115
-            MISSING, GOOD, BAD, BLANK = 1, 2, 3, 4
-
-        # Test every combination of a simple-dropdown-type & a conditional-dropdown type
-        for alpha, dish in itertools.product(list(Scenario), list(Scenario)):
-            record: types.Record = {"F1": 0}
-
-            if alpha != Scenario.MISSING:
-                record["Alpha"] = {
-                    Scenario.GOOD: "A1",
-                    Scenario.BAD: "whatever",
-                    Scenario.BLANK: "",
-                }[alpha]
-
-            if dish != Scenario.MISSING:
-                record["Dish"] = {
-                    Scenario.GOOD: "pork",
-                    Scenario.BAD: "this",
-                    Scenario.BLANK: "",
-                }[dish]
-
-            if (alpha, dish) == (Scenario.MISSING, Scenario.MISSING):
-                _assert(record, record)
-            elif (alpha, dish) == (Scenario.MISSING, Scenario.GOOD):
-                _assert(record, record)
-            elif (alpha, dish) == (Scenario.MISSING, Scenario.BAD):
-                out = deepcopy(record)
-                del out["Dish"]
-                _assert(record, record)
-            elif (alpha, dish) == (Scenario.MISSING, Scenario.BLANK):
-                _assert(record, record)
-            elif (alpha, dish) == (Scenario.GOOD, Scenario.MISSING):
-                _assert(record, record)
-            elif (alpha, dish) == (Scenario.GOOD, Scenario.GOOD):
-                _assert(record, record)
-            elif (alpha, dish) == (Scenario.GOOD, Scenario.BAD):
-                out = deepcopy(record)
-                del out["Dish"]
-                _assert(record, record)
-            elif (alpha, dish) == (Scenario.GOOD, Scenario.BLANK):
-                _assert(record, record)
-            elif (alpha, dish) == (Scenario.BAD, Scenario.MISSING):
-                out = deepcopy(record)
-                del out["Alpha"]
-                _assert(record, record)
-            elif (alpha, dish) == (Scenario.BAD, Scenario.GOOD):
-                out = deepcopy(record)
-                del out["Alpha"]
-                _assert(record, record)
-            elif (alpha, dish) == (Scenario.BAD, Scenario.BAD):
-                out = deepcopy(record)
-                del out["Alpha"]
-                del out["Dish"]
-                _assert(record, record)
-            elif (alpha, dish) == (Scenario.BAD, Scenario.BLANK):
-                out = deepcopy(record)
-                del out["Alpha"]
-                _assert(record, record)
-            elif (alpha, dish) == (Scenario.BLANK, Scenario.MISSING):
-                _assert(record, record)
-            elif (alpha, dish) == (Scenario.BLANK, Scenario.GOOD):
-                _assert(record, record)
-            elif (alpha, dish) == (Scenario.BLANK, Scenario.BAD):
-                out = deepcopy(record)
-                del out["Dish"]
-                _assert(record, record)
-            elif (alpha, dish) == (Scenario.BLANK, Scenario.BLANK):
-                _assert(record, record)
-            else:
-                raise Exception(record)
 
     @staticmethod
     def test_push_record(mock_rest: Any) -> None:
@@ -297,6 +302,21 @@ class TestDataSource:
             "POST", "/snapshots/make", None
         )
         assert ret == response["timestamp"]
+
+    @staticmethod
+    def test_id_constant() -> None:
+        """Check the ID constant, this corresponds to the mongodb id field."""
+        assert src.ID == "_id"
+
+
+class TestTableConfig:
+    """Test table_config.py."""
+
+    @staticmethod
+    @pytest.fixture  # type: ignore
+    def mock_rest(mocker: Any) -> Any:
+        """Patch mock_rest."""
+        return mocker.patch("web_app.data_source.utils._rest_connection")
 
     @staticmethod
     def test_table_config(mock_rest: Any) -> None:
@@ -408,8 +428,3 @@ class TestDataSource:
                 .default
             )
             assert table_config.get_column_width(col) == default
-
-    @staticmethod
-    def test_id_constant() -> None:
-        """Check the ID constant, this corresponds to the mongodb id field."""
-        assert src.ID == "_id"

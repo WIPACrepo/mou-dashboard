@@ -139,12 +139,12 @@ def _convert_record_dash_to_rest(
     Copy but leave out the touchstone columns used to detect changed
     values.
     """
-    ds_record = {k: v for k, v in record.items() if not _is_touchstone_column(k)}
+    out_record = {k: v for k, v in record.items() if not _is_touchstone_column(k)}
 
     if tconfig_cache:
-        record = _remove_invalid_data(record, tconfig_cache)
+        out_record = _remove_invalid_data(out_record, tconfig_cache)
 
-    return ds_record
+    return out_record
 
 
 # --------------------------------------------------------------------------------------
