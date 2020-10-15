@@ -20,7 +20,7 @@ def _rest_connection() -> RestClient:
         token_json = requests.get(CONFIG["TOKEN_REQUEST_URL"]).json()
         token = token_json["access"]
 
-    rc = RestClient(CONFIG["REST_SERVER_URL"], token=token, timeout=5, retries=0)
+    rc = RestClient(CONFIG["REST_SERVER_URL"], token=token, timeout=30, retries=0)
 
     return rc
 

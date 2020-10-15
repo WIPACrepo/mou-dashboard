@@ -14,7 +14,7 @@ from ..config import app
 from ..data_source import data_source as src
 from ..data_source import table_config as tc
 from ..utils import dash_utils as du
-from ..utils.types import DataEntry, Record, Table, TColumns, TDDown, TDDownCond, TFocus
+from ..utils.types import DataEntry, Record, Table, TColumns, TDDown, TDDownCond
 
 # --------------------------------------------------------------------------------------
 # Layout
@@ -70,7 +70,7 @@ def layout() -> html.Div:
             ####
             # html.Hr(style=SHORT_HR),
             ####
-            # Sign-In Alert
+            # Log-In Alert
             dbc.Alert(
                 "- log in to edit -",
                 id="tab-1-how-to-edit-alert",
@@ -90,7 +90,7 @@ def layout() -> html.Div:
                 [
                     html.Div("Viewing Snapshot", style={"margin-bottom": "0.5rem"}),
                     html.Div(
-                        id="tab-1-snapshot-human", style={"margin-bottom": "0.5rem"}
+                        id="tab-1-snapshot-human", style={"margin-bottom": "0.5rem"},
                     ),
                     html.Div(id="tab-1-snapshot-timestamp", hidden=True),
                     dbc.Button(
@@ -164,81 +164,106 @@ def layout() -> html.Div:
                 # fixed_rows={"headers": True, "data": 0},
             ),
             # Bottom Buttons
-            dbc.Row(
-                style={"margin-top": "0.8em"},
+            dcc.Loading(
+                type="dot",
+                color="#20A1B6",
                 children=[
-                    # Leftward Buttons
                     dbc.Row(
-                        style={"width": "52rem", "margin-left": "0.25rem"},
+                        style={"margin-top": "0.8em"},
                         children=[
-                            # New Data
-                            du.new_data_button(
-                                2, style={"width": "15rem", "margin-right": "1rem"}
+                            # Leftward Buttons
+                            dbc.Row(
+                                style={"width": "52rem", "margin-left": "0.25rem"},
+                                children=[
+                                    # New Data
+                                    du.new_data_button(
+                                        2,
+                                        style={
+                                            "width": "15rem",
+                                            "margin-right": "1rem",
+                                        },
+                                    ),
+                                    # Load Snapshot
+                                    dbc.Button(
+                                        "Load Snapshot",
+                                        id="tab-1-load-snapshot-button",
+                                        n_clicks=0,
+                                        outline=True,
+                                        color=du.Color.INFO,
+                                        style={"margin-right": "1rem"},
+                                    ),
+                                    # Make Snapshot
+                                    dbc.Button(
+                                        "Make Snapshot",
+                                        id="tab-1-make-snapshot-button",
+                                        n_clicks=0,
+                                        outline=True,
+                                        color=du.Color.SUCCESS,
+                                        style={"margin-right": "1rem"},
+                                    ),
+                                    # Refresh
+                                    dbc.Button(
+                                        "↻",
+                                        id="tab-1-refresh-button",
+                                        n_clicks=0,
+                                        outline=True,
+                                        color=du.Color.SUCCESS,
+                                        style={"font-weight": "bold"},
+                                    ),
+                                ],
                             ),
-                            # Load Snapshot
-                            dbc.Button(
-                                "Load Snapshot",
-                                id="tab-1-load-snapshot-button",
-                                n_clicks=0,
-                                outline=True,
-                                color=du.Color.INFO,
-                                style={"margin-right": "1rem"},
-                            ),
-                            # Make Snapshot
-                            dbc.Button(
-                                "Make Snapshot",
-                                id="tab-1-make-snapshot-button",
-                                n_clicks=0,
-                                outline=True,
-                                color=du.Color.SUCCESS,
-                                style={"margin-right": "1rem"},
-                            ),
-                            # Refresh
-                            dbc.Button(
-                                "↻",
-                                id="tab-1-refresh-button",
-                                n_clicks=0,
-                                outline=True,
-                                color=du.Color.SUCCESS,
-                                style={"font-weight": "bold"},
-                            ),
-                        ],
-                    ),
-                    # Rightward Buttons
-                    dbc.Row(
-                        style={"flex-basis": "55%", "justify-content": "flex-end"},
-                        children=[
-                            # Show Totals
-                            dbc.Button(
-                                id="tab-1-show-totals-button",
-                                n_clicks=0,
-                                style={"margin-right": "1rem"},
-                            ),
-                            # Show All Columns
-                            dbc.Button(
-                                id="tab-1-show-all-columns-button",
-                                n_clicks=0,
-                                style={"margin-right": "1rem"},
-                            ),
-                            # Show All Rows
-                            dbc.Button(
-                                id="tab-1-show-all-rows-button",
-                                n_clicks=0,
-                                style={"margin-right": "1rem"},
+                            # Rightward Buttons
+                            dbc.Row(
+                                style={
+                                    "flex-basis": "55%",
+                                    "justify-content": "flex-end",
+                                },
+                                children=[
+                                    # Show Totals
+                                    dbc.Button(
+                                        id="tab-1-show-totals-button",
+                                        n_clicks=0,
+                                        style={"margin-right": "1rem"},
+                                    ),
+                                    # Show All Columns
+                                    dbc.Button(
+                                        id="tab-1-show-all-columns-button",
+                                        n_clicks=0,
+                                        style={"margin-right": "1rem"},
+                                    ),
+                                    # Show All Rows
+                                    dbc.Button(
+                                        id="tab-1-show-all-rows-button",
+                                        n_clicks=0,
+                                        style={"margin-right": "1rem"},
+                                    ),
+                                ],
                             ),
                         ],
                     ),
                 ],
             ),
-            dbc.Row(
-                html.Label(
-                    id="tab-1-last-updated-label",
-                    style={"font-style": "italic", "fontSize": "14px"},
-                    className="caps",
-                ),
-                justify="center",
-                style={"margin-top": "15px"},
+            #
+            # Last Updated
+            dcc.Loading(
+                type="default",
+                fullscreen=True,
+                style={"background": "transparent"},  # make it float atop
+                color="#20A1B6",
+                children=[
+                    dbc.Row(
+                        html.Label(
+                            id="tab-1-last-updated-label",
+                            style={"font-style": "italic", "fontSize": "14px"},
+                            className="caps",
+                        ),
+                        justify="center",
+                        style={"margin-top": "15px"},
+                    ),
+                ],
             ),
+            #
+            # Upload/Override XLSX
             html.Div(
                 id="tab-1-upload-xlsx-launch-modal-button-div",
                 children=[
@@ -350,7 +375,6 @@ def _add_new_data(
 @app.callback(  # type: ignore[misc]
     [
         Output("tab-1-data-table", "data"),
-        Output("tab-1-data-table", "active_cell"),
         Output("tab-1-data-table", "page_current"),
         Output("tab-1-table-exterior-control-last-timestamp", "data"),
         Output("tab-1-toast-via-exterior-control-div", "children"),
@@ -391,7 +415,7 @@ def table_data_exterior_controls(
     state_all_cols: int,
     state_deleted_id: str,
     state_tconfig_cache: tc.TableConfigParser.Cache,
-) -> Tuple[Table, TFocus, int, str, dbc.Toast, str, str, bool, int]:
+) -> Tuple[Table, int, str, dbc.Toast, str, str, bool, int]:
     """Exterior control signaled that the table should be updated.
 
     This is either a filter, "add new", refresh, or "show totals". Only
@@ -399,18 +423,7 @@ def table_data_exterior_controls(
     visible to the user.
     """
     table: Table = []
-    focus: TFocus = None
     toast: dbc.Toast = None
-
-    # focus on first cell, but not on page load
-    if current_user.is_authenticated and du.triggered_id() in [
-        "tab-1-filter-inst",
-        "tab-1-filter-labor",
-        "tab-1-new-data-button",
-        "tab-1-refresh-button",
-        "tab-1-show-totals-button",
-    ]:
-        focus = {"row": 0, "column": 0}
 
     # format "Show Totals" button
     show_totals, tot_label, tot_color, tot_outline, all_cols = _totals_button_logic(
@@ -432,7 +445,7 @@ def table_data_exterior_controls(
             restore_id=state_deleted_id,
         )
         toast = du.make_toast(
-            "Record Restored", f"id: {state_deleted_id}", du.Color.SUCCESS
+            "Record Restored", f"id: {state_deleted_id}", du.Color.SUCCESS, 5
         )
     # OR Just Pull Table (optionally filtered)
     else:
@@ -445,7 +458,6 @@ def table_data_exterior_controls(
 
     return (
         table,
-        focus,
         0,
         du.get_now(),
         toast,
@@ -696,7 +708,7 @@ def make_snapshot(_: int) -> dcc.ConfirmDialog:
     """Launch a dialog for not-yet-implemented features."""
     if snapshot := src.create_snapshot():
         return du.make_toast(
-            "Snapshot Created", du.get_human_time(snapshot), du.Color.SUCCESS
+            "Snapshot Created", du.get_human_time(snapshot), du.Color.SUCCESS, 5
         )
     return du.make_toast("Failed to Make Snapshot", du.REFRESH_MSG, du.Color.DANGER)
 
@@ -756,8 +768,8 @@ def handle_xlsx(
             f'Live Table Updated with "{filename}"',
             f"Uploaded {n_records} records.\n"
             f"A snapshot was made of "
-            f"{f'the previous ({du.get_human_time(previous)}) table and ' if previous else ''}"
-            f"the current ({du.get_human_time(current)}) table.\n",
+            f"{f'the previous table ({du.get_human_time(previous)}) and ' if previous else ''}"
+            f"the current table ({du.get_human_time(current)}).\n",
             du.Color.SUCCESS,
         )
         return False, "", "", True, 1, success_toast

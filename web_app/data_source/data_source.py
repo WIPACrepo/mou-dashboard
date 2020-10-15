@@ -126,7 +126,7 @@ def _remove_invalid_data(
             remove_keys.append(field)
 
     for key in remove_keys:
-        del record[key]
+        record[key] = ""
 
     return record
 

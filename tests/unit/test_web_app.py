@@ -122,7 +122,7 @@ class TestPrivateDataSource:
                 _assert(record, record)
             elif (alpha, dish) == (Scenario.MISSING, Scenario.BAD):
                 out = deepcopy(record)
-                del out["Dish"]
+                out["Dish"] = ""
                 _assert(record, record)
             elif (alpha, dish) == (Scenario.MISSING, Scenario.BLANK):
                 _assert(record, record)
@@ -132,26 +132,26 @@ class TestPrivateDataSource:
                 _assert(record, record)
             elif (alpha, dish) == (Scenario.GOOD, Scenario.BAD):
                 out = deepcopy(record)
-                del out["Dish"]
+                out["Dish"] = ""
                 _assert(record, record)
             elif (alpha, dish) == (Scenario.GOOD, Scenario.BLANK):
                 _assert(record, record)
             elif (alpha, dish) == (Scenario.BAD, Scenario.MISSING):
                 out = deepcopy(record)
-                del out["Alpha"]
+                out["Alpha"] = ""
                 _assert(record, record)
             elif (alpha, dish) == (Scenario.BAD, Scenario.GOOD):
                 out = deepcopy(record)
-                del out["Alpha"]
+                out["Alpha"] = ""
                 _assert(record, record)
             elif (alpha, dish) == (Scenario.BAD, Scenario.BAD):
                 out = deepcopy(record)
-                del out["Alpha"]
-                del out["Dish"]
+                out["Alpha"] = ""
+                out["Dish"] = ""
                 _assert(record, record)
             elif (alpha, dish) == (Scenario.BAD, Scenario.BLANK):
                 out = deepcopy(record)
-                del out["Alpha"]
+                out["Alpha"] = ""
                 _assert(record, record)
             elif (alpha, dish) == (Scenario.BLANK, Scenario.MISSING):
                 _assert(record, record)
@@ -159,7 +159,7 @@ class TestPrivateDataSource:
                 _assert(record, record)
             elif (alpha, dish) == (Scenario.BLANK, Scenario.BAD):
                 out = deepcopy(record)
-                del out["Dish"]
+                out["Dish"] = ""
                 _assert(record, record)
             elif (alpha, dish) == (Scenario.BLANK, Scenario.BLANK):
                 _assert(record, record)

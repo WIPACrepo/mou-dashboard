@@ -225,10 +225,10 @@ def deletion_toast() -> dbc.Toast:
             "font-size": "1.1em",
         },
         children=[
-            html.Div(id="tab-1-last-deleted-id"),  # f"id: {record[src.ID]}"
+            html.Div(id="tab-1-last-deleted-id"),
             html.Div(
                 dbc.Button(
-                    "Undo Delete",
+                    "Restore Row",
                     id="tab-1-undo-last-delete",
                     color=Color.DANGER,
                     outline=True,
@@ -338,13 +338,19 @@ def upload_modal() -> dbc.Modal:
                         outline=True,
                         color=Color.DANGER,
                     ),
-                    dbc.Button(
-                        "Override Live Table",
-                        id="tab-1-upload-xlsx-override-table",
-                        n_clicks=0,
-                        outline=True,
-                        color=Color.SUCCESS,
-                        disabled=True,
+                    dcc.Loading(
+                        type="default",
+                        color="#258835",
+                        children=[
+                            dbc.Button(
+                                "Override Live Table",
+                                id="tab-1-upload-xlsx-override-table",
+                                n_clicks=0,
+                                outline=True,
+                                color=Color.SUCCESS,
+                                disabled=True,
+                            )
+                        ],
                     ),
                 ]
             ),

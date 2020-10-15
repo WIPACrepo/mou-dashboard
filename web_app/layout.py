@@ -92,12 +92,16 @@ app.layout = html.Div(
                             className="caps",
                             style={"margin-bottom": "2rem"},
                         ),
+                        # Email
                         dcc.Input(
                             id="login-email",
                             placeholder="email",
-                            type="text",
+                            persistence=True,
+                            persistence_type="memory",
+                            type="email",
                             style={"width": "50%"},
                         ),
+                        # Password
                         dcc.Input(
                             id="login-password",
                             placeholder="password",
@@ -137,12 +141,12 @@ def render_content(tab: str) -> html.Div:
     return layouts[tab]()
 
 
-def _logged_in_return() -> Tuple[bool, bool, bool, bool, str]:
+def _logged_in_return() -> Tuple[bool, bool, bool, bool, str, str]:
     if current_user.is_admin:
         user_label = f"{current_user.name} (Admin)"
     else:
         user_label = f"{current_user.name} ({current_user.institution})"
-    return False, False, True, False, user_label
+    return False, False, True, False, user_label, ""
 
 
 @app.callback(  # type: ignore[misc]
@@ -152,6 +156,7 @@ def _logged_in_return() -> Tuple[bool, bool, bool, bool, str]:
         Output("login-div", "hidden"),
         Output("logout-div", "hidden"),
         Output("tab-1-logged-in-user", "children"),
+        Output("login-password", "value"),
     ],
     [
         Input("login-button", "n_clicks"),
@@ -163,11 +168,11 @@ def _logged_in_return() -> Tuple[bool, bool, bool, bool, str]:
 )
 def login(
     _: int, __: int, ___: int, ____: int, email: str, pwd: str,
-) -> Tuple[bool, bool, bool, bool, str]:
+) -> Tuple[bool, bool, bool, bool, str, str]:
     """Log the institution leader in/out."""
-    logged_out = (False, False, False, True, "")
-    open_login_modal = (True, False, False, True, "")
-    bad_login = (True, True, False, True, "")
+    logged_out = (False, False, False, True, "", "")
+    open_login_modal = (True, False, False, True, "", "")
+    bad_login = (True, True, False, True, "", "")
 
     if triggered_id() == "login-launch":
         assert not current_user.is_authenticated
