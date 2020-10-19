@@ -152,6 +152,7 @@ def _convert_record_dash_to_rest(
 
 
 def pull_data_table(
+    wbs_l1: str,
     institution: str = "",
     labor: str = "",
     with_totals: bool = False,
@@ -185,12 +186,15 @@ def pull_data_table(
         "snapshot": snapshot,
         "restore_id": restore_id,
     }
-    response = cast(RespTableData, mou_request("GET", "/table/data", body))
+    response = cast(
+        RespTableData, mou_request("GET", "/table/data", body, wbs_l1=wbs_l1)
+    )
     # get & convert
     return _convert_table_rest_to_dash(response["table"])
 
 
 def push_record(
+    wbs_l1: str,
     record: Record,
     labor: str = "",
     institution: str = "",
@@ -222,7 +226,7 @@ def push_record(
             "institution": institution,
             "labor": labor,
         }
-        response = cast(RespRecord, mou_request("POST", "/record", body))
+        response = cast(RespRecord, mou_request("POST", "/record", body, wbs_l1=wbs_l1))
         # get & convert
         return _convert_record_rest_to_dash(response["record"], novel=novel)
     except requests.exceptions.HTTPError as e:
@@ -230,42 +234,47 @@ def push_record(
         raise DataSourceException(str(e))
 
 
-def delete_record(record_id: str) -> bool:
+def delete_record(wbs_l1: str, record_id: str) -> bool:
     """Delete the record, return True if successful."""
     try:
         body = {"record_id": record_id}
-        mou_request("DELETE", "/record", body)
+        mou_request("DELETE", "/record", body, wbs_l1=wbs_l1)
         return True
     except requests.exceptions.HTTPError as e:
         logging.exception(f"EXCEPTED: {e}")
         return False
 
 
-def list_snapshot_timestamps() -> List[str]:
+def list_snapshot_timestamps(wbs_l1: str) -> List[str]:
     """Get the list of snapshots."""
 
     class RespSnapshotsTimestamps(TypedDict):  # pylint: disable=C0115,R0903
         timestamps: List[str]
 
     response = cast(
-        RespSnapshotsTimestamps, mou_request("GET", "/snapshots/timestamps")
+        RespSnapshotsTimestamps,
+        mou_request("GET", "/snapshots/timestamps", wbs_l1=wbs_l1),
     )
 
     return sorted(response["timestamps"], reverse=True)
 
 
-def create_snapshot() -> str:
+def create_snapshot(wbs_l1: str) -> str:
     """Create a snapshot."""
 
     class RespSnapshotsMake(TypedDict):  # pylint: disable=C0115,R0903
         timestamp: str
 
-    response = cast(RespSnapshotsMake, mou_request("POST", "/snapshots/make"))
+    response = cast(
+        RespSnapshotsMake, mou_request("POST", "/snapshots/make", wbs_l1=wbs_l1)
+    )
 
     return response["timestamp"]
 
 
-def override_table(base64_file: str, filename: str) -> Tuple[str, int, str, str]:
+def override_table(
+    wbs_l1: str, base64_file: str, filename: str
+) -> Tuple[str, int, str, str]:
     """Ingest .xlsx file as the new live collection.
 
     Arguments:
@@ -286,7 +295,9 @@ def override_table(base64_file: str, filename: str) -> Tuple[str, int, str, str]
 
     try:
         body = {"base64_file": base64_file, "filename": filename}
-        response = cast(RespTableData, mou_request("POST", "/table/data", body))
+        response = cast(
+            RespTableData, mou_request("POST", "/table/data", body, wbs_l1=wbs_l1)
+        )
         return (
             "",
             response["n_records"],

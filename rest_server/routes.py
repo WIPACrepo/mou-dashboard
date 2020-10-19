@@ -1,7 +1,7 @@
 """Routes handlers for the MoU REST API server interface."""
 
 
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 import tornado.web
 
@@ -10,8 +10,11 @@ from rest_tools.client.json_util import json_decode  # type: ignore
 from rest_tools.server import handler, RestHandler  # type: ignore
 
 from . import table_config as tc
-from .config import AUTH_PREFIX
+from .config import AUTH_PREFIX, WBS_L1_VALUES
 from .utils import db_utils, utils
+
+_WBS_L1_REGEX_VALUES = "|".join(WBS_L1_VALUES)
+
 
 # -----------------------------------------------------------------------------
 
@@ -23,19 +26,28 @@ class NoDefualtValue:  # pylint: disable=R0903
 _NO_DEFAULT = NoDefualtValue()
 
 
-def _cast(type_: Optional[type], val: Any) -> Any:
-    """Cast `val` to `type_` type.
+def _qualify_argument(
+    type_: Optional[type], choices: Optional[List[Any]], val: Any
+) -> Any:
+    """Cast `val` to `type_` type, and/or check that `val` in in `choices`.
 
-    Raise 400 if there's a ValueError.
+    Raise 400 if either qualification fails.
     """
-    if not type_:
-        return val
-    try:
-        if (type_ == bool) and (val == "False"):
-            return False
-        return type_(val)
-    except ValueError as e:
-        raise tornado.web.HTTPError(400, reason=f"(ValueError) {e}")
+    if type_:
+        try:
+            if (type_ == bool) and (val == "False"):
+                val = False
+            else:
+                val = type_(val)
+        except ValueError as e:
+            raise tornado.web.HTTPError(400, reason=f"(ValueError) {e}")
+
+    if choices and (val not in choices):
+        raise tornado.web.HTTPError(
+            400, reason=f"(ValueError) {val} not in options ({choices})"
+        )
+
+    return val
 
 
 # -----------------------------------------------------------------------------
@@ -51,12 +63,13 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
         super().initialize(*args, **kwargs)
         self.dbms = db_client  # pylint: disable=W0201
 
-    def get_json_body_argument(
+    def get_json_body_argument(  # pylint: disable=R0913
         self,
         name: str,
         default: Any = _NO_DEFAULT,
         strip: bool = True,
         type_: Optional[type] = None,
+        choices: Optional[List[Any]] = None,
     ) -> Any:
         """Return the argument by JSON-decoding the request body."""
         if self.request.body:
@@ -64,7 +77,7 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
                 val = json_decode(self.request.body)[name]  # type: ignore[no-untyped-call]
                 if strip and isinstance(val, tornado.util.unicode_type):
                     val = val.strip()
-                return _cast(type_, val)
+                return _qualify_argument(type_, choices, val)
             except KeyError:
                 # Required -> raise 400
                 if isinstance(default, NoDefualtValue):
@@ -74,14 +87,15 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
         # Optional / Default
         if type_:
             assert isinstance(default, type_) or (default is None)
-        return _cast(type_, default)
+        return _qualify_argument(type_, choices, default)
 
-    def get_argument(  # pylint: disable=W0221
+    def get_argument(  # pylint: disable=W0221,R0913
         self,
         name: str,
         default: Any = _NO_DEFAULT,
         strip: bool = True,
         type_: Optional[type] = None,
+        choices: Optional[List[Any]] = None,
     ) -> Any:
         """Return argument. If no default provided raise 400 if not present.
 
@@ -93,25 +107,30 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
         if isinstance(default, NoDefualtValue):
             # check JSON'd body arguments
             try:
-                return _cast(type_, self.get_json_body_argument(name, strip=strip))
+                json_arg = self.get_json_body_argument(name, strip=strip)
+                return _qualify_argument(type_, choices, json_arg)
             except tornado.web.MissingArgumentError:
                 pass
             # check query and body arguments
             try:
-                return _cast(type_, super().get_argument(name, strip=strip))
+                arg = super().get_argument(name, strip=strip)
+                return _qualify_argument(type_, choices, arg)
             except tornado.web.MissingArgumentError as e:
                 raise tornado.web.HTTPError(400, reason=e.log_message)
 
         # Else:
         # Optional / Default
-        if type_:
+        if type_:  # assert the default's type (None is okay too)
             assert isinstance(default, type_) or (default is None)
         # check JSON'd body arguments  # pylint: disable=C0103
-        j = self.get_json_body_argument(name, default=default, strip=strip, type_=type_)
-        if j != default:
-            return j
+        json_arg = self.get_json_body_argument(
+            name, default=default, strip=strip, type_=type_, choices=choices
+        )
+        if json_arg != default:
+            return json_arg
         # check query and body arguments
-        return _cast(type_, super().get_argument(name, default=default, strip=strip))
+        arg = super().get_argument(name, default=default, strip=strip)
+        return _qualify_argument(type_, choices, arg)
 
 
 # -----------------------------------------------------------------------------
@@ -133,10 +152,10 @@ class MainHandler(BaseMoUHandler):  # pylint: disable=W0223
 class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
     """Handle requests for a table."""
 
-    ROUTE = r"/table/data$"
+    ROUTE = rf"/table/data/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
-    async def get(self) -> None:
+    async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
         collection = self.get_argument("snapshot", "")
         institution = self.get_argument("institution", default=None)
@@ -145,10 +164,10 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
         total_rows = self.get_argument("total_rows", default=False, type_=bool)
 
         if restore_id:
-            await self.dbms.restore_record(restore_id)
+            await self.dbms.restore_record(wbs_l1, restore_id)
 
         table = await self.dbms.get_table(
-            collection, labor=labor, institution=institution
+            wbs_l1, collection, labor=labor, institution=institution
         )
 
         # On-the-fly fields/rows
@@ -165,18 +184,18 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
         self.write({"table": table})
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["admin"])  # type: ignore
-    async def post(self) -> None:
+    async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
         base64_file = self.get_argument("base64_file")
         filename = self.get_argument("filename")
 
         previous_snapshot, current_snapshot = await self.dbms.ingest_xlsx(
-            base64_file, filename
+            wbs_l1, base64_file, filename
         )
 
         self.write(
             {
-                "n_records": len(await self.dbms.get_table()),
+                "n_records": len(await self.dbms.get_table(wbs_l1)),
                 "previous_snapshot": previous_snapshot,
                 "current_snapshot": current_snapshot,
             }
@@ -189,10 +208,10 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
 class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
     """Handle requests for a record."""
 
-    ROUTE = r"/record$"
+    ROUTE = rf"/record/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
-    async def post(self) -> None:
+    async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
         record = self.get_argument("record")
         if inst := self.get_argument("institution", default=None):
@@ -201,16 +220,16 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
             record[tc.LABOR_CAT] = labor  # insert
 
         record = utils.remove_on_the_fly_fields(record)
-        record = await self.dbms.upsert_record(record)
+        record = await self.dbms.upsert_record(wbs_l1, record)
 
         self.write({"record": record})
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
-    async def delete(self) -> None:
+    async def delete(self, wbs_l1: str) -> None:
         """Handle DELETE."""
         record_id = self.get_argument("record_id")
 
-        await self.dbms.delete_record(record_id)
+        await self.dbms.delete_record(wbs_l1, record_id)
 
         self.write({})
 
@@ -252,12 +271,12 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
 class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
     """Handle requests for listing the snapshots."""
 
-    ROUTE = r"/snapshots/timestamps$"
+    ROUTE = rf"/snapshots/timestamps/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
-    async def get(self) -> None:
+    async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
-        snapshots = await self.dbms.list_snapshot_timestamps()
+        snapshots = await self.dbms.list_snapshot_timestamps(wbs_l1)
         snapshots.sort(reverse=True)
 
         self.write({"timestamps": snapshots})
@@ -266,11 +285,11 @@ class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
 class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
     """Handle requests for making snapshots."""
 
-    ROUTE = r"/snapshots/make$"
+    ROUTE = rf"/snapshots/make/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
-    async def post(self) -> None:
+    async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
-        snapshot = await self.dbms.snapshot_live_collection()
+        snapshot = await self.dbms.snapshot_live_collection(wbs_l1)
 
         self.write({"timestamp": snapshot})

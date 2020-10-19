@@ -1,3 +1,3 @@
 """Init."""
 
-from . import i3  # noqa: F401
+from . import wbs_generic  # noqa: F401

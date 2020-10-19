@@ -12,7 +12,7 @@ from dash.dependencies import Input, Output, State  # type: ignore
 from flask_login import current_user, login_user, logout_user  # type: ignore[import]
 
 from .config import app
-from .tabs import i3
+from .tabs import wbs_generic
 from .utils.dash_utils import Color, triggered_id
 from .utils.login import User
 
@@ -68,14 +68,15 @@ app.layout = html.Div(
         ),
         # Tabs
         dcc.Tabs(
-            id="mou-dash-tabs",
-            value="tab1",
+            id="wbs-l1",
+            value="mo",
             children=[
-                dcc.Tab(label="IceCube M&O", value="tab1",),
-                dcc.Tab(label="IceCube Upgrade", value="tab2", disabled=True),
+                dcc.Tab(label="IceCube M&O", value="mo",),
+                dcc.Tab(label="IceCube Upgrade", value="upgrade"),
             ],
         ),
         # Content
+        # TODO -- maybe add dcc.Store for tab value to persist b/n refreshes -- check on load
         html.Div(id="tab-content", className="content"),
         ###
         ###
@@ -132,13 +133,11 @@ app.layout = html.Div(
 
 
 @app.callback(
-    Output("tab-content", "children"), [Input("mou-dash-tabs", "value")]
+    Output("tab-content", "children"), [Input("wbs-l1", "value")]
 )  # type: ignore
-def render_content(tab: str) -> html.Div:
+def render_content(_: str) -> html.Div:
     """Create HTML for tab."""
-    layouts = {"tab1": i3.layout}
-
-    return layouts[tab]()
+    return wbs_generic.layout()
 
 
 def _logged_in_return() -> Tuple[bool, bool, bool, bool, str, str]:

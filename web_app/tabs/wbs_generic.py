@@ -1,4 +1,4 @@
-"""Conditional in-cell drop-down menu with IceCube WBS MoU info."""
+"""Tab-toggled layout for a specified WBS."""
 
 
 from typing import cast, Dict, List, Tuple
@@ -37,7 +37,7 @@ def layout() -> html.Div:
                             html.Div(children="Institution", className="caps"),
                             # Institution filter dropdown menu
                             dcc.Dropdown(
-                                id="tab-1-filter-inst",
+                                id="wbs-filter-inst",
                                 options=[
                                     {"label": f"{abbrev} ({name})", "value": abbrev}
                                     for name, abbrev in tconfig.get_institutions_w_abbrevs()
@@ -55,7 +55,7 @@ def layout() -> html.Div:
                             # Labor Category filter dropdown menu
                             html.Div(children="Labor Category", className="caps"),
                             dcc.Dropdown(
-                                id="tab-1-filter-labor",
+                                id="wbs-filter-labor",
                                 options=[
                                     {"label": st, "value": st}
                                     for st in tconfig.get_labor_categories()
@@ -73,7 +73,7 @@ def layout() -> html.Div:
             # Log-In Alert
             dbc.Alert(
                 "- log in to edit -",
-                id="tab-1-how-to-edit-alert",
+                id="wbs-how-to-edit-alert",
                 style={
                     "fontWeight": "bold",
                     "fontSize": "20px",
@@ -90,17 +90,17 @@ def layout() -> html.Div:
                 [
                     html.Div("Viewing Snapshot", style={"margin-bottom": "0.5rem"}),
                     html.Div(
-                        id="tab-1-snapshot-human", style={"margin-bottom": "0.5rem"},
+                        id="wbs-snapshot-human", style={"margin-bottom": "0.5rem"},
                     ),
-                    html.Div(id="tab-1-snapshot-timestamp", hidden=True),
+                    html.Div(id="wbs-snapshot-timestamp", hidden=True),
                     dbc.Button(
                         "View Live Table",
-                        id="tab-1-view-live-btn",
+                        id="wbs-view-live-btn",
                         n_clicks=0,
                         color=du.Color.SUCCESS,
                     ),
                 ],
-                id="tab-1-viewing-snapshot-alert",
+                id="wbs-viewing-snapshot-alert",
                 style={
                     "fontWeight": "bold",
                     "fontSize": "20px",
@@ -113,7 +113,7 @@ def layout() -> html.Div:
             ),
             # Table
             dash_table.DataTable(
-                id="tab-1-data-table",
+                id="wbs-data-table",
                 editable=False,
                 # sort_action="native",
                 # sort_mode="multi",
@@ -182,7 +182,7 @@ def layout() -> html.Div:
                                     # Load Snapshot
                                     dbc.Button(
                                         "Load Snapshot",
-                                        id="tab-1-load-snapshot-button",
+                                        id="wbs-load-snapshot-button",
                                         n_clicks=0,
                                         outline=True,
                                         color=du.Color.INFO,
@@ -191,7 +191,7 @@ def layout() -> html.Div:
                                     # Make Snapshot
                                     dbc.Button(
                                         "Make Snapshot",
-                                        id="tab-1-make-snapshot-button",
+                                        id="wbs-make-snapshot-button",
                                         n_clicks=0,
                                         outline=True,
                                         color=du.Color.SUCCESS,
@@ -202,7 +202,7 @@ def layout() -> html.Div:
                             # Refresh
                             dbc.Button(
                                 "↻",
-                                id="tab-1-refresh-button",
+                                id="wbs-refresh-button",
                                 n_clicks=0,
                                 outline=True,
                                 color=du.Color.SUCCESS,
@@ -222,19 +222,19 @@ def layout() -> html.Div:
                                 children=[
                                     # Show Totals
                                     dbc.Button(
-                                        id="tab-1-show-totals-button",
+                                        id="wbs-show-totals-button",
                                         n_clicks=0,
                                         style={"margin-right": "1rem"},
                                     ),
                                     # Show All Columns
                                     dbc.Button(
-                                        id="tab-1-show-all-columns-button",
+                                        id="wbs-show-all-columns-button",
                                         n_clicks=0,
                                         style={"margin-right": "1rem"},
                                     ),
                                     # Show All Rows
                                     dbc.Button(
-                                        id="tab-1-show-all-rows-button",
+                                        id="wbs-show-all-rows-button",
                                         n_clicks=0,
                                         style={"margin-right": "1rem"},
                                     ),
@@ -254,7 +254,7 @@ def layout() -> html.Div:
                 children=[
                     dbc.Row(
                         html.Label(
-                            id="tab-1-last-updated-label",
+                            id="wbs-last-updated-label",
                             style={"font-style": "italic", "fontSize": "14px"},
                             className="caps",
                         ),
@@ -266,12 +266,12 @@ def layout() -> html.Div:
             #
             # Upload/Override XLSX
             html.Div(
-                id="tab-1-upload-xlsx-launch-modal-button-div",
+                id="wbs-upload-xlsx-launch-modal-button-div",
                 children=[
                     html.Hr(),
                     dbc.Button(
                         "Override Live Table with .xlsx",
-                        id="tab-1-upload-xlsx-launch-modal-button",
+                        id="wbs-upload-xlsx-launch-modal-button",
                         block=True,
                         n_clicks=0,
                         color=du.Color.WARNING,
@@ -285,20 +285,18 @@ def layout() -> html.Div:
             # Data Stores aka Cookies
             # - for communicating when table was last updated by an exterior control
             dcc.Store(
-                id="tab-1-table-exterior-control-last-timestamp", storage_type="memory",
+                id="wbs-table-exterior-control-last-timestamp", storage_type="memory",
             ),
             # - for caching the table config, to limit REST calls
             dcc.Store(
-                id="tab-1-table-config-cache",
-                storage_type="memory",
-                data=tconfig.config,
+                id="wbs-table-config-cache", storage_type="memory", data=tconfig.config,
             ),
             #
             # Dummy Divs -- for adding dynamic toasts, dialogs, etc.
-            html.Div(id="tab-1-toast-via-exterior-control-div"),
-            html.Div(id="tab-1-toast-via-interior-control-div"),
-            html.Div(id="tab-1-toast-via-snapshot-div"),
-            html.Div(id="tab-1-toast-via-upload-div"),
+            html.Div(id="wbs-toast-via-exterior-control-div"),
+            html.Div(id="wbs-toast-via-interior-control-div"),
+            html.Div(id="wbs-toast-via-snapshot-div"),
+            html.Div(id="wbs-toast-via-upload-div"),
             #
             # Modals & Toasts
             du.snapshot_modal(),
@@ -322,10 +320,10 @@ def _totals_button_logic(
         str  -- button label
         str  -- button color
         bool -- button outline
-        int  -- auto n_clicks for "tab-1-show-all-columns-button"
+        int  -- auto n_clicks for "wbs-show-all-columns-button"
     """
     on = n_clicks % 2 == 1  # pylint: disable=C0103
-    triggered = du.triggered_id() == "tab-1-show-totals-button"
+    triggered = du.triggered_id() == "wbs-show-totals-button"
 
     if not on:  # off -> don't trigger "show-all-columns"
         return False, "Show Totals", du.Color.SECONDARY, True, state_all_cols
@@ -337,7 +335,8 @@ def _totals_button_logic(
     return True, "Hide Totals", du.Color.DARK, False, state_all_cols
 
 
-def _add_new_data(
+def _add_new_data(  # pylint: disable=R0913
+    wbs_l1: str,
     state_table: Table,
     state_columns: TColumns,
     labor: str,
@@ -357,6 +356,7 @@ def _add_new_data(
     # push to data source AND auto-fill labor and/or institution
     try:
         new_record = src.push_record(
+            wbs_l1,
             new_record,
             labor=labor,
             institution=institution,
@@ -375,34 +375,38 @@ def _add_new_data(
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("tab-1-data-table", "data"),
-        Output("tab-1-data-table", "page_current"),
-        Output("tab-1-table-exterior-control-last-timestamp", "data"),
-        Output("tab-1-toast-via-exterior-control-div", "children"),
-        Output("tab-1-show-totals-button", "children"),
-        Output("tab-1-show-totals-button", "color"),
-        Output("tab-1-show-totals-button", "outline"),
-        Output("tab-1-show-all-columns-button", "n_clicks"),
+        Output("wbs-data-table", "data"),
+        Output("wbs-data-table", "page_current"),
+        Output("wbs-table-exterior-control-last-timestamp", "data"),
+        Output("wbs-toast-via-exterior-control-div", "children"),
+        Output("wbs-show-totals-button", "children"),
+        Output("wbs-show-totals-button", "color"),
+        Output("wbs-show-totals-button", "outline"),
+        Output("wbs-show-all-columns-button", "n_clicks"),
     ],
     [
-        Input("tab-1-filter-inst", "value"),
-        Input("tab-1-filter-labor", "value"),
-        Input("tab-1-new-data-button", "n_clicks"),
-        Input("tab-1-refresh-button", "n_clicks"),
-        Input("tab-1-show-totals-button", "n_clicks"),
-        Input("tab-1-snapshot-timestamp", "children"),
-        Input("tab-1-undo-last-delete", "n_clicks"),
+        Input("wbs-l1", "value"),
+        Input("wbs-filter-inst", "value"),
+        Input("wbs-filter-labor", "value"),
+        Input("wbs-new-data-button", "n_clicks"),
+        Input("wbs-refresh-button", "n_clicks"),
+        Input("wbs-show-totals-button", "n_clicks"),
+        Input("wbs-snapshot-timestamp", "children"),
+        Input("wbs-undo-last-delete", "n_clicks"),
     ],
     [
-        State("tab-1-data-table", "data"),
-        State("tab-1-data-table", "columns"),
-        State("tab-1-show-all-columns-button", "n_clicks"),
-        State("tab-1-last-deleted-id", "children"),
-        State("tab-1-table-config-cache", "data"),
+        State("wbs-data-table", "data"),
+        State("wbs-data-table", "columns"),
+        State("wbs-show-all-columns-button", "n_clicks"),
+        State("wbs-last-deleted-id", "children"),
+        State("wbs-table-config-cache", "data"),
     ],
+    prevent_initial_call=True,  # triggered instead by Input("wbs-l1", "value")
 )  # pylint: disable=R0913,R0914
 def table_data_exterior_controls(
-    # inputs
+    # L1 input (input)
+    wbs_l1: str,
+    # other input(s)
     institution: str,
     labor: str,
     _: int,
@@ -410,7 +414,7 @@ def table_data_exterior_controls(
     tot_n_clicks: int,
     snapshot: str,
     ___: int,
-    # states
+    # state(s)
     state_table: Table,
     state_columns: TColumns,
     state_all_cols: int,
@@ -432,13 +436,14 @@ def table_data_exterior_controls(
     )
 
     # Add New Data
-    if du.triggered_id() == "tab-1-new-data-button":
+    if du.triggered_id() == "wbs-new-data-button":
         table, toast = _add_new_data(
-            state_table, state_columns, labor, institution, state_tconfig_cache
+            wbs_l1, state_table, state_columns, labor, institution, state_tconfig_cache
         )
     # OR Restore a Record and Pull Table (optionally filtered)
-    elif du.triggered_id() == "tab-1-undo-last-delete":
+    elif du.triggered_id() == "wbs-undo-last-delete":
         table = src.pull_data_table(
+            wbs_l1,
             institution=institution,
             labor=labor,
             with_totals=show_totals,
@@ -451,6 +456,7 @@ def table_data_exterior_controls(
     # OR Just Pull Table (optionally filtered)
     else:
         table = src.pull_data_table(
+            wbs_l1,
             institution=institution,
             labor=labor,
             with_totals=show_totals,
@@ -470,6 +476,7 @@ def table_data_exterior_controls(
 
 
 def _push_modified_records(
+    wbs_l1: str,
     current_table: Table,
     previous_table: Table,
     state_tconfig_cache: tc.TableConfigParser.Cache,
@@ -480,7 +487,7 @@ def _push_modified_records(
     ]
     for record in modified_records:
         try:
-            src.push_record(record, tconfig_cache=state_tconfig_cache)
+            src.push_record(wbs_l1, record, tconfig_cache=state_tconfig_cache)
         except src.DataSourceException:
             pass
 
@@ -489,7 +496,7 @@ def _push_modified_records(
 
 
 def _delete_deleted_records(
-    current_table: Table, previous_table: Table, keeps: List[DataEntry]
+    wbs_l1: str, current_table: Table, previous_table: Table, keeps: List[DataEntry]
 ) -> Tuple[dbc.Toast, str]:
     """For each row that was deleted by the user, delete its DS record."""
     toast: dbc.Toast = None
@@ -505,7 +512,7 @@ def _delete_deleted_records(
     record = None
     for record in delete_these:
         # try to delete
-        if not src.delete_record(cast(str, record[src.ID])):
+        if not src.delete_record(wbs_l1, cast(str, record[src.ID])):
             failures.append(record)
         else:
             last_deletion = cast(str, record[src.ID])
@@ -523,21 +530,26 @@ def _delete_deleted_records(
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("tab-1-data-table", "data_previous"),
-        Output("tab-1-toast-via-interior-control-div", "children"),
-        Output("tab-1-last-updated-label", "children"),
-        Output("tab-1-last-deleted-id", "children"),
-        Output("tab-1-deletion-toast", "is_open"),
+        Output("wbs-data-table", "data_previous"),
+        Output("wbs-toast-via-interior-control-div", "children"),
+        Output("wbs-last-updated-label", "children"),
+        Output("wbs-last-deleted-id", "children"),
+        Output("wbs-deletion-toast", "is_open"),
     ],
-    [Input("tab-1-data-table", "data")],
+    [Input("wbs-l1", "value"), Input("wbs-data-table", "data")],
     [
-        State("tab-1-data-table", "data_previous"),
-        State("tab-1-table-exterior-control-last-timestamp", "data"),
-        State("tab-1-table-config-cache", "data"),
+        State("wbs-data-table", "data_previous"),
+        State("wbs-table-exterior-control-last-timestamp", "data"),
+        State("wbs-table-config-cache", "data"),
     ],
+    prevent_initial_call=True,  # triggered instead by Input("wbs-l1", "value")
 )
 def table_data_interior_controls(
+    # L1 value (input)
+    wbs_l1: str,
+    # other input(s)
     current_table: Table,
+    # state(s)
     previous_table: Table,
     table_exterior_control_ts: str,
     state_tconfig_cache: tc.TableConfigParser.Cache,
@@ -558,11 +570,13 @@ def table_data_interior_controls(
         return current_table, None, updated_message, "", False
 
     # Push (if any)
-    mod_ids = _push_modified_records(current_table, previous_table, state_tconfig_cache)
+    mod_ids = _push_modified_records(
+        wbs_l1, current_table, previous_table, state_tconfig_cache
+    )
 
     # Delete (if any)
     toast, last_deletion = _delete_deleted_records(
-        current_table, previous_table, mod_ids
+        wbs_l1, current_table, previous_table, mod_ids
     )
 
     # Update data_previous
@@ -570,12 +584,15 @@ def table_data_interior_controls(
 
 
 @app.callback(  # type: ignore[misc]
-    Output("tab-1-data-table", "columns"),
-    [Input("tab-1-data-table", "editable")],
-    [State("tab-1-table-config-cache", "data")],
+    Output("wbs-data-table", "columns"),
+    [Input("wbs-data-table", "editable")],
+    [State("wbs-table-config-cache", "data")],
 )
 def table_columns(
-    table_editable: bool, state_tconfig_cache: tc.TableConfigParser.Cache
+    # input(s)
+    table_editable: bool,
+    # state(s)
+    state_tconfig_cache: tc.TableConfigParser.Cache,
 ) -> List[Dict[str, object]]:
     """Grab table columns."""
     tconfig = tc.TableConfigParser(state_tconfig_cache)
@@ -607,14 +624,17 @@ def table_columns(
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("tab-1-data-table", "dropdown"),
-        Output("tab-1-data-table", "dropdown_conditional"),
+        Output("wbs-data-table", "dropdown"),
+        Output("wbs-data-table", "dropdown_conditional"),
     ],
-    [Input("tab-1-data-table", "editable")],
-    [State("tab-1-table-config-cache", "data")],
+    [Input("wbs-data-table", "editable")],
+    [State("wbs-table-config-cache", "data")],
 )
 def table_dropdown(
-    _: bool, state_tconfig_cache: tc.TableConfigParser.Cache
+    # input(s)
+    _: bool,
+    # state(s)
+    state_tconfig_cache: tc.TableConfigParser.Cache,
 ) -> Tuple[TDDown, TDDownCond]:
     """Grab table dropdowns."""
     simple_dropdowns: TDDown = {}
@@ -660,23 +680,31 @@ def table_dropdown(
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("tab-1-load-snapshot-modal", "is_open"),
-        Output("tab-1-snapshot-selection", "options"),
-        Output("tab-1-snapshot-human", "children"),
-        Output("tab-1-snapshot-timestamp", "children"),
-        Output("tab-1-viewing-snapshot-alert", "is_open"),
+        Output("wbs-load-snapshot-modal", "is_open"),
+        Output("wbs-snapshot-selection", "options"),
+        Output("wbs-snapshot-human", "children"),
+        Output("wbs-snapshot-timestamp", "children"),
+        Output("wbs-viewing-snapshot-alert", "is_open"),
     ],
     [
-        Input("tab-1-load-snapshot-button", "n_clicks"),
-        Input("tab-1-view-live-btn-modal", "n_clicks"),
-        Input("tab-1-view-live-btn", "n_clicks"),
-        Input("tab-1-snapshot-selection", "value"),
+        Input("wbs-load-snapshot-button", "n_clicks"),
+        Input("wbs-view-live-btn-modal", "n_clicks"),
+        Input("wbs-view-live-btn", "n_clicks"),
+        Input("wbs-snapshot-selection", "value"),
     ],
-    [State("tab-1-snapshot-timestamp", "children")],
+    [State("wbs-l1", "value"), State("wbs-snapshot-timestamp", "children")],
     prevent_initial_call=True,
 )
-def manage_snpshots(
-    _: int, __: int, ___: int, snapshot: str, state_snapshot: str
+def manage_snapshots(
+    # input(s)
+    _: int,
+    __: int,
+    ___: int,
+    snapshot: str,
+    # L1 value (state)
+    wbs_l1: str,
+    # other state(s)
+    state_snapshot: str,
 ) -> Tuple[bool, List[dbc.ListGroupItem], str, str, bool]:
     """Launch snapshot modal, load live table, or select a snapshot.
 
@@ -685,14 +713,14 @@ def manage_snpshots(
     """
     #
     # Load Live Table
-    if du.triggered_id() in ["tab-1-view-live-btn-modal", "tab-1-view-live-btn"]:
+    if du.triggered_id() in ["wbs-view-live-btn-modal", "wbs-view-live-btn"]:
         return False, [], "", state_snapshot, False
 
     # Load Modal List of Snapshots
-    if du.triggered_id() == "tab-1-load-snapshot-button":
+    if du.triggered_id() == "wbs-load-snapshot-button":
         snapshots_options = [
             {"label": du.get_human_time(ts), "value": ts}
-            for ts in src.list_snapshot_timestamps()
+            for ts in src.list_snapshot_timestamps(wbs_l1)
         ]
         return True, snapshots_options, "", state_snapshot, False
 
@@ -702,15 +730,21 @@ def manage_snpshots(
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("tab-1-toast-via-snapshot-div", "children"),
-        Output("tab-1-make-snapshot-button", "color"),  # trigger "Loading" element
+        Output("wbs-toast-via-snapshot-div", "children"),
+        Output("wbs-make-snapshot-button", "color"),  # trigger "Loading" element
     ],
-    [Input("tab-1-make-snapshot-button", "n_clicks")],
+    [Input("wbs-make-snapshot-button", "n_clicks")],
+    [State("wbs-l1", "value")],
     prevent_initial_call=True,
 )
-def make_snapshot(_: int) -> Tuple[dcc.ConfirmDialog, str]:
+def make_snapshot(
+    # input(s)
+    _: int,
+    # L1 value (state)
+    wbs_l1: str,
+) -> Tuple[dcc.ConfirmDialog, str]:
     """Launch a dialog for not-yet-implemented features."""
-    if snapshot := src.create_snapshot():
+    if snapshot := src.create_snapshot(wbs_l1):
         return (
             du.make_toast(
                 "Snapshot Created", du.get_human_time(snapshot), du.Color.SUCCESS, 5
@@ -729,33 +763,41 @@ def make_snapshot(_: int) -> Tuple[dcc.ConfirmDialog, str]:
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("tab-1-upload-xlsx-modal", "is_open"),
-        Output("tab-1-upload-xlsx-filename-alert", "children"),
-        Output("tab-1-upload-xlsx-filename-alert", "color"),
-        Output("tab-1-upload-xlsx-override-table", "disabled"),
-        Output("tab-1-refresh-button", "n_clicks"),
-        Output("tab-1-toast-via-upload-div", "children"),
+        Output("wbs-upload-xlsx-modal", "is_open"),
+        Output("wbs-upload-xlsx-filename-alert", "children"),
+        Output("wbs-upload-xlsx-filename-alert", "color"),
+        Output("wbs-upload-xlsx-override-table", "disabled"),
+        Output("wbs-refresh-button", "n_clicks"),
+        Output("wbs-toast-via-upload-div", "children"),
     ],
     [
-        Input("tab-1-upload-xlsx-launch-modal-button", "n_clicks"),
-        Input("tab-1-upload-xlsx", "contents"),
-        Input("tab-1-upload-xlsx-cancel", "n_clicks"),
-        Input("tab-1-upload-xlsx-override-table", "n_clicks"),
+        Input("wbs-upload-xlsx-launch-modal-button", "n_clicks"),
+        Input("wbs-upload-xlsx", "contents"),
+        Input("wbs-upload-xlsx-cancel", "n_clicks"),
+        Input("wbs-upload-xlsx-override-table", "n_clicks"),
     ],
-    [State("tab-1-upload-xlsx", "filename")],
+    [State("wbs-l1", "value"), State("wbs-upload-xlsx", "filename")],
     prevent_initial_call=True,
 )
 def handle_xlsx(
-    _: int, contents: str, __: int, ___: int, filename: str,
+    # input(s)
+    _: int,
+    contents: str,
+    __: int,
+    ___: int,
+    # L1 value (state)
+    wbs_l1: str,
+    # other state(s)
+    filename: str,
 ) -> Tuple[bool, str, str, bool, int, dbc.Toast]:
     """Manage uploading a new xlsx document as the new live table."""
-    if du.triggered_id() == "tab-1-upload-xlsx-launch-modal-button":
+    if du.triggered_id() == "wbs-upload-xlsx-launch-modal-button":
         return True, "", "", True, 0, None
 
-    if du.triggered_id() == "tab-1-upload-xlsx-cancel":
+    if du.triggered_id() == "wbs-upload-xlsx-cancel":
         return False, "", "", True, 0, None
 
-    if du.triggered_id() == "tab-1-upload-xlsx":
+    if du.triggered_id() == "wbs-upload-xlsx":
         if not filename.endswith(".xlsx"):
             return (
                 True,
@@ -767,10 +809,12 @@ def handle_xlsx(
             )
         return True, f'Uploaded "{filename}"', du.Color.SUCCESS, False, 0, None
 
-    if du.triggered_id() == "tab-1-upload-xlsx-override-table":
+    if du.triggered_id() == "wbs-upload-xlsx-override-table":
         base64_file = contents.split(",")[1]
         # pylint: disable=C0325
-        error, n_records, previous, current = src.override_table(base64_file, filename)
+        error, n_records, previous, current = src.override_table(
+            wbs_l1, base64_file, filename
+        )
         if error:
             error_message = f'Error overriding "{filename}" ({error})'
             return True, error_message, du.Color.DANGER, True, 0, None
@@ -789,20 +833,22 @@ def handle_xlsx(
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("tab-1-data-table", "editable"),
-        Output("tab-1-new-data-div-1", "hidden"),
-        Output("tab-1-new-data-div-2", "hidden"),
-        Output("tab-1-make-snapshot-button", "hidden"),
-        Output("tab-1-how-to-edit-alert", "hidden"),
-        Output("tab-1-data-table", "row_deletable"),
-        Output("tab-1-filter-inst", "disabled"),
-        Output("tab-1-filter-inst", "value"),
-        Output("tab-1-upload-xlsx-launch-modal-button-div", "hidden"),
+        Output("wbs-data-table", "editable"),
+        Output("wbs-new-data-div-1", "hidden"),
+        Output("wbs-new-data-div-2", "hidden"),
+        Output("wbs-make-snapshot-button", "hidden"),
+        Output("wbs-how-to-edit-alert", "hidden"),
+        Output("wbs-data-table", "row_deletable"),
+        Output("wbs-filter-inst", "disabled"),
+        Output("wbs-filter-inst", "value"),
+        Output("wbs-upload-xlsx-launch-modal-button-div", "hidden"),
     ],
-    [Input("tab-1-viewing-snapshot-alert", "is_open"), Input("logout-div", "hidden")],
+    [Input("wbs-viewing-snapshot-alert", "is_open"), Input("logout-div", "hidden")],
 )
 def log_in_actions(
-    viewing_snapshot: bool, _: bool,
+    # input(s)
+    viewing_snapshot: bool,
+    _: bool,
 ) -> Tuple[bool, bool, bool, bool, bool, bool, bool, str, bool]:
     """Logged-in callback."""
     if viewing_snapshot:
@@ -845,17 +891,20 @@ def log_in_actions(
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("tab-1-show-all-rows-button", "children"),
-        Output("tab-1-show-all-rows-button", "color"),
-        Output("tab-1-show-all-rows-button", "outline"),
-        Output("tab-1-data-table", "page_size"),
-        Output("tab-1-data-table", "page_action"),
+        Output("wbs-show-all-rows-button", "children"),
+        Output("wbs-show-all-rows-button", "color"),
+        Output("wbs-show-all-rows-button", "outline"),
+        Output("wbs-data-table", "page_size"),
+        Output("wbs-data-table", "page_action"),
     ],
-    [Input("tab-1-show-all-rows-button", "n_clicks")],
-    [State("tab-1-table-config-cache", "data")],
+    [Input("wbs-show-all-rows-button", "n_clicks")],
+    [State("wbs-table-config-cache", "data")],
 )
 def toggle_pagination(
-    n_clicks: int, state_tconfig_cache: tc.TableConfigParser.Cache
+    # input(s)
+    n_clicks: int,
+    # state(s)
+    state_tconfig_cache: tc.TableConfigParser.Cache,
 ) -> Tuple[str, str, bool, int, str]:
     """Toggle whether the table is paginated."""
     if n_clicks % 2 == 0:
@@ -873,16 +922,19 @@ def toggle_pagination(
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("tab-1-show-all-columns-button", "children"),
-        Output("tab-1-show-all-columns-button", "color"),
-        Output("tab-1-show-all-columns-button", "outline"),
-        Output("tab-1-data-table", "hidden_columns"),
+        Output("wbs-show-all-columns-button", "children"),
+        Output("wbs-show-all-columns-button", "color"),
+        Output("wbs-show-all-columns-button", "outline"),
+        Output("wbs-data-table", "hidden_columns"),
     ],
-    [Input("tab-1-show-all-columns-button", "n_clicks")],
-    [State("tab-1-table-config-cache", "data")],
+    [Input("wbs-show-all-columns-button", "n_clicks")],
+    [State("wbs-table-config-cache", "data")],
 )
 def toggle_hidden_columns(
-    n_clicks: int, state_tconfig_cache: tc.TableConfigParser.Cache
+    # input(s)
+    n_clicks: int,
+    # state(s)
+    state_tconfig_cache: tc.TableConfigParser.Cache,
 ) -> Tuple[str, str, bool, List[str]]:
     """Toggle hiding/showing the default hidden columns."""
     if n_clicks % 2 == 0:

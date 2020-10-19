@@ -96,10 +96,10 @@ def was_recent(timestamp: str) -> bool:
 def new_data_button(num: int, style: Optional[Dict[str, str]] = None) -> html.Div:
     """Get a button for triggering adding of new data."""
     return html.Div(
-        id=f"tab-1-new-data-div-{num}",
+        id=f"wbs-new-data-div-{num}",
         children=dbc.Button(
             "+ Add New Data",
-            id="tab-1-new-data-button",
+            id="wbs-new-data-button",
             block=True,
             n_clicks=0,
             color=Color.DARK,
@@ -209,7 +209,7 @@ def get_style_data_conditional(tconfig: tc.TableConfigParser) -> TSDCond:
 def deletion_toast() -> dbc.Toast:
     """Get a toast for confirming a deletion."""
     return dbc.Toast(
-        id="tab-1-deletion-toast",
+        id="wbs-deletion-toast",
         header="Deleted Record",
         is_open=False,
         dismissable=True,
@@ -225,11 +225,11 @@ def deletion_toast() -> dbc.Toast:
             "font-size": "1.1em",
         },
         children=[
-            html.Div(id="tab-1-last-deleted-id"),
+            html.Div(id="wbs-last-deleted-id"),
             html.Div(
                 dbc.Button(
                     "Restore Row",
-                    id="tab-1-undo-last-delete",
+                    id="wbs-undo-last-delete",
                     color=Color.DANGER,
                     outline=True,
                 ),
@@ -244,7 +244,7 @@ def make_toast(
 ) -> dbc.Toast:
     """Dynamically make a toast."""
     return dbc.Toast(
-        id=f"tab-1-toast-{get_now()}",
+        id=f"wbs-toast-{get_now()}",
         header=header,
         is_open=True,
         dismissable=True,
@@ -266,7 +266,7 @@ def make_toast(
 def snapshot_modal() -> dbc.Modal:
     """Get a modal for selecting a snapshot."""
     return dbc.Modal(
-        id="tab-1-load-snapshot-modal",
+        id="wbs-load-snapshot-modal",
         size="lg",
         is_open=False,
         backdrop="static",
@@ -274,14 +274,14 @@ def snapshot_modal() -> dbc.Modal:
             dbc.ModalHeader("Snapshots", className="caps snapshots-title"),
             dbc.ModalBody(
                 dcc.RadioItems(
-                    options=[], id="tab-1-snapshot-selection", className="snapshots"
+                    options=[], id="wbs-snapshot-selection", className="snapshots"
                 )
             ),
             dbc.ModalFooter(
                 children=[
                     dbc.Button(
                         "View Live Table",
-                        id="tab-1-view-live-btn-modal",
+                        id="wbs-view-live-btn-modal",
                         n_clicks=0,
                         color=Color.SUCCESS,
                     )
@@ -294,7 +294,7 @@ def snapshot_modal() -> dbc.Modal:
 def upload_modal() -> dbc.Modal:
     """Get a modal for uploading an xlsx."""
     return dbc.Modal(
-        id="tab-1-upload-xlsx-modal",
+        id="wbs-upload-xlsx-modal",
         size="lg",
         is_open=False,
         backdrop="static",
@@ -303,7 +303,7 @@ def upload_modal() -> dbc.Modal:
             dbc.ModalBody(
                 children=[
                     dcc.Upload(
-                        id="tab-1-upload-xlsx",
+                        id="wbs-upload-xlsx",
                         children=html.Div(
                             ["Drag and Drop or ", html.A("Select Files")]
                         ),
@@ -320,7 +320,7 @@ def upload_modal() -> dbc.Modal:
                         multiple=False,
                     ),
                     dbc.Alert(
-                        id="tab-1-upload-xlsx-filename-alert",
+                        id="wbs-upload-xlsx-filename-alert",
                         style={
                             "text-align": "center",
                             "margin-top": "1rem",
@@ -333,7 +333,7 @@ def upload_modal() -> dbc.Modal:
                 children=[
                     dbc.Button(
                         "Cancel",
-                        id="tab-1-upload-xlsx-cancel",
+                        id="wbs-upload-xlsx-cancel",
                         n_clicks=0,
                         outline=True,
                         color=Color.DANGER,
@@ -344,7 +344,7 @@ def upload_modal() -> dbc.Modal:
                         children=[
                             dbc.Button(
                                 "Override Live Table",
-                                id="tab-1-upload-xlsx-override-table",
+                                id="wbs-upload-xlsx-override-table",
                                 n_clicks=0,
                                 outline=True,
                                 color=Color.SUCCESS,
