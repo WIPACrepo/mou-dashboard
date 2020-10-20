@@ -364,7 +364,7 @@ class TestDBUtils:  # pylint: disable=R0904
         moumc = db_utils.MoUMotorClient(mock_mongo)
 
         # Call
-        await moumc._ingest_new_collection(sentinel.db, sentinel.coll, [ANY, ANY])
+        await moumc._ingest_new_snapshot_collection(sentinel.db, sentinel.coll, [ANY, ANY])
 
         # Assert
         mock_gdb.return_value.__getitem__.return_value.drop.assert_awaited_once()
@@ -380,7 +380,7 @@ class TestDBUtils:  # pylint: disable=R0904
         moumc = db_utils.MoUMotorClient(mock_mongo)
 
         # Call
-        await moumc._ingest_new_collection(sentinel.db, sentinel.coll, [ANY, ANY])
+        await moumc._ingest_new_snapshot_collection(sentinel.db, sentinel.coll, [ANY, ANY])
 
         # Assert
         mock_gdb.return_value.create_collection.assert_called_once_with(sentinel.coll)

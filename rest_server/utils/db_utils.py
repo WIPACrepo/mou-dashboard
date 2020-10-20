@@ -5,23 +5,20 @@ import base64
 import io
 import logging
 import time
-from typing import Any, Coroutine, List, Tuple
+from typing import Any, cast, Coroutine, Dict, Final, List, Tuple
 
 import pandas as pd  # type: ignore[import]
 from bson.objectid import ObjectId  # type: ignore[import]
-from motor.motor_tornado import (  # type: ignore
-    MotorClient,
-    MotorCollection,
-    MotorDatabase,
-)
+from motor.motor_tornado import MotorClient  # type: ignore
 from tornado import web
 
 from .. import table_config as tc
 from ..config import EXCLUDE_COLLECTIONS, EXCLUDE_DBS
-from .types import Record, Table
+from .types import InstitutionValues, Record, SupplementalDoc, Table
 
 IS_DELETED = "deleted"
 _LIVE_COLLECTION = "LIVE_COLLECTION"
+_SNAP_INSTS_VALS: Final[str] = "snapshot_institution_values"
 
 
 class MoUMotorClient:
@@ -34,7 +31,7 @@ class MoUMotorClient:
             return asyncio.get_event_loop().run_until_complete(f)
 
         # check indexes
-        _run(self._ensure_all_databases_indexes())
+        _run(self._ensure_all_db_indexes())
 
     @staticmethod
     def _validate_record_data(record: Record) -> None:
@@ -42,8 +39,6 @@ class MoUMotorClient:
 
         If not, raise Exception.
         """
-        logging.debug(record)
-
         for col_raw, value in record.items():
             col = MoUMotorClient._demongofy_key_name(col_raw)
 
@@ -117,20 +112,22 @@ class MoUMotorClient:
 
         return record
 
-    async def _create_live_collection(self, db: str, table: Table) -> None:
+    async def _create_live_collection(self, snap_db: str, table: Table) -> None:
         """Create the live collection."""
-        logging.debug(f"Creating Live Collection ({db=})...")
-        await self._ingest_new_collection(db, _LIVE_COLLECTION, table)
-        logging.debug(f"Created Live Collection: ({db=}) {len(table)} records.")
+        logging.debug(f"Creating Live Collection ({snap_db=})...")
+
+        await self._ingest_new_collection(snap_db, _LIVE_COLLECTION, table, "")
+
+        logging.debug(f"Created Live Collection: ({snap_db=}) {len(table)} records.")
 
     async def ingest_xlsx(
-        self, db: str, base64_xlsx: str, filename: str
+        self, snap_db: str, base64_xlsx: str, filename: str
     ) -> Tuple[str, str]:
         """Ingest the xlsx's data as the new Live Collection.
 
         Also make snapshots of the previous live table and the new one.
         """
-        logging.info(f"Ingesting xlsx {filename} ({db=})...")
+        logging.info(f"Ingesting xlsx {filename} ({snap_db=})...")
 
         def _is_a_total_row(row: Record) -> bool:
             # check L2, L3, Inst., & US/Non-US  columns for "total" substring
@@ -169,17 +166,17 @@ class MoUMotorClient:
             for row in df.fillna("").to_dict("records")
             if _row_has_data(row) and not _is_a_total_row(row)
         ]
-        logging.debug(f"xlsx table has {len(table)} records ({db=}).")
+        logging.debug(f"xlsx table has {len(table)} records ({snap_db=}).")
 
         # snapshot, ingest, snapshot
-        previous_snapshot = await self.snapshot_live_collection(db)
-        await self._create_live_collection(db, table)
-        current_snapshot = await self.snapshot_live_collection(db)
+        previous_snap = await self.snapshot_live_collection(snap_db, "pre-xlsx-ingest")
+        await self._create_live_collection(snap_db, table)
+        current_snap = await self.snapshot_live_collection(snap_db, f"xlsx:{filename}")
 
         logging.debug(
-            f"Ingested xlsx: {filename=}, {db=}, {current_snapshot}, {previous_snapshot}."
+            f"Ingested xlsx: {filename=}, {snap_db=}, {current_snap}, {previous_snap}."
         )
-        return previous_snapshot, current_snapshot
+        return previous_snap, current_snap
 
     async def _list_database_names(self) -> List[str]:
         """Return all databases' names."""
@@ -187,55 +184,108 @@ class MoUMotorClient:
             n for n in await self._client.list_database_names() if n not in EXCLUDE_DBS
         ]
 
-    def _get_db(self, db: str) -> MotorDatabase:
-        """Return database instance."""
-        try:
-            return self._client[db]
-        except (KeyError, TypeError):
-            raise web.HTTPError(400, reason=f"database not found ({db=})")
-
     async def _list_collection_names(self, db: str) -> List[str]:
         """Return collection names in database."""
         return [
             n
-            for n in await self._get_db(db).list_collection_names()
+            for n in await self._client[db].list_collection_names()
             if n not in EXCLUDE_COLLECTIONS
         ]
 
-    def _get_collection(self, db: str, collection: str) -> MotorCollection:
-        """Return collection instance."""
-        try:
-            return self._get_db(db)[collection]
-        except KeyError:
-            raise web.HTTPError(
-                400, reason=f"collection not found ({db=} {collection=})"
-            )
+    async def get_snapshot_name(self, snap_db: str, snap_coll: str) -> str:
+        """Get the name of the snapshot."""
+        logging.debug(f"Getting Snapshot Name ({snap_db=}, {snap_coll=})...")
+
+        doc = self._get_supplemental_doc(snap_db, snap_coll)
+
+        logging.info(f"Snapshot Name [{doc['name']}] ({snap_db=}, {snap_coll=})...")
+        return doc["name"]
+
+    async def upsert_institution_values(
+        self, snap_db: str, institution: str, vals: InstitutionValues
+    ) -> None:
+        """Upsert the values for an institution."""
+        logging.debug(
+            f"Upserting Institution's Values ({snap_db=}, {institution=}, {vals=})..."
+        )
+
+        doc = self._get_supplemental_doc(snap_db, _LIVE_COLLECTION)
+        doc["snapshot_institution_values"].update({institution: vals})
+        await self._set_supplemental_doc(
+            snap_db, _LIVE_COLLECTION, doc["name"], doc["snapshot_institution_values"]
+        )
+
+        logging.info(
+            f"Upserted Institution's Values ({snap_db=}, {institution=}, {vals=})."
+        )
+
+    async def get_institution_values(
+        self, snap_db: str, institution: str
+    ) -> InstitutionValues:
+        """Get the values for an institution."""
+        logging.debug(f"Getting Institution's Values ({snap_db=}, {institution=})...")
+
+        doc = self._get_supplemental_doc(snap_db, _LIVE_COLLECTION)
+        vals = doc["snapshot_institution_values"][institution]
+
+        logging.info(f"Institution's Values [{vals}] ({snap_db=}, {institution=}).")
+        return vals
+
+    def _get_supplemental_doc(self, snap_db: str, snap_coll: str) -> SupplementalDoc:
+        doc = self._client[f"{snap_db}-supplemental"][snap_coll]
+        return cast(SupplementalDoc, doc)
+
+    async def _set_supplemental_doc(
+        self,
+        snap_db: str,
+        snap_coll: str,
+        name: str,
+        inst_vals: Dict[str, InstitutionValues],
+    ) -> None:
+        coll_obj = self._client[f"{snap_db}-supplemental"][snap_coll]
+        await coll_obj.insert_one(
+            {"name": name, "timestamp": snap_coll, _SNAP_INSTS_VALS: inst_vals}
+        )
+
+    async def _create_supplemental_db_document(
+        self, snap_db: str, snap_coll: str, name: str
+    ) -> None:
+        logging.debug(
+            f"Creating Supplemental DB/Document ({snap_db=}, {snap_coll=})..."
+        )
+
+        # drop the collection if it already exists
+        await self._client[f"{snap_db}-supplemental"].drop_collection(snap_coll)
+
+        # populate the singleton document
+        await self._set_supplemental_doc(snap_db, snap_coll, name, {})
+
+        logging.debug(f"Created Supplemental DB/Document ({snap_db=}, {snap_coll=}).")
 
     async def _ingest_new_collection(
-        self, db: str, collection: str, table: Table,
+        self, snap_db: str, snap_coll: str, table: Table, name: str
     ) -> None:
         """Add table to a new collection.
 
         If collection already exists, replace.
         """
-        # Create
-        db_obj = self._get_db(db)
-        try:
-            # drop the collection if it already exists.
-            coll_obj = db_obj[collection]
-            await coll_obj.drop()
-        except KeyError:
-            pass
+        db_obj = self._client[snap_db]
 
-        coll_obj = await db_obj.create_collection(collection)
-        await self._ensure_collection_indexes(db, collection)
+        # drop the collection if it already exists
+        await db_obj.drop_collection(snap_coll)
+
+        coll_obj = await db_obj.create_collection(snap_coll)
+        await self._ensure_collection_indexes(snap_db, snap_coll)
 
         # Ingest
         await coll_obj.insert_many([self._mongofy_record(r) for r in table])
 
-    async def _ensure_collection_indexes(self, db: str, collection: str) -> None:
+        # create supplemental db & document
+        await self._create_supplemental_db_document(snap_db, snap_coll, name)
+
+    async def _ensure_collection_indexes(self, snap_db: str, snap_coll: str) -> None:
         """Create indexes in collection."""
-        coll_obj = self._get_collection(db, collection)
+        coll_obj = self._client[snap_db][snap_coll]
 
         _inst = self._mongofy_key_name(tc.INSTITUTION)
         await coll_obj.create_index(_inst, name=f"{_inst}_index", unique=False)
@@ -246,24 +296,24 @@ class MoUMotorClient:
         async for index in coll_obj.list_indexes():
             logging.debug(index)
 
-    async def _ensure_all_databases_indexes(self) -> None:
+    async def _ensure_all_db_indexes(self) -> None:
         """Create all indexes in all databases."""
         logging.debug("Ensuring All Databases' Indexes...")
 
-        for db in await self._list_database_names():
-            for collection in await self._list_collection_names(db):
-                await self._ensure_collection_indexes(db, collection)
+        for snap_db in await self._list_database_names():
+            for snap_coll in await self._list_collection_names(snap_db):
+                await self._ensure_collection_indexes(snap_db, snap_coll)
 
         logging.debug("Ensured All Databases' Indexes.")
 
     async def get_table(
-        self, db: str, collection: str = "", labor: str = "", institution: str = ""
+        self, snap_db: str, snap_coll: str = "", labor: str = "", institution: str = ""
     ) -> Table:
         """Return the table from the collection name."""
-        if not collection:
-            collection = _LIVE_COLLECTION
+        if not snap_coll:
+            snap_coll = _LIVE_COLLECTION
 
-        logging.debug(f"Getting from {collection} ({db=})...")
+        logging.debug(f"Getting from {snap_coll} ({snap_db=})...")
 
         query = {}
         if labor:
@@ -274,7 +324,7 @@ class MoUMotorClient:
         # build demongofied table
         table: Table = []
         i, dels = 0, 0
-        async for record in self._get_collection(db, collection).find(query):
+        async for record in self._client[snap_db][snap_coll].find(query):
             if record.get(IS_DELETED):
                 dels += 1
                 continue
@@ -282,87 +332,89 @@ class MoUMotorClient:
             i += 1
 
         logging.info(
-            f"Table [{db=} {collection=}] ({institution=}, {labor=}) has {i} records (and {dels} deleted records)."
+            f"Table [{snap_db=} {snap_coll=}] ({institution=}, {labor=}) has {i} records (and {dels} deleted records)."
         )
 
         return table
 
-    async def upsert_record(self, db: str, record: Record) -> Record:
+    async def upsert_record(self, snap_db: str, record: Record) -> Record:
         """Insert a record.
 
         Update if it already exists.
         """
-        logging.debug(f"Upserting {record} ({db=})...")
+        logging.debug(f"Upserting {record} ({snap_db=})...")
 
         record = self._mongofy_record(record)
-        collection_obj = self._get_collection(db, _LIVE_COLLECTION)
+        coll_obj = self._client[snap_db][_LIVE_COLLECTION]
 
         # if record has an ID -- replace it
         if record.get(tc.ID):
-            res = await collection_obj.replace_one({tc.ID: record[tc.ID]}, record)
-            logging.info(f"Updated {record} ({db=}).")
+            res = await coll_obj.replace_one({tc.ID: record[tc.ID]}, record)
+            logging.info(f"Updated {record} ({snap_db=}).")
         # otherwise -- create it
         else:
             record.pop(tc.ID)
-            res = await collection_obj.insert_one(record)
+            res = await coll_obj.insert_one(record)
             record[tc.ID] = res.inserted_id
-            logging.info(f"Inserted {record} ({db=}).")
+            logging.info(f"Inserted {record} ({snap_db=}).")
 
         return self._demongofy_record(record)
 
     async def _set_is_deleted_status(
-        self, db: str, record_id: str, is_deleted: bool
+        self, snap_db: str, record_id: str, is_deleted: bool
     ) -> Record:
         """Mark the record as deleted/not-deleted."""
         query = self._mongofy_record({tc.ID: record_id})
-        record: Record = await self._get_collection(db, _LIVE_COLLECTION).find_one(
-            query
-        )
+        record: Record = await self._client[snap_db][_LIVE_COLLECTION].find_one(query)
 
         record.update({IS_DELETED: is_deleted})
-        record = await self.upsert_record(db, record)
+        record = await self.upsert_record(snap_db, record)
 
         return record
 
-    async def delete_record(self, db: str, record_id: str) -> Record:
+    async def delete_record(self, snap_db: str, record_id: str) -> Record:
         """Mark the record as deleted."""
-        logging.debug(f"Deleting {record_id} ({db=})...")
+        logging.debug(f"Deleting {record_id} ({snap_db=})...")
 
-        record = await self._set_is_deleted_status(db, record_id, True)
+        record = await self._set_is_deleted_status(snap_db, record_id, True)
 
-        logging.info(f"Deleted {record} ({db=}).")
+        logging.info(f"Deleted {record} ({snap_db=}).")
         return record
 
-    async def snapshot_live_collection(self, db: str) -> str:
-        """Create a collection by copying the live collection."""
-        logging.debug(f"Snapshotting ({db=})...")
+    async def snapshot_live_collection(self, snap_db: str, name: str) -> str:
+        """Create a snapshot collection by copying the live collection."""
+        logging.debug(f"Snapshotting ({snap_db=})...")
 
-        table = await self.get_table(db, _LIVE_COLLECTION)
+        table = await self.get_table(snap_db, _LIVE_COLLECTION)
         if not table:
-            logging.info(f"Snapshot aborted -- no previous live collection ({db=}).")
+            logging.info(
+                f"Snapshot aborted -- no previous live collection ({snap_db=})."
+            )
             return ""
 
-        collection = str(time.time())
-        await self._ingest_new_collection(db, collection, table)
+        snap_coll = str(time.time())
+        await self._ingest_new_collection(snap_db, snap_coll, table, name)
 
-        logging.info(f"Snapshotted {collection} ({db=}).")
-        return collection
+        logging.info(f"Snapshotted {snap_coll} ({snap_db=}).")
+        return snap_coll
 
-    async def list_snapshot_timestamps(self, db: str) -> List[str]:
+    async def list_snapshot_timestamps(self, snap_db: str) -> List[str]:
         """Return a list of the snapshot collections."""
-        logging.info(f"Getting Snapshot Timestamps ({db=})...")
+        logging.info(f"Getting Snapshot Timestamps ({snap_db=})...")
 
         snapshots = [
-            c for c in await self._list_collection_names(db) if c != _LIVE_COLLECTION
+            c
+            for c in await self._list_collection_names(snap_db)
+            if c != _LIVE_COLLECTION
         ]
 
-        logging.debug(f"Snapshot Timestamps {snapshots} ({db=}).")
+        logging.debug(f"Snapshot Timestamps {snapshots} ({snap_db=}).")
         return snapshots
 
-    async def restore_record(self, db: str, record_id: str) -> None:
+    async def restore_record(self, snap_db: str, record_id: str) -> None:
         """Mark the record as not deleted."""
-        logging.debug(f"Restoring {record_id} ({db=})...")
+        logging.debug(f"Restoring {record_id} ({snap_db=})...")
 
-        record = await self._set_is_deleted_status(db, record_id, False)
+        record = await self._set_is_deleted_status(snap_db, record_id, False)
 
-        logging.info(f"Restored {record} ({db=}).")
+        logging.info(f"Restored {record} ({snap_db=}).")

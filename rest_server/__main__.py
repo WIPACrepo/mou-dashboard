@@ -15,6 +15,7 @@ from rest_tools.server.config import from_environment  # type: ignore[import]
 
 from . import config
 from .routes import (
+    InstitutionValuesHandler,
     MainHandler,
     MakeSnapshotHandler,
     RecordHandler,
@@ -60,6 +61,9 @@ def start(debug: bool = False) -> RestServer:
     server.add_route(MakeSnapshotHandler.ROUTE, MakeSnapshotHandler, args)  # post
     server.add_route(RecordHandler.ROUTE, RecordHandler, args)  # post, delete
     server.add_route(TableConfigHandler.ROUTE, TableConfigHandler, args)  # get
+    server.add_route(  # get, post
+        InstitutionValuesHandler.ROUTE, InstitutionValuesHandler, args
+    )
 
     server.startup(
         address=config_env["MOU_REST_HOST"], port=int(config_env["MOU_REST_PORT"])

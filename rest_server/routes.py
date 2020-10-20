@@ -1,7 +1,7 @@
 """Routes handlers for the MoU REST API server interface."""
 
 
-from typing import Any, List, Optional
+from typing import Any, List, Optional, TypedDict
 
 import tornado.web
 
@@ -11,7 +11,7 @@ from rest_tools.server import handler, RestHandler  # type: ignore
 
 from . import table_config as tc
 from .config import AUTH_PREFIX, WBS_L1_VALUES
-from .utils import db_utils, utils
+from .utils import db_utils, types, utils
 
 _WBS_L1_REGEX_VALUES = "|".join(WBS_L1_VALUES)
 
@@ -271,15 +271,27 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
 class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
     """Handle requests for listing the snapshots."""
 
-    ROUTE = rf"/snapshots/timestamps/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
+    ROUTE = rf"/snapshots/list/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
-        snapshots = await self.dbms.list_snapshot_timestamps(wbs_l1)
-        snapshots.sort(reverse=True)
+        timestamps = await self.dbms.list_snapshot_timestamps(wbs_l1)
+        timestamps.sort(reverse=True)
 
-        self.write({"timestamps": snapshots})
+        class Pairs(TypedDict):  # pylint: disable=C0115
+            timestamp: str
+            name: str
+
+        snapshots: List[Pairs] = []
+        for ts in timestamps:
+            name = await self.dbms.get_snapshot_name(wbs_l1, ts)
+            snapshots.append({"timestamp": ts, "name": name})
+
+        self.write({"snapshots": snapshots})
+
+
+# -----------------------------------------------------------------------------
 
 
 class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
@@ -290,6 +302,47 @@ class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
-        snapshot = await self.dbms.snapshot_live_collection(wbs_l1)
+        name = self.get_argument("name", default="")
+        snapshot = await self.dbms.snapshot_live_collection(wbs_l1, name)
 
         self.write({"timestamp": snapshot})
+
+
+# -----------------------------------------------------------------------------
+
+
+class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
+    """Handle requests for making snapshots."""
+
+    ROUTE = rf"/institution/values/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
+
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
+    async def get(self, wbs_l1: str) -> None:
+        """Handle GET."""
+        institution = self.get_argument("institution")
+
+        vals: types.InstitutionValues = await self.dbms.get_institution_values(
+            wbs_l1, institution
+        )
+
+        self.write(vals)
+
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
+    async def post(self, wbs_l1: str) -> None:
+        """Handle POST."""
+        institution = self.get_argument("institution")
+        text = self.get_argument("text")
+        phds_authors = self.get_argument("phds_authors", type_=int)
+        scientists_postdocs = self.get_argument("scientists_postdocs", type_=int)
+        grad_students = self.get_argument("grad_students", type_=int)
+
+        vals: types.InstitutionValues = {
+            "text": text,
+            "phds_authors": phds_authors,
+            "scientists_postdocs": scientists_postdocs,
+            "grad_students": grad_students,
+        }
+
+        await self.dbms.upsert_institution_values(wbs_l1, institution, vals)
+
+        self.write({})
