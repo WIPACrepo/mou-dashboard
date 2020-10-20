@@ -251,10 +251,10 @@ class TestDBUtils:  # pylint: disable=R0904
 
         # Call
         moumc = db_utils.MoUMotorClient(mock_mongo)
-        await moumc._create_live_collection(MagicMock())
+        await moumc._create_live_collection(sentinel.db, MagicMock())
 
         # Assert
-        mock_inc.assert_called_with(sentinel.live_collection, ANY)
+        mock_inc.assert_called_with(sentinel.db, sentinel.live_collection, ANY)
 
     @staticmethod
     @pytest.mark.asyncio  # type: ignore[misc]
@@ -318,7 +318,7 @@ class TestDBUtils:  # pylint: disable=R0904
         )
 
         # Call
-        ret = await moumc._list_collection_names()
+        ret = await moumc._list_collection_names(sentinel.db)
 
         # Assert
         assert ret == colls[:3]
@@ -333,7 +333,7 @@ class TestDBUtils:  # pylint: disable=R0904
         moumc = db_utils.MoUMotorClient(mock_mongo)
 
         # Call
-        ret = moumc._get_collection(ANY)
+        ret = moumc._get_collection(sentinel.db, ANY)
 
         # Assert
         assert ret == sentinel.coll_obj
@@ -346,7 +346,7 @@ class TestDBUtils:  # pylint: disable=R0904
 
         # Call
         with pytest.raises(tornado.web.HTTPError):
-            ret = moumc._get_collection(ANY)
+            ret = moumc._get_collection(sentinel.db, ANY)
 
     @staticmethod
     @pytest.mark.asyncio  # type: ignore[misc]
@@ -364,14 +364,14 @@ class TestDBUtils:  # pylint: disable=R0904
         moumc = db_utils.MoUMotorClient(mock_mongo)
 
         # Call
-        await moumc._ingest_new_collection(sentinel.coll, [ANY, ANY])
+        await moumc._ingest_new_collection(sentinel.db, sentinel.coll, [ANY, ANY])
 
         # Assert
         mock_gdb.return_value.__getitem__.return_value.drop.assert_awaited_once()
         mock_gdb.return_value.create_collection.side_effect.assert_awaited_once_with(
             sentinel.coll
         )
-        mock_eci.assert_awaited_once_with(sentinel.coll, ANY)
+        mock_eci.assert_awaited_once_with(sentinel.db, sentinel.coll)
 
         # test w/ new
         # Mock
@@ -380,11 +380,11 @@ class TestDBUtils:  # pylint: disable=R0904
         moumc = db_utils.MoUMotorClient(mock_mongo)
 
         # Call
-        await moumc._ingest_new_collection(sentinel.coll, [ANY, ANY])
+        await moumc._ingest_new_collection(sentinel.db, sentinel.coll, [ANY, ANY])
 
         # Assert
         mock_gdb.return_value.create_collection.assert_called_once_with(sentinel.coll)
-        mock_eci.assert_awaited_once_with(sentinel.coll, ANY)
+        mock_eci.assert_awaited_once_with(sentinel.db, sentinel.coll)
 
     @staticmethod
     @pytest.mark.asyncio  # type: ignore[misc]
@@ -399,7 +399,7 @@ class TestDBUtils:  # pylint: disable=R0904
         moumc = db_utils.MoUMotorClient(mock_mongo)
 
         # Call
-        await moumc._ensure_collection_indexes(sentinel.coll)
+        await moumc._ensure_collection_indexes(sentinel.db, sentinel.coll)
 
         # Assert
         assert mock_mkn.call_count == 2
