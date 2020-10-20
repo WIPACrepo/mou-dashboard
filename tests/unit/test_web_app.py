@@ -10,7 +10,6 @@ import sys
 from copy import deepcopy
 from enum import Enum
 from typing import Any, Final
-from unittest.mock import ANY
 
 import pytest
 import requests
@@ -86,7 +85,6 @@ class TestPrivateDataSource:
                     },
                 ),
             },
-            "columns": ["Alpha", "Dish", "F1", "Beta"],
         }
 
         def _assert(_orig: types.Record, _good: types.Record) -> None:
@@ -118,61 +116,53 @@ class TestPrivateDataSource:
                 }[dish]
 
             # Test all 16 combinations
-            out = deepcopy(record)
-            out["Beta"] = ""
             if (alpha, dish) == (Scenario.MISSING, Scenario.MISSING):
-                out["Alpha"] = ""
-                out["Dish"] = ""
-                _assert(record, out)
+                _assert(record, record)
             elif (alpha, dish) == (Scenario.MISSING, Scenario.GOOD):
-                out["Alpha"] = ""
-                out["Dish"] = ""
-                _assert(record, out)
+                _assert(record, record)
             elif (alpha, dish) == (Scenario.MISSING, Scenario.BAD):
-                out["Alpha"] = ""
+                out = deepcopy(record)
                 out["Dish"] = ""
-                _assert(record, out)
+                _assert(record, record)
             elif (alpha, dish) == (Scenario.MISSING, Scenario.BLANK):
-                out["Alpha"] = ""
-                out["Dish"] = ""
-                _assert(record, out)
+                _assert(record, record)
             elif (alpha, dish) == (Scenario.GOOD, Scenario.MISSING):
-                out["Dish"] = ""
-                _assert(record, out)
+                _assert(record, record)
             elif (alpha, dish) == (Scenario.GOOD, Scenario.GOOD):
-                _assert(record, out)
+                _assert(record, record)
             elif (alpha, dish) == (Scenario.GOOD, Scenario.BAD):
+                out = deepcopy(record)
                 out["Dish"] = ""
-                _assert(record, out)
+                _assert(record, record)
             elif (alpha, dish) == (Scenario.GOOD, Scenario.BLANK):
-                _assert(record, out)
+                _assert(record, record)
             elif (alpha, dish) == (Scenario.BAD, Scenario.MISSING):
-                out["Dish"] = ""
+                out = deepcopy(record)
                 out["Alpha"] = ""
-                _assert(record, out)
+                _assert(record, record)
             elif (alpha, dish) == (Scenario.BAD, Scenario.GOOD):
+                out = deepcopy(record)
                 out["Alpha"] = ""
-                out["Dish"] = ""
-                _assert(record, out)
+                _assert(record, record)
             elif (alpha, dish) == (Scenario.BAD, Scenario.BAD):
-                out["Dish"] = ""
+                out = deepcopy(record)
                 out["Alpha"] = ""
-                _assert(record, out)
+                out["Dish"] = ""
+                _assert(record, record)
             elif (alpha, dish) == (Scenario.BAD, Scenario.BLANK):
+                out = deepcopy(record)
                 out["Alpha"] = ""
-                out["Dish"] = ""
-                _assert(record, out)
+                _assert(record, record)
             elif (alpha, dish) == (Scenario.BLANK, Scenario.MISSING):
-                out["Dish"] = ""
-                _assert(record, out)
+                _assert(record, record)
             elif (alpha, dish) == (Scenario.BLANK, Scenario.GOOD):
-                out["Dish"] = ""
-                _assert(record, out)
+                _assert(record, record)
             elif (alpha, dish) == (Scenario.BLANK, Scenario.BAD):
+                out = deepcopy(record)
                 out["Dish"] = ""
-                _assert(record, out)
+                _assert(record, record)
             elif (alpha, dish) == (Scenario.BLANK, Scenario.BLANK):
-                _assert(record, out)
+                _assert(record, record)
             else:
                 raise Exception(record)
 
@@ -212,21 +202,20 @@ class TestDataSource:
             mock_rest.return_value.request_seq.return_value = response
             # Default values
             if i == 0:
-                ret = src.pull_data_table(ANY)
+                ret = src.pull_data_table()
             # Other values
             else:
                 ret = src.pull_data_table(
-                    ANY,
-                    institution=bodies[i]["institution"],  # type: ignore[arg-type]
-                    labor=bodies[i]["labor"],  # type: ignore[arg-type]
-                    with_totals=bodies[i]["total_rows"],  # type: ignore[arg-type]
-                    snapshot=bodies[i]["snapshot"],  # type: ignore[arg-type]
-                    restore_id=bodies[i]["restore_id"],  # type: ignore[arg-type]
+                    bodies[i]["institution"],  # type: ignore[arg-type]
+                    bodies[i]["labor"],  # type: ignore[arg-type]
+                    bodies[i]["total_rows"],  # type: ignore[arg-type]
+                    bodies[i]["snapshot"],  # type: ignore[arg-type]
+                    bodies[i]["restore_id"],  # type: ignore[arg-type]
                 )
 
             # Assert
             mock_rest.return_value.request_seq.assert_called_with(
-                "GET", f"/table/data/{ANY}", bodies[i]
+                "GET", "/table/data", bodies[i]
             )
             assert ret == response["table"]
 
@@ -246,19 +235,16 @@ class TestDataSource:
             mock_rest.return_value.request_seq.return_value = response
             # Default values
             if i == 0:
-                ret = src.push_record(ANY, bodies[0]["record"])  # type: ignore[arg-type]
+                ret = src.push_record(bodies[0]["record"])  # type: ignore[arg-type]
             # Other values
             else:
                 ret = src.push_record(
-                    ANY,
-                    bodies[i]["record"],  # type: ignore[arg-type]
-                    labor=bodies[i]["labor"],  # type: ignore[arg-type]
-                    institution=bodies[i]["institution"],  # type: ignore[arg-type]
+                    bodies[i]["record"], bodies[i]["labor"], bodies[i]["institution"]  # type: ignore[arg-type]
                 )
 
             # Assert
             mock_rest.return_value.request_seq.assert_called_with(
-                "POST", f"/record/{ANY}", bodies[i]
+                "POST", "/record", bodies[i]
             )
             assert ret == response["record"]
 
@@ -268,22 +254,22 @@ class TestDataSource:
         record_id = "23"
 
         # Call
-        ret = src.delete_record(ANY, record_id)
+        ret = src.delete_record(record_id)
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
-            "DELETE", f"/record/{ANY}", {"record_id": record_id}
+            "DELETE", "/record", {"record_id": record_id}
         )
         assert ret
 
         # Fail Test #
         # Call
         mock_rest.return_value.request_seq.side_effect = requests.exceptions.HTTPError
-        ret = src.delete_record(ANY, record_id)
+        ret = src.delete_record(record_id)
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
-            "DELETE", f"/record/{ANY}", {"record_id": record_id}
+            "DELETE", "/record", {"record_id": record_id}
         )
         assert not ret
 
@@ -294,11 +280,11 @@ class TestDataSource:
 
         # Call
         mock_rest.return_value.request_seq.return_value = response
-        ret = src.list_snapshot_timestamps(ANY)
+        ret = src.list_snapshot_timestamps()
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
-            "GET", f"/snapshots/timestamps/{ANY}", None
+            "GET", "/snapshots/timestamps", None
         )
         assert sorted(ret) == sorted(response["timestamps"])
 
@@ -309,11 +295,11 @@ class TestDataSource:
 
         # Call
         mock_rest.return_value.request_seq.return_value = response
-        ret = src.create_snapshot(ANY)
+        ret = src.create_snapshot()
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
-            "POST", f"/snapshots/make/{ANY}", None
+            "POST", "/snapshots/make", None
         )
         assert ret == response["timestamp"]
 
@@ -406,12 +392,12 @@ class TestTableConfig:
 
         # get_conditional_column_parent()
         for col, par_opts in response["conditional_dropdown_menus"].items():
-            assert table_config.get_conditional_column_parent_and_options(col) == (
+            assert table_config.get_conditional_column_parent(col) == (
                 par_opts[0],  # parent
                 list(par_opts[1].keys()),  # options
             )
             with pytest.raises(KeyError):
-                table_config.get_conditional_column_parent_and_options(col + "!")
+                table_config.get_conditional_column_parent(col + "!")
 
         # get_conditional_column_dropdown_menu()
         for col, par_opts in response["conditional_dropdown_menus"].items():

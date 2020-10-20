@@ -654,7 +654,7 @@ def table_dropdown(
         # Add conditional dropdowns
         elif tconfig.is_conditional_dropdown(col):
             # get parent column and its options
-            parent_col, parent_col_opts = tconfig.get_conditional_column_parent_and_options(col)
+            parent_col, parent_col_opts = tconfig.get_conditional_column_parent(col)
             # make filter_query for each parent-column option
             for parent_opt in parent_col_opts:
                 dropdown = tconfig.get_conditional_column_dropdown_menu(col, parent_opt)

@@ -77,77 +77,56 @@ def _convert_table_rest_to_dash(table: Table) -> Table:
     return table
 
 
-def _is_valid_simple_dropdown(
+def _is_invalid_simple_dropdown(
     parser: tc.TableConfigParser, record: Record, field: str
 ) -> bool:
     if not parser.is_simple_dropdown(field):
-        raise Exception(f"not simple dropdown: {field} ({record})")
-
-    if record[field] not in parser.get_simple_column_dropdown_menu(field):
         return False
 
-    return True
+    if record[field] not in parser.get_simple_column_dropdown_menu(field):
+        return True
+
+    return False
 
 
-def _is_valid_conditional_dropdown(
+def _is_invalid_conditional_dropdown(
     parser: tc.TableConfigParser, record: Record, field: str
 ) -> bool:
     if not parser.is_conditional_dropdown(field):
-        raise Exception(f"not conditional dropdown: {field} ({record})")
+        return False
 
-    try:
-        parent_value = cast(str, record[parser.get_conditional_column_parent(field)])
+    parent_field, _ = parser.get_conditional_column_parent(field)
+    parent_value = cast(str, record.get(parent_field, ""))
 
-        if record[field] not in parser.get_conditional_column_dropdown_menu(
-            field, parent_value
-        ):
-            return False
-    except KeyError:
-        pass
+    # missing/blank/invalid parent-fields are okay
+    if (not parent_value) or _is_invalid_simple_dropdown(parser, record, parent_field):
+        return False
 
-    return True
+    if record[field] not in parser.get_conditional_column_dropdown_menu(
+        field, parent_value
+    ):
+        return True
+
+    return False
 
 
 def _remove_invalid_data(
     record: Record, tconfig_cache: tc.TableConfigParser.Cache
 ) -> Record:
     """Remove items whose data aren't valid."""
+    parser = tc.TableConfigParser(tconfig_cache)
 
-    def _remove_orphans(_record: Record) -> Record:
-        """Remove orphaned child fields."""
-        return {
-            k: v
-            for k, v in record.items()
-            if not tconfig.is_conditional_dropdown(k)
-            or tconfig.get_conditional_column_parent(k) in record
-        }
+    remove_keys: List[str] = []
+    for field in record:
+        if not record[field]:  # blank values are okay
+            continue
+        if _is_invalid_simple_dropdown(parser, record, field):
+            remove_keys.append(field)
+        if _is_invalid_conditional_dropdown(parser, record, field):
+            remove_keys.append(field)
 
-    tconfig = tc.TableConfigParser(tconfig_cache)
-
-    # remove blank fields
-    record = {k: v for k, v in record.items() if v not in [None, ""]}
-    record = _remove_orphans(record)
-
-    # check that simple-dropdown selections are valid
-    record = {
-        k: v
-        for k, v in record.items()
-        if not tconfig.is_simple_dropdown(k)
-        or _is_valid_simple_dropdown(tconfig, record, k)
-    }
-    record = _remove_orphans(record)
-
-    # check that conditional-dropdown selections are valid
-    record = {
-        k: v
-        for k, v in record.items()
-        if not tconfig.is_conditional_dropdown(k)
-        or _is_valid_conditional_dropdown(tconfig, record, k)
-    }
-    record = _remove_orphans(record)
-
-    # add (back) missing fields as blanks
-    record.update({k: "" for k in tconfig.get_table_columns() if k not in record})
+    for key in remove_keys:
+        record[key] = ""
 
     return record
 
@@ -214,7 +193,7 @@ def pull_data_table(
     return _convert_table_rest_to_dash(response["table"])
 
 
-def push_record(  # pylint: disable=R0913
+def push_record(
     wbs_l1: str,
     record: Record,
     labor: str = "",
