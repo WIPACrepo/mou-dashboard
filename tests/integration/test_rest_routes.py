@@ -117,7 +117,7 @@ class TestNoArgumentRoutes:
         for i in range(4, 100):
             time.sleep(1)
             print(i)
-            resp = ds_rc.request_seq("POST", "/snapshots/make")
+            resp = ds_rc.request_seq("POST", f"/snapshots/make/{WBS_L1}")
             assert list(resp.keys()) == ["timestamp"]
             now = time.time()
             assert now - float(resp["timestamp"]) < 2  # account for travel time
