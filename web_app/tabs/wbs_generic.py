@@ -32,7 +32,6 @@ def layout() -> html.Div:
                 children=[
                     dbc.Col(
                         width=5,
-                        # style=WIDTH_45,
                         children=[
                             html.Div(children="Institution", className="caps"),
                             # Institution filter dropdown menu
@@ -43,14 +42,12 @@ def layout() -> html.Div:
                                     for name, abbrev in tconfig.get_institutions_w_abbrevs()
                                 ],
                                 value="",
-                                # multi=True
                                 disabled=False,
                             ),
                         ],
                     ),
                     dbc.Col(
                         width=5,
-                        # style=WIDTH_45,
                         children=[
                             # Labor Category filter dropdown menu
                             html.Div(children="Labor Category", className="caps"),
@@ -61,24 +58,26 @@ def layout() -> html.Div:
                                     for st in tconfig.get_labor_categories()
                                 ],
                                 value="",
-                                # multi=True
                             ),
                         ],
                     ),
                 ],
             ),
             ####
-            # html.Hr(style=SHORT_HR),
-            ####
             # Log-In Alert
             dbc.Alert(
-                "- log in to edit -",
+                "— log in to edit —",
                 id="wbs-how-to-edit-alert",
                 style={
                     "fontWeight": "bold",
                     "fontSize": "20px",
                     "width": "100%",
+                    "height": "5rem",
                     "text-align": "center",
+                    "border": 0,
+                    "background-color": "lightgray",
+                    "padding-top": "1.5rem",
+                    "margin-bottom": "2.5rem",
                 },
                 className="caps",
                 color=du.Color.DARK,
@@ -126,7 +125,7 @@ def layout() -> html.Div:
                     "padding-left": "1em",
                 },
                 style_header={
-                    "backgroundColor": "#6C757D",
+                    "backgroundColor": "black",
                     "color": "whitesmoke",
                     "whiteSpace": "normal",
                     "fontWeight": "normal",
@@ -252,15 +251,16 @@ def layout() -> html.Div:
                 style={"background": "transparent"},  # float atop all
                 color="#20A1B6",
                 children=[
-                    dbc.Row(
-                        html.Label(
-                            id="wbs-last-updated-label",
-                            style={"font-style": "italic", "fontSize": "14px"},
-                            className="caps",
-                        ),
-                        justify="center",
-                        style={"margin-top": "15px"},
-                    ),
+                    html.Label(
+                        id="wbs-last-updated-label",
+                        style={
+                            "font-style": "italic",
+                            "fontSize": "14px",
+                            "margin-top": "2.5rem",
+                            "text-align": "center",
+                        },
+                        className="caps",
+                    )
                 ],
             ),
             #
@@ -302,6 +302,7 @@ def layout() -> html.Div:
             du.snapshot_modal(),
             du.deletion_toast(),
             du.upload_modal(),
+            ###
         ]
     )
 

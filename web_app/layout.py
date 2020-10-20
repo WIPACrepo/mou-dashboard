@@ -18,12 +18,12 @@ from .utils.login import User
 
 # Layout
 app.layout = html.Div(
-    className="background",
+    # className="background",
     children=[
         # Title
         dbc.Row(
             justify="start",
-            style={"display": "flex"},
+            className="top-container",
             children=[
                 dbc.Row(
                     className="title-container",
@@ -36,15 +36,7 @@ app.layout = html.Div(
                 dbc.Row(
                     className="login-container",
                     children=[
-                        html.Div(
-                            id="tab-1-logged-in-user",
-                            className="caps",
-                            style={
-                                "fontSize": 15,
-                                "font-style": "italic",
-                                "padding-top": "0.9rem",
-                            },
-                        ),
+                        html.Div(id="logged-in-user", className="user",),
                         html.Div(
                             id="login-div",
                             children=dbc.Button(
@@ -79,6 +71,7 @@ app.layout = html.Div(
         # TODO -- maybe add dcc.Store for tab value to persist b/n refreshes -- check on load
         html.Div(id="tab-content", className="content"),
         ###
+        html.Div(className="footer"),
         ###
         # Log In Modal
         dbc.Modal(
@@ -88,11 +81,7 @@ app.layout = html.Div(
             children=[
                 dbc.ModalBody(
                     children=[
-                        html.Div(
-                            "Institution Leader Login",
-                            className="caps",
-                            style={"margin-bottom": "2rem"},
-                        ),
+                        html.Div("Institution Leader Login", className="caps"),
                         # Email
                         dcc.Input(
                             id="login-email",
@@ -154,7 +143,7 @@ def _logged_in_return() -> Tuple[bool, bool, bool, bool, str, str]:
         Output("login-bad-message", "is_open"),
         Output("login-div", "hidden"),
         Output("logout-div", "hidden"),
-        Output("tab-1-logged-in-user", "children"),
+        Output("logged-in-user", "children"),
         Output("login-password", "value"),
     ],
     [
