@@ -191,7 +191,7 @@ def get_style_data_conditional(tconfig: tc.TableConfigParser) -> TSDCond:
         },
         {
             "if": {"filter_query": "{Total Of?} contains 'L3'"},
-            "backgroundColor": "#20A1B6",
+            "backgroundColor": "#17a2b8",
             "color": "whitesmoke",
             "fontWeight": "normal",
         },

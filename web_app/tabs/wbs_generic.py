@@ -217,7 +217,7 @@ def layout() -> html.Div:
                                 type="default",
                                 fullscreen=True,
                                 style={"background": "transparent"},  # float atop all
-                                color="#20A1B6",
+                                color="#17a2b8",
                                 children=[
                                     # Show Totals
                                     dbc.Button(
@@ -249,7 +249,7 @@ def layout() -> html.Div:
                 type="default",
                 fullscreen=True,
                 style={"background": "transparent"},  # float atop all
-                color="#20A1B6",
+                color="#17a2b8",
                 children=[
                     html.Label(
                         id="wbs-last-updated-label",
