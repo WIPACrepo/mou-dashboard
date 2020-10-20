@@ -82,7 +82,7 @@
 .mou-title {
     font-family: Sarpanch, sans-serif;
     font-weight: bold;
-    font-size: 65px;
+    font-size: 70px;
     letter-spacing: 0.25rem;
     line-height: 1;
     color: silver;
@@ -95,11 +95,11 @@
     text-transform: uppercase;
     font-size: 25px;
     letter-spacing: 0.3rem;
-    line-height: 1.15;
+    line-height: 1.35;
     align-self: flex-end;
     margin-bottom: 1rem;
     display: flex;
-    height: 3.35rem;
+    height: 3.75rem;
 }
 
 .dash-title {
@@ -130,11 +130,11 @@
 /* Tabs */
 
 .tab-container {
-    height: 3rem !important;
+    height: 2.5rem !important;
     text-transform: uppercase !important;
     letter-spacing: .075rem !important;
     font: 13px Arial !important;
-    line-height: 2.5 !important;
+    line-height: 2 !important;
     padding-left: 25rem;
     padding-right: 25rem;
     background-color: black !important;
@@ -161,7 +161,7 @@
     color: #17a2b8 !important;
     font-weight: bold;
     font-size: 125%;
-    line-height: 2 !important;
+    line-height: 1.6 !important;
 }
 
 
