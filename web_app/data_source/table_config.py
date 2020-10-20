@@ -81,12 +81,18 @@ class TableConfigParser:
         """Return whether column is a conditional dropdown-type."""
         return column in self.config["conditional_dropdown_menus"].keys()
 
-    def get_conditional_column_parent(self, column: str) -> Tuple[str, List[str]]:
+    def get_conditional_column_parent_and_options(
+        self, column: str
+    ) -> Tuple[str, List[str]]:
         """Get the parent column's (name, list of options)."""
         return (
             self.config["conditional_dropdown_menus"][column][0],
             list(self.config["conditional_dropdown_menus"][column][1].keys()),
         )
+
+    def get_conditional_column_parent(self, column: str) -> str:
+        """Get the parent column's name."""
+        return self.get_conditional_column_parent_and_options(column)[0]
 
     def get_conditional_column_dropdown_menu(
         self, column: str, parent_col_option: str
