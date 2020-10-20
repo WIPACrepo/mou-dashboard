@@ -24,6 +24,9 @@ import web_app.data_source.utils  # isort:skip  # noqa # pylint: disable=E0401,C
 import web_app.config  # isort:skip  # noqa # pylint: disable=E0401,C0413
 
 
+WBS_L1 = "upgrade"
+
+
 @pytest.fixture  # type: ignore
 def ds_rc() -> RestClient:
     """Get data source REST client via web_app."""
@@ -42,14 +45,14 @@ def test_ingest(ds_rc: RestClient) -> None:
         base64_file = base64_bin.decode(encoding="utf-8")
 
     body = {"base64_file": base64_file, "filename": filename}
-    resp = ds_rc.request_seq("POST", "/table/data", body)
+    resp = ds_rc.request_seq("POST", f"/table/data/{WBS_L1}", body)
 
     assert resp["n_records"]
     assert not resp["previous_snapshot"]
     assert (current_1 := resp["current_snapshot"])  # pylint: disable=C0325
 
     # Do it again...
-    resp = ds_rc.request_seq("POST", "/table/data", body)
+    resp = ds_rc.request_seq("POST", f"/table/data/{WBS_L1}", body)
 
     assert resp["n_records"]
     assert (previous_2 := resp["previous_snapshot"])  # pylint: disable=C0325
@@ -59,7 +62,7 @@ def test_ingest(ds_rc: RestClient) -> None:
     # Now fail...
     with pytest.raises(requests.exceptions.HTTPError):
         body = {"base64_file": "123456789", "filename": filename}
-        resp = ds_rc.request_seq("POST", "/table/data", body)
+        resp = ds_rc.request_seq("POST", f"/table/data/{WBS_L1}", body)
 
 
 class TestNoArgumentRoutes:
@@ -77,17 +80,23 @@ class TestNoArgumentRoutes:
     @staticmethod
     def test_snapshots_timestamps_get(ds_rc: RestClient) -> None:
         """Test `GET` @ `/snapshots/timestamps`."""
-        assert routes.SnapshotsHandler.ROUTE == r"/snapshots/timestamps$"
+        assert (
+            routes.SnapshotsHandler.ROUTE
+            == rf"/snapshots/timestamps/(?P<wbs_l1>{routes._WBS_L1_REGEX_VALUES})$"
+        )
         assert "get" in dir(routes.SnapshotsHandler)
 
-        resp = ds_rc.request_seq("GET", "/snapshots/timestamps")
+        resp = ds_rc.request_seq("GET", f"/snapshots/timestamps/{WBS_L1}")
         assert list(resp.keys()) == ["timestamps"]
         assert isinstance(resp["timestamps"], list)
 
     @staticmethod
     def test_snapshots_make_post() -> None:
         """Test `POST` @ `/snapshots/make`."""
-        assert routes.MakeSnapshotHandler.ROUTE == r"/snapshots/make$"
+        assert (
+            routes.MakeSnapshotHandler.ROUTE
+            == rf"/snapshots/make/(?P<wbs_l1>{routes._WBS_L1_REGEX_VALUES})$"
+        )
         assert "post" in dir(routes.MakeSnapshotHandler)
 
         # NOTE: reserve testing POST for test_snapshots()
@@ -96,7 +105,14 @@ class TestNoArgumentRoutes:
     def test_snapshots(ds_rc: RestClient) -> None:
         """Test `POST` @ `/snapshots/make` and `GET` @ `/snapshots/timestamps`."""
         # 3 snapshots were taken in test_ingest()
-        assert len(ds_rc.request_seq("GET", "/snapshots/timestamps")["timestamps"]) == 3
+        assert (
+            len(
+                ds_rc.request_seq("GET", f"/snapshots/timestamps/{WBS_L1}")[
+                    "timestamps"
+                ]
+            )
+            == 3
+        )
 
         for i in range(4, 100):
             time.sleep(1)
@@ -106,7 +122,9 @@ class TestNoArgumentRoutes:
             now = time.time()
             assert now - float(resp["timestamp"]) < 2  # account for travel time
 
-            timestamps = ds_rc.request_seq("GET", "/snapshots/timestamps")["timestamps"]
+            timestamps = ds_rc.request_seq("GET", f"/snapshots/timestamps/{WBS_L1}")[
+                "timestamps"
+            ]
             assert len(timestamps) == i
             assert resp["timestamp"] in timestamps
 
@@ -116,7 +134,7 @@ class TestNoArgumentRoutes:
         assert routes.TableConfigHandler.ROUTE == r"/table/config$"
         assert "get" in dir(routes.TableConfigHandler)
 
-        resp = ds_rc.request_seq("GET", "/table/config")
+        resp = ds_rc.request_seq("GET", f"/table/config")
         assert list(resp.keys()) == [
             "columns",
             "simple_dropdown_menus",
@@ -139,15 +157,18 @@ class TestTableHandler:
     @staticmethod
     def test_sanity() -> None:
         """Check routes and methods are there."""
-        assert routes.TableHandler.ROUTE == r"/table/data$"
+        assert (
+            routes.TableHandler.ROUTE
+            == rf"/table/data/(?P<wbs_l1>{routes._WBS_L1_REGEX_VALUES})$"
+        )
         assert "get" in dir(routes.TableHandler)
 
     @staticmethod
     def test_get_w_bad_args(ds_rc: RestClient) -> None:
         """Test `GET` @ `/table/data` with bad arguments."""
         # there are no required args
-        _ = ds_rc.request_seq("GET", "/table/data", {"foo": "bar"})
-        _ = ds_rc.request_seq("GET", "/table/data")
+        _ = ds_rc.request_seq("GET", f"/table/data/{WBS_L1}", {"foo": "bar"})
+        _ = ds_rc.request_seq("GET", f"/table/data/{WBS_L1}")
 
     @staticmethod
     def _assert_schema(record: types.Record, has_total_rows: bool = False) -> None:
@@ -190,12 +211,16 @@ class TestTableHandler:
     def test_get_schema(self, ds_rc: RestClient) -> None:
         """Test `GET` @ `/table/data`."""
         # assert schema in Live Collection
-        for record in ds_rc.request_seq("GET", "/table/data")["table"]:
+        for record in ds_rc.request_seq("GET", f"/table/data/{WBS_L1}")["table"]:
             self._assert_schema(record)
 
         # assert schema in Snapshot Collections
-        for snapshot in ds_rc.request_seq("GET", "/snapshots/timestamps")["timestamps"]:
-            resp = ds_rc.request_seq("GET", "/table/data", {"snapshot": snapshot})
+        for snapshot in ds_rc.request_seq("GET", f"/snapshots/timestamps/{WBS_L1}")[
+            "timestamps"
+        ]:
+            resp = ds_rc.request_seq(
+                "GET", f"/table/data/{WBS_L1}", {"snapshot": snapshot}
+            )
             for record in resp["table"]:
                 self._assert_schema(record)
 
@@ -206,7 +231,10 @@ class TestRecordHandler:
     @staticmethod
     def test_sanity() -> None:
         """Check routes and methods are there."""
-        assert routes.RecordHandler.ROUTE == r"/record$"
+        assert (
+            routes.RecordHandler.ROUTE
+            == rf"/record/(?P<wbs_l1>{routes._WBS_L1_REGEX_VALUES})$"
+        )
         assert "post" in dir(routes.RecordHandler)
         assert "delete" in dir(routes.RecordHandler)
 
@@ -215,20 +243,20 @@ class TestRecordHandler:
         """Test `POST` @ `/record` with bad arguments."""
         # 'record' is the only required arg
         with pytest.raises(requests.exceptions.HTTPError):
-            _ = ds_rc.request_seq("POST", "/record", {"foo": "bar"})
+            _ = ds_rc.request_seq("POST", f"/record/{WBS_L1}", {"foo": "bar"})
 
         with pytest.raises(requests.exceptions.HTTPError):
-            _ = ds_rc.request_seq("POST", "/record")
+            _ = ds_rc.request_seq("POST", f"/record/{WBS_L1}")
 
         with pytest.raises(requests.exceptions.HTTPError):
-            _ = ds_rc.request_seq("POST", "/record", {"institution": "foo"})
+            _ = ds_rc.request_seq("POST", f"/record/{WBS_L1}", {"institution": "foo"})
 
         with pytest.raises(requests.exceptions.HTTPError):
-            _ = ds_rc.request_seq("POST", "/record", {"labor": "bar"})
+            _ = ds_rc.request_seq("POST", f"/record/{WBS_L1}", {"labor": "bar"})
 
         with pytest.raises(requests.exceptions.HTTPError):
             _ = ds_rc.request_seq(
-                "POST", "/record", {"institution": "foo", "labor": "bar"}
+                "POST", f"/record/{WBS_L1}", {"institution": "foo", "labor": "bar"}
             )
 
     @staticmethod
@@ -236,7 +264,7 @@ class TestRecordHandler:
         """Test `DELETE` @ `/record` with bad arguments."""
         # 'record' is the only required arg
         with pytest.raises(requests.exceptions.HTTPError):
-            _ = ds_rc.request_seq("DELETE", "/record", {"foo": "bar"})
+            _ = ds_rc.request_seq("DELETE", f"/record/{WBS_L1}", {"foo": "bar"})
 
         with pytest.raises(requests.exceptions.HTTPError):
-            _ = ds_rc.request_seq("DELETE", "/record")
+            _ = ds_rc.request_seq("DELETE", f"/record/{WBS_L1}")
