@@ -16,9 +16,10 @@ from .tabs import wbs_generic
 from .utils.dash_utils import Color, triggered_id
 from .utils.login import User
 
+app.title = "MoU Dashboard"
+
 # Layout
 app.layout = html.Div(
-    # className="background",
     children=[
         # Title
         dbc.Row(
