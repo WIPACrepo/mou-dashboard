@@ -294,11 +294,11 @@ class TestDataSource:
 
         # Call
         mock_rest.return_value.request_seq.return_value = response
-        ret = src.list_snapshot_timestamps(ANY)
+        ret = src.list_snapshots(ANY)
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
-            "GET", f"/snapshots/timestamps/{ANY}", None
+            "GET", f"/snapshots/list/{ANY}", None
         )
         assert sorted(ret) == sorted(response["timestamps"])
 

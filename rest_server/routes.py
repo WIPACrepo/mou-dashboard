@@ -1,7 +1,7 @@
 """Routes handlers for the MoU REST API server interface."""
 
 
-from typing import Any, List, Optional, TypedDict
+from typing import Any, List, Optional
 
 import tornado.web
 
@@ -188,9 +188,10 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
         """Handle POST."""
         base64_file = self.get_argument("base64_file")
         filename = self.get_argument("filename")
+        creator = self.get_argument("creator")
 
         previous_snapshot, current_snapshot = await self.dbms.ingest_xlsx(
-            wbs_l1, base64_file, filename
+            wbs_l1, base64_file, filename, creator
         )
 
         self.write(
@@ -279,14 +280,12 @@ class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
         timestamps = await self.dbms.list_snapshot_timestamps(wbs_l1)
         timestamps.sort(reverse=True)
 
-        class Pairs(TypedDict):  # pylint: disable=C0115
-            timestamp: str
-            name: str
-
-        snapshots: List[Pairs] = []
+        snapshots: List[types.SnapshotPair] = []
         for ts in timestamps:
-            name = await self.dbms.get_snapshot_name(wbs_l1, ts)
-            snapshots.append({"timestamp": ts, "name": name})
+            info = await self.dbms.get_snapshot_info(wbs_l1, ts)
+            snapshots.append(
+                {"timestamp": ts, "name": info["name"], "creator": info["creator"]}
+            )
 
         self.write({"snapshots": snapshots})
 
@@ -302,8 +301,9 @@ class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
-        name = self.get_argument("name", default="")
-        snapshot = await self.dbms.snapshot_live_collection(wbs_l1, name)
+        name = self.get_argument("name")
+        creator = self.get_argument("creator")
+        snapshot = await self.dbms.snapshot_live_collection(wbs_l1, name, creator)
 
         self.write({"timestamp": snapshot})
 

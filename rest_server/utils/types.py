@@ -8,6 +8,14 @@ Record = Dict[str, DataEntry]
 Table = List[Record]
 
 
+class SnapshotPair(TypedDict):
+    """The typed dict containing a snapshot's name and timestamp."""
+
+    timestamp: str
+    name: str
+    creator: str
+
+
 class InstitutionValues(TypedDict):
     """Values for an institution."""
 
@@ -22,4 +30,5 @@ class SupplementalDoc(TypedDict):
 
     name: str
     timestamp: str
+    creator: str
     snapshot_institution_values: Dict[str, InstitutionValues]

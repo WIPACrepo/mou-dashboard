@@ -654,7 +654,10 @@ def table_dropdown(
         # Add conditional dropdowns
         elif tconfig.is_conditional_dropdown(col):
             # get parent column and its options
-            parent_col, parent_col_opts = tconfig.get_conditional_column_parent_and_options(col)
+            (
+                parent_col,
+                parent_col_opts,
+            ) = tconfig.get_conditional_column_parent_and_options(col)
             # make filter_query for each parent-column option
             for parent_opt in parent_col_opts:
                 dropdown = tconfig.get_conditional_column_dropdown_menu(col, parent_opt)
@@ -701,11 +704,11 @@ def manage_snapshots(
     _: int,
     __: int,
     ___: int,
-    snapshot: str,
+    snap_timestamp: str,
     # L1 value (state)
     wbs_l1: str,
     # other state(s)
-    state_snapshot: str,
+    state_snap_timestamp: str,
 ) -> Tuple[bool, List[dbc.ListGroupItem], str, str, bool]:
     """Launch snapshot modal, load live table, or select a snapshot.
 
@@ -715,18 +718,21 @@ def manage_snapshots(
     #
     # Load Live Table
     if du.triggered_id() in ["wbs-view-live-btn-modal", "wbs-view-live-btn"]:
-        return False, [], "", state_snapshot, False
+        return False, [], "", state_snap_timestamp, False
 
     # Load Modal List of Snapshots
     if du.triggered_id() == "wbs-load-snapshot-button":
         snapshots_options = [
-            {"label": du.get_human_time(ts), "value": ts}
-            for ts in src.list_snapshot_timestamps(wbs_l1)
+            {
+                "label": f"{snap['name']}  [created by {snap['creator']} on {du.get_human_time(snap['timestamp'])}]",
+                "value": snap["timestamp"],
+            }
+            for snap in src.list_snapshots(wbs_l1)
         ]
-        return True, snapshots_options, "", state_snapshot, False
+        return True, snapshots_options, "", state_snap_timestamp, False
 
     # Selected a Snapshot
-    return False, [], f"({du.get_human_time(snapshot)})", snapshot, True
+    return False, [], f"({du.get_human_time(snap_timestamp)})", snap_timestamp, True
 
 
 @app.callback(  # type: ignore[misc]
@@ -745,7 +751,7 @@ def make_snapshot(
     wbs_l1: str,
 ) -> Tuple[dcc.ConfirmDialog, str]:
     """Launch a dialog for not-yet-implemented features."""
-    if snapshot := src.create_snapshot(wbs_l1):
+    if snapshot := src.create_snapshot(wbs_l1, "TODO"):  # TODO
         return (
             du.make_toast(
                 "Snapshot Created", du.get_human_time(snapshot), du.Color.SUCCESS, 5

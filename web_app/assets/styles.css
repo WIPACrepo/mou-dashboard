@@ -1,6 +1,11 @@
 /* Custom & Overriding CSS */
 
 
+body {
+    background-color: black !important;
+}
+
+
 /*------------------------------------------------------------------------------------*/
 /* General/Misc. */
 
@@ -31,10 +36,6 @@
 
 /*------------------------------------------------------------------------------------*/
 /* Site Title */
-
-.body {
-    background-color: black !important;
-}
 
 .top-container {
     display: flex;

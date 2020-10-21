@@ -5,7 +5,7 @@ import base64
 import io
 import logging
 import time
-from typing import Any, cast, Coroutine, Dict, Final, List, Tuple
+from typing import Any, cast, Coroutine, List, Tuple
 
 import pandas as pd  # type: ignore[import]
 from bson.objectid import ObjectId  # type: ignore[import]
@@ -14,11 +14,10 @@ from tornado import web
 
 from .. import table_config as tc
 from ..config import EXCLUDE_COLLECTIONS, EXCLUDE_DBS
-from .types import InstitutionValues, Record, SupplementalDoc, Table
+from .types import InstitutionValues, Record, SnapshotPair, SupplementalDoc, Table
 
 IS_DELETED = "deleted"
 _LIVE_COLLECTION = "LIVE_COLLECTION"
-_SNAP_INSTS_VALS: Final[str] = "snapshot_institution_values"
 
 
 class MoUMotorClient:
@@ -112,16 +111,18 @@ class MoUMotorClient:
 
         return record
 
-    async def _create_live_collection(self, snap_db: str, table: Table) -> None:
+    async def _create_live_collection(
+        self, snap_db: str, table: Table, creator: str
+    ) -> None:
         """Create the live collection."""
         logging.debug(f"Creating Live Collection ({snap_db=})...")
 
-        await self._ingest_new_collection(snap_db, _LIVE_COLLECTION, table, "")
+        await self._ingest_new_collection(snap_db, _LIVE_COLLECTION, table, "", creator)
 
         logging.debug(f"Created Live Collection: ({snap_db=}) {len(table)} records.")
 
     async def ingest_xlsx(
-        self, snap_db: str, base64_xlsx: str, filename: str
+        self, snap_db: str, base64_xlsx: str, filename: str, creator: str
     ) -> Tuple[str, str]:
         """Ingest the xlsx's data as the new Live Collection.
 
@@ -169,9 +170,13 @@ class MoUMotorClient:
         logging.debug(f"xlsx table has {len(table)} records ({snap_db=}).")
 
         # snapshot, ingest, snapshot
-        previous_snap = await self.snapshot_live_collection(snap_db, "pre-xlsx-ingest")
-        await self._create_live_collection(snap_db, table)
-        current_snap = await self.snapshot_live_collection(snap_db, f"xlsx:{filename}")
+        previous_snap = await self.snapshot_live_collection(
+            snap_db, "State Before Table Replacement", f"{creator} (auto)"
+        )
+        await self._create_live_collection(snap_db, table, creator)
+        current_snap = await self.snapshot_live_collection(
+            snap_db, f"Replacement Table ({filename})", creator
+        )
 
         logging.debug(
             f"Ingested xlsx: {filename=}, {snap_db=}, {current_snap}, {previous_snap}."
@@ -192,14 +197,18 @@ class MoUMotorClient:
             if n not in EXCLUDE_COLLECTIONS
         ]
 
-    async def get_snapshot_name(self, snap_db: str, snap_coll: str) -> str:
+    async def get_snapshot_info(self, snap_db: str, snap_coll: str) -> SnapshotPair:
         """Get the name of the snapshot."""
         logging.debug(f"Getting Snapshot Name ({snap_db=}, {snap_coll=})...")
 
-        doc = self._get_supplemental_doc(snap_db, snap_coll)
+        doc = await self._get_supplemental_doc(snap_db, snap_coll)
 
         logging.info(f"Snapshot Name [{doc['name']}] ({snap_db=}, {snap_coll=})...")
-        return doc["name"]
+        return {
+            "name": doc["name"],
+            "creator": doc["creator"],
+            "timestamp": doc["timestamp"],
+        }
 
     async def upsert_institution_values(
         self, snap_db: str, institution: str, vals: InstitutionValues
@@ -209,11 +218,9 @@ class MoUMotorClient:
             f"Upserting Institution's Values ({snap_db=}, {institution=}, {vals=})..."
         )
 
-        doc = self._get_supplemental_doc(snap_db, _LIVE_COLLECTION)
+        doc = await self._get_supplemental_doc(snap_db, _LIVE_COLLECTION)
         doc["snapshot_institution_values"].update({institution: vals})
-        await self._set_supplemental_doc(
-            snap_db, _LIVE_COLLECTION, doc["name"], doc["snapshot_institution_values"]
-        )
+        await self._set_supplemental_doc(snap_db, _LIVE_COLLECTION, doc)
 
         logging.info(
             f"Upserted Institution's Values ({snap_db=}, {institution=}, {vals=})."
@@ -225,30 +232,40 @@ class MoUMotorClient:
         """Get the values for an institution."""
         logging.debug(f"Getting Institution's Values ({snap_db=}, {institution=})...")
 
-        doc = self._get_supplemental_doc(snap_db, _LIVE_COLLECTION)
+        doc = await self._get_supplemental_doc(snap_db, _LIVE_COLLECTION)
         vals = doc["snapshot_institution_values"][institution]
 
         logging.info(f"Institution's Values [{vals}] ({snap_db=}, {institution=}).")
         return vals
 
-    def _get_supplemental_doc(self, snap_db: str, snap_coll: str) -> SupplementalDoc:
-        doc = self._client[f"{snap_db}-supplemental"][snap_coll]
+    async def _get_supplemental_doc(
+        self, snap_db: str, snap_coll: str
+    ) -> SupplementalDoc:
+        doc = await self._client[f"{snap_db}-supplemental"][snap_coll].find_one()
+
+        if doc["timestamp"] != snap_coll:
+            raise web.HTTPError(
+                500,
+                reason=f"Erroneous supplemental document found: {snap_coll=}, {doc=}",
+            )
+
         return cast(SupplementalDoc, doc)
 
     async def _set_supplemental_doc(
-        self,
-        snap_db: str,
-        snap_coll: str,
-        name: str,
-        inst_vals: Dict[str, InstitutionValues],
+        self, snap_db: str, snap_coll: str, doc: SupplementalDoc
     ) -> None:
+        """Insert/update a Supplemental document."""
+        if snap_coll != doc["timestamp"]:
+            raise web.HTTPError(
+                400,
+                reason=f"Tried to set erroneous supplemental document: {snap_coll=}, {doc=}",
+            )
+
         coll_obj = self._client[f"{snap_db}-supplemental"][snap_coll]
-        await coll_obj.insert_one(
-            {"name": name, "timestamp": snap_coll, _SNAP_INSTS_VALS: inst_vals}
-        )
+        await coll_obj.insert_one(doc)
 
     async def _create_supplemental_db_document(
-        self, snap_db: str, snap_coll: str, name: str
+        self, snap_db: str, snap_coll: str, name: str, creator: str
     ) -> None:
         logging.debug(
             f"Creating Supplemental DB/Document ({snap_db=}, {snap_coll=})..."
@@ -258,12 +275,18 @@ class MoUMotorClient:
         await self._client[f"{snap_db}-supplemental"].drop_collection(snap_coll)
 
         # populate the singleton document
-        await self._set_supplemental_doc(snap_db, snap_coll, name, {})
+        doc: SupplementalDoc = {
+            "name": name,
+            "timestamp": snap_coll,
+            "creator": creator,
+            "snapshot_institution_values": {},
+        }
+        await self._set_supplemental_doc(snap_db, snap_coll, doc)
 
         logging.debug(f"Created Supplemental DB/Document ({snap_db=}, {snap_coll=}).")
 
-    async def _ingest_new_collection(
-        self, snap_db: str, snap_coll: str, table: Table, name: str
+    async def _ingest_new_collection(  # pylint: disable=R0913
+        self, snap_db: str, snap_coll: str, table: Table, name: str, creator: str
     ) -> None:
         """Add table to a new collection.
 
@@ -281,7 +304,7 @@ class MoUMotorClient:
         await coll_obj.insert_many([self._mongofy_record(r) for r in table])
 
         # create supplemental db & document
-        await self._create_supplemental_db_document(snap_db, snap_coll, name)
+        await self._create_supplemental_db_document(snap_db, snap_coll, name, creator)
 
     async def _ensure_collection_indexes(self, snap_db: str, snap_coll: str) -> None:
         """Create indexes in collection."""
@@ -381,21 +404,23 @@ class MoUMotorClient:
         logging.info(f"Deleted {record} ({snap_db=}).")
         return record
 
-    async def snapshot_live_collection(self, snap_db: str, name: str) -> str:
+    async def snapshot_live_collection(
+        self, snap_db: str, name: str, creator: str
+    ) -> str:
         """Create a snapshot collection by copying the live collection."""
-        logging.debug(f"Snapshotting ({snap_db=})...")
+        logging.debug(f"Snapshotting ({snap_db=}, {creator=})...")
 
         table = await self.get_table(snap_db, _LIVE_COLLECTION)
         if not table:
             logging.info(
-                f"Snapshot aborted -- no previous live collection ({snap_db=})."
+                f"Snapshot aborted -- no previous live collection ({snap_db=}, {creator=})."
             )
             return ""
 
         snap_coll = str(time.time())
-        await self._ingest_new_collection(snap_db, snap_coll, table, name)
+        await self._ingest_new_collection(snap_db, snap_coll, table, name, creator)
 
-        logging.info(f"Snapshotted {snap_coll} ({snap_db=}).")
+        logging.info(f"Snapshotted {snap_coll} ({snap_db=}, {creator=}).")
         return snap_coll
 
     async def list_snapshot_timestamps(self, snap_db: str) -> List[str]:

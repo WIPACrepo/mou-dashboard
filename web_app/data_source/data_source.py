@@ -5,8 +5,9 @@ import logging
 from typing import cast, Final, List, Optional, Tuple, TypedDict
 
 import requests
+from flask_login import current_user  # type: ignore[import]
 
-from ..utils.types import Record, Table
+from ..utils.types import Record, SnapshotPair, Table
 from . import table_config as tc
 from .utils import mou_request
 
@@ -196,7 +197,7 @@ def pull_data_table(
         Table -- the returned table
     """
 
-    class RespTableData(TypedDict):  # pylint: disable=C0115,R0903
+    class _RespTableData(TypedDict):
         table: Table
 
     # request
@@ -208,7 +209,7 @@ def pull_data_table(
         "restore_id": restore_id,
     }
     response = cast(
-        RespTableData, mou_request("GET", "/table/data", body, wbs_l1=wbs_l1)
+        _RespTableData, mou_request("GET", "/table/data", body=body, wbs_l1=wbs_l1)
     )
     # get & convert
     return _convert_table_rest_to_dash(response["table"])
@@ -237,7 +238,7 @@ def push_record(  # pylint: disable=R0913
         Record -- the returned record
     """
 
-    class RespRecord(TypedDict):  # pylint: disable=C0115,R0903
+    class _RespRecord(TypedDict):
         record: Record
 
     try:
@@ -247,7 +248,9 @@ def push_record(  # pylint: disable=R0913
             "institution": institution,
             "labor": labor,
         }
-        response = cast(RespRecord, mou_request("POST", "/record", body, wbs_l1=wbs_l1))
+        response = cast(
+            _RespRecord, mou_request("POST", "/record", body=body, wbs_l1=wbs_l1)
+        )
         # get & convert
         return _convert_record_rest_to_dash(response["record"], novel=novel)
     except requests.exceptions.HTTPError as e:
@@ -259,35 +262,36 @@ def delete_record(wbs_l1: str, record_id: str) -> bool:
     """Delete the record, return True if successful."""
     try:
         body = {"record_id": record_id}
-        mou_request("DELETE", "/record", body, wbs_l1=wbs_l1)
+        mou_request("DELETE", "/record", body=body, wbs_l1=wbs_l1)
         return True
     except requests.exceptions.HTTPError as e:
         logging.exception(f"EXCEPTED: {e}")
         return False
 
 
-def list_snapshot_timestamps(wbs_l1: str) -> List[str]:
+def list_snapshots(wbs_l1: str) -> List[SnapshotPair]:
     """Get the list of snapshots."""
 
-    class RespSnapshotsTimestamps(TypedDict):  # pylint: disable=C0115,R0903
-        timestamps: List[str]
+    class _RespSnapshots(TypedDict):
+        snapshots: List[SnapshotPair]
 
     response = cast(
-        RespSnapshotsTimestamps,
-        mou_request("GET", "/snapshots/timestamps", wbs_l1=wbs_l1),
+        _RespSnapshots, mou_request("GET", "/snapshots/list", wbs_l1=wbs_l1),
     )
 
-    return sorted(response["timestamps"], reverse=True)
+    return sorted(response["snapshots"], key=lambda i: i["timestamp"], reverse=True)
 
 
-def create_snapshot(wbs_l1: str) -> str:
+def create_snapshot(wbs_l1: str, name: str) -> str:
     """Create a snapshot."""
 
-    class RespSnapshotsMake(TypedDict):  # pylint: disable=C0115,R0903
+    class _RespSnapshotsMake(TypedDict):
         timestamp: str
 
+    body = {"creator": current_user.name, "name": name}
     response = cast(
-        RespSnapshotsMake, mou_request("POST", "/snapshots/make", wbs_l1=wbs_l1)
+        _RespSnapshotsMake,
+        mou_request("POST", "/snapshots/make", body=body, wbs_l1=wbs_l1,),
     )
 
     return response["timestamp"]
@@ -309,15 +313,19 @@ def override_table(
         str -- snapshot name of the current live table
     """
 
-    class RespTableData(TypedDict):  # pylint: disable=C0115,R0903
+    class _RespTableData(TypedDict):
         n_records: int
         previous_snapshot: str
         current_snapshot: str
 
     try:
-        body = {"base64_file": base64_file, "filename": filename}
+        body = {
+            "base64_file": base64_file,
+            "filename": filename,
+            "creator": current_user.name,
+        }
         response = cast(
-            RespTableData, mou_request("POST", "/table/data", body, wbs_l1=wbs_l1)
+            _RespTableData, mou_request("POST", "/table/data", body=body, wbs_l1=wbs_l1)
         )
         return (
             "",

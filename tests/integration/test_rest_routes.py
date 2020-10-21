@@ -79,14 +79,14 @@ class TestNoArgumentRoutes:
 
     @staticmethod
     def test_snapshots_timestamps_get(ds_rc: RestClient) -> None:
-        """Test `GET` @ `/snapshots/timestamps`."""
+        """Test `GET` @ `/snapshots/list`."""
         assert (
             routes.SnapshotsHandler.ROUTE
-            == rf"/snapshots/timestamps/(?P<wbs_l1>{routes._WBS_L1_REGEX_VALUES})$"
+            == rf"/snapshots/list/(?P<wbs_l1>{routes._WBS_L1_REGEX_VALUES})$"
         )
         assert "get" in dir(routes.SnapshotsHandler)
 
-        resp = ds_rc.request_seq("GET", f"/snapshots/timestamps/{WBS_L1}")
+        resp = ds_rc.request_seq("GET", f"/snapshots/list/{WBS_L1}")
         assert list(resp.keys()) == ["timestamps"]
         assert isinstance(resp["timestamps"], list)
 
@@ -103,11 +103,11 @@ class TestNoArgumentRoutes:
 
     @staticmethod
     def test_snapshots(ds_rc: RestClient) -> None:
-        """Test `POST` @ `/snapshots/make` and `GET` @ `/snapshots/timestamps`."""
+        """Test `POST` @ `/snapshots/make` and `GET` @ `/snapshots/list`."""
         # 3 snapshots were taken in test_ingest()
         assert (
             len(
-                ds_rc.request_seq("GET", f"/snapshots/timestamps/{WBS_L1}")[
+                ds_rc.request_seq("GET", f"/snapshots/list/{WBS_L1}")[
                     "timestamps"
                 ]
             )
@@ -122,7 +122,7 @@ class TestNoArgumentRoutes:
             now = time.time()
             assert now - float(resp["timestamp"]) < 2  # account for travel time
 
-            timestamps = ds_rc.request_seq("GET", f"/snapshots/timestamps/{WBS_L1}")[
+            timestamps = ds_rc.request_seq("GET", f"/snapshots/list/{WBS_L1}")[
                 "timestamps"
             ]
             assert len(timestamps) == i
@@ -215,7 +215,7 @@ class TestTableHandler:
             self._assert_schema(record)
 
         # assert schema in Snapshot Collections
-        for snapshot in ds_rc.request_seq("GET", f"/snapshots/timestamps/{WBS_L1}")[
+        for snapshot in ds_rc.request_seq("GET", f"/snapshots/list/{WBS_L1}")[
             "timestamps"
         ]:
             resp = ds_rc.request_seq(
