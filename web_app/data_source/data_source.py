@@ -7,7 +7,7 @@ from typing import cast, Final, List, Optional, Tuple, TypedDict
 import requests
 from flask_login import current_user  # type: ignore[import]
 
-from ..utils.types import Record, SnapshotPair, Table
+from ..utils.types import Record, SnapshotInfo, Table
 from . import table_config as tc
 from .utils import mou_request
 
@@ -178,7 +178,7 @@ def pull_data_table(
     institution: str = "",
     labor: str = "",
     with_totals: bool = False,
-    snapshot: str = "",
+    snapshot_ts: str = "",
     restore_id: str = "",
 ) -> Table:
     """Get table, optionally filtered by institution and/or labor.
@@ -205,7 +205,7 @@ def pull_data_table(
         "institution": institution,
         "labor": labor,
         "total_rows": with_totals,
-        "snapshot": snapshot,
+        "snapshot": snapshot_ts,
         "restore_id": restore_id,
     }
     response = cast(
@@ -253,6 +253,7 @@ def push_record(  # pylint: disable=R0913
         )
         # get & convert
         return _convert_record_rest_to_dash(response["record"], novel=novel)
+
     except requests.exceptions.HTTPError as e:
         logging.exception(f"EXCEPTED: {e}")
         raise DataSourceException(str(e))
@@ -264,16 +265,17 @@ def delete_record(wbs_l1: str, record_id: str) -> bool:
         body = {"record_id": record_id}
         mou_request("DELETE", "/record", body=body, wbs_l1=wbs_l1)
         return True
+
     except requests.exceptions.HTTPError as e:
         logging.exception(f"EXCEPTED: {e}")
         return False
 
 
-def list_snapshots(wbs_l1: str) -> List[SnapshotPair]:
+def list_snapshots(wbs_l1: str) -> List[SnapshotInfo]:
     """Get the list of snapshots."""
 
     class _RespSnapshots(TypedDict):
-        snapshots: List[SnapshotPair]
+        snapshots: List[SnapshotInfo]
 
     response = cast(
         _RespSnapshots, mou_request("GET", "/snapshots/list", wbs_l1=wbs_l1),
@@ -282,24 +284,21 @@ def list_snapshots(wbs_l1: str) -> List[SnapshotPair]:
     return sorted(response["snapshots"], key=lambda i: i["timestamp"], reverse=True)
 
 
-def create_snapshot(wbs_l1: str, name: str) -> str:
+def create_snapshot(wbs_l1: str, name: str) -> SnapshotInfo:
     """Create a snapshot."""
+    try:
+        body = {"creator": current_user.name, "name": name}
+        response = mou_request("POST", "/snapshots/make", body=body, wbs_l1=wbs_l1)
+        return cast(SnapshotInfo, response)
 
-    class _RespSnapshotsMake(TypedDict):
-        timestamp: str
-
-    body = {"creator": current_user.name, "name": name}
-    response = cast(
-        _RespSnapshotsMake,
-        mou_request("POST", "/snapshots/make", body=body, wbs_l1=wbs_l1,),
-    )
-
-    return response["timestamp"]
+    except requests.exceptions.HTTPError as e:
+        logging.exception(f"EXCEPTED: {e}")
+        raise DataSourceException(str(e))
 
 
 def override_table(
     wbs_l1: str, base64_file: str, filename: str
-) -> Tuple[str, int, str, str]:
+) -> Tuple[str, int, Optional[SnapshotInfo], Optional[SnapshotInfo]]:
     """Ingest .xlsx file as the new live collection.
 
     Arguments:
@@ -315,8 +314,8 @@ def override_table(
 
     class _RespTableData(TypedDict):
         n_records: int
-        previous_snapshot: str
-        current_snapshot: str
+        previous_snapshot: SnapshotInfo
+        current_snapshot: SnapshotInfo
 
     try:
         body = {
@@ -335,4 +334,4 @@ def override_table(
         )
     except requests.exceptions.HTTPError as e:
         logging.exception(f"EXCEPTED: {e}")
-        return str(e), 0, "", ""
+        return str(e), 0, None, None

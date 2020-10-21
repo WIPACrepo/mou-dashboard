@@ -5,7 +5,7 @@ import logging
 import time
 from datetime import datetime as dt
 from datetime import timezone as tz
-from typing import cast, Collection, Dict, Final, List, Optional
+from typing import cast, Collection, Dict, Final, List, Optional, Union
 
 import dash  # type: ignore[import]
 import dash_bootstrap_components as dbc  # type: ignore[import]
@@ -240,9 +240,14 @@ def deletion_toast() -> dbc.Toast:
 
 
 def make_toast(
-    header: str, message: str, icon_color: str, duration: float = 0,
+    header: str, message: Union[str, List[str]], icon_color: str, duration: float = 0,
 ) -> dbc.Toast:
     """Dynamically make a toast."""
+    if isinstance(message, str):
+        _messages = [message]
+    else:
+        _messages = message
+
     return dbc.Toast(
         id=f"wbs-toast-{get_now()}",
         header=header,
@@ -259,11 +264,11 @@ def make_toast(
             "width": 350,
             "font-size": "1.1em",
         },
-        children=[html.Div(message)],
+        children=[html.Div(m) for m in _messages],
     )
 
 
-def snapshot_modal() -> dbc.Modal:
+def load_snapshot_modal() -> dbc.Modal:
     """Get a modal for selecting a snapshot."""
     return dbc.Modal(
         id="wbs-load-snapshot-modal",
@@ -353,6 +358,35 @@ def upload_modal() -> dbc.Modal:
                         ],
                     ),
                 ]
+            ),
+        ],
+    )
+
+
+def name_snapshot_modal() -> dbc.Modal:
+    """Get a modal for selecting a snapshot."""
+    return dbc.Modal(
+        id="wbs-name-snapshot",
+        size="sm",
+        is_open=False,
+        # backdrop="static",
+        centered=True,
+        children=[
+            dbc.ModalBody(
+                dcc.Input(
+                    id="wbs-name-snapshot-input",
+                    value="",
+                    placeholder="Snapshot Name",
+                    style={"width": "100%"},
+                ),
+            ),
+            dbc.ModalFooter(
+                dbc.Button(
+                    "Name & Create",
+                    id="wbs-name-snapshot-btn",
+                    n_clicks=0,
+                    color=Color.SUCCESS,
+                )
             ),
         ],
     )

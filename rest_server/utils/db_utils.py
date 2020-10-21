@@ -14,7 +14,7 @@ from tornado import web
 
 from .. import table_config as tc
 from ..config import EXCLUDE_COLLECTIONS, EXCLUDE_DBS
-from .types import InstitutionValues, Record, SnapshotPair, SupplementalDoc, Table
+from .types import InstitutionValues, Record, SnapshotInfo, SupplementalDoc, Table
 
 IS_DELETED = "deleted"
 _LIVE_COLLECTION = "LIVE_COLLECTION"
@@ -197,7 +197,7 @@ class MoUMotorClient:
             if n not in EXCLUDE_COLLECTIONS
         ]
 
-    async def get_snapshot_info(self, snap_db: str, snap_coll: str) -> SnapshotPair:
+    async def get_snapshot_info(self, snap_db: str, snap_coll: str) -> SnapshotInfo:
         """Get the name of the snapshot."""
         logging.debug(f"Getting Snapshot Name ({snap_db=}, {snap_coll=})...")
 

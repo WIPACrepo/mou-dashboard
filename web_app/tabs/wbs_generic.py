@@ -1,7 +1,7 @@
 """Tab-toggled layout for a specified WBS."""
 
 
-from typing import cast, Dict, List, Tuple
+from typing import cast, Dict, List, Optional, Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -14,7 +14,15 @@ from ..config import app
 from ..data_source import data_source as src
 from ..data_source import table_config as tc
 from ..utils import dash_utils as du
-from ..utils.types import DataEntry, Record, Table, TColumns, TDDown, TDDownCond
+from ..utils.types import (
+    DataEntry,
+    Record,
+    SnapshotInfo,
+    Table,
+    TColumns,
+    TDDown,
+    TDDownCond,
+)
 
 # --------------------------------------------------------------------------------------
 # Layout
@@ -86,12 +94,11 @@ def layout() -> html.Div:
             du.new_data_button(1, style={"margin-bottom": "1rem", "height": "40px"}),
             # "Viewing Snapshot" Alert
             dbc.Alert(
-                [
-                    html.Div("Viewing Snapshot", style={"margin-bottom": "0.5rem"}),
+                children=[
                     html.Div(
-                        id="wbs-snapshot-human", style={"margin-bottom": "0.5rem"},
+                        id="wbs-snapshot-current-labels",
+                        style={"margin-bottom": "1rem", "color": "#5a5a5a"},
                     ),
-                    html.Div(id="wbs-snapshot-timestamp", hidden=True),
                     dbc.Button(
                         "View Live Table",
                         id="wbs-view-live-btn",
@@ -244,7 +251,7 @@ def layout() -> html.Div:
                 ],
             ),
             #
-            # Last Updated
+            # Last Refreshed
             dcc.Loading(
                 type="default",
                 fullscreen=True,
@@ -291,6 +298,10 @@ def layout() -> html.Div:
             dcc.Store(
                 id="wbs-table-config-cache", storage_type="memory", data=tconfig.config,
             ),
+            # for caching the current snapshot
+            dcc.Store(id="wbs-snapshot-current-ts", storage_type="memory"),
+            # for caching all snapshots' infos
+            dcc.Store(id="wbs-all-snapshot-infos", storage_type="memory"),
             #
             # Dummy Divs -- for adding dynamic toasts, dialogs, etc.
             html.Div(id="wbs-toast-via-exterior-control-div"),
@@ -299,9 +310,10 @@ def layout() -> html.Div:
             html.Div(id="wbs-toast-via-upload-div"),
             #
             # Modals & Toasts
-            du.snapshot_modal(),
+            du.load_snapshot_modal(),
             du.deletion_toast(),
             du.upload_modal(),
+            du.name_snapshot_modal(),
             ###
         ]
     )
@@ -392,7 +404,7 @@ def _add_new_data(  # pylint: disable=R0913
         Input("wbs-new-data-button", "n_clicks"),
         Input("wbs-refresh-button", "n_clicks"),
         Input("wbs-show-totals-button", "n_clicks"),
-        Input("wbs-snapshot-timestamp", "children"),
+        Input("wbs-snapshot-current-ts", "data"),
         Input("wbs-undo-last-delete", "n_clicks"),
     ],
     [
@@ -413,7 +425,7 @@ def table_data_exterior_controls(
     _: int,
     __: int,
     tot_n_clicks: int,
-    snapshot: str,
+    snapshot_ts: str,
     ___: int,
     # state(s)
     state_table: Table,
@@ -448,7 +460,7 @@ def table_data_exterior_controls(
             institution=institution,
             labor=labor,
             with_totals=show_totals,
-            snapshot=snapshot,
+            snapshot_ts=snapshot_ts,
             restore_id=state_deleted_id,
         )
         toast = du.make_toast(
@@ -461,7 +473,7 @@ def table_data_exterior_controls(
             institution=institution,
             labor=labor,
             with_totals=show_totals,
-            snapshot=snapshot,
+            snapshot_ts=snapshot_ts,
         )
 
     return (
@@ -564,7 +576,7 @@ def table_data_interior_controls(
     This is unnecessary, so the timestamp of table_data_exterior_controls()'s
     last call will be checked to determine if that was indeed the case.
     """
-    updated_message = f"Last Updated: {du.get_human_now()}"
+    updated_message = f"Last Refreshed: {du.get_human_now()}"
 
     # On page load OR table was just updated via exterior controls
     if (not previous_table) or du.was_recent(table_exterior_control_ts):
@@ -686,9 +698,10 @@ def table_dropdown(
     [
         Output("wbs-load-snapshot-modal", "is_open"),
         Output("wbs-snapshot-selection", "options"),
-        Output("wbs-snapshot-human", "children"),
-        Output("wbs-snapshot-timestamp", "children"),
+        Output("wbs-snapshot-current-labels", "children"),
+        Output("wbs-snapshot-current-ts", "data"),
         Output("wbs-viewing-snapshot-alert", "is_open"),
+        Output("wbs-all-snapshot-infos", "data"),
     ],
     [
         Input("wbs-load-snapshot-button", "n_clicks"),
@@ -696,20 +709,27 @@ def table_dropdown(
         Input("wbs-view-live-btn", "n_clicks"),
         Input("wbs-snapshot-selection", "value"),
     ],
-    [State("wbs-l1", "value"), State("wbs-snapshot-timestamp", "children")],
+    [
+        State("wbs-l1", "value"),
+        State("wbs-snapshot-current-ts", "data"),
+        State("wbs-all-snapshot-infos", "data"),
+    ],
     prevent_initial_call=True,
 )
-def manage_snapshots(
+def handle_load_snapshot(
     # input(s)
     _: int,
     __: int,
     ___: int,
-    snap_timestamp: str,
+    snapshot_ts: str,
     # L1 value (state)
     wbs_l1: str,
     # other state(s)
-    state_snap_timestamp: str,
-) -> Tuple[bool, List[dbc.ListGroupItem], str, str, bool]:
+    state_snap_current_ts: str,
+    state_all_snap_infos: Dict[str, SnapshotInfo],
+) -> Tuple[
+    bool, List[dbc.ListGroupItem], List[html.Label], str, bool, Dict[str, SnapshotInfo],
+]:
     """Launch snapshot modal, load live table, or select a snapshot.
 
     Must be one function b/c all triggers control whether the modal is
@@ -718,54 +738,111 @@ def manage_snapshots(
     #
     # Load Live Table
     if du.triggered_id() in ["wbs-view-live-btn-modal", "wbs-view-live-btn"]:
-        return False, [], "", state_snap_timestamp, False
+        return False, [], [], state_snap_current_ts, False, state_all_snap_infos
 
     # Load Modal List of Snapshots
     if du.triggered_id() == "wbs-load-snapshot-button":
+        snapshots = src.list_snapshots(wbs_l1)
         snapshots_options = [
             {
                 "label": f"{snap['name']}  [created by {snap['creator']} on {du.get_human_time(snap['timestamp'])}]",
                 "value": snap["timestamp"],
             }
-            for snap in src.list_snapshots(wbs_l1)
+            for snap in snapshots
         ]
-        return True, snapshots_options, "", state_snap_timestamp, False
+        all_snap_infos = {snap["timestamp"]: snap for snap in snapshots}
+        return True, snapshots_options, [], state_snap_current_ts, False, all_snap_infos
 
     # Selected a Snapshot
-    return False, [], f"({du.get_human_time(snap_timestamp)})", snap_timestamp, True
+    info = state_all_snap_infos[snapshot_ts]
+    label_lines = [
+        html.Label(f"Viewing Snapshot: \"{info['name']}\""),
+        html.Label(
+            f"(created by {info['creator']} on {du.get_human_time(snapshot_ts)})",
+            style={"font-size": "75%", "font-style": "italic"},
+        ),
+    ]
+    return False, [], label_lines, snapshot_ts, True, state_all_snap_infos
 
 
 @app.callback(  # type: ignore[misc]
     [
+        Output("wbs-name-snapshot", "is_open"),
         Output("wbs-toast-via-snapshot-div", "children"),
-        Output("wbs-make-snapshot-button", "color"),  # trigger "Loading" element
+        Output("wbs-make-snapshot-button", "color"),  # triggers "Loading" element
     ],
-    [Input("wbs-make-snapshot-button", "n_clicks")],
-    [State("wbs-l1", "value")],
+    [
+        Input("wbs-make-snapshot-button", "n_clicks"),
+        Input("wbs-name-snapshot-btn", "n_clicks"),
+        Input("wbs-name-snapshot-input", "n_submit"),
+    ],
+    [State("wbs-l1", "value"), State("wbs-name-snapshot-input", "value")],
     prevent_initial_call=True,
 )
-def make_snapshot(
+def handle_make_snapshot(
     # input(s)
     _: int,
+    __: int,
+    ___: int,
     # L1 value (state)
     wbs_l1: str,
-) -> Tuple[dcc.ConfirmDialog, str]:
-    """Launch a dialog for not-yet-implemented features."""
-    if snapshot := src.create_snapshot(wbs_l1, "TODO"):  # TODO
-        return (
-            du.make_toast(
-                "Snapshot Created", du.get_human_time(snapshot), du.Color.SUCCESS, 5
-            ),
-            du.Color.SUCCESS,
-        )
-    return (
-        du.make_toast("Failed to Make Snapshot", du.REFRESH_MSG, du.Color.DANGER),
-        du.Color.SUCCESS,
-    )
+    # other state(s)
+    name: str,
+) -> Tuple[bool, dbc.Toast, str]:
+    """Handle the naming and creating of a snapshot."""
+    if du.triggered_id() == "wbs-make-snapshot-button":
+        return True, None, ""
+
+    if du.triggered_id() in ["wbs-name-snapshot-btn", "wbs-name-snapshot-input"]:
+        try:
+            snapshot = src.create_snapshot(wbs_l1, name)
+            message = [
+                f"Name: {snapshot['name']}",
+                f"Timestamp: {du.get_human_time(snapshot['timestamp'])}",
+                f"Creator: {snapshot['creator']}",
+            ]
+            return (
+                False,
+                du.make_toast("Snapshot Created", message, du.Color.SUCCESS, 5),
+                du.Color.SUCCESS,
+            )
+        except src.DataSourceException:
+            return (
+                False,
+                du.make_toast(
+                    "Failed to Make Snapshot", du.REFRESH_MSG, du.Color.DANGER
+                ),
+                du.Color.SUCCESS,
+            )
+
+    raise Exception(f"Unaccounted trigger {du.triggered_id()}")
 
 
 # --------------------------------------------------------------------------------------
 # Other Callbacks
+
+
+def _get_ingest_sucess_message(
+    n_records: int, prev_snap: Optional[SnapshotInfo], curr_snap: Optional[SnapshotInfo]
+) -> List[str]:
+    """Make the message for the ingest confirmation toast."""
+
+    def _pseudonym(_snap: SnapshotInfo) -> str:
+        if _snap["name"]:
+            return f"\"{_snap['name']}\""
+        return du.get_human_time(_snap["timestamp"])
+
+    message = [
+        f"Uploaded {n_records} records.",
+        "A snapshot was made of:",
+    ]
+
+    if prev_snap:
+        message.append(f"- the previous table ({_pseudonym(prev_snap)}) and")
+    if curr_snap:
+        message.append(f"- the current table ({_pseudonym(curr_snap)})")
+
+    return message
 
 
 @app.callback(  # type: ignore[misc]
@@ -819,7 +896,7 @@ def handle_xlsx(
     if du.triggered_id() == "wbs-upload-xlsx-override-table":
         base64_file = contents.split(",")[1]
         # pylint: disable=C0325
-        error, n_records, previous, current = src.override_table(
+        error, n_records, prev_snap, curr_snap = src.override_table(
             wbs_l1, base64_file, filename
         )
         if error:
@@ -827,10 +904,7 @@ def handle_xlsx(
             return True, error_message, du.Color.DANGER, True, 0, None
         success_toast = du.make_toast(
             f'Live Table Updated with "{filename}"',
-            f"Uploaded {n_records} records.\n"
-            f"A snapshot was made of "
-            f"{f'the previous table ({du.get_human_time(previous)}) and ' if previous else ''}"
-            f"the current table ({du.get_human_time(current)}).\n",
+            _get_ingest_sucess_message(n_records, prev_snap, curr_snap),
             du.Color.SUCCESS,
         )
         return False, "", "", True, 1, success_toast

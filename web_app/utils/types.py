@@ -9,8 +9,8 @@ Record = Dict[str, DataEntry]
 Table = List[Record]
 
 
-class SnapshotPair(TypedDict):
-    """The typed dict containing a snapshot's name and timestamp."""
+class SnapshotInfo(TypedDict):
+    """The typed dict containing a snapshot's name, timestamp, and creator."""
 
     timestamp: str
     name: str

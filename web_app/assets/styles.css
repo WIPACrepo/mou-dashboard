@@ -253,6 +253,12 @@ body {
     border-color: #258835;
 }
 
+.btn-success:hover {
+    background-color: #17a2b8;
+    border-color: #17a2b8;
+    color: whitesmoke;
+}
+
 .btn-outline-success {
     color: #258835;
     border-color: #258835;
@@ -260,6 +266,10 @@ body {
 
 .btn-outline-success:hover {
     background-color: #258835;
+}
+
+.text-success {
+    color: #258835 !important;
 }
 
 

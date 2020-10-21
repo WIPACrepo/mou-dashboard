@@ -190,15 +190,22 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
         filename = self.get_argument("filename")
         creator = self.get_argument("creator")
 
-        previous_snapshot, current_snapshot = await self.dbms.ingest_xlsx(
+        # ingest
+        prev_snap, curr_snap = await self.dbms.ingest_xlsx(
             wbs_l1, base64_file, filename, creator
         )
+
+        # get info for snapshot(s)
+        curr_snap_info = await self.dbms.get_snapshot_info(wbs_l1, curr_snap)
+        prev_snap_info = None
+        if prev_snap:
+            prev_snap_info = await self.dbms.get_snapshot_info(wbs_l1, prev_snap)
 
         self.write(
             {
                 "n_records": len(await self.dbms.get_table(wbs_l1)),
-                "previous_snapshot": previous_snapshot,
-                "current_snapshot": current_snapshot,
+                "previous_snapshot": prev_snap_info,
+                "current_snapshot": curr_snap_info,
             }
         )
 
@@ -280,7 +287,7 @@ class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
         timestamps = await self.dbms.list_snapshot_timestamps(wbs_l1)
         timestamps.sort(reverse=True)
 
-        snapshots: List[types.SnapshotPair] = []
+        snapshots: List[types.SnapshotInfo] = []
         for ts in timestamps:
             info = await self.dbms.get_snapshot_info(wbs_l1, ts)
             snapshots.append(
@@ -303,9 +310,10 @@ class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
         """Handle POST."""
         name = self.get_argument("name")
         creator = self.get_argument("creator")
-        snapshot = await self.dbms.snapshot_live_collection(wbs_l1, name, creator)
+        snap_ts = await self.dbms.snapshot_live_collection(wbs_l1, name, creator)
+        snap_info = await self.dbms.get_snapshot_info(wbs_l1, snap_ts)
 
-        self.write({"timestamp": snapshot})
+        self.write(snap_info)
 
 
 # -----------------------------------------------------------------------------
