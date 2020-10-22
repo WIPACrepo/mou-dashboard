@@ -1,6 +1,11 @@
 /* Custom & Overriding CSS */
 
 
+body {
+    background-color: black !important;
+}
+
+
 /*------------------------------------------------------------------------------------*/
 /* General/Misc. */
 
@@ -17,11 +22,14 @@
 .background {
     padding-left: 5%;
     padding-right: 5%;
-    background-color: lightgrey;
+    background-color: gainsboro;
 }
 
 .content {
-    padding: 2em;
+    padding-top: 2em;
+    padding-bottom: 2em;
+    padding-left: 6em;
+    padding-right: 6em;
     background-color: whitesmoke;
 }
 
@@ -29,24 +37,56 @@
 /*------------------------------------------------------------------------------------*/
 /* Site Title */
 
+.top-container {
+    display: flex;
+    background-color: black;
+    padding-bottom: 0.5rem;
+    margin: 0;
+}
+
 .title-container {
-    flex-basis: 50%;
-    margin-left: 3rem;
+    flex-basis: 65%;
+    padding-left: 40%;
+    margin: 0;
 }
 
 .login-container {
-    flex-basis: 50%;
+    flex-basis: 35%;
     justify-content: flex-end;
+    text-transform: uppercase;
+    letter-spacing: .075em;
+    font: 12px Arial;
+    margin: 0;
+}
+
+.btn-link, .btn-link:hover {
+    color: #258835;
+    font-weight: bold !important;
+    border: 0;
+    outline: 0;
+}
+
+.btn-link:hover{
+    color: #17a2b8;
+}
+
+.user {
+    text-transform: uppercase;
+    letter-spacing: .075em;
+    font: 14px Arial;
+    color: silver !important;
+    padding-top: 1rem;
+    line-height: 1.2;
+    font-style: italic;
 }
 
 .mou-title {
     font-family: Sarpanch, sans-serif;
     font-weight: bold;
-    font-size: 65px;
+    font-size: 70px;
     letter-spacing: 0.25rem;
     line-height: 1;
-    padding-left: 1rem;
-    color: #23272B;
+    color: silver;
     align-self: flex-end;
 }
 
@@ -56,32 +96,32 @@
     text-transform: uppercase;
     font-size: 25px;
     letter-spacing: 0.3rem;
-    line-height: 1.15;
+    line-height: 1.35;
     align-self: flex-end;
     margin-bottom: 1rem;
     display: flex;
-    height: 3.35rem;
+    height: 3.75rem;
 }
 
 .dash-title {
-    color: lightgrey;
-    background-color: #23272B;
-    border-top: 2.5px solid #23272B;
+    color: black;
+    background-color: silver;
+    border-top: 2.5px solid silver;
     border-top-left-radius: .6rem;
-    border-left: 2.5px solid #23272B;
+    border-left: 2.5px solid silver;
     border-bottom-left-radius: .6rem;
-    border-bottom: 2.5px solid #23272B;
+    border-bottom: 2.5px solid silver;
     padding-left: 0.4rem;
     margin-left: 0.5rem;
 }
 
 .board-title {
-    color: #23272B;
-    border-top: 2.5px solid #23272B;
+    color: silver;
+    border-top: 2.5px solid silver;
     border-top-right-radius: .6rem;
-    border-right: 2.5px solid #23272B;
+    border-right: 2.5px solid silver;
     border-bottom-right-radius: .6rem;
-    border-bottom: 2.5px solid #23272B;
+    border-bottom: 2.5px solid silver;
     padding-left: 0.2rem;
     padding-right: 0.05rem;
 }
@@ -91,30 +131,61 @@
 /* Tabs */
 
 .tab-container {
-    height: 5vh !important;
+    height: 2.5rem !important;
     text-transform: uppercase !important;
     letter-spacing: .075rem !important;
-    font: 15px Arial !important;
-    line-height: 2.5 !important;
+    font: 13px Arial !important;
+    line-height: 2 !important;
+    padding-left: 25rem;
+    padding-right: 25rem;
+    background-color: black !important;
+    border-top: 0.5px solid silver !important;
 }
 
 .tab {
     padding: 0 !important;
-    background-color: lightgrey !important;
-    color: #23272B !important;
-    border-bottom: 2.5px solid #258835 !important;
+    background-color: black !important;
+    color: silver !important;
+    border: 0 !important;
+}
+
+.tab:hover {
+    color: #258835 !important;
+    font-weight: bold;
 }
 
 .tab--disabled {
-    color: gray !important;
+    color: #5a5a5a !important;
 }
 
 .tab--selected {
-    background-color: whitesmoke !important;
-    color: #23272B;
-    border-top: 2.5px solid #20A1B6 !important;
-    border-bottom: 0 !important;
+    color: #17a2b8 !important;
     font-weight: bold;
+    font-size: 125%;
+    line-height: 1.6 !important;
+}
+
+
+/*------------------------------------------------------------------------------------*/
+/* Institution Value */
+
+
+.institution-fields-counts-container {
+    margin-left: 10rem;
+    margin-right: 10rem;
+    display: flex;
+    justify-content: center;
+    padding: 0 !important;
+}
+
+.institution-fields-headcount {
+    margin: 1rem;
+    max-width: 16.3rem !important;
+    padding: 0;
+}
+
+.institution-fields-headcount-input {
+    max-width: inherit;
 }
 
 
@@ -127,11 +198,22 @@
 
 
 /*------------------------------------------------------------------------------------*/
-/* Dropdown DataTable Menus */
+/* DataTable */
+
+.dash-header, .dash-delete-header {
+    border-right-width: 1px !important;
+    border-left-width: 0 !important;
+    border-top-width: 0 !important;
+    border-color: lightgray !important;
+}
+
+.cell--selected {
+    background-color: white !important;
+}
 
 .Select-menu-outer {
     display : block !important; /* make visible */
-    --accent : #258835;
+    --accent : black;
     padding-left: 1.5em;
 }
 
@@ -151,8 +233,8 @@
 }
 
 .export, .show-hide { /* copy btn btn-outline-secondary */
-    color: #6c757d;
-    border-color: #6c757d;
+    color: #5a5a5a;
+    border-color: #5a5a5a;
     display: inline-block;
     font-weight: 400;
     font-size: 1rem;
@@ -164,8 +246,8 @@
 
 .export:hover, .show-hide:hover { /* copy btn btn-outline-secondary */
     color: whitesmoke;
-    background-color: #6c757d;
-    border-color: #6c757d;
+    background-color: #5a5a5a;
+    border-color: #5a5a5a;
 }
 
 
@@ -174,6 +256,43 @@
 
 .btn {
     padding: .375rem 2rem;
+}
+
+.btn-dark {
+    background-color: black;
+}
+
+.btn-dark:hover {
+    background-color: #5a5a5a;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #5a5a5a;
+    border-color: #5a5a5a;
+}
+
+.btn-success {
+    background-color: #258835;
+    border-color: #258835;
+}
+
+.btn-success:hover {
+    background-color: #17a2b8;
+    border-color: #17a2b8;
+    color: whitesmoke;
+}
+
+.btn-outline-success {
+    color: #258835;
+    border-color: #258835;
+}
+
+.btn-outline-success:hover {
+    background-color: #258835;
+}
+
+.text-success {
+    color: #258835 !important;
 }
 
 
@@ -221,9 +340,9 @@
 }
 
 .dash-spreadsheet-container table {
-    --accent: #20A1B6 !important;
-    --selected-background: #20A1B6 !important;
-    --selected-color: #20A1B6 !important;
+    --accent: #17a2b8 !important;
+    --selected-background: #17a2b8 !important;
+    --selected-color: #17a2b8 !important;
 }
 
 
@@ -239,8 +358,8 @@
 
 .snapshots label:hover {
     color: whitesmoke;
-    background-color: #6c757d;
-    border-color: #6c757d;
+    background-color: #5a5a5a;
+    border-color: #5a5a5a;
 }
 
 .snapshots input {
@@ -254,4 +373,9 @@
     height: 10px;
     width: 10px;
     margin-right: 10px;
+}
+
+.footer {
+    height: 3rem;
+    background-color: black;
 }

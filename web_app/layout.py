@@ -12,18 +12,19 @@ from dash.dependencies import Input, Output, State  # type: ignore
 from flask_login import current_user, login_user, logout_user  # type: ignore[import]
 
 from .config import app
-from .tabs import i3
+from .tabs import wbs_generic_layout
 from .utils.dash_utils import Color, triggered_id
 from .utils.login import User
 
+app.title = "MoU Dashboard"
+
 # Layout
 app.layout = html.Div(
-    className="background",
     children=[
         # Title
         dbc.Row(
             justify="start",
-            style={"display": "flex"},
+            className="top-container",
             children=[
                 dbc.Row(
                     className="title-container",
@@ -36,15 +37,7 @@ app.layout = html.Div(
                 dbc.Row(
                     className="login-container",
                     children=[
-                        html.Div(
-                            id="tab-1-logged-in-user",
-                            className="caps",
-                            style={
-                                "fontSize": 15,
-                                "font-style": "italic",
-                                "padding-top": "0.9rem",
-                            },
-                        ),
+                        html.Div(id="logged-in-user", className="user",),
                         html.Div(
                             id="login-div",
                             children=dbc.Button(
@@ -68,16 +61,18 @@ app.layout = html.Div(
         ),
         # Tabs
         dcc.Tabs(
-            id="mou-dash-tabs",
-            value="tab1",
+            id="wbs-l1",
+            value="mo",
             children=[
-                dcc.Tab(label="IceCube M&O", value="tab1",),
-                dcc.Tab(label="IceCube Upgrade", value="tab2", disabled=True),
+                dcc.Tab(label="IceCube M&O", value="mo",),
+                dcc.Tab(label="IceCube Upgrade", value="upgrade"),
             ],
         ),
         # Content
+        # TODO -- maybe add dcc.Store for tab value to persist b/n refreshes -- check on load
         html.Div(id="tab-content", className="content"),
         ###
+        html.Div(className="footer"),
         ###
         # Log In Modal
         dbc.Modal(
@@ -87,11 +82,7 @@ app.layout = html.Div(
             children=[
                 dbc.ModalBody(
                     children=[
-                        html.Div(
-                            "Institution Leader Login",
-                            className="caps",
-                            style={"margin-bottom": "2rem"},
-                        ),
+                        html.Div("Institution Leader Login", className="caps"),
                         # Email
                         dcc.Input(
                             id="login-email",
@@ -132,13 +123,11 @@ app.layout = html.Div(
 
 
 @app.callback(
-    Output("tab-content", "children"), [Input("mou-dash-tabs", "value")]
+    Output("tab-content", "children"), [Input("wbs-l1", "value")]
 )  # type: ignore
-def render_content(tab: str) -> html.Div:
+def render_content(_: str) -> html.Div:
     """Create HTML for tab."""
-    layouts = {"tab1": i3.layout}
-
-    return layouts[tab]()
+    return wbs_generic_layout.layout()
 
 
 def _logged_in_return() -> Tuple[bool, bool, bool, bool, str, str]:
@@ -155,7 +144,7 @@ def _logged_in_return() -> Tuple[bool, bool, bool, bool, str, str]:
         Output("login-bad-message", "is_open"),
         Output("login-div", "hidden"),
         Output("logout-div", "hidden"),
-        Output("tab-1-logged-in-user", "children"),
+        Output("logged-in-user", "children"),
         Output("login-password", "value"),
     ],
     [

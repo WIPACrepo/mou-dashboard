@@ -2,21 +2,18 @@
 
 
 import logging
-from typing import cast, Final, List, Optional, Tuple, TypedDict
+from typing import Any, cast, Dict, Final, List, Optional, Tuple, TypedDict
 
 import requests
+from flask_login import current_user  # type: ignore[import]
 
-from ..utils.types import Record, Table
+from ..utils.types import InstitutionValues, Record, SnapshotInfo, Table
 from . import table_config as tc
 from .utils import mou_request
 
 # constants
 ID: Final[str] = "_id"
 _OC_SUFFIX: Final[str] = "_original"
-
-
-class DataSourceException(Exception):
-    """Exception class for bad data-source requests."""
 
 
 # --------------------------------------------------------------------------------------
@@ -77,56 +74,77 @@ def _convert_table_rest_to_dash(table: Table) -> Table:
     return table
 
 
-def _is_invalid_simple_dropdown(
+def _is_valid_simple_dropdown(
     parser: tc.TableConfigParser, record: Record, field: str
 ) -> bool:
     if not parser.is_simple_dropdown(field):
-        return False
+        raise Exception(f"not simple dropdown: {field} ({record})")
 
     if record[field] not in parser.get_simple_column_dropdown_menu(field):
-        return True
+        return False
 
-    return False
+    return True
 
 
-def _is_invalid_conditional_dropdown(
+def _is_valid_conditional_dropdown(
     parser: tc.TableConfigParser, record: Record, field: str
 ) -> bool:
     if not parser.is_conditional_dropdown(field):
-        return False
+        raise Exception(f"not conditional dropdown: {field} ({record})")
 
-    parent_field, _ = parser.get_conditional_column_parent(field)
-    parent_value = cast(str, record.get(parent_field, ""))
+    try:
+        parent_value = cast(str, record[parser.get_conditional_column_parent(field)])
 
-    # missing/blank/invalid parent-fields are okay
-    if (not parent_value) or _is_invalid_simple_dropdown(parser, record, parent_field):
-        return False
+        if record[field] not in parser.get_conditional_column_dropdown_menu(
+            field, parent_value
+        ):
+            return False
+    except KeyError:
+        pass
 
-    if record[field] not in parser.get_conditional_column_dropdown_menu(
-        field, parent_value
-    ):
-        return True
-
-    return False
+    return True
 
 
 def _remove_invalid_data(
     record: Record, tconfig_cache: tc.TableConfigParser.Cache
 ) -> Record:
     """Remove items whose data aren't valid."""
-    parser = tc.TableConfigParser(tconfig_cache)
 
-    remove_keys: List[str] = []
-    for field in record:
-        if not record[field]:  # blank values are okay
-            continue
-        if _is_invalid_simple_dropdown(parser, record, field):
-            remove_keys.append(field)
-        if _is_invalid_conditional_dropdown(parser, record, field):
-            remove_keys.append(field)
+    def _remove_orphans(_record: Record) -> Record:
+        """Remove orphaned child fields."""
+        return {
+            k: v
+            for k, v in record.items()
+            if not tconfig.is_conditional_dropdown(k)
+            or tconfig.get_conditional_column_parent(k) in record
+        }
 
-    for key in remove_keys:
-        record[key] = ""
+    tconfig = tc.TableConfigParser(tconfig_cache)
+
+    # remove blank fields
+    record = {k: v for k, v in record.items() if v not in [None, ""]}
+    record = _remove_orphans(record)
+
+    # check that simple-dropdown selections are valid
+    record = {
+        k: v
+        for k, v in record.items()
+        if not tconfig.is_simple_dropdown(k)
+        or _is_valid_simple_dropdown(tconfig, record, k)
+    }
+    record = _remove_orphans(record)
+
+    # check that conditional-dropdown selections are valid
+    record = {
+        k: v
+        for k, v in record.items()
+        if not tconfig.is_conditional_dropdown(k)
+        or _is_valid_conditional_dropdown(tconfig, record, k)
+    }
+    record = _remove_orphans(record)
+
+    # add (back) missing fields as blanks
+    record.update({k: "" for k in tconfig.get_table_columns() if k not in record})
 
     return record
 
@@ -152,10 +170,11 @@ def _convert_record_dash_to_rest(
 
 
 def pull_data_table(
+    wbs_l1: str,
     institution: str = "",
     labor: str = "",
     with_totals: bool = False,
-    snapshot: str = "",
+    snapshot_ts: str = "",
     restore_id: str = "",
 ) -> Table:
     """Get table, optionally filtered by institution and/or labor.
@@ -174,7 +193,7 @@ def pull_data_table(
         Table -- the returned table
     """
 
-    class RespTableData(TypedDict):  # pylint: disable=C0115,R0903
+    class _RespTableData(TypedDict):
         table: Table
 
     # request
@@ -182,15 +201,19 @@ def pull_data_table(
         "institution": institution,
         "labor": labor,
         "total_rows": with_totals,
-        "snapshot": snapshot,
+        "snapshot": snapshot_ts,
         "restore_id": restore_id,
     }
-    response = cast(RespTableData, mou_request("GET", "/table/data", body))
+
+    response = cast(
+        _RespTableData, mou_request("GET", "/table/data", body=body, wbs_l1=wbs_l1)
+    )
     # get & convert
     return _convert_table_rest_to_dash(response["table"])
 
 
-def push_record(
+def push_record(  # pylint: disable=R0913
+    wbs_l1: str,
     record: Record,
     labor: str = "",
     institution: str = "",
@@ -212,60 +235,50 @@ def push_record(
         Record -- the returned record
     """
 
-    class RespRecord(TypedDict):  # pylint: disable=C0115,R0903
+    class _RespRecord(TypedDict):
         record: Record
 
-    try:
-        # request
-        body = {
-            "record": _convert_record_dash_to_rest(record, tconfig_cache),
-            "institution": institution,
-            "labor": labor,
-        }
-        response = cast(RespRecord, mou_request("POST", "/record", body))
-        # get & convert
-        return _convert_record_rest_to_dash(response["record"], novel=novel)
-    except requests.exceptions.HTTPError as e:
-        logging.exception(f"EXCEPTED: {e}")
-        raise DataSourceException(str(e))
+    # request
+    body = {
+        "record": _convert_record_dash_to_rest(record, tconfig_cache),
+        "institution": institution,
+        "labor": labor,
+    }
+    response = cast(
+        _RespRecord, mou_request("POST", "/record", body=body, wbs_l1=wbs_l1)
+    )
+    # get & convert
+    return _convert_record_rest_to_dash(response["record"], novel=novel)
 
 
-def delete_record(record_id: str) -> bool:
+def delete_record(wbs_l1: str, record_id: str) -> None:
     """Delete the record, return True if successful."""
-    try:
-        body = {"record_id": record_id}
-        mou_request("DELETE", "/record", body)
-        return True
-    except requests.exceptions.HTTPError as e:
-        logging.exception(f"EXCEPTED: {e}")
-        return False
+    body = {"record_id": record_id}
+    mou_request("DELETE", "/record", body=body, wbs_l1=wbs_l1)
 
 
-def list_snapshot_timestamps() -> List[str]:
+def list_snapshots(wbs_l1: str) -> List[SnapshotInfo]:
     """Get the list of snapshots."""
 
-    class RespSnapshotsTimestamps(TypedDict):  # pylint: disable=C0115,R0903
-        timestamps: List[str]
+    class _RespSnapshots(TypedDict):
+        snapshots: List[SnapshotInfo]
 
     response = cast(
-        RespSnapshotsTimestamps, mou_request("GET", "/snapshots/timestamps")
+        _RespSnapshots, mou_request("GET", "/snapshots/list", wbs_l1=wbs_l1),
     )
+    return sorted(response["snapshots"], key=lambda i: i["timestamp"], reverse=True)
 
-    return sorted(response["timestamps"], reverse=True)
 
-
-def create_snapshot() -> str:
+def create_snapshot(wbs_l1: str, name: str) -> SnapshotInfo:
     """Create a snapshot."""
-
-    class RespSnapshotsMake(TypedDict):  # pylint: disable=C0115,R0903
-        timestamp: str
-
-    response = cast(RespSnapshotsMake, mou_request("POST", "/snapshots/make"))
-
-    return response["timestamp"]
+    body = {"creator": current_user.name, "name": name}
+    response = mou_request("POST", "/snapshots/make", body=body, wbs_l1=wbs_l1)
+    return cast(SnapshotInfo, response)
 
 
-def override_table(base64_file: str, filename: str) -> Tuple[str, int, str, str]:
+def override_table(
+    wbs_l1: str, base64_file: str, filename: str
+) -> Tuple[int, Optional[SnapshotInfo], Optional[SnapshotInfo]]:
     """Ingest .xlsx file as the new live collection.
 
     Arguments:
@@ -273,26 +286,44 @@ def override_table(base64_file: str, filename: str) -> Tuple[str, int, str, str]
         filename {str} -- the name of the file
 
     Returns:
-        str -- error message ('' if successful)
         int -- number of records added in the table
         str -- snapshot name of the previous live table ('' if no prior table)
         str -- snapshot name of the current live table
     """
 
-    class RespTableData(TypedDict):  # pylint: disable=C0115,R0903
+    class _RespTableData(TypedDict):
         n_records: int
-        previous_snapshot: str
-        current_snapshot: str
+        previous_snapshot: SnapshotInfo
+        current_snapshot: SnapshotInfo
 
-    try:
-        body = {"base64_file": base64_file, "filename": filename}
-        response = cast(RespTableData, mou_request("POST", "/table/data", body))
-        return (
-            "",
-            response["n_records"],
-            response["previous_snapshot"],
-            response["current_snapshot"],
-        )
-    except requests.exceptions.HTTPError as e:
-        logging.exception(f"EXCEPTED: {e}")
-        return str(e), 0, "", ""
+    body = {
+        "base64_file": base64_file,
+        "filename": filename,
+        "creator": current_user.name,
+    }
+    response = cast(
+        _RespTableData, mou_request("POST", "/table/data", body=body, wbs_l1=wbs_l1)
+    )
+    return (
+        response["n_records"],
+        response["previous_snapshot"],
+        response["current_snapshot"],
+    )
+
+
+def pull_institution_values(
+    wbs_l1: str, snapshot_timestamp: str, institution: str
+) -> InstitutionValues:
+    """Get the institution's values."""
+    body = {"institution": institution, "snapshot_timestamp": snapshot_timestamp}
+    response = mou_request("GET", "/institution/values", body=body, wbs_l1=wbs_l1)
+    return cast(InstitutionValues, response)
+
+
+def push_institution_values(
+    wbs_l1: str, institution: str, values: InstitutionValues
+) -> None:
+    """Push the institution's values."""
+    body = {"institution": institution}
+    body.update(cast(Dict[str, Any], values))
+    _ = mou_request("POST", "/institution/values", body=body, wbs_l1=wbs_l1)

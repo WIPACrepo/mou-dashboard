@@ -34,7 +34,7 @@ EXCLUDE_DBS = [
 
 EXCLUDE_COLLECTIONS = ["system.indexes"]
 
-SNAPSHOTS_DB = "SnapshotsDB"
+WBS_L1_VALUES = ["mo", "upgrade"]
 
 
 def log_environment(config_env: Dict[str, Any]) -> None:

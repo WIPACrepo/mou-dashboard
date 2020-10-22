@@ -9,20 +9,21 @@ import coloredlogs  # type: ignore[import]
 from web_app.config import app, CONFIG, update_config_global
 
 
-def main() -> None:
+def main(debug: bool) -> None:
     """Start up application context."""
     update_config_global()
 
     # Run Server
-    app.run_server(debug=True, host="localhost", port=CONFIG["WEB_SERVER_PORT"])
+    app.run_server(debug=debug, host="localhost", port=CONFIG["WEB_SERVER_PORT"])
 
 
 if __name__ == "__main__":
     # Parse Args
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
+    parser.add_argument("--no-debug", default=False, action="store_true")
     args = parser.parse_args()
 
     # Log
     coloredlogs.install(level=getattr(logging, args.log.upper()))
-    main()
+    main(not args.no_debug)

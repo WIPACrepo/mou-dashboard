@@ -1,12 +1,31 @@
 """Custom type definitions."""
 
 
-from typing import Collection, Dict, List, Optional, Union
+from typing import Collection, Dict, List, Optional, TypedDict, Union
 
 # Data Source types
 DataEntry = Union[int, float, str]  # just data
 Record = Dict[str, DataEntry]
 Table = List[Record]
+
+
+class SnapshotInfo(TypedDict):
+    """The typed dict containing a snapshot's name, timestamp, and creator."""
+
+    timestamp: str
+    name: str
+    creator: str
+
+
+class InstitutionValues(TypedDict):
+    """Values for an institution."""
+
+    phds_authors: int
+    faculty: int
+    scientists_post_docs: int
+    grad_students: int
+    text: str
+
 
 # Private
 _StrDict = Dict[str, str]  # Ceci n'est pas une pipe
