@@ -301,7 +301,7 @@ def layout() -> html.Div:
                 ],
             ),
             #
-            #
+            # Admin Zone
             html.Div(
                 id="wbs-admin-zone-div",
                 children=[
@@ -318,8 +318,58 @@ def layout() -> html.Div:
                     ),
                     html.Hr(),
                     # Summary Table
-                    dbc.Button(id="wbs-summary-table-recalculate", n_clicks=0),
-                    dash_table.DataTable(id="wbs-summary-table", editable=False),
+                    dcc.Loading(
+                        type="dot",
+                        color="#17a2b8",
+                        fullscreen=True,
+                        style={"background": "transparent"},  # float atop all
+                        children=[
+                            dbc.Button(
+                                id="wbs-summary-table-recalculate",
+                                n_clicks=0,
+                                block=True,
+                                children="Recalculate Summary",
+                                style={"margin-bottom": "1rem"},
+                            ),
+                            dash_table.DataTable(
+                                id="wbs-summary-table",
+                                editable=False,
+                                style_table={
+                                    "overflowX": "auto",
+                                    "overflowY": "auto",
+                                    "padding-left": "1em",
+                                },
+                                style_header={
+                                    "backgroundColor": "black",
+                                    "color": "whitesmoke",
+                                    "whiteSpace": "normal",
+                                    "fontWeight": "normal",
+                                    "height": "auto",
+                                    "fontSize": "10px",
+                                    "lineHeight": "10px",
+                                    "wordBreak": "break-all",
+                                },
+                                style_cell={
+                                    "textAlign": "left",
+                                    "fontSize": 14,
+                                    "font-family": "sans-serif",
+                                    "padding-left": "0.5em",
+                                    "minWidth": "5px",
+                                    "width": "5px",
+                                    "maxWidth": "10px",
+                                },
+                                style_data={
+                                    "whiteSpace": "normal",
+                                    "height": "auto",
+                                    "lineHeight": "20px",
+                                    "wordBreak": "break-all",
+                                },
+                                export_format="xlsx",
+                                export_headers="display",
+                                merge_duplicate_headers=True,
+                            ),
+                        ],
+                    ),
                 ],
                 hidden=True,
             ),
