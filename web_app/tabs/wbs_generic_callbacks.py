@@ -776,19 +776,20 @@ def handle_xlsx(
 
     if du.triggered_id() == "wbs-upload-xlsx-override-table":
         base64_file = contents.split(",")[1]
-        # pylint: disable=C0325
-        error, n_records, prev_snap, curr_snap = src.override_table(
-            wbs_l1, base64_file, filename
-        )
-        if error:
-            error_message = f'Error overriding "{filename}" ({error})'
+        try:
+            n_records, prev_snap, curr_snap = src.override_table(
+                wbs_l1, base64_file, filename
+            )
+            success_toast = du.make_toast(
+                f'Live Table Updated with "{filename}"',
+                _get_ingest_sucess_message(n_records, prev_snap, curr_snap),
+                du.Color.SUCCESS,
+            )
+            return False, "", "", True, 1, success_toast
+
+        except DataSourceException as e:
+            error_message = f'Error overriding "{filename}" ({e})'
             return True, error_message, du.Color.DANGER, True, 0, None
-        success_toast = du.make_toast(
-            f'Live Table Updated with "{filename}"',
-            _get_ingest_sucess_message(n_records, prev_snap, curr_snap),
-            du.Color.SUCCESS,
-        )
-        return False, "", "", True, 1, success_toast
 
     raise Exception(f"Unaccounted for trigger {du.triggered_id()}")
 
@@ -803,7 +804,7 @@ def handle_xlsx(
         Output("wbs-data-table", "row_deletable"),
         Output("wbs-filter-inst", "disabled"),
         Output("wbs-filter-inst", "value"),
-        Output("wbs-upload-xlsx-launch-modal-button-div", "hidden"),
+        Output("wbs-admin-zone-div", "hidden"),
         Output("wbs-phds-authors", "disabled"),
         Output("wbs-faculty", "disabled"),
         Output("wbs-scientists-post-docs", "disabled"),

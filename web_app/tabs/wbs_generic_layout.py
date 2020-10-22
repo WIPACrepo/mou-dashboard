@@ -301,11 +301,12 @@ def layout() -> html.Div:
                 ],
             ),
             #
-            # Upload/Override XLSX
+            #
             html.Div(
-                id="wbs-upload-xlsx-launch-modal-button-div",
+                id="wbs-admin-zone-div",
                 children=[
                     html.Hr(),
+                    # Upload/Override XLSX
                     dbc.Button(
                         "Override Live Table with .xlsx",
                         id="wbs-upload-xlsx-launch-modal-button",
@@ -315,6 +316,10 @@ def layout() -> html.Div:
                         disabled=False,
                         style={"margin-bottom": "1rem"},
                     ),
+                    html.Hr(),
+                    # Summary Table
+                    dbc.Button(id="wbs-summary-table-recalculate", n_clicks=0),
+                    dash_table.DataTable(id="wbs-summary-table", editable=False),
                 ],
                 hidden=True,
             ),
