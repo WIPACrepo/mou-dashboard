@@ -12,7 +12,7 @@ from dash.dependencies import Input, Output, State  # type: ignore
 from flask_login import current_user, login_user, logout_user  # type: ignore[import]
 
 from .config import app
-from .tabs import wbs_generic
+from .tabs import wbs_generic_layout
 from .utils.dash_utils import Color, triggered_id
 from .utils.login import User
 
@@ -127,7 +127,7 @@ app.layout = html.Div(
 )  # type: ignore
 def render_content(_: str) -> html.Div:
     """Create HTML for tab."""
-    return wbs_generic.layout()
+    return wbs_generic_layout.layout()
 
 
 def _logged_in_return() -> Tuple[bool, bool, bool, bool, str, str]:
