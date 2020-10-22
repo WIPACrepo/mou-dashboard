@@ -174,9 +174,14 @@ class MoUMotorClient:
         logging.debug(f"xlsx table has {len(table)} records ({snap_db=}).")
 
         # snapshot, ingest, snapshot
-        previous_snap = await self.snapshot_live_collection(
-            snap_db, "State Before Table Replacement", f"{creator} (auto)"
-        )
+        try:
+            previous_snap = await self.snapshot_live_collection(
+                snap_db, "State Before Table Replacement", f"{creator} (auto)"
+            )
+        except web.HTTPError as e:
+            if e.status_code != 422:
+                raise
+            previous_snap = ""
         await self._create_live_collection(snap_db, table, creator)
         current_snap = await self.snapshot_live_collection(
             snap_db, f"Replacement Table ({filename})", creator
@@ -205,6 +210,8 @@ class MoUMotorClient:
         """Get the name of the snapshot."""
         logging.debug(f"Getting Snapshot Name ({snap_db=}, {snap_coll=})...")
 
+        await self._check_database_state(snap_db)
+
         doc = await self._get_supplemental_doc(snap_db, snap_coll)
 
         logging.info(f"Snapshot Name [{doc['name']}] ({snap_db=}, {snap_coll=})...")
@@ -222,6 +229,8 @@ class MoUMotorClient:
             f"Upserting Institution's Values ({snap_db=}, {institution=}, {vals=})..."
         )
 
+        await self._check_database_state(snap_db)
+
         doc = await self._get_supplemental_doc(snap_db, _LIVE_COLLECTION)
         doc["snapshot_institution_values"].update({institution: vals})
         await self._set_supplemental_doc(snap_db, _LIVE_COLLECTION, doc)
@@ -230,11 +239,31 @@ class MoUMotorClient:
             f"Upserted Institution's Values ({snap_db=}, {institution=}, {vals=})."
         )
 
+    async def _check_database_state(self, snap_db: str) -> None:
+        """Raise 422 if there are no collections."""
+        if await self._list_collection_names(snap_db):
+            return
+
+        logging.error(f"Snapshot Database has no collections ({snap_db=}).")
+        raise web.HTTPError(
+            422, reason=f"Snapshot Database has no collections ({snap_db=}).",
+        )
+
     async def get_institution_values(
         self, snap_db: str, snapshot_timestamp: str, institution: str,
     ) -> InstitutionValues:
         """Get the values for an institution."""
         logging.debug(f"Getting Institution's Values ({snap_db=}, {institution=})...")
+
+        await self._check_database_state(snap_db)
+
+        vals: InstitutionValues = {
+            "phds_authors": 0,
+            "faculty": 0,
+            "scientists_post_docs": 0,
+            "grad_students": 0,
+            "text": "",
+        }
 
         if not snapshot_timestamp:
             snapshot_timestamp = _LIVE_COLLECTION
@@ -247,13 +276,7 @@ class MoUMotorClient:
             return vals
         except KeyError:
             logging.info(f"Institution has no values ({snap_db=}, {institution=}).")
-            return {
-                "phds_authors": 0,
-                "faculty": 0,
-                "scientists_post_docs": 0,
-                "grad_students": 0,
-                "text": "",
-            }
+            return vals
 
     async def _get_supplemental_doc(
         self, snap_db: str, snap_coll: str
@@ -374,6 +397,8 @@ class MoUMotorClient:
 
         logging.debug(f"Getting from {snap_coll} ({snap_db=})...")
 
+        await self._check_database_state(snap_db)
+
         query = {}
         if labor:
             query[self._mongofy_key_name(tc.LABOR_CAT)] = labor
@@ -402,6 +427,8 @@ class MoUMotorClient:
         Update if it already exists.
         """
         logging.debug(f"Upserting {record} ({snap_db=})...")
+
+        await self._check_database_state(snap_db)
 
         record = self._mongofy_record(record)
         coll_obj = self._client[snap_db][_LIVE_COLLECTION]
@@ -435,6 +462,8 @@ class MoUMotorClient:
         """Mark the record as deleted."""
         logging.debug(f"Deleting {record_id} ({snap_db=})...")
 
+        await self._check_database_state(snap_db)
+
         record = await self._set_is_deleted_status(snap_db, record_id, True)
 
         logging.info(f"Deleted {record} ({snap_db=}).")
@@ -446,13 +475,9 @@ class MoUMotorClient:
         """Create a snapshot collection by copying the live collection."""
         logging.debug(f"Snapshotting ({snap_db=}, {creator=})...")
 
-        table = await self.get_table(snap_db, _LIVE_COLLECTION)
-        if not table:
-            logging.info(
-                f"Snapshot aborted -- no previous live collection ({snap_db=}, {creator=})."
-            )
-            return ""
+        await self._check_database_state(snap_db)
 
+        table = await self.get_table(snap_db, _LIVE_COLLECTION)
         supplemental_doc = await self._get_supplemental_doc(snap_db, _LIVE_COLLECTION)
 
         snap_coll = str(time.time())
@@ -472,6 +497,8 @@ class MoUMotorClient:
         """Return a list of the snapshot collections."""
         logging.info(f"Getting Snapshot Timestamps ({snap_db=})...")
 
+        await self._check_database_state(snap_db)
+
         snapshots = [
             c
             for c in await self._list_collection_names(snap_db)
@@ -484,6 +511,8 @@ class MoUMotorClient:
     async def restore_record(self, snap_db: str, record_id: str) -> None:
         """Mark the record as not deleted."""
         logging.debug(f"Restoring {record_id} ({snap_db=})...")
+
+        await self._check_database_state(snap_db)
 
         record = await self._set_is_deleted_status(snap_db, record_id, False)
 
