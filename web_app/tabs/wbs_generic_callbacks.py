@@ -1,4 +1,4 @@
-"""Tab-toggled layout for a specified WBS."""
+"""Callbacks for a specified WBS layout."""
 
 
 import logging
@@ -832,12 +832,12 @@ def login_actions(
             False,  # row NOT deletable
             False,  # filter-inst NOT disabled
             current_user.institution if current_user.is_authenticated else "",
-            True,  # upload-xlsx-override-div hidden
-            True,
-            True,
-            True,
-            True,
-            True,
+            True,  # wbs-admin-zone-div hidden
+            True,  # institution value disabled
+            True,  # institution value disabled
+            True,  # institution value disabled
+            True,  # institution value disabled
+            True,  # institution value disabled
         )
 
     if current_user.is_authenticated:
@@ -850,12 +850,12 @@ def login_actions(
             True,  # row is deletable
             not current_user.is_admin,  # filter-inst disabled if user is not an admin
             current_user.institution,
-            not current_user.is_admin,  # upload-xlsx-override-div hidden if user is not an admin
-            False,
-            False,
-            False,
-            False,
-            False,
+            not current_user.is_admin,  # wbs-admin-zone-div hidden if user is not an admin
+            False,  # institution value NOT disabled
+            False,  # institution value NOT disabled
+            False,  # institution value NOT disabled
+            False,  # institution value NOT disabled
+            False,  # institution value NOT disabled
         )
     return (
         False,  # data-table NOT editable
@@ -866,12 +866,12 @@ def login_actions(
         False,  # row NOT deletable
         False,  # filter-inst NOT disabled
         "",
-        True,  # upload-xlsx-override-div hidden
-        True,
-        True,
-        True,
-        True,
-        True,
+        True,  # wbs-admin-zone-div hidden
+        True,  # institution value disabled
+        True,  # institution value disabled
+        True,  # institution value disabled
+        True,  # institution value disabled
+        True,  # institution value disabled
     )
 
 
