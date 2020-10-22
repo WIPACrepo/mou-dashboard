@@ -1,6 +1,7 @@
 """Routes handlers for the MoU REST API server interface."""
 
 
+import json
 from typing import Any, List, Optional
 
 import tornado.web
@@ -72,16 +73,15 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
         choices: Optional[List[Any]] = None,
     ) -> Any:
         """Return the argument by JSON-decoding the request body."""
-        if self.request.body:
-            try:
-                val = json_decode(self.request.body)[name]  # type: ignore[no-untyped-call]
-                if strip and isinstance(val, tornado.util.unicode_type):
-                    val = val.strip()
-                return _qualify_argument(type_, choices, val)
-            except KeyError:
-                # Required -> raise 400
-                if isinstance(default, NoDefualtValue):
-                    raise tornado.web.MissingArgumentError(name)
+        try:
+            val = json_decode(self.request.body)[name]  # type: ignore[no-untyped-call]
+            if strip and isinstance(val, tornado.util.unicode_type):
+                val = val.strip()
+            return _qualify_argument(type_, choices, val)
+        except (KeyError, json.decoder.JSONDecodeError):
+            # Required -> raise 400
+            if isinstance(default, NoDefualtValue):
+                raise tornado.web.MissingArgumentError(name)
 
         # Else:
         # Optional / Default
