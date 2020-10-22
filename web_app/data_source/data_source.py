@@ -16,10 +16,6 @@ ID: Final[str] = "_id"
 _OC_SUFFIX: Final[str] = "_original"
 
 
-class DataSourceException(Exception):
-    """Exception class for bad data-source requests."""
-
-
 # --------------------------------------------------------------------------------------
 # Data/Table-Conversion Functions
 
@@ -208,6 +204,7 @@ def pull_data_table(
         "snapshot": snapshot_ts,
         "restore_id": restore_id,
     }
+
     response = cast(
         _RespTableData, mou_request("GET", "/table/data", body=body, wbs_l1=wbs_l1)
     )
@@ -241,34 +238,23 @@ def push_record(  # pylint: disable=R0913
     class _RespRecord(TypedDict):
         record: Record
 
-    try:
-        # request
-        body = {
-            "record": _convert_record_dash_to_rest(record, tconfig_cache),
-            "institution": institution,
-            "labor": labor,
-        }
-        response = cast(
-            _RespRecord, mou_request("POST", "/record", body=body, wbs_l1=wbs_l1)
-        )
-        # get & convert
-        return _convert_record_rest_to_dash(response["record"], novel=novel)
-
-    except requests.exceptions.HTTPError as e:
-        logging.exception(f"EXCEPTED: {e}")
-        raise DataSourceException(str(e))
+    # request
+    body = {
+        "record": _convert_record_dash_to_rest(record, tconfig_cache),
+        "institution": institution,
+        "labor": labor,
+    }
+    response = cast(
+        _RespRecord, mou_request("POST", "/record", body=body, wbs_l1=wbs_l1)
+    )
+    # get & convert
+    return _convert_record_rest_to_dash(response["record"], novel=novel)
 
 
-def delete_record(wbs_l1: str, record_id: str) -> bool:
+def delete_record(wbs_l1: str, record_id: str) -> None:
     """Delete the record, return True if successful."""
-    try:
-        body = {"record_id": record_id}
-        mou_request("DELETE", "/record", body=body, wbs_l1=wbs_l1)
-        return True
-
-    except requests.exceptions.HTTPError as e:
-        logging.exception(f"EXCEPTED: {e}")
-        return False
+    body = {"record_id": record_id}
+    mou_request("DELETE", "/record", body=body, wbs_l1=wbs_l1)
 
 
 def list_snapshots(wbs_l1: str) -> List[SnapshotInfo]:
@@ -280,20 +266,14 @@ def list_snapshots(wbs_l1: str) -> List[SnapshotInfo]:
     response = cast(
         _RespSnapshots, mou_request("GET", "/snapshots/list", wbs_l1=wbs_l1),
     )
-
     return sorted(response["snapshots"], key=lambda i: i["timestamp"], reverse=True)
 
 
 def create_snapshot(wbs_l1: str, name: str) -> SnapshotInfo:
     """Create a snapshot."""
-    try:
-        body = {"creator": current_user.name, "name": name}
-        response = mou_request("POST", "/snapshots/make", body=body, wbs_l1=wbs_l1)
-        return cast(SnapshotInfo, response)
-
-    except requests.exceptions.HTTPError as e:
-        logging.exception(f"EXCEPTED: {e}")
-        raise DataSourceException(str(e))
+    body = {"creator": current_user.name, "name": name}
+    response = mou_request("POST", "/snapshots/make", body=body, wbs_l1=wbs_l1)
+    return cast(SnapshotInfo, response)
 
 
 def override_table(
@@ -332,6 +312,7 @@ def override_table(
             response["previous_snapshot"],
             response["current_snapshot"],
         )
+
     except requests.exceptions.HTTPError as e:
         logging.exception(f"EXCEPTED: {e}")
         return str(e), 0, None, None
@@ -341,26 +322,15 @@ def pull_institution_values(
     wbs_l1: str, snapshot_timestamp: str, institution: str
 ) -> InstitutionValues:
     """Get the institution's values."""
-    try:
-        body = {"institution": institution, "snapshot_timestamp": snapshot_timestamp}
-        response = mou_request("GET", "/institution/values", body=body, wbs_l1=wbs_l1)
-        return cast(InstitutionValues, response)
-
-    except requests.exceptions.HTTPError as e:
-        logging.exception(f"EXCEPTED: {e}")
-        raise DataSourceException(str(e))
+    body = {"institution": institution, "snapshot_timestamp": snapshot_timestamp}
+    response = mou_request("GET", "/institution/values", body=body, wbs_l1=wbs_l1)
+    return cast(InstitutionValues, response)
 
 
 def push_institution_values(
     wbs_l1: str, institution: str, values: InstitutionValues
 ) -> None:
     """Push the institution's values."""
-    try:
-        body = {"institution": institution}
-        body.update(cast(Dict[str, Any], values))
-        _ = mou_request("POST", "/institution/values", body=body, wbs_l1=wbs_l1)
-        return
-
-    except requests.exceptions.HTTPError as e:
-        logging.exception(f"EXCEPTED: {e}")
-        raise DataSourceException(str(e))
+    body = {"institution": institution}
+    body.update(cast(Dict[str, Any], values))
+    _ = mou_request("POST", "/institution/values", body=body, wbs_l1=wbs_l1)

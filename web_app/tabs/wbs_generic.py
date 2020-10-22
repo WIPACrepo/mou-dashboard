@@ -1,7 +1,8 @@
 """Tab-toggled layout for a specified WBS."""
 
 
-from typing import cast, Dict, List, Optional, Tuple
+import logging
+from typing import cast, Dict, List, Optional, Tuple, Union
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -13,6 +14,7 @@ from flask_login import current_user  # type: ignore[import]
 from ..config import app
 from ..data_source import data_source as src
 from ..data_source import table_config as tc
+from ..data_source.utils import DataSourceException
 from ..utils import dash_utils as du
 from ..utils.types import (
     DataEntry,
@@ -348,9 +350,11 @@ def layout() -> html.Div:
                 id="wbs-table-config-cache", storage_type="memory", data=tconfig.config,
             ),
             # for caching the current snapshot
-            dcc.Store(id="wbs-snapshot-current-ts", storage_type="memory"),
+            dcc.Store(id="wbs-snapshot-current-ts", storage_type="memory", data=""),
             # for caching all snapshots' infos
             dcc.Store(id="wbs-all-snapshot-infos", storage_type="memory"),
+            # for caching the visible Institution and its values
+            dcc.Store(id="wbs-previous-inst-and-vals", storage_type="memory"),
             #
             # Dummy Divs -- for adding dynamic toasts, dialogs, etc.
             html.Div(id="wbs-toast-via-exterior-control-div"),
@@ -429,7 +433,7 @@ def _add_new_data(  # pylint: disable=R0913
         toast = du.make_toast(
             "Record Added", f"id: {new_record[src.ID]}", du.Color.SUCCESS, 5
         )
-    except src.DataSourceException:
+    except DataSourceException:
         toast = du.make_toast("Failed to Make Record", du.REFRESH_MSG, du.Color.DANGER)
 
     return table, toast
@@ -491,6 +495,11 @@ def table_data_exterior_controls(
     "add new" changes MoU DS data. The others simply change what's
     visible to the user.
     """
+    logging.warning("table_data_exterior_controls()")
+    logging.warning(
+        f"Snapshot: {snapshot_ts=} {'' if snapshot_ts else '(Live Collection)'}"
+    )
+
     table: Table = []
     toast: dbc.Toast = None
 
@@ -501,31 +510,45 @@ def table_data_exterior_controls(
 
     # Add New Data
     if du.triggered_id() == "wbs-new-data-button":
-        table, toast = _add_new_data(
-            wbs_l1, state_table, state_columns, labor, institution, state_tconfig_cache
-        )
+        if not snapshot_ts:  # are we looking at a snapshot?
+            table, toast = _add_new_data(
+                wbs_l1,
+                state_table,
+                state_columns,
+                labor,
+                institution,
+                state_tconfig_cache,
+            )
+
     # OR Restore a Record and Pull Table (optionally filtered)
     elif du.triggered_id() == "wbs-undo-last-delete":
-        table = src.pull_data_table(
-            wbs_l1,
-            institution=institution,
-            labor=labor,
-            with_totals=show_totals,
-            snapshot_ts=snapshot_ts,
-            restore_id=state_deleted_id,
-        )
-        toast = du.make_toast(
-            "Record Restored", f"id: {state_deleted_id}", du.Color.SUCCESS, 5
-        )
+        if not snapshot_ts:  # are we looking at a snapshot?
+            try:
+                table = src.pull_data_table(
+                    wbs_l1,
+                    institution=institution,
+                    labor=labor,
+                    with_totals=show_totals,
+                    restore_id=state_deleted_id,
+                )
+                toast = du.make_toast(
+                    "Record Restored", f"id: {state_deleted_id}", du.Color.SUCCESS, 5
+                )
+            except DataSourceException:
+                table = []
+
     # OR Just Pull Table (optionally filtered)
     else:
-        table = src.pull_data_table(
-            wbs_l1,
-            institution=institution,
-            labor=labor,
-            with_totals=show_totals,
-            snapshot_ts=snapshot_ts,
-        )
+        try:
+            table = src.pull_data_table(
+                wbs_l1,
+                institution=institution,
+                labor=labor,
+                with_totals=show_totals,
+                snapshot_ts=snapshot_ts,
+            )
+        except DataSourceException:
+            table = []
 
     return (
         table,
@@ -554,7 +577,7 @@ def _push_modified_records(
     for record in modified_records:
         try:
             src.push_record(wbs_l1, record, tconfig_cache=state_tconfig_cache)
-        except src.DataSourceException:
+        except DataSourceException:
             pass
 
     ids = [c[src.ID] for c in modified_records]
@@ -577,11 +600,11 @@ def _delete_deleted_records(
     failures = []
     record = None
     for record in delete_these:
-        # try to delete
-        if not src.delete_record(wbs_l1, cast(str, record[src.ID])):
-            failures.append(record)
-        else:
+        try:
+            src.delete_record(wbs_l1, cast(str, record[src.ID]))
             last_deletion = cast(str, record[src.ID])
+        except DataSourceException:
+            failures.append(record)
 
     # make toast message if any records failed to be deleted
     if failures:
@@ -607,6 +630,7 @@ def _delete_deleted_records(
         State("wbs-data-table", "data_previous"),
         State("wbs-table-exterior-control-last-timestamp", "data"),
         State("wbs-table-config-cache", "data"),
+        State("wbs-snapshot-current-ts", "data"),
     ],
     prevent_initial_call=True,  # triggered instead by Input("wbs-l1", "value")
 )
@@ -619,6 +643,7 @@ def table_data_interior_controls(
     previous_table: Table,
     table_exterior_control_ts: str,
     state_tconfig_cache: tc.TableConfigParser.Cache,
+    state_snap_current_ts: str,
 ) -> Tuple[Table, dbc.Toast, str, str, bool]:
     """Interior control signaled that the table should be updated.
 
@@ -629,10 +654,16 @@ def table_data_interior_controls(
     This is unnecessary, so the timestamp of table_data_exterior_controls()'s
     last call will be checked to determine if that was indeed the case.
     """
+    logging.warning("table_data_interior_controls()")
+
     updated_message = f"Last Refreshed: {du.get_human_now()}"
 
     # On page load OR table was just updated via exterior controls
-    if (not previous_table) or du.was_recent(table_exterior_control_ts):
+    if (
+        state_snap_current_ts
+        or (not previous_table)
+        or du.was_recent(table_exterior_control_ts)
+    ):
         return current_table, None, updated_message, "", False
 
     # Push (if any)
@@ -661,6 +692,8 @@ def table_columns(
     state_tconfig_cache: tc.TableConfigParser.Cache,
 ) -> List[Dict[str, object]]:
     """Grab table columns."""
+    logging.warning("table_columns()")
+
     tconfig = tc.TableConfigParser(state_tconfig_cache)
 
     def _presentation(col_name: str) -> str:
@@ -703,6 +736,8 @@ def table_dropdown(
     state_tconfig_cache: tc.TableConfigParser.Cache,
 ) -> Tuple[TDDown, TDDownCond]:
     """Grab table dropdowns."""
+    logging.warning("table_dropdown()")
+
     simple_dropdowns: TDDown = {}
     conditional_dropdowns: TDDownCond = []
     tconfig = tc.TableConfigParser(state_tconfig_cache)
@@ -774,7 +809,7 @@ def handle_load_snapshot(
     _: int,
     __: int,
     ___: int,
-    snapshot_ts: str,
+    snapshot_ts_selection: str,
     # L1 value (state)
     wbs_l1: str,
     # other state(s)
@@ -788,14 +823,18 @@ def handle_load_snapshot(
     Must be one function b/c all triggers control whether the modal is
     open.
     """
-    #
+    logging.warning("handle_load_snapshot()")
+
     # Load Live Table
     if du.triggered_id() in ["wbs-view-live-btn-modal", "wbs-view-live-btn"]:
-        return False, [], [], state_snap_current_ts, False, state_all_snap_infos
+        return False, [], [], "", False, state_all_snap_infos
 
     # Load Modal List of Snapshots
     if du.triggered_id() == "wbs-load-snapshot-button":
-        snapshots = src.list_snapshots(wbs_l1)
+        try:
+            snapshots = src.list_snapshots(wbs_l1)
+        except DataSourceException:
+            snapshots = []
         snapshots_options = [
             {
                 "label": f"{snap['name']}  [created by {snap['creator']} on {du.get_human_time(snap['timestamp'])}]",
@@ -807,15 +846,15 @@ def handle_load_snapshot(
         return True, snapshots_options, [], state_snap_current_ts, False, all_snap_infos
 
     # Selected a Snapshot
-    info = state_all_snap_infos[snapshot_ts]
+    info = state_all_snap_infos[snapshot_ts_selection]
     label_lines = [
         html.Label(f"Viewing Snapshot: \"{info['name']}\""),
         html.Label(
-            f"(created by {info['creator']} on {du.get_human_time(snapshot_ts)})",
+            f"(created by {info['creator']} on {du.get_human_time(snapshot_ts_selection)})",
             style={"font-size": "75%", "font-style": "italic"},
         ),
     ]
-    return False, [], label_lines, snapshot_ts, True, state_all_snap_infos
+    return False, [], label_lines, snapshot_ts_selection, True, state_all_snap_infos
 
 
 @app.callback(  # type: ignore[misc]
@@ -829,7 +868,11 @@ def handle_load_snapshot(
         Input("wbs-name-snapshot-btn", "n_clicks"),
         Input("wbs-name-snapshot-input", "n_submit"),
     ],
-    [State("wbs-l1", "value"), State("wbs-name-snapshot-input", "value")],
+    [
+        State("wbs-l1", "value"),
+        State("wbs-name-snapshot-input", "value"),
+        State("wbs-snapshot-current-ts", "data"),
+    ],
     prevent_initial_call=True,
 )
 def handle_make_snapshot(
@@ -841,8 +884,14 @@ def handle_make_snapshot(
     wbs_l1: str,
     # other state(s)
     name: str,
+    state_snap_current_ts: str,
 ) -> Tuple[bool, dbc.Toast, str]:
     """Handle the naming and creating of a snapshot."""
+    logging.warning("handle_make_snapshot()")
+
+    if state_snap_current_ts:  # are we looking at a snapshot?
+        return False, None, ""
+
     if du.triggered_id() == "wbs-make-snapshot-button":
         return True, None, ""
 
@@ -859,7 +908,7 @@ def handle_make_snapshot(
                 du.make_toast("Snapshot Created", message, du.Color.SUCCESS, 5),
                 du.Color.SUCCESS,
             )
-        except src.DataSourceException:
+        except DataSourceException:
             return (
                 False,
                 du.make_toast(
@@ -891,7 +940,6 @@ def handle_make_snapshot(
         State("wbs-l1", "value"),
         State("wbs-snapshot-current-ts", "data"),
         State("wbs-filter-inst", "value"),
-        State("wbs-data-table", "data"),
     ],
     prevent_initial_call=True,
 )
@@ -903,27 +951,31 @@ def get_institution_values(
     # other state(s)
     state_snap_current_ts: str,
     state_institution: str,
-    state_table: Table,
 ) -> Tuple[int, int, int, int, str]:
     """Get the institution's values."""
-    if not state_institution or not current_user.is_authenticated or not state_table:
+    logging.warning("get_institution_values()")
+
+    if not state_institution or not current_user.is_authenticated:
         return 0, 0, 0, 0, ""
 
-    values = src.pull_institution_values(
-        wbs_l1, state_snap_current_ts, state_institution
-    )
+    try:
+        values = src.pull_institution_values(
+            wbs_l1, state_snap_current_ts, state_institution
+        )
+        return (
+            values["phds_authors"],
+            values["faculty"],
+            values["scientists_post_docs"],
+            values["grad_students"],
+            values["text"],
+        )
 
-    return (
-        values["phds_authors"],
-        values["faculty"],
-        values["scientists_post_docs"],
-        values["grad_students"],
-        values["text"],
-    )
+    except DataSourceException:
+        return 0, 0, 0, 0, ""
 
 
 @app.callback(  # type: ignore[misc]
-    Output("wbs-phds-authors", "readonly"),
+    Output("wbs-previous-inst-and-vals", "data"),
     [
         Input("wbs-phds-authors", "value"),
         Input("wbs-faculty", "value"),
@@ -931,7 +983,13 @@ def get_institution_values(
         Input("wbs-grad-students", "value"),
         Input("wbs-textarea", "value"),
     ],
-    [State("wbs-l1", "value"), State("wbs-filter-inst", "value")],
+    [
+        State("wbs-l1", "value"),
+        State("wbs-filter-inst", "value"),
+        State("wbs-snapshot-current-ts", "data"),
+        State("wbs-previous-inst-and-vals", "data"),
+        State("wbs-data-table", "data"),
+    ],
     prevent_initial_call=True,
 )
 def push_institution_values(  # pylint: disable=R0913
@@ -945,10 +1003,19 @@ def push_institution_values(  # pylint: disable=R0913
     wbs_l1: str,
     # other state(s)
     state_institution: str,
-) -> bool:
+    state_snap_current_ts: str,
+    prev_inst_and_vals: Dict[str, Union[str, InstitutionValues]],
+    state_table: Table,
+) -> Dict[str, Union[str, InstitutionValues]]:
     """Push the institution's values."""
-    if not state_institution or not current_user.is_authenticated:
-        return False
+    logging.warning("push_institution_values()")
+
+    if (not state_institution) or (not current_user.is_authenticated):
+        return {}
+
+    # are we looking at a snapshot?
+    if state_snap_current_ts:
+        return prev_inst_and_vals
 
     values: InstitutionValues = {
         "phds_authors": phds_authors,
@@ -957,9 +1024,24 @@ def push_institution_values(  # pylint: disable=R0913
         "grad_students": grad_students,
         "text": text,
     }
-    src.push_institution_values(wbs_l1, state_institution, values)
 
-    return False
+    # check if anything actually changed
+    if (
+        prev_inst_and_vals
+        and state_institution == prev_inst_and_vals["inst"]
+        and values == prev_inst_and_vals["vals"]
+    ):
+        logging.warning(
+            f"pushing institution values suppressed (no change) {prev_inst_and_vals}"
+        )
+        return prev_inst_and_vals
+
+    try:
+        src.push_institution_values(wbs_l1, state_institution, values)
+    except DataSourceException:
+        assert len(state_table) == 0  # there's no collection to push to
+
+    return {"inst": state_institution, "vals": values}
 
 
 # --------------------------------------------------------------------------------------
@@ -1019,6 +1101,8 @@ def handle_xlsx(
     filename: str,
 ) -> Tuple[bool, str, str, bool, int, dbc.Toast]:
     """Manage uploading a new xlsx document as the new live table."""
+    logging.warning("handle_xlsx()")
+
     if du.triggered_id() == "wbs-upload-xlsx-launch-modal-button":
         return True, "", "", True, 0, None
 
@@ -1083,6 +1167,8 @@ def login_actions(
     bool, bool, bool, bool, bool, bool, bool, str, bool, bool, bool, bool, bool, bool
 ]:
     """Logged-in callback."""
+    logging.warning("login_actions()")
+
     if viewing_snapshot:
         return (
             False,  # data-table NOT editable
@@ -1154,6 +1240,8 @@ def toggle_pagination(
     state_tconfig_cache: tc.TableConfigParser.Cache,
 ) -> Tuple[str, str, bool, int, str]:
     """Toggle whether the table is paginated."""
+    logging.warning("toggle_pagination()")
+
     if n_clicks % 2 == 0:
         tconfig = tc.TableConfigParser(state_tconfig_cache)
         return (
@@ -1184,6 +1272,8 @@ def toggle_hidden_columns(
     state_tconfig_cache: tc.TableConfigParser.Cache,
 ) -> Tuple[str, str, bool, List[str]]:
     """Toggle hiding/showing the default hidden columns."""
+    logging.warning("toggle_hidden_columns()")
+
     if n_clicks % 2 == 0:
         tconfig = tc.TableConfigParser(state_tconfig_cache)
         return (
