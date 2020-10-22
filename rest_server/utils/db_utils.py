@@ -162,13 +162,24 @@ class MoUMotorClient:
         try:
             decoded = base64.b64decode(base64_xlsx)
             df = pd.read_excel(io.BytesIO(decoded))
+            raw_table = df.fillna("").to_dict("records")
         except Exception as e:
             logging.error(str(e))
             raise web.HTTPError(400, reason=str(e))
 
+        # check schema (aka column names)
+        for row in raw_table:
+            # check for extra keys
+            if not all(k in tc.get_columns() for k in row.keys()):
+                raise web.HTTPError(
+                    422,
+                    reason=f"Table not in correct format: XLSX's KEYS={row.keys()} vs ALLOWABLE KEYS={tc.get_columns()})",
+                )
+
+        # mongofy table
         table: Table = [
             self._mongofy_record(utils.remove_on_the_fly_fields(row))
-            for row in df.fillna("").to_dict("records")
+            for row in raw_table
             if _row_has_data(row) and not _is_a_total_row(row)
         ]
         logging.debug(f"xlsx table has {len(table)} records ({snap_db=}).")

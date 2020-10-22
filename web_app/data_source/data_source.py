@@ -278,7 +278,7 @@ def create_snapshot(wbs_l1: str, name: str) -> SnapshotInfo:
 
 def override_table(
     wbs_l1: str, base64_file: str, filename: str
-) -> Tuple[str, int, Optional[SnapshotInfo], Optional[SnapshotInfo]]:
+) -> Tuple[int, Optional[SnapshotInfo], Optional[SnapshotInfo]]:
     """Ingest .xlsx file as the new live collection.
 
     Arguments:
@@ -286,7 +286,6 @@ def override_table(
         filename {str} -- the name of the file
 
     Returns:
-        str -- error message ('' if successful)
         int -- number of records added in the table
         str -- snapshot name of the previous live table ('' if no prior table)
         str -- snapshot name of the current live table
@@ -297,25 +296,19 @@ def override_table(
         previous_snapshot: SnapshotInfo
         current_snapshot: SnapshotInfo
 
-    try:
-        body = {
-            "base64_file": base64_file,
-            "filename": filename,
-            "creator": current_user.name,
-        }
-        response = cast(
-            _RespTableData, mou_request("POST", "/table/data", body=body, wbs_l1=wbs_l1)
-        )
-        return (
-            "",
-            response["n_records"],
-            response["previous_snapshot"],
-            response["current_snapshot"],
-        )
-
-    except requests.exceptions.HTTPError as e:
-        logging.exception(f"EXCEPTED: {e}")
-        return str(e), 0, None, None
+    body = {
+        "base64_file": base64_file,
+        "filename": filename,
+        "creator": current_user.name,
+    }
+    response = cast(
+        _RespTableData, mou_request("POST", "/table/data", body=body, wbs_l1=wbs_l1)
+    )
+    return (
+        response["n_records"],
+        response["previous_snapshot"],
+        response["current_snapshot"],
+    )
 
 
 def pull_institution_values(
