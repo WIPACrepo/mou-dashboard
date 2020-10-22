@@ -167,6 +167,29 @@ body {
 
 
 /*------------------------------------------------------------------------------------*/
+/* Institution Value */
+
+
+.institution-fields-counts-container {
+    margin-left: 10rem;
+    margin-right: 10rem;
+    display: flex;
+    justify-content: center;
+    padding: 0 !important;
+}
+
+.institution-fields-headcount {
+    margin: 1rem;
+    max-width: 16.3rem !important;
+    padding: 0;
+}
+
+.institution-fields-headcount-input {
+    max-width: inherit;
+}
+
+
+/*------------------------------------------------------------------------------------*/
 /* Dropdown Select Control */
 
 .Select-control {

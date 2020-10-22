@@ -17,6 +17,16 @@ class SnapshotInfo(TypedDict):
     creator: str
 
 
+class InstitutionValues(TypedDict):
+    """Values for an institution."""
+
+    phds_authors: int
+    faculty: int
+    scientists_post_docs: int
+    grad_students: int
+    text: str
+
+
 # Private
 _StrDict = Dict[str, str]  # Ceci n'est pas une pipe
 

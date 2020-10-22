@@ -310,6 +310,7 @@ class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
         """Handle POST."""
         name = self.get_argument("name")
         creator = self.get_argument("creator")
+
         snap_ts = await self.dbms.snapshot_live_collection(wbs_l1, name, creator)
         snap_info = await self.dbms.get_snapshot_info(wbs_l1, snap_ts)
 
@@ -328,9 +329,10 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
         institution = self.get_argument("institution")
+        snapshot_timestamp = self.get_argument("snapshot_timestamp", "")
 
-        vals: types.InstitutionValues = await self.dbms.get_institution_values(
-            wbs_l1, institution
+        vals = await self.dbms.get_institution_values(
+            wbs_l1, snapshot_timestamp, institution
         )
 
         self.write(vals)
@@ -339,16 +341,18 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
         institution = self.get_argument("institution")
-        text = self.get_argument("text")
         phds_authors = self.get_argument("phds_authors", type_=int)
-        scientists_postdocs = self.get_argument("scientists_postdocs", type_=int)
+        faculty = self.get_argument("faculty", type_=int)
+        scientists_post_docs = self.get_argument("scientists_post_docs", type_=int)
         grad_students = self.get_argument("grad_students", type_=int)
+        text = self.get_argument("text")
 
         vals: types.InstitutionValues = {
-            "text": text,
             "phds_authors": phds_authors,
-            "scientists_postdocs": scientists_postdocs,
+            "faculty": faculty,
+            "scientists_post_docs": scientists_post_docs,
             "grad_students": grad_students,
+            "text": text,
         }
 
         await self.dbms.upsert_institution_values(wbs_l1, institution, vals)

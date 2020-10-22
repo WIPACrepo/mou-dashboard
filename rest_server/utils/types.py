@@ -19,10 +19,11 @@ class SnapshotInfo(TypedDict):
 class InstitutionValues(TypedDict):
     """Values for an institution."""
 
-    text: str
     phds_authors: int
-    scientists_postdocs: int
+    faculty: int
+    scientists_post_docs: int
     grad_students: int
+    text: str
 
 
 class SupplementalDoc(TypedDict):

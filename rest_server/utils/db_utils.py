@@ -5,7 +5,7 @@ import base64
 import io
 import logging
 import time
-from typing import Any, cast, Coroutine, List, Tuple
+from typing import Any, cast, Coroutine, Dict, List, Optional, Tuple
 
 import pandas as pd  # type: ignore[import]
 from bson.objectid import ObjectId  # type: ignore[import]
@@ -18,6 +18,10 @@ from .types import InstitutionValues, Record, SnapshotInfo, SupplementalDoc, Tab
 
 IS_DELETED = "deleted"
 _LIVE_COLLECTION = "LIVE_COLLECTION"
+
+
+class DocumentNotFoundError(Exception):
+    """Raised when a document is not found."""
 
 
 class MoUMotorClient:
@@ -227,21 +231,38 @@ class MoUMotorClient:
         )
 
     async def get_institution_values(
-        self, snap_db: str, institution: str
+        self, snap_db: str, snapshot_timestamp: str, institution: str,
     ) -> InstitutionValues:
         """Get the values for an institution."""
         logging.debug(f"Getting Institution's Values ({snap_db=}, {institution=})...")
 
-        doc = await self._get_supplemental_doc(snap_db, _LIVE_COLLECTION)
-        vals = doc["snapshot_institution_values"][institution]
+        if not snapshot_timestamp:
+            snapshot_timestamp = _LIVE_COLLECTION
 
-        logging.info(f"Institution's Values [{vals}] ({snap_db=}, {institution=}).")
-        return vals
+        doc = await self._get_supplemental_doc(snap_db, snapshot_timestamp)
+
+        try:
+            vals = doc["snapshot_institution_values"][institution]
+            logging.info(f"Institution's Values [{vals}] ({snap_db=}, {institution=}).")
+            return vals
+        except KeyError:
+            logging.info(f"Institution has no values ({snap_db=}, {institution=}).")
+            return {
+                "phds_authors": 0,
+                "faculty": 0,
+                "scientists_post_docs": 0,
+                "grad_students": 0,
+                "text": "",
+            }
 
     async def _get_supplemental_doc(
         self, snap_db: str, snap_coll: str
     ) -> SupplementalDoc:
         doc = await self._client[f"{snap_db}-supplemental"][snap_coll].find_one()
+        if not doc:
+            raise DocumentNotFoundError(
+                f"No Supplemental document found for {snap_coll=}."
+            )
 
         if doc["timestamp"] != snap_coll:
             raise web.HTTPError(
@@ -262,10 +283,15 @@ class MoUMotorClient:
             )
 
         coll_obj = self._client[f"{snap_db}-supplemental"][snap_coll]
-        await coll_obj.insert_one(doc)
+        await coll_obj.replace_one({"timestamp": doc["timestamp"]}, doc, upsert=True)
 
     async def _create_supplemental_db_document(
-        self, snap_db: str, snap_coll: str, name: str, creator: str
+        self,
+        snap_db: str,
+        snap_coll: str,
+        name: str,
+        creator: str,
+        all_insts_values: Optional[Dict[str, InstitutionValues]] = None,
     ) -> None:
         logging.debug(
             f"Creating Supplemental DB/Document ({snap_db=}, {snap_coll=})..."
@@ -279,14 +305,22 @@ class MoUMotorClient:
             "name": name,
             "timestamp": snap_coll,
             "creator": creator,
-            "snapshot_institution_values": {},
+            "snapshot_institution_values": all_insts_values if all_insts_values else {},
         }
         await self._set_supplemental_doc(snap_db, snap_coll, doc)
 
-        logging.debug(f"Created Supplemental DB/Document ({snap_db=}, {snap_coll=}).")
+        logging.debug(
+            f"Created Supplemental Document ({snap_db=}, {snap_coll=}): {await self._get_supplemental_doc(snap_db, snap_coll)}."
+        )
 
     async def _ingest_new_collection(  # pylint: disable=R0913
-        self, snap_db: str, snap_coll: str, table: Table, name: str, creator: str
+        self,
+        snap_db: str,
+        snap_coll: str,
+        table: Table,
+        name: str,
+        creator: str,
+        all_insts_values: Optional[Dict[str, InstitutionValues]] = None,
     ) -> None:
         """Add table to a new collection.
 
@@ -303,8 +337,10 @@ class MoUMotorClient:
         # Ingest
         await coll_obj.insert_many([self._mongofy_record(r) for r in table])
 
-        # create supplemental db & document
-        await self._create_supplemental_db_document(snap_db, snap_coll, name, creator)
+        # create supplemental document
+        await self._create_supplemental_db_document(
+            snap_db, snap_coll, name, creator, all_insts_values
+        )
 
     async def _ensure_collection_indexes(self, snap_db: str, snap_coll: str) -> None:
         """Create indexes in collection."""
@@ -417,8 +453,17 @@ class MoUMotorClient:
             )
             return ""
 
+        supplemental_doc = await self._get_supplemental_doc(snap_db, _LIVE_COLLECTION)
+
         snap_coll = str(time.time())
-        await self._ingest_new_collection(snap_db, snap_coll, table, name, creator)
+        await self._ingest_new_collection(
+            snap_db,
+            snap_coll,
+            table,
+            name,
+            creator,
+            supplemental_doc["snapshot_institution_values"],
+        )
 
         logging.info(f"Snapshotted {snap_coll} ({snap_db=}, {creator=}).")
         return snap_coll

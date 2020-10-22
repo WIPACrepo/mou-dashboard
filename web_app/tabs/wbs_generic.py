@@ -16,6 +16,7 @@ from ..data_source import table_config as tc
 from ..utils import dash_utils as du
 from ..utils.types import (
     DataEntry,
+    InstitutionValues,
     Record,
     SnapshotInfo,
     Table,
@@ -112,11 +113,46 @@ def layout() -> html.Div:
                     "fontSize": "20px",
                     "width": "100%",
                     "text-align": "center",
+                    "padding": "1.5rem",
                 },
                 className="caps",
                 color=du.Color.LIGHT,
                 is_open=False,
             ),
+            #
+            # Institution Fields
+            html.Div(
+                id="institution-fields-counts-container",
+                hidden=True,
+                className="institution-fields-counts-container",
+                children=[
+                    dbc.Row(
+                        align="center",
+                        children=[
+                            dbc.Col(
+                                className="institution-fields-headcount",
+                                children=[
+                                    html.Div(_label, className="caps"),
+                                    dcc.Input(
+                                        value=0,
+                                        min=0,
+                                        id=_id,
+                                        className="institution-fields-headcount-input",
+                                        type="number",
+                                    ),
+                                ],
+                            )
+                            for _id, _label in [
+                                ("wbs-phds-authors", "PhDs/Authors"),
+                                ("wbs-faculty", "Faculty"),
+                                ("wbs-scientists-post-docs", "Scientists/Post-Docs"),
+                                ("wbs-grad-students", "Grad Students"),
+                            ]
+                        ],
+                    ),
+                ],
+            ),
+            #
             # Table
             dash_table.DataTable(
                 id="wbs-data-table",
@@ -271,6 +307,19 @@ def layout() -> html.Div:
                 ],
             ),
             #
+            # Free Text
+            html.Div(
+                id="institution-textarea-container",
+                hidden=True,
+                style={"margin-top": "2.5rem", "width": "100%", "height": "30rem"},
+                children=[
+                    html.Div("Notes and Descriptions", className="caps"),
+                    dcc.Textarea(
+                        id="wbs-textarea", style={"width": "100%", "height": "100%"}
+                    ),
+                ],
+            ),
+            #
             # Upload/Override XLSX
             html.Div(
                 id="wbs-upload-xlsx-launch-modal-button-div",
@@ -396,6 +445,8 @@ def _add_new_data(  # pylint: disable=R0913
         Output("wbs-show-totals-button", "color"),
         Output("wbs-show-totals-button", "outline"),
         Output("wbs-show-all-columns-button", "n_clicks"),
+        Output("institution-fields-counts-container", "hidden"),
+        Output("institution-textarea-container", "hidden"),
     ],
     [
         Input("wbs-l1", "value"),
@@ -433,7 +484,7 @@ def table_data_exterior_controls(
     state_all_cols: int,
     state_deleted_id: str,
     state_tconfig_cache: tc.TableConfigParser.Cache,
-) -> Tuple[Table, int, str, dbc.Toast, str, str, bool, int]:
+) -> Tuple[Table, int, str, dbc.Toast, str, str, bool, int, bool, bool]:
     """Exterior control signaled that the table should be updated.
 
     This is either a filter, "add new", refresh, or "show totals". Only
@@ -478,13 +529,15 @@ def table_data_exterior_controls(
 
     return (
         table,
-        0,
-        du.get_now(),
+        0,  # go to first page
+        du.get_now(),  # record now
         toast,
         tot_label,
         tot_color,
         tot_outline,
         all_cols,
+        not institution,
+        not institution,
     )
 
 
@@ -819,6 +872,97 @@ def handle_make_snapshot(
 
 
 # --------------------------------------------------------------------------------------
+# Institution Values Callbacks
+
+
+@app.callback(  # type: ignore[misc]
+    [
+        Output("wbs-phds-authors", "value"),
+        Output("wbs-faculty", "value"),
+        Output("wbs-scientists-post-docs", "value"),
+        Output("wbs-grad-students", "value"),
+        Output("wbs-textarea", "value"),
+    ],
+    [
+        Input("institution-fields-counts-container", "hidden"),
+        Input("institution-textarea-container", "hidden"),
+    ],
+    [
+        State("wbs-l1", "value"),
+        State("wbs-snapshot-current-ts", "data"),
+        State("wbs-filter-inst", "value"),
+        State("wbs-data-table", "data"),
+    ],
+    prevent_initial_call=True,
+)
+def get_institution_values(
+    _: bool,
+    __: bool,
+    # L1 value (state)
+    wbs_l1: str,
+    # other state(s)
+    state_snap_current_ts: str,
+    state_institution: str,
+    state_table: Table,
+) -> Tuple[int, int, int, int, str]:
+    """Get the institution's values."""
+    if not state_institution or not current_user.is_authenticated or not state_table:
+        return 0, 0, 0, 0, ""
+
+    values = src.pull_institution_values(
+        wbs_l1, state_snap_current_ts, state_institution
+    )
+
+    return (
+        values["phds_authors"],
+        values["faculty"],
+        values["scientists_post_docs"],
+        values["grad_students"],
+        values["text"],
+    )
+
+
+@app.callback(  # type: ignore[misc]
+    Output("wbs-phds-authors", "readonly"),
+    [
+        Input("wbs-phds-authors", "value"),
+        Input("wbs-faculty", "value"),
+        Input("wbs-scientists-post-docs", "value"),
+        Input("wbs-grad-students", "value"),
+        Input("wbs-textarea", "value"),
+    ],
+    [State("wbs-l1", "value"), State("wbs-filter-inst", "value")],
+    prevent_initial_call=True,
+)
+def push_institution_values(  # pylint: disable=R0913
+    # input(s)
+    phds_authors: int,
+    faculty: int,
+    scientists_post_docs: int,
+    grad_students: int,
+    text: str,
+    # L1 value (state)
+    wbs_l1: str,
+    # other state(s)
+    state_institution: str,
+) -> bool:
+    """Push the institution's values."""
+    if not state_institution or not current_user.is_authenticated:
+        return False
+
+    values: InstitutionValues = {
+        "phds_authors": phds_authors,
+        "faculty": faculty,
+        "scientists_post_docs": scientists_post_docs,
+        "grad_students": grad_students,
+        "text": text,
+    }
+    src.push_institution_values(wbs_l1, state_institution, values)
+
+    return False
+
+
+# --------------------------------------------------------------------------------------
 # Other Callbacks
 
 
@@ -923,14 +1067,21 @@ def handle_xlsx(
         Output("wbs-filter-inst", "disabled"),
         Output("wbs-filter-inst", "value"),
         Output("wbs-upload-xlsx-launch-modal-button-div", "hidden"),
+        Output("wbs-phds-authors", "disabled"),
+        Output("wbs-faculty", "disabled"),
+        Output("wbs-scientists-post-docs", "disabled"),
+        Output("wbs-grad-students", "disabled"),
+        Output("wbs-textarea", "disabled"),
     ],
     [Input("wbs-viewing-snapshot-alert", "is_open"), Input("logout-div", "hidden")],
 )
-def log_in_actions(
+def login_actions(
     # input(s)
     viewing_snapshot: bool,
     _: bool,
-) -> Tuple[bool, bool, bool, bool, bool, bool, bool, str, bool]:
+) -> Tuple[
+    bool, bool, bool, bool, bool, bool, bool, str, bool, bool, bool, bool, bool, bool
+]:
     """Logged-in callback."""
     if viewing_snapshot:
         return (
@@ -943,6 +1094,11 @@ def log_in_actions(
             False,  # filter-inst NOT disabled
             current_user.institution if current_user.is_authenticated else "",
             True,  # upload-xlsx-override-div hidden
+            True,
+            True,
+            True,
+            True,
+            True,
         )
 
     if current_user.is_authenticated:
@@ -956,6 +1112,11 @@ def log_in_actions(
             not current_user.is_admin,  # filter-inst disabled if user is not an admin
             current_user.institution,
             not current_user.is_admin,  # upload-xlsx-override-div hidden if user is not an admin
+            False,
+            False,
+            False,
+            False,
+            False,
         )
     return (
         False,  # data-table NOT editable
@@ -967,6 +1128,11 @@ def log_in_actions(
         False,  # filter-inst NOT disabled
         "",
         True,  # upload-xlsx-override-div hidden
+        True,
+        True,
+        True,
+        True,
+        True,
     )
 
 

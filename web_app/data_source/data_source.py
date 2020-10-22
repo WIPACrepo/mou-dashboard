@@ -2,12 +2,12 @@
 
 
 import logging
-from typing import cast, Final, List, Optional, Tuple, TypedDict
+from typing import Any, cast, Dict, Final, List, Optional, Tuple, TypedDict
 
 import requests
 from flask_login import current_user  # type: ignore[import]
 
-from ..utils.types import Record, SnapshotInfo, Table
+from ..utils.types import InstitutionValues, Record, SnapshotInfo, Table
 from . import table_config as tc
 from .utils import mou_request
 
@@ -335,3 +335,32 @@ def override_table(
     except requests.exceptions.HTTPError as e:
         logging.exception(f"EXCEPTED: {e}")
         return str(e), 0, None, None
+
+
+def pull_institution_values(
+    wbs_l1: str, snapshot_timestamp: str, institution: str
+) -> InstitutionValues:
+    """Get the institution's values."""
+    try:
+        body = {"institution": institution, "snapshot_timestamp": snapshot_timestamp}
+        response = mou_request("GET", "/institution/values", body=body, wbs_l1=wbs_l1)
+        return cast(InstitutionValues, response)
+
+    except requests.exceptions.HTTPError as e:
+        logging.exception(f"EXCEPTED: {e}")
+        raise DataSourceException(str(e))
+
+
+def push_institution_values(
+    wbs_l1: str, institution: str, values: InstitutionValues
+) -> None:
+    """Push the institution's values."""
+    try:
+        body = {"institution": institution}
+        body.update(cast(Dict[str, Any], values))
+        _ = mou_request("POST", "/institution/values", body=body, wbs_l1=wbs_l1)
+        return
+
+    except requests.exceptions.HTTPError as e:
+        logging.exception(f"EXCEPTED: {e}")
+        raise DataSourceException(str(e))
