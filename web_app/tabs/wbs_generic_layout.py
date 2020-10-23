@@ -17,25 +17,6 @@ def layout() -> html.Div:
     return html.Div(
         children=[
             #
-            # Log-In Alert
-            dbc.Alert(
-                "— log in to edit —",
-                id="wbs-how-to-edit-alert",
-                style={
-                    "fontWeight": "bold",
-                    "fontSize": "20px",
-                    "width": "100%",
-                    "height": "5rem",
-                    "text-align": "center",
-                    "border": 0,
-                    "background-color": "lightgray",
-                    "padding-top": "1.5rem",
-                    "margin-bottom": "2.5rem",
-                },
-                className="caps",
-                color=du.Color.DARK,
-            ),
-            #
             # Load & Make Snapshots
             dcc.Loading(
                 type="dot",

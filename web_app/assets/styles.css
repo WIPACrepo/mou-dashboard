@@ -208,9 +208,21 @@ h2:before {
 
 .institution {
     width: 50rem;
+    text-align: center;
+    font-size: 1.6rem;
+}
+
+.institution > .Select-control {
+    height: 4rem;
+}
+
+.institution > .Select-control > .Select-multi-value-wrapper > .Select-value {
+    padding: 0 !important;
+    padding-top: 0.25rem !important;
 }
 
 .institution-headcounts-inner-container {
+    margin-top: 1rem;
     margin-left: 10rem;
     margin-right: 10rem;
     display: flex;
@@ -234,6 +246,11 @@ h2:before {
 
 .Select-control {
     border-radius: .25rem;
+}
+
+.is-disabled > .Select-control > .Select-arrow-zone {
+    /* Remove dropdown arrow from disabled dropdowns */
+    visibility: hidden;
 }
 
 

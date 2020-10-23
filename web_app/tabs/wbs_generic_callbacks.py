@@ -705,7 +705,6 @@ def push_institution_values(  # pylint: disable=R0913
         Output("wbs-new-data-div-1", "hidden"),
         Output("wbs-new-data-div-2", "hidden"),
         Output("wbs-make-snapshot-button", "hidden"),
-        Output("wbs-how-to-edit-alert", "hidden"),
         Output("wbs-data-table", "row_deletable"),
         Output("wbs-filter-inst", "disabled"),
         Output("wbs-filter-inst", "value"),
@@ -722,9 +721,7 @@ def login_actions(
     # input(s)
     viewing_snapshot: bool,
     _: bool,
-) -> Tuple[
-    bool, bool, bool, bool, bool, bool, bool, str, bool, bool, bool, bool, bool, bool
-]:
+) -> Tuple[bool, bool, bool, bool, bool, bool, str, bool, bool, bool, bool, bool, bool]:
     """Logged-in callback."""
     logging.warning("login_actions()")
 
@@ -734,7 +731,6 @@ def login_actions(
             True,  # new-data-div-1 hidden
             True,  # new-data-div-2 hidden
             True,  # make-snapshot-button hidden
-            True,  # how-to-edit-alert hidden
             False,  # row NOT deletable
             False,  # filter-inst NOT disabled
             current_user.institution if current_user.is_authenticated else "",
@@ -752,7 +748,6 @@ def login_actions(
             False,  # new-data-div-1 NOT hidden
             False,  # new-data-div-2 NOT hidden
             False,  # make-snapshot-button NOT hidden
-            True,  # how-to-edit-alert hidden
             True,  # row is deletable
             not current_user.is_admin,  # filter-inst disabled if user is not an admin
             current_user.institution,
@@ -768,7 +763,6 @@ def login_actions(
         True,  # new-data-div-1 hidden
         True,  # new-data-div-2 hidden
         True,  # make-snapshot-button hidden
-        False,  # how-to-edit-alert NOT hidden
         False,  # row NOT deletable
         False,  # filter-inst NOT disabled
         "",
