@@ -102,7 +102,7 @@ def _add_new_data(  # pylint: disable=R0913
         Output("wbs-show-totals-button", "color"),
         Output("wbs-show-totals-button", "outline"),
         Output("wbs-show-all-columns-button", "n_clicks"),
-        Output("institution-fields-counts-container", "hidden"),
+        Output("institution-headcounts-container", "hidden"),
         Output("institution-textarea-container", "hidden"),
     ],
     [
@@ -110,7 +110,6 @@ def _add_new_data(  # pylint: disable=R0913
         Input("wbs-filter-inst", "value"),
         Input("wbs-filter-labor", "value"),
         Input("wbs-new-data-button", "n_clicks"),
-        Input("wbs-refresh-button", "n_clicks"),
         Input("wbs-show-totals-button", "n_clicks"),
         Input("wbs-snapshot-current-ts", "data"),
         Input("wbs-undo-last-delete", "n_clicks"),
@@ -131,7 +130,6 @@ def table_data_exterior_controls(
     institution: str,
     labor: str,
     _: int,
-    __: int,
     tot_n_clicks: int,
     snapshot_ts: str,
     ___: int,
@@ -586,7 +584,7 @@ def handle_make_snapshot(
         Output("wbs-textarea", "value"),
     ],
     [
-        Input("institution-fields-counts-container", "hidden"),
+        Input("institution-headcounts-container", "hidden"),
         Input("institution-textarea-container", "hidden"),
     ],
     [

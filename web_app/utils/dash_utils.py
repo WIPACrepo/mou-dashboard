@@ -93,7 +93,7 @@ def was_recent(timestamp: str) -> bool:
 # Component/Attribute-Constructor Functions
 
 
-def new_data_button(num: int, style: Optional[Dict[str, str]] = None) -> html.Div:
+def new_data_button(num: int) -> html.Div:
     """Get a button for triggering adding of new data."""
     return html.Div(
         id=f"wbs-new-data-div-{num}",
@@ -106,7 +106,7 @@ def new_data_button(num: int, style: Optional[Dict[str, str]] = None) -> html.Di
             disabled=False,
         ),
         hidden=True,
-        style=style,
+        style={"width": "15rem", "margin-right": "1.05rem"},
     )
 
 

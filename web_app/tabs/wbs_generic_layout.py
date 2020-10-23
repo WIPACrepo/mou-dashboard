@@ -16,44 +16,7 @@ def layout() -> html.Div:
 
     return html.Div(
         children=[
-            dbc.Row(
-                justify="center",
-                style={"margin-bottom": "2.5rem"},
-                children=[
-                    dbc.Col(
-                        width=5,
-                        children=[
-                            html.Div(children="Institution", className="caps"),
-                            # Institution filter dropdown menu
-                            dcc.Dropdown(
-                                id="wbs-filter-inst",
-                                options=[
-                                    {"label": f"{abbrev} ({name})", "value": abbrev}
-                                    for name, abbrev in tconfig.get_institutions_w_abbrevs()
-                                ],
-                                value="",
-                                disabled=False,
-                            ),
-                        ],
-                    ),
-                    dbc.Col(
-                        width=5,
-                        children=[
-                            # Labor Category filter dropdown menu
-                            html.Div(children="Labor Category", className="caps"),
-                            dcc.Dropdown(
-                                id="wbs-filter-labor",
-                                options=[
-                                    {"label": st, "value": st}
-                                    for st in tconfig.get_labor_categories()
-                                ],
-                                value="",
-                            ),
-                        ],
-                    ),
-                ],
-            ),
-            ####
+            #
             # Log-In Alert
             dbc.Alert(
                 "— log in to edit —",
@@ -72,8 +35,33 @@ def layout() -> html.Div:
                 className="caps",
                 color=du.Color.DARK,
             ),
-            # Add Button
-            du.new_data_button(1, style={"margin-bottom": "1rem", "height": "40px"}),
+            #
+            # Load & Make Snapshots
+            dcc.Loading(
+                type="dot",
+                color="#258835",
+                children=[
+                    # Load Snapshot
+                    dbc.Button(
+                        "Load Snapshot",
+                        id="wbs-load-snapshot-button",
+                        n_clicks=0,
+                        outline=True,
+                        color=du.Color.INFO,
+                        style={"margin-right": "1rem"},
+                    ),
+                    # Make Snapshot
+                    dbc.Button(
+                        "Make Snapshot",
+                        id="wbs-make-snapshot-button",
+                        n_clicks=0,
+                        outline=True,
+                        color=du.Color.SUCCESS,
+                        style={"margin-right": "1rem"},
+                    ),
+                ],
+            ),
+            #
             # "Viewing Snapshot" Alert
             dbc.Alert(
                 children=[
@@ -101,24 +89,45 @@ def layout() -> html.Div:
                 is_open=False,
             ),
             #
-            # Institution Fields
+            html.H2(children="Institution"),
+            #
+            # Institution filter dropdown menu
             html.Div(
-                id="institution-fields-counts-container",
-                hidden=True,
-                className="institution-fields-counts-container",
+                className="institution-container",
                 children=[
+                    dcc.Dropdown(
+                        id="wbs-filter-inst",
+                        className="institution",
+                        placeholder="Institution",
+                        options=[
+                            {"label": f"{abbrev} ({name})", "value": abbrev}
+                            for name, abbrev in tconfig.get_institutions_w_abbrevs()
+                        ],
+                        value="",
+                        disabled=False,
+                    ),
+                ],
+            ),
+            #
+            # Headcounts
+            html.Div(
+                className="institution-headcounts-inner-container",
+                id="institution-headcounts-container",
+                hidden=True,
+                children=[
+                    #
                     dbc.Row(
                         align="center",
                         children=[
                             dbc.Col(
-                                className="institution-fields-headcount",
+                                className="institution-headcount",
                                 children=[
                                     html.Div(_label, className="caps"),
                                     dcc.Input(
                                         value=0,
                                         min=0,
                                         id=_id,
-                                        className="institution-fields-headcount-input",
+                                        className="institution-headcount-input",
                                         type="number",
                                     ),
                                 ],
@@ -126,10 +135,33 @@ def layout() -> html.Div:
                             for _id, _label in [
                                 ("wbs-phds-authors", "PhDs/Authors"),
                                 ("wbs-faculty", "Faculty"),
-                                ("wbs-scientists-post-docs", "Scientists/Post-Docs"),
+                                ("wbs-scientists-post-docs", "Scientists/Post-Docs",),
                                 ("wbs-grad-students", "Grad Students"),
                             ]
                         ],
+                    ),
+                ],
+            ),
+            #
+            html.H2(id="wbs-h2-sow-table", children="Current SOW Table"),
+            #
+            # Top Buttons
+            dbc.Row(
+                className="wbs-table-top-buttons",
+                no_gutters=True,
+                children=[  #
+                    # Add Button
+                    du.new_data_button(1),
+                    # Labor Category filter dropdown menu
+                    dcc.Dropdown(
+                        id="wbs-filter-labor",
+                        placeholder="Filter by Labor Category",
+                        style={"width": "30rem", "height": "39px"},
+                        options=[
+                            {"label": st, "value": st}
+                            for st in tconfig.get_labor_categories()
+                        ],
+                        value="",
                     ),
                 ],
             ),
@@ -186,53 +218,22 @@ def layout() -> html.Div:
                 merge_duplicate_headers=True,
                 # fixed_rows={"headers": True, "data": 0},
             ),
+            #
             # Bottom Buttons
             dbc.Row(
                 style={"margin-top": "0.8em"},
                 children=[
+                    #
                     # Leftward Buttons
                     dbc.Row(
                         style={"width": "52rem", "margin-left": "0.25rem"},
                         children=[
+                            #
                             # New Data
-                            du.new_data_button(
-                                2, style={"width": "15rem", "margin-right": "1rem"},
-                            ),
-                            dcc.Loading(
-                                type="dot",
-                                color="#258835",
-                                children=[
-                                    # Load Snapshot
-                                    dbc.Button(
-                                        "Load Snapshot",
-                                        id="wbs-load-snapshot-button",
-                                        n_clicks=0,
-                                        outline=True,
-                                        color=du.Color.INFO,
-                                        style={"margin-right": "1rem"},
-                                    ),
-                                    # Make Snapshot
-                                    dbc.Button(
-                                        "Make Snapshot",
-                                        id="wbs-make-snapshot-button",
-                                        n_clicks=0,
-                                        outline=True,
-                                        color=du.Color.SUCCESS,
-                                        style={"margin-right": "1rem"},
-                                    ),
-                                ],
-                            ),
-                            # Refresh
-                            dbc.Button(
-                                "↻",
-                                id="wbs-refresh-button",
-                                n_clicks=0,
-                                outline=True,
-                                color=du.Color.SUCCESS,
-                                style={"font-weight": "bold"},
-                            ),
+                            du.new_data_button(2),
                         ],
                     ),
+                    #
                     # Rightward Buttons
                     dbc.Row(
                         style={"flex-basis": "55%", "justify-content": "flex-end"},
@@ -292,11 +293,10 @@ def layout() -> html.Div:
             html.Div(
                 id="institution-textarea-container",
                 hidden=True,
-                style={"margin-top": "2.5rem", "width": "100%", "height": "30rem"},
                 children=[
-                    html.Div("Notes and Descriptions", className="caps"),
+                    html.H2(id="wbs-inst-textarea", children="Notes and Descriptions"),
                     dcc.Textarea(
-                        id="wbs-textarea", style={"width": "100%", "height": "100%"}
+                        id="wbs-textarea", style={"width": "100%", "height": "30rem"}
                     ),
                 ],
             ),
@@ -305,18 +305,9 @@ def layout() -> html.Div:
             html.Div(
                 id="wbs-admin-zone-div",
                 children=[
-                    html.Hr(),
-                    # Upload/Override XLSX
-                    dbc.Button(
-                        "Override Live Table with .xlsx",
-                        id="wbs-upload-xlsx-launch-modal-button",
-                        block=True,
-                        n_clicks=0,
-                        color=du.Color.WARNING,
-                        disabled=False,
-                        style={"margin-bottom": "1rem"},
-                    ),
-                    html.Hr(),
+                    #
+                    html.H2(children="Admin Zone"),
+                    #
                     # Summary Table
                     dcc.Loading(
                         type="dot",
@@ -324,12 +315,16 @@ def layout() -> html.Div:
                         fullscreen=True,
                         style={"background": "transparent"},  # float atop all
                         children=[
-                            dbc.Button(
-                                id="wbs-summary-table-recalculate",
-                                n_clicks=0,
-                                block=True,
-                                children="Recalculate Summary",
-                                style={"margin-bottom": "1rem"},
+                            html.Div(
+                                style={"margin-right": "10rem", "width": "119.5rem"},
+                                children=[
+                                    dbc.Button(
+                                        id="wbs-summary-table-recalculate",
+                                        n_clicks=0,
+                                        block=True,
+                                        children="Recalculate Summary",
+                                    ),
+                                ],
                             ),
                             dash_table.DataTable(
                                 id="wbs-summary-table",
@@ -370,9 +365,24 @@ def layout() -> html.Div:
                             ),
                         ],
                     ),
+                    #
+                    html.Hr(),
+                    #
+                    # Upload/Override XLSX
+                    dbc.Button(
+                        "Override Live Table with .xlsx",
+                        id="wbs-upload-xlsx-launch-modal-button",
+                        block=True,
+                        n_clicks=0,
+                        color=du.Color.WARNING,
+                        disabled=False,
+                        style={"margin-bottom": "1rem"},
+                    ),
                 ],
                 hidden=True,
             ),
+            #
+            #
             #
             # Data Stores aka Cookies
             # - for communicating when table was last updated by an exterior control

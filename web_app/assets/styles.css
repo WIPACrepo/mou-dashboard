@@ -1,18 +1,50 @@
 /* Custom & Overriding CSS */
 
 
+/*------------------------------------------------------------------------------------*/
+/* General/Misc. */
+
 body {
     background-color: black !important;
 }
-
-
-/*------------------------------------------------------------------------------------*/
-/* General/Misc. */
 
 .caps {
     text-transform: uppercase;
     letter-spacing: .075em;
     font: 12px Arial;
+}
+
+h2 {
+    text-transform: uppercase !important;
+    letter-spacing: .075em !important;
+    font: 15px Arial !important;
+    font-weight: bold !important;
+    font-style: italic !important;
+    overflow: hidden;
+    color: #5a5a5a;
+    margin-bottom: 2rem;
+    margin-top: 3rem;
+}
+
+h2:after {
+    content: "";
+    display: inline-block;
+    height: 0.955rem;
+    vertical-align: bottom;
+    width: 100%;
+    margin-right: -100%;
+    margin-left: 0.5rem;
+    border-top: 0.16rem solid #5a5a5a;
+}
+
+h2:before {
+    content: "";
+    display: inline-block;
+    height: 0.955rem;
+    vertical-align: bottom;
+    width: 2rem;
+    margin-right: 0.5rem;
+    border-top: 0.16rem solid #5a5a5a;
 }
 
 
@@ -167,10 +199,18 @@ body {
 
 
 /*------------------------------------------------------------------------------------*/
-/* Institution Value */
+/* Institution Fields */
 
+.institution-container {
+    display: flex;
+    justify-content: center;
+}
 
-.institution-fields-counts-container {
+.institution {
+    width: 50rem;
+}
+
+.institution-headcounts-inner-container {
     margin-left: 10rem;
     margin-right: 10rem;
     display: flex;
@@ -178,13 +218,13 @@ body {
     padding: 0 !important;
 }
 
-.institution-fields-headcount {
+.institution-headcount {
     margin: 1rem;
     max-width: 16.3rem !important;
     padding: 0;
 }
 
-.institution-fields-headcount-input {
+.institution-headcount-input {
     max-width: inherit;
 }
 
@@ -194,6 +234,15 @@ body {
 
 .Select-control {
     border-radius: .25rem;
+}
+
+
+/*------------------------------------------------------------------------------------*/
+/* Table Tools */
+
+.wbs-table-top-buttons {
+    height: 38px;
+    margin-right: 26rem;
 }
 
 
@@ -225,6 +274,7 @@ body {
     position: relative;
     float: right;
     margin-bottom: 0.8em;
+    margin-top: -38px;
 }
 
 .dash-spreadsheet-menu > * {
