@@ -446,11 +446,20 @@ def table_dropdown(
     prevent_initial_call=True,
 )
 def view_live_table(_: int) -> str:
-    """View the live table. Clear the snapshot selection.
-
-    This is my favorite callback.
-    """
+    """Clear the snapshot selection."""
+    logging.warning(f"'{du.triggered_id()}' -> view_live_table()")
     return ""
+
+
+@app.callback(  # type: ignore[misc]
+    Output("refresh", "run"),
+    [Input("wbs-snapshot-current-ts", "value")],
+    prevent_initial_call=True,
+)
+def select_deselect_snapshot(_: int) -> str:
+    """Refresh the page on snapshot select/de-select."""
+    logging.warning(f"'{du.triggered_id()}' -> select_deselect_snapshot()")
+    return "location.reload();"
 
 
 @app.callback(  # type: ignore[misc]
@@ -459,24 +468,24 @@ def view_live_table(_: int) -> str:
         Output("wbs-snapshot-current-labels", "children"),
         Output("wbs-viewing-snapshot-alert", "is_open"),
         Output("wbs-snapshot-info", "data"),
-        Output("refresh-1", "run"),
     ],
-    [Input("wbs-snapshot-current-ts", "value")],
-    [State("wbs-l1", "value"), State("wbs-snapshot-info", "data")],
+    [Input("wbs-snapshot-current-ts", "disabled")],
+    [
+        State("wbs-l1", "value"),
+        State("wbs-snapshot-current-ts", "value"),
+        State("wbs-snapshot-info", "data"),
+    ],
 )
 def handle_load_snapshot(
     # input(s)
-    snapshot_ts_selection: str,
+    _: bool,
     # L1 value (state)
     wbs_l1: str,
+    snapshot_ts_selection: str,
     snap_info: Optional[SnapshotInfo],
-) -> Tuple[List[Dict[str, str]], List[html.Label], bool, Optional[SnapshotInfo], str]:
+) -> Tuple[List[Dict[str, str]], List[html.Label], bool, Optional[SnapshotInfo]]:
     """Populate snapshots dropdown, load live table, or select a snapshot."""
     logging.warning(f"'{du.triggered_id()}' -> handle_load_snapshot()")
-
-    # On snapshot selection/de-selection, refresh the page. Load things after refresh
-    if du.triggered_id() == "wbs-snapshot-current-ts":
-        return [], [], False, snap_info, "location.reload();"
 
     snapshots_options: List[Dict[str, str]] = []
     label_lines: List[html.Label] = []
@@ -497,6 +506,10 @@ def handle_load_snapshot(
         for snap in snapshots
     ]
 
+    # This was a tab switch
+    if snapshot_ts_selection not in [snap["timestamp"] for snap in snapshots]:
+        snapshot_ts_selection = ""
+
     # Selected a Snapshot
     if snapshot_ts_selection:
         # get snap_info if needed
@@ -512,7 +525,7 @@ def handle_load_snapshot(
             ),
         ]
 
-    return snapshots_options, label_lines, bool(snapshot_ts_selection), snap_info, ""
+    return snapshots_options, label_lines, bool(snapshot_ts_selection), snap_info
 
 
 @app.callback(  # type: ignore[misc]

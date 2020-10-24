@@ -25,8 +25,7 @@ def layout() -> None:
     # Layout
     app.layout = html.Div(
         children=[
-            visdcc.Run_js("refresh-0"),  # pylint: disable=E1101
-            visdcc.Run_js("refresh-1"),  # pylint: disable=E1101
+            visdcc.Run_js("refresh"),  # pylint: disable=E1101
             #
             # Location Triggers (To Refresh Page)
             dcc.Location(id="url-1", refresh=True),
@@ -146,17 +145,18 @@ def layout() -> None:
 
 
 @app.callback(
-    Output("refresh-0", "run"), [Input("wbs-l1", "value")], prevent_initial_call=True,
+    Output("wbs-view-live-btn", "n_clicks"),
+    [Input("wbs-l1", "value")],
+    prevent_initial_call=True,
 )  # type: ignore
-def refresh_on_tab_click(wbs_l1: str) -> str:
-    """Refresh page when tab is clicked.
+def prep_tab_change(wbs_l1: str) -> int:
+    """Prepare for a new tab: view the live table.
 
     Tab value is persisted in 'Tabs' between refreshes.
     """
-    logging.warning(f"'{du.triggered_id()}' -> refresh_on_tab_click()")
+    logging.warning(f"'{du.triggered_id()}' -> tab_change()")
     logging.warning(f"tab clicked: {wbs_l1=}")
-
-    return "location.reload();"
+    return 0
 
 
 def _logged_in_return() -> Tuple[bool, bool, bool, bool, str, str]:
