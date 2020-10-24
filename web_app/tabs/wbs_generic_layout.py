@@ -32,13 +32,19 @@ def layout() -> html.Div:
                         style={"margin-right": "1rem"},
                     ),
                     # Make Snapshot
-                    dbc.Button(
-                        "Make Snapshot",
-                        id="wbs-make-snapshot-button",
-                        n_clicks=0,
-                        outline=True,
-                        color=du.Color.SUCCESS,
-                        style={"margin-right": "1rem"},
+                    html.Div(
+                        id="wbs-make-snapshot-button-div",
+                        hidden=True,
+                        children=[
+                            dbc.Button(
+                                "Make Snapshot",
+                                id="wbs-make-snapshot-button",
+                                n_clicks=0,
+                                outline=True,
+                                color=du.Color.SUCCESS,
+                                style={"margin-right": "1rem"},
+                            ),
+                        ],
                     ),
                 ],
             ),
@@ -79,7 +85,7 @@ def layout() -> html.Div:
                     dcc.Dropdown(
                         id="wbs-filter-inst",
                         className="institution",
-                        placeholder="Institution",
+                        placeholder="",
                         options=[
                             {"label": f"{abbrev} ({name})", "value": abbrev}
                             for name, abbrev in tconfig.get_institutions_w_abbrevs()
@@ -105,11 +111,10 @@ def layout() -> html.Div:
                                 children=[
                                     html.Div(_label, className="caps"),
                                     dcc.Input(
-                                        value=0,
-                                        min=0,
                                         id=_id,
                                         className="institution-headcount-input",
                                         type="number",
+                                        min=0,
                                     ),
                                 ],
                             )

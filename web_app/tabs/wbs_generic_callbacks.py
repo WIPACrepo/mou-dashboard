@@ -1,7 +1,7 @@
 """Callbacks for a specified WBS layout."""
 
-
 import logging
+import re
 from typing import cast, Dict, List, Tuple, Union
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
@@ -109,7 +109,8 @@ def _add_new_data(  # pylint: disable=R0913
         Input("wbs-l1", "value"),
         Input("wbs-filter-inst", "value"),
         Input("wbs-filter-labor", "value"),
-        Input("wbs-new-data-button", "n_clicks"),
+        Input("wbs-new-data-button-1", "n_clicks"),
+        Input("wbs-new-data-button-2", "n_clicks"),
         Input("wbs-show-totals-button", "n_clicks"),
         Input("wbs-snapshot-current-ts", "data"),
         Input("wbs-undo-last-delete", "n_clicks"),
@@ -121,7 +122,7 @@ def _add_new_data(  # pylint: disable=R0913
         State("wbs-last-deleted-id", "children"),
         State("wbs-table-config-cache", "data"),
     ],
-    prevent_initial_call=True,  # triggered instead by Input("wbs-l1", "value")
+    # prevent_initial_call=True,  # triggered instead by Input("wbs-l1", "value")
 )  # pylint: disable=R0913,R0914
 def table_data_exterior_controls(
     # L1 input (input)
@@ -132,6 +133,7 @@ def table_data_exterior_controls(
     _: int,
     tot_n_clicks: int,
     snapshot_ts: str,
+    __: int,
     ___: int,
     # state(s)
     state_table: Table,
@@ -146,7 +148,9 @@ def table_data_exterior_controls(
     "add new" changes MoU DS data. The others simply change what's
     visible to the user.
     """
-    logging.warning("table_data_exterior_controls()")
+    logging.warning(f"'{du.triggered_id()}' -> table_data_exterior_controls()")
+    snapshot_ts = snapshot_ts if snapshot_ts else ""  # HACK: dash sends 0 on boot
+    assert wbs_l1
     logging.warning(
         f"Snapshot: {snapshot_ts=} {'' if snapshot_ts else '(Live Collection)'}"
     )
@@ -160,7 +164,7 @@ def table_data_exterior_controls(
     )
 
     # Add New Data
-    if du.triggered_id() == "wbs-new-data-button":
+    if re.match(r"wbs-new-data-button-\d+", du.triggered_id()):
         if not snapshot_ts:  # are we looking at a snapshot?
             table, toast = _add_new_data(
                 wbs_l1,
@@ -283,7 +287,7 @@ def _delete_deleted_records(
         State("wbs-table-config-cache", "data"),
         State("wbs-snapshot-current-ts", "data"),
     ],
-    prevent_initial_call=True,  # triggered instead by Input("wbs-l1", "value")
+    # prevent_initial_call=True,  # triggered instead by Input("wbs-l1", "value")
 )
 def table_data_interior_controls(
     # L1 value (input)
@@ -305,7 +309,7 @@ def table_data_interior_controls(
     This is unnecessary, so the timestamp of table_data_exterior_controls()'s
     last call will be checked to determine if that was indeed the case.
     """
-    logging.warning("table_data_interior_controls()")
+    logging.warning(f"'{du.triggered_id()}' -> table_data_interior_controls()")
 
     updated_message = f"Last Refreshed: {du.get_human_now()}"
 
@@ -343,7 +347,7 @@ def table_columns(
     state_tconfig_cache: tc.TableConfigParser.Cache,
 ) -> List[Dict[str, object]]:
     """Grab table columns."""
-    logging.warning("table_columns()")
+    logging.warning(f"'{du.triggered_id()}' -> table_columns()")
 
     tconfig = tc.TableConfigParser(state_tconfig_cache)
 
@@ -387,7 +391,7 @@ def table_dropdown(
     state_tconfig_cache: tc.TableConfigParser.Cache,
 ) -> Tuple[TDDown, TDDownCond]:
     """Grab table dropdowns."""
-    logging.warning("table_dropdown()")
+    logging.warning(f"'{du.triggered_id()}' -> table_dropdown()")
 
     simple_dropdowns: TDDown = {}
     conditional_dropdowns: TDDownCond = []
@@ -474,7 +478,7 @@ def handle_load_snapshot(
     Must be one function b/c all triggers control whether the modal is
     open.
     """
-    logging.warning("handle_load_snapshot()")
+    logging.warning(f"'{du.triggered_id()}' -> handle_load_snapshot()")
 
     # Load Live Table
     if du.triggered_id() in ["wbs-view-live-btn-modal", "wbs-view-live-btn"]:
@@ -538,7 +542,7 @@ def handle_make_snapshot(
     state_snap_current_ts: str,
 ) -> Tuple[bool, dbc.Toast, str]:
     """Handle the naming and creating of a snapshot."""
-    logging.warning("handle_make_snapshot()")
+    logging.warning(f"'{du.triggered_id()}' -> handle_make_snapshot()")
 
     if state_snap_current_ts:  # are we looking at a snapshot?
         return False, None, ""
@@ -604,7 +608,7 @@ def get_institution_values(
     state_institution: str,
 ) -> Tuple[int, int, int, int, str]:
     """Get the institution's values."""
-    logging.warning("get_institution_values()")
+    logging.warning(f"'{du.triggered_id()}' -> get_institution_values()")
 
     if not state_institution or not current_user.is_authenticated:
         return 0, 0, 0, 0, ""
@@ -622,7 +626,7 @@ def get_institution_values(
         )
 
     except DataSourceException:
-        return 0, 0, 0, 0, ""
+        return -1, -1, -1, -1, ""
 
 
 @app.callback(  # type: ignore[misc]
@@ -659,7 +663,7 @@ def push_institution_values(  # pylint: disable=R0913
     state_table: Table,
 ) -> Dict[str, Union[str, InstitutionValues]]:
     """Push the institution's values."""
-    logging.warning("push_institution_values()")
+    logging.warning(f"'{du.triggered_id()}' -> push_institution_values()")
 
     if (not state_institution) or (not current_user.is_authenticated):
         return {}
@@ -704,7 +708,7 @@ def push_institution_values(  # pylint: disable=R0913
         Output("wbs-data-table", "editable"),
         Output("wbs-new-data-div-1", "hidden"),
         Output("wbs-new-data-div-2", "hidden"),
-        Output("wbs-make-snapshot-button", "hidden"),
+        Output("wbs-make-snapshot-button-div", "hidden"),
         Output("wbs-data-table", "row_deletable"),
         Output("wbs-filter-inst", "disabled"),
         Output("wbs-filter-inst", "value"),
@@ -723,7 +727,7 @@ def login_actions(
     _: bool,
 ) -> Tuple[bool, bool, bool, bool, bool, bool, str, bool, bool, bool, bool, bool, bool]:
     """Logged-in callback."""
-    logging.warning("login_actions()")
+    logging.warning(f"'{du.triggered_id()}' -> login_actions()")
 
     if viewing_snapshot:
         return (
@@ -793,7 +797,7 @@ def toggle_pagination(
     state_tconfig_cache: tc.TableConfigParser.Cache,
 ) -> Tuple[str, str, bool, int, str]:
     """Toggle whether the table is paginated."""
-    logging.warning("toggle_pagination()")
+    logging.warning(f"'{du.triggered_id()}' -> toggle_pagination()")
 
     if n_clicks % 2 == 0:
         tconfig = tc.TableConfigParser(state_tconfig_cache)
@@ -825,7 +829,7 @@ def toggle_hidden_columns(
     state_tconfig_cache: tc.TableConfigParser.Cache,
 ) -> Tuple[str, str, bool, List[str]]:
     """Toggle hiding/showing the default hidden columns."""
-    logging.warning("toggle_hidden_columns()")
+    logging.warning(f"'{du.triggered_id()}' -> toggle_hidden_columns()")
 
     if n_clicks % 2 == 0:
         tconfig = tc.TableConfigParser(state_tconfig_cache)

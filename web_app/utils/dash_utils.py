@@ -5,7 +5,7 @@ import logging
 import time
 from datetime import datetime as dt
 from datetime import timezone as tz
-from typing import cast, Collection, Dict, Final, List, Optional, Union
+from typing import cast, Collection, Dict, Final, List, Union
 
 import dash  # type: ignore[import]
 import dash_bootstrap_components as dbc  # type: ignore[import]
@@ -99,7 +99,7 @@ def new_data_button(num: int) -> html.Div:
         id=f"wbs-new-data-div-{num}",
         children=dbc.Button(
             "+ Add New Data",
-            id="wbs-new-data-button",
+            id=f"wbs-new-data-button-{num}",
             block=True,
             n_clicks=0,
             color=Color.DARK,

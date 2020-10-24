@@ -45,7 +45,6 @@ def _get_ingest_sucess_message(
         Output("wbs-upload-xlsx-filename-alert", "children"),
         Output("wbs-upload-xlsx-filename-alert", "color"),
         Output("wbs-upload-xlsx-override-table", "disabled"),
-        Output("wbs-refresh-button", "n_clicks"),
         Output("wbs-toast-via-upload-div", "children"),
     ],
     [
@@ -67,19 +66,19 @@ def handle_xlsx(  # pylint: disable=R0911
     wbs_l1: str,
     # other state(s)
     filename: str,
-) -> Tuple[bool, str, str, bool, int, dbc.Toast]:
+) -> Tuple[bool, str, str, bool, dbc.Toast]:
     """Manage uploading a new xlsx document as the new live table."""
-    logging.warning("handle_xlsx()")
+    logging.warning(f"'{du.triggered_id()}' -> handle_xlsx()")
 
     if not current_user.is_authenticated or not current_user.is_admin:
         logging.error("Cannot handle xlsx since user is not admin.")
-        return False, "", "", True, 0, None
+        return False, "", "", True, None
 
     if du.triggered_id() == "wbs-upload-xlsx-launch-modal-button":
-        return True, "", "", True, 0, None
+        return True, "", "", True, None
 
     if du.triggered_id() == "wbs-upload-xlsx-cancel":
-        return False, "", "", True, 0, None
+        return False, "", "", True, None
 
     if du.triggered_id() == "wbs-upload-xlsx":
         if not filename.endswith(".xlsx"):
@@ -88,10 +87,15 @@ def handle_xlsx(  # pylint: disable=R0911
                 f'"{filename}" is not an .xlsx file',
                 du.Color.DANGER,
                 True,
-                0,
                 None,
             )
-        return True, f'Uploaded "{filename}"', du.Color.SUCCESS, False, 0, None
+        return (
+            True,
+            f'Uploaded "{filename}"',
+            du.Color.SUCCESS,
+            False,
+            None,
+        )
 
     if du.triggered_id() == "wbs-upload-xlsx-override-table":
         base64_file = contents.split(",")[1]
@@ -104,11 +108,10 @@ def handle_xlsx(  # pylint: disable=R0911
                 _get_ingest_sucess_message(n_records, prev_snap, curr_snap),
                 du.Color.SUCCESS,
             )
-            return False, "", "", True, 1, success_toast
-
+            return False, "", "", True, success_toast
         except DataSourceException as e:
             error_message = f'Error overriding "{filename}" ({e})'
-            return True, error_message, du.Color.DANGER, True, 0, None
+            return True, error_message, du.Color.DANGER, True, None
 
     raise Exception(f"Unaccounted for trigger {du.triggered_id()}")
 
@@ -132,7 +135,7 @@ def summarize(
     state_snap_current_ts: str,
 ) -> Tuple[Table, List[Dict[str, str]]]:
     """Manage uploading a new xlsx document as the new live table."""
-    logging.warning("summarize()")
+    logging.warning(f"'{du.triggered_id()}' -> summarize()")
 
     try:
         data_table = src.pull_data_table(wbs_l1)
