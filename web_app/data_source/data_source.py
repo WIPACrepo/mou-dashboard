@@ -178,7 +178,7 @@ def pull_data_table(
     """Get table, optionally filtered by institution and/or labor.
 
     Grab a snapshot table, if snapshot is given. "" gives live table.
-
+    # TODO - it would be nice to split out restore_id into its own thing
 
     Keyword Arguments:
         institution {str} -- filter by institution (default: {""})
@@ -190,7 +190,7 @@ def pull_data_table(
     Returns:
         Table -- the returned table
     """
-    assert isinstance(wbs_l1, str)
+    assert wbs_l1 and isinstance(wbs_l1, str)
     assert isinstance(institution, str)
     assert isinstance(labor, str)
     assert isinstance(with_totals, bool)
@@ -238,8 +238,7 @@ def push_record(  # pylint: disable=R0913
     Returns:
         Record -- the returned record
     """
-
-    assert isinstance(wbs_l1, str)
+    assert wbs_l1 and isinstance(wbs_l1, str)
     assert isinstance(record, dict)
     assert isinstance(labor, str)
     assert isinstance(institution, str)
@@ -262,7 +261,7 @@ def push_record(  # pylint: disable=R0913
 
 def delete_record(wbs_l1: str, record_id: str) -> None:
     """Delete the record, return True if successful."""
-    assert isinstance(wbs_l1, str)
+    assert wbs_l1 and isinstance(wbs_l1, str)
     assert isinstance(record_id, str)
 
     body = {"record_id": record_id}
@@ -271,7 +270,7 @@ def delete_record(wbs_l1: str, record_id: str) -> None:
 
 def list_snapshots(wbs_l1: str) -> List[SnapshotInfo]:
     """Get the list of snapshots."""
-    assert isinstance(wbs_l1, str)
+    assert wbs_l1 and isinstance(wbs_l1, str)
 
     class _RespSnapshots(TypedDict):
         snapshots: List[SnapshotInfo]
@@ -282,7 +281,7 @@ def list_snapshots(wbs_l1: str) -> List[SnapshotInfo]:
 
 def create_snapshot(wbs_l1: str, name: str) -> SnapshotInfo:
     """Create a snapshot."""
-    assert isinstance(wbs_l1, str)
+    assert wbs_l1 and isinstance(wbs_l1, str)
     assert isinstance(name, str)
 
     body = {"creator": current_user.name, "name": name}
@@ -304,7 +303,7 @@ def override_table(
         str -- snapshot name of the previous live table ('' if no prior table)
         str -- snapshot name of the current live table
     """
-    assert isinstance(wbs_l1, str)
+    assert wbs_l1 and isinstance(wbs_l1, str)
     assert isinstance(base64_file, str)
     assert isinstance(filename, str)
 
@@ -332,7 +331,7 @@ def pull_institution_values(
     wbs_l1: str, snapshot_timestamp: str, institution: str
 ) -> InstitutionValues:
     """Get the institution's values."""
-    assert isinstance(wbs_l1, str)
+    assert wbs_l1 and isinstance(wbs_l1, str)
     assert isinstance(snapshot_timestamp, str)
     assert isinstance(institution, str)
 
@@ -345,7 +344,7 @@ def push_institution_values(
     wbs_l1: str, institution: str, values: InstitutionValues
 ) -> None:
     """Push the institution's values."""
-    assert isinstance(wbs_l1, str)
+    assert wbs_l1 and isinstance(wbs_l1, str)
     assert isinstance(institution, str)
     assert isinstance(values, dict)
 

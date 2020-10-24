@@ -106,7 +106,6 @@ def _add_new_data(  # pylint: disable=R0913
         Output("institution-textarea-container", "hidden"),
     ],
     [
-        Input("wbs-l1", "value"),
         Input("wbs-filter-inst", "value"),
         Input("wbs-filter-labor", "value"),
         Input("wbs-new-data-button-1", "n_clicks"),
@@ -116,17 +115,15 @@ def _add_new_data(  # pylint: disable=R0913
         Input("wbs-undo-last-delete", "n_clicks"),
     ],
     [
+        State("wbs-l1", "value"),
         State("wbs-data-table", "data"),
         State("wbs-data-table", "columns"),
         State("wbs-show-all-columns-button", "n_clicks"),
         State("wbs-last-deleted-id", "children"),
         State("wbs-table-config-cache", "data"),
     ],
-    # prevent_initial_call=True,  # triggered instead by Input("wbs-l1", "value")
 )  # pylint: disable=R0913,R0914
 def table_data_exterior_controls(
-    # L1 input (input)
-    wbs_l1: str,
     # other input(s)
     institution: str,
     labor: str,
@@ -135,6 +132,8 @@ def table_data_exterior_controls(
     snapshot_ts: str,
     __: int,
     ___: int,
+    # L1 input (state)
+    wbs_l1: str,
     # state(s)
     state_table: Table,
     state_columns: TColumns,
@@ -149,8 +148,12 @@ def table_data_exterior_controls(
     visible to the user.
     """
     logging.warning(f"'{du.triggered_id()}' -> table_data_exterior_controls()")
-    snapshot_ts = snapshot_ts if snapshot_ts else ""  # HACK: dash sends 0 on boot
-    assert wbs_l1
+
+    # Dash sets cleared values as 0
+    snapshot_ts = snapshot_ts if snapshot_ts else ""
+    labor = labor if labor else ""
+    institution = institution if institution else ""
+
     logging.warning(
         f"Snapshot: {snapshot_ts=} {'' if snapshot_ts else '(Live Collection)'}"
     )
@@ -280,20 +283,20 @@ def _delete_deleted_records(
         Output("wbs-last-deleted-id", "children"),
         Output("wbs-deletion-toast", "is_open"),
     ],
-    [Input("wbs-l1", "value"), Input("wbs-data-table", "data")],
+    [Input("wbs-data-table", "data")],
     [
+        State("wbs-l1", "value"),
         State("wbs-data-table", "data_previous"),
         State("wbs-table-exterior-control-last-timestamp", "data"),
         State("wbs-table-config-cache", "data"),
         State("wbs-snapshot-current-ts", "data"),
     ],
-    # prevent_initial_call=True,  # triggered instead by Input("wbs-l1", "value")
 )
 def table_data_interior_controls(
-    # L1 value (input)
-    wbs_l1: str,
     # other input(s)
     current_table: Table,
+    # L1 value (state)
+    wbs_l1: str,
     # state(s)
     previous_table: Table,
     table_exterior_control_ts: str,

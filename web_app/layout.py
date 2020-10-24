@@ -155,9 +155,6 @@ def refresh_on_tab_click(wbs_l1: str) -> str:
     logging.warning(f"'{du.triggered_id()}' -> refresh_on_tab_click()")
     logging.warning(f"tab clicked: {wbs_l1=}")
 
-    if not wbs_l1:
-        return ""
-
     return "location.reload();"
 
 
@@ -185,7 +182,6 @@ def _logged_in_return() -> Tuple[bool, bool, bool, bool, str, str]:
         Input("login-password", "n_submit"),
     ],
     [State("login-email", "value"), State("login-password", "value")],
-    prevent_initial_call=True,
 )
 def login(
     _: int, __: int, ___: int, ____: int, email: str, pwd: str,
