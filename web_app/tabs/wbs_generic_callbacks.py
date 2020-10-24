@@ -2,7 +2,7 @@
 
 import logging
 import re
-from typing import cast, Dict, List, Tuple, Union
+from typing import cast, Dict, List, Optional, Tuple, Union
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
@@ -441,16 +441,16 @@ def table_dropdown(
 
 
 @app.callback(  # type: ignore[misc]
-    [Output("wbs-snapshot-current-ts", "value"), Output("refresh-1", "run")],
+    Output("wbs-snapshot-current-ts", "value"),
     [Input("wbs-view-live-btn", "n_clicks")],
     prevent_initial_call=True,
 )
-def view_live_table(_: int,) -> Tuple[str, str]:
-    """View the live table.
+def view_live_table(_: int) -> str:
+    """View the live table. Clear the snapshot selection.
 
-    Clear the snapshot selection and refresh.
+    This is my favorite callback.
     """
-    return "", "location.reload();"
+    return ""
 
 
 @app.callback(  # type: ignore[misc]
@@ -458,20 +458,31 @@ def view_live_table(_: int,) -> Tuple[str, str]:
         Output("wbs-snapshot-current-ts", "options"),
         Output("wbs-snapshot-current-labels", "children"),
         Output("wbs-viewing-snapshot-alert", "is_open"),
+        Output("wbs-snapshot-info", "data"),
+        Output("refresh-1", "run"),
     ],
     [Input("wbs-snapshot-current-ts", "value")],
-    [State("wbs-l1", "value")],
+    [State("wbs-l1", "value"), State("wbs-snapshot-info", "data")],
 )
 def handle_load_snapshot(
     # input(s)
     snapshot_ts_selection: str,
     # L1 value (state)
     wbs_l1: str,
-) -> Tuple[
-    List[dbc.ListGroupItem], List[html.Label], bool,
-]:
+    snap_info: Optional[SnapshotInfo],
+) -> Tuple[List[Dict[str, str]], List[html.Label], bool, Optional[SnapshotInfo], str]:
     """Populate snapshots dropdown, load live table, or select a snapshot."""
     logging.warning(f"'{du.triggered_id()}' -> handle_load_snapshot()")
+
+    # On snapshot selection/de-selection, refresh the page. Load things after refresh
+    if du.triggered_id() == "wbs-snapshot-current-ts":
+        return [], [], False, snap_info, "location.reload();"
+
+    snapshots_options: List[Dict[str, str]] = []
+    label_lines: List[html.Label] = []
+
+    # Guarantee this is the initial call
+    assert not du.triggered_id()
 
     # Populate List of Snapshots
     try:
@@ -485,22 +496,23 @@ def handle_load_snapshot(
         }
         for snap in snapshots
     ]
-    all_snap_infos = {snap["timestamp"]: snap for snap in snapshots}
-
-    # Load Live Table
-    if (du.triggered_id() == "wbs-view-live-btn") or (not snapshot_ts_selection):
-        return snapshots_options, [], False
 
     # Selected a Snapshot
-    info = all_snap_infos[snapshot_ts_selection]
-    label_lines = [
-        html.Label(f"Viewing Snapshot: \"{info['name']}\""),
-        html.Label(
-            f"(created by {info['creator']} on {du.get_human_time(snapshot_ts_selection)})",
-            style={"font-size": "75%", "font-style": "italic"},
-        ),
-    ]
-    return snapshots_options, label_lines, True
+    if snapshot_ts_selection:
+        # get snap_info if needed
+        if not snap_info:
+            all_snap_infos = {snap["timestamp"]: snap for snap in snapshots}
+            snap_info = all_snap_infos[snapshot_ts_selection]
+        # get lines
+        label_lines = [
+            html.Label(f"Viewing Snapshot: \"{snap_info['name']}\""),
+            html.Label(
+                f"(created by {snap_info['creator']} on {du.get_human_time(snapshot_ts_selection)})",
+                style={"font-size": "75%", "font-style": "italic"},
+            ),
+        ]
+
+    return snapshots_options, label_lines, bool(snapshot_ts_selection), snap_info, ""
 
 
 @app.callback(  # type: ignore[misc]

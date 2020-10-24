@@ -380,7 +380,7 @@ def layout() -> html.Div:
                 id="wbs-table-config-cache", storage_type="memory", data=tconfig.config,
             ),
             # for caching all snapshots' infos
-            dcc.Store(id="wbs-all-snapshot-infos", storage_type="memory"),
+            dcc.Store(id="wbs-snapshot-info", storage_type="memory"),
             # for caching the visible Institution and its values
             dcc.Store(id="wbs-previous-inst-and-vals", storage_type="memory"),
             #
