@@ -26,6 +26,7 @@ def layout() -> None:
     app.layout = html.Div(
         children=[
             visdcc.Run_js("refresh-0"),  # pylint: disable=E1101
+            visdcc.Run_js("refresh-1"),  # pylint: disable=E1101
             #
             # Location Triggers (To Refresh Page)
             dcc.Location(id="url-1", refresh=True),

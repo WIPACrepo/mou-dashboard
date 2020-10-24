@@ -199,24 +199,23 @@ h2:before {
 
 
 /*------------------------------------------------------------------------------------*/
-/* Institution Fields */
+/* Large Dropdown Styles & Institution Fields */
 
-.institution-container {
+.large-dropdown-container {
     display: flex;
     justify-content: center;
 }
 
-.institution {
-    width: 50rem;
+.large-dropdown {
     text-align: center;
     font-size: 1.6rem;
 }
 
-.institution > .Select-control {
+.large-dropdown > .Select-control {
     height: 4rem;
 }
 
-.institution > .Select-control > .Select-multi-value-wrapper > .Select-value {
+.large-dropdown > .Select-control > .Select-multi-value-wrapper > .Select-value {
     padding: 0 !important;
     padding-top: 0.25rem !important;
 }

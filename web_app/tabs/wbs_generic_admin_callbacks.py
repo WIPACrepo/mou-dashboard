@@ -122,7 +122,7 @@ def handle_xlsx(  # pylint: disable=R0911
     [
         State("wbs-l1", "value"),
         State("wbs-table-config-cache", "data"),
-        State("wbs-snapshot-current-ts", "data"),
+        State("wbs-snapshot-current-ts", "value"),
     ],
     prevent_initial_call=True,
 )

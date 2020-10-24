@@ -268,34 +268,6 @@ def make_toast(
     )
 
 
-def load_snapshot_modal() -> dbc.Modal:
-    """Get a modal for selecting a snapshot."""
-    return dbc.Modal(
-        id="wbs-load-snapshot-modal",
-        size="lg",
-        is_open=False,
-        backdrop="static",
-        children=[
-            dbc.ModalHeader("Snapshots", className="caps snapshots-title"),
-            dbc.ModalBody(
-                dcc.RadioItems(
-                    options=[], id="wbs-snapshot-selection", className="snapshots"
-                )
-            ),
-            dbc.ModalFooter(
-                children=[
-                    dbc.Button(
-                        "View Live Table",
-                        id="wbs-view-live-btn-modal",
-                        n_clicks=0,
-                        color=Color.SUCCESS,
-                    )
-                ]
-            ),
-        ],
-    )
-
-
 def upload_modal() -> dbc.Modal:
     """Get a modal for uploading an xlsx."""
     return dbc.Modal(

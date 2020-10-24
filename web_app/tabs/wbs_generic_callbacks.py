@@ -111,7 +111,7 @@ def _add_new_data(  # pylint: disable=R0913
         Input("wbs-new-data-button-1", "n_clicks"),
         Input("wbs-new-data-button-2", "n_clicks"),
         Input("wbs-show-totals-button", "n_clicks"),
-        Input("wbs-snapshot-current-ts", "data"),
+        Input("wbs-snapshot-current-ts", "value"),
         Input("wbs-undo-last-delete", "n_clicks"),
     ],
     [
@@ -289,7 +289,7 @@ def _delete_deleted_records(
         State("wbs-data-table", "data_previous"),
         State("wbs-table-exterior-control-last-timestamp", "data"),
         State("wbs-table-config-cache", "data"),
-        State("wbs-snapshot-current-ts", "data"),
+        State("wbs-snapshot-current-ts", "value"),
     ],
 )
 def table_data_interior_controls(
@@ -441,70 +441,58 @@ def table_dropdown(
 
 
 @app.callback(  # type: ignore[misc]
-    [
-        Output("wbs-load-snapshot-modal", "is_open"),
-        Output("wbs-snapshot-selection", "options"),
-        Output("wbs-snapshot-current-labels", "children"),
-        Output("wbs-snapshot-current-ts", "data"),
-        Output("wbs-viewing-snapshot-alert", "is_open"),
-        Output("wbs-all-snapshot-infos", "data"),
-    ],
-    [
-        Input("wbs-load-snapshot-button", "n_clicks"),
-        Input("wbs-view-live-btn-modal", "n_clicks"),
-        Input("wbs-view-live-btn", "n_clicks"),
-        Input("wbs-snapshot-selection", "value"),
-    ],
-    [
-        State("wbs-l1", "value"),
-        State("wbs-snapshot-current-ts", "data"),
-        State("wbs-all-snapshot-infos", "data"),
-    ],
+    [Output("wbs-snapshot-current-ts", "value"), Output("refresh-1", "run")],
+    [Input("wbs-view-live-btn", "n_clicks")],
     prevent_initial_call=True,
+)
+def view_live_table(_: int,) -> Tuple[str, str]:
+    """View the live table.
+
+    Clear the snapshot selection and refresh.
+    """
+    return "", "location.reload();"
+
+
+@app.callback(  # type: ignore[misc]
+    [
+        Output("wbs-snapshot-current-ts", "options"),
+        Output("wbs-snapshot-current-labels", "children"),
+        Output("wbs-viewing-snapshot-alert", "is_open"),
+    ],
+    [Input("wbs-snapshot-current-ts", "value")],
+    [State("wbs-l1", "value")],
 )
 def handle_load_snapshot(
     # input(s)
-    _: int,
-    __: int,
-    ___: int,
     snapshot_ts_selection: str,
     # L1 value (state)
     wbs_l1: str,
-    # other state(s)
-    state_snap_current_ts: str,
-    state_all_snap_infos: Dict[str, SnapshotInfo],
 ) -> Tuple[
-    bool, List[dbc.ListGroupItem], List[html.Label], str, bool, Dict[str, SnapshotInfo],
+    List[dbc.ListGroupItem], List[html.Label], bool,
 ]:
-    """Launch snapshot modal, load live table, or select a snapshot.
-
-    Must be one function b/c all triggers control whether the modal is
-    open.
-    """
+    """Populate snapshots dropdown, load live table, or select a snapshot."""
     logging.warning(f"'{du.triggered_id()}' -> handle_load_snapshot()")
 
-    # Load Live Table
-    if du.triggered_id() in ["wbs-view-live-btn-modal", "wbs-view-live-btn"]:
-        return False, [], [], "", False, state_all_snap_infos
+    # Populate List of Snapshots
+    try:
+        snapshots = src.list_snapshots(wbs_l1)
+    except DataSourceException:
+        snapshots = []
+    snapshots_options = [
+        {
+            "label": f"{snap['name']}  [created by {snap['creator']} on {du.get_human_time(snap['timestamp'])}]",
+            "value": snap["timestamp"],
+        }
+        for snap in snapshots
+    ]
+    all_snap_infos = {snap["timestamp"]: snap for snap in snapshots}
 
-    # Load Modal List of Snapshots
-    if du.triggered_id() == "wbs-load-snapshot-button":
-        try:
-            snapshots = src.list_snapshots(wbs_l1)
-        except DataSourceException:
-            snapshots = []
-        snapshots_options = [
-            {
-                "label": f"{snap['name']}  [created by {snap['creator']} on {du.get_human_time(snap['timestamp'])}]",
-                "value": snap["timestamp"],
-            }
-            for snap in snapshots
-        ]
-        all_snap_infos = {snap["timestamp"]: snap for snap in snapshots}
-        return True, snapshots_options, [], state_snap_current_ts, False, all_snap_infos
+    # Load Live Table
+    if (du.triggered_id() == "wbs-view-live-btn") or (not snapshot_ts_selection):
+        return snapshots_options, [], False
 
     # Selected a Snapshot
-    info = state_all_snap_infos[snapshot_ts_selection]
+    info = all_snap_infos[snapshot_ts_selection]
     label_lines = [
         html.Label(f"Viewing Snapshot: \"{info['name']}\""),
         html.Label(
@@ -512,7 +500,7 @@ def handle_load_snapshot(
             style={"font-size": "75%", "font-style": "italic"},
         ),
     ]
-    return False, [], label_lines, snapshot_ts_selection, True, state_all_snap_infos
+    return snapshots_options, label_lines, True
 
 
 @app.callback(  # type: ignore[misc]
@@ -529,7 +517,7 @@ def handle_load_snapshot(
     [
         State("wbs-l1", "value"),
         State("wbs-name-snapshot-input", "value"),
-        State("wbs-snapshot-current-ts", "data"),
+        State("wbs-snapshot-current-ts", "value"),
     ],
     prevent_initial_call=True,
 )
@@ -596,7 +584,7 @@ def handle_make_snapshot(
     ],
     [
         State("wbs-l1", "value"),
-        State("wbs-snapshot-current-ts", "data"),
+        State("wbs-snapshot-current-ts", "value"),
         State("wbs-filter-inst", "value"),
     ],
     prevent_initial_call=True,
@@ -644,7 +632,7 @@ def get_institution_values(
     [
         State("wbs-l1", "value"),
         State("wbs-filter-inst", "value"),
-        State("wbs-snapshot-current-ts", "data"),
+        State("wbs-snapshot-current-ts", "value"),
         State("wbs-previous-inst-and-vals", "data"),
         State("wbs-data-table", "data"),
     ],

@@ -17,34 +17,33 @@ def layout() -> html.Div:
     return html.Div(
         children=[
             #
-            # Load & Make Snapshots
-            dcc.Loading(
-                type="dot",
-                color="#258835",
+            # Load Snapshots
+            html.Div(
+                className="large-dropdown-container",
                 children=[
-                    # Load Snapshot
+                    dcc.Dropdown(
+                        id="wbs-snapshot-current-ts",
+                        className="large-dropdown",
+                        style={"width": "100rem"},
+                        placeholder="",
+                        value="",
+                        disabled=False,
+                        persistence=True,
+                    ),
+                ],
+            ),
+            # Make Snapshot
+            html.Div(
+                id="wbs-make-snapshot-button-div",
+                hidden=True,
+                children=[
                     dbc.Button(
-                        "Load Snapshot",
-                        id="wbs-load-snapshot-button",
+                        "Make Snapshot",
+                        id="wbs-make-snapshot-button",
                         n_clicks=0,
                         outline=True,
-                        color=du.Color.INFO,
+                        color=du.Color.SUCCESS,
                         style={"margin-right": "1rem"},
-                    ),
-                    # Make Snapshot
-                    html.Div(
-                        id="wbs-make-snapshot-button-div",
-                        hidden=True,
-                        children=[
-                            dbc.Button(
-                                "Make Snapshot",
-                                id="wbs-make-snapshot-button",
-                                n_clicks=0,
-                                outline=True,
-                                color=du.Color.SUCCESS,
-                                style={"margin-right": "1rem"},
-                            ),
-                        ],
                     ),
                 ],
             ),
@@ -80,11 +79,12 @@ def layout() -> html.Div:
             #
             # Institution filter dropdown menu
             html.Div(
-                className="institution-container",
+                className="large-dropdown-container",
                 children=[
                     dcc.Dropdown(
                         id="wbs-filter-inst",
-                        className="institution",
+                        className="large-dropdown",
+                        style={"width": "50rem"},
                         placeholder="",
                         options=[
                             {"label": f"{abbrev} ({name})", "value": abbrev}
@@ -379,8 +379,6 @@ def layout() -> html.Div:
             dcc.Store(
                 id="wbs-table-config-cache", storage_type="memory", data=tconfig.config,
             ),
-            # for caching the current snapshot
-            dcc.Store(id="wbs-snapshot-current-ts", storage_type="memory", data=""),
             # for caching all snapshots' infos
             dcc.Store(id="wbs-all-snapshot-infos", storage_type="memory"),
             # for caching the visible Institution and its values
@@ -393,7 +391,6 @@ def layout() -> html.Div:
             html.Div(id="wbs-toast-via-upload-div"),
             #
             # Modals & Toasts
-            du.load_snapshot_modal(),
             du.deletion_toast(),
             du.upload_modal(),
             du.name_snapshot_modal(),
