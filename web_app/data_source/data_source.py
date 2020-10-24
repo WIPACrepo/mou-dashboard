@@ -1,10 +1,8 @@
 """REST interface for reading and writing MoU data."""
 
 
-import logging
 from typing import Any, cast, Dict, Final, List, Optional, Tuple, TypedDict
 
-import requests
 from flask_login import current_user  # type: ignore[import]
 
 from ..utils.types import InstitutionValues, Record, SnapshotInfo, Table
@@ -192,6 +190,12 @@ def pull_data_table(
     Returns:
         Table -- the returned table
     """
+    assert isinstance(wbs_l1, str)
+    assert isinstance(institution, str)
+    assert isinstance(labor, str)
+    assert isinstance(with_totals, bool)
+    assert isinstance(snapshot_ts, str)
+    assert isinstance(restore_id, str)
 
     class _RespTableData(TypedDict):
         table: Table
@@ -206,7 +210,7 @@ def pull_data_table(
     }
 
     response = cast(
-        _RespTableData, mou_request("GET", "/table/data", body=body, wbs_l1=wbs_l1)
+        _RespTableData, mou_request("GET", f"/table/data/{wbs_l1}", body=body),
     )
     # get & convert
     return _convert_table_rest_to_dash(response["table"])
@@ -235,6 +239,13 @@ def push_record(  # pylint: disable=R0913
         Record -- the returned record
     """
 
+    assert isinstance(wbs_l1, str)
+    assert isinstance(record, dict)
+    assert isinstance(labor, str)
+    assert isinstance(institution, str)
+    assert isinstance(novel, bool)
+    assert isinstance(tconfig_cache, (dict, type(None)))
+
     class _RespRecord(TypedDict):
         record: Record
 
@@ -244,35 +255,38 @@ def push_record(  # pylint: disable=R0913
         "institution": institution,
         "labor": labor,
     }
-    response = cast(
-        _RespRecord, mou_request("POST", "/record", body=body, wbs_l1=wbs_l1)
-    )
+    response = cast(_RespRecord, mou_request("POST", f"/record/{wbs_l1}", body=body))
     # get & convert
     return _convert_record_rest_to_dash(response["record"], novel=novel)
 
 
 def delete_record(wbs_l1: str, record_id: str) -> None:
     """Delete the record, return True if successful."""
+    assert isinstance(wbs_l1, str)
+    assert isinstance(record_id, str)
+
     body = {"record_id": record_id}
-    mou_request("DELETE", "/record", body=body, wbs_l1=wbs_l1)
+    mou_request("DELETE", f"/record/{wbs_l1}", body=body)
 
 
 def list_snapshots(wbs_l1: str) -> List[SnapshotInfo]:
     """Get the list of snapshots."""
+    assert isinstance(wbs_l1, str)
 
     class _RespSnapshots(TypedDict):
         snapshots: List[SnapshotInfo]
 
-    response = cast(
-        _RespSnapshots, mou_request("GET", "/snapshots/list", wbs_l1=wbs_l1),
-    )
+    response = cast(_RespSnapshots, mou_request("GET", f"/snapshots/list/{wbs_l1}"),)
     return sorted(response["snapshots"], key=lambda i: i["timestamp"], reverse=True)
 
 
 def create_snapshot(wbs_l1: str, name: str) -> SnapshotInfo:
     """Create a snapshot."""
+    assert isinstance(wbs_l1, str)
+    assert isinstance(name, str)
+
     body = {"creator": current_user.name, "name": name}
-    response = mou_request("POST", "/snapshots/make", body=body, wbs_l1=wbs_l1)
+    response = mou_request("POST", f"/snapshots/make/{wbs_l1}", body=body)
     return cast(SnapshotInfo, response)
 
 
@@ -290,6 +304,9 @@ def override_table(
         str -- snapshot name of the previous live table ('' if no prior table)
         str -- snapshot name of the current live table
     """
+    assert isinstance(wbs_l1, str)
+    assert isinstance(base64_file, str)
+    assert isinstance(filename, str)
 
     class _RespTableData(TypedDict):
         n_records: int
@@ -302,7 +319,7 @@ def override_table(
         "creator": current_user.name,
     }
     response = cast(
-        _RespTableData, mou_request("POST", "/table/data", body=body, wbs_l1=wbs_l1)
+        _RespTableData, mou_request("POST", f"/table/data/{wbs_l1}", body=body),
     )
     return (
         response["n_records"],
@@ -315,8 +332,12 @@ def pull_institution_values(
     wbs_l1: str, snapshot_timestamp: str, institution: str
 ) -> InstitutionValues:
     """Get the institution's values."""
+    assert isinstance(wbs_l1, str)
+    assert isinstance(snapshot_timestamp, str)
+    assert isinstance(institution, str)
+
     body = {"institution": institution, "snapshot_timestamp": snapshot_timestamp}
-    response = mou_request("GET", "/institution/values", body=body, wbs_l1=wbs_l1)
+    response = mou_request("GET", f"/institution/values/{wbs_l1}", body=body)
     return cast(InstitutionValues, response)
 
 
@@ -324,6 +345,10 @@ def push_institution_values(
     wbs_l1: str, institution: str, values: InstitutionValues
 ) -> None:
     """Push the institution's values."""
+    assert isinstance(wbs_l1, str)
+    assert isinstance(institution, str)
+    assert isinstance(values, dict)
+
     body = {"institution": institution}
     body.update(cast(Dict[str, Any], values))
-    _ = mou_request("POST", "/institution/values", body=body, wbs_l1=wbs_l1)
+    _ = mou_request("POST", f"/institution/values/{wbs_l1}", body=body)

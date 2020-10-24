@@ -29,13 +29,8 @@ def _rest_connection() -> RestClient:
     return rc
 
 
-def mou_request(
-    method: str, url: str, body: Any = None, wbs_l1: str = ""
-) -> Dict[str, Any]:
+def mou_request(method: str, url: str, body: Any = None) -> Dict[str, Any]:
     """Make a request to the MoU REST server."""
-    if wbs_l1:
-        url = f"{url}/{wbs_l1}"
-
     logging.info(f"REQUEST :: {method} @ {url}, body: {body}")
 
     try:
