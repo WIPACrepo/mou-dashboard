@@ -25,7 +25,8 @@ def layout() -> None:
     # Layout
     app.layout = html.Div(
         children=[
-            visdcc.Run_js("refresh"),  # pylint: disable=E1101
+            visdcc.Run_js("refresh-for-snapshot-change"),  # pylint: disable=E1101
+            visdcc.Run_js("refresh-for-login-logout"),  # pylint: disable=E1101
             #
             # Location Triggers (To Refresh Page)
             dcc.Location(id="url-1", refresh=True),
@@ -149,22 +150,36 @@ def layout() -> None:
     [Input("wbs-l1", "value")],
     prevent_initial_call=True,
 )  # type: ignore
-def prep_tab_change(wbs_l1: str) -> int:
+def prep_for_tab_change(wbs_l1: str) -> int:
     """Prepare for a new tab: view the live table.
 
     Tab value is persisted in 'Tabs' between refreshes.
     """
-    logging.warning(f"'{du.triggered_id()}' -> tab_change()")
+    logging.warning(f"'{du.triggered_id()}' -> prep_for_tab_change()")
     logging.warning(f"tab clicked: {wbs_l1=}")
     return 0
 
 
-def _logged_in_return() -> Tuple[bool, bool, bool, bool, str, str]:
+def _logged_in_return(
+    refresh: bool = True,
+) -> Tuple[bool, bool, bool, bool, str, str, str]:
     if current_user.is_admin:
         user_label = f"{current_user.name} (Admin)"
     else:
         user_label = f"{current_user.name} ({current_user.institution})"
-    return False, False, True, False, user_label, ""
+
+    if refresh:
+        return False, False, True, False, user_label, "", "location.reload();"
+    return False, False, True, False, user_label, "", ""
+
+
+def _logged_out_return(
+    refresh: bool = True,
+) -> Tuple[bool, bool, bool, bool, str, str, str]:
+
+    if refresh:
+        return False, False, False, True, "", "", "location.reload();"
+    return False, False, False, True, "", "", ""
 
 
 @app.callback(  # type: ignore[misc]
@@ -175,6 +190,7 @@ def _logged_in_return() -> Tuple[bool, bool, bool, bool, str, str]:
         Output("logout-div", "hidden"),
         Output("logged-in-user", "children"),
         Output("login-password", "value"),
+        Output("refresh-for-login-logout", "run"),
     ],
     [
         Input("login-button", "n_clicks"),
@@ -186,13 +202,12 @@ def _logged_in_return() -> Tuple[bool, bool, bool, bool, str, str]:
 )
 def login(
     _: int, __: int, ___: int, ____: int, email: str, pwd: str,
-) -> Tuple[bool, bool, bool, bool, str, str]:
+) -> Tuple[bool, bool, bool, bool, str, str, str]:
     """Log the institution leader in/out."""
     logging.warning(f"'{du.triggered_id()}' -> login()")
 
-    logged_out = (False, False, False, True, "", "")
-    open_login_modal = (True, False, False, True, "", "")
-    bad_login = (True, True, False, True, "", "")
+    open_login_modal = (True, False, False, True, "", "", "")
+    bad_login = (True, True, False, True, "", "", "")
 
     if du.triggered_id() == "login-launch":
         assert not current_user.is_authenticated
@@ -201,7 +216,7 @@ def login(
     if du.triggered_id() == "logout-launch":
         logout_user()
         assert not current_user.is_authenticated
-        return logged_out
+        return _logged_out_return()
 
     if du.triggered_id() in ["login-button", "login-password"]:
         assert not current_user.is_authenticated
@@ -214,9 +229,9 @@ def login(
     if du.triggered_id() == "":
         if current_user.is_authenticated:
             logging.warning(f"User already logged in {current_user}.")
-            return _logged_in_return()
+            return _logged_in_return(refresh=False)
         # Initial Call w/o Stored Login
         logging.warning("User not already logged in.")
-        return logged_out
+        return _logged_out_return(refresh=False)
 
     raise Exception(f"Unaccounted for trigger: {du.triggered_id()}")

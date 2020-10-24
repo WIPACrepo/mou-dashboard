@@ -452,11 +452,11 @@ def view_live_table(_: int) -> str:
 
 
 @app.callback(  # type: ignore[misc]
-    Output("refresh", "run"),
+    Output("refresh-for-snapshot-change", "run"),
     [Input("wbs-snapshot-current-ts", "value")],
     prevent_initial_call=True,
 )
-def select_deselect_snapshot(_: int) -> str:
+def select_deselect_snapshot(_: str) -> str:
     """Refresh the page on snapshot select/de-select."""
     logging.warning(f"'{du.triggered_id()}' -> select_deselect_snapshot()")
     return "location.reload();"
