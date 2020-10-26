@@ -19,34 +19,44 @@ from .utils.login import User
 
 
 def layout() -> None:
-    """Serve the layout to the app."""
+    """Serve the layout to `app`."""
     app.title = "MoU Dashboard"
 
     # Layout
     app.layout = html.Div(
         children=[
+            #
+            # JS calls for refreshing page
             visdcc.Run_js("refresh-for-snapshot-change"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-login-logout"),  # pylint: disable=E1101
             #
-            # Location Triggers (To Refresh Page)
-            dcc.Location(id="url-1", refresh=True),
-            dcc.Location(id="url-2", refresh=True),
+            # Dummy Divs for populating elements on boot, which rely solely on States
+            html.Div(
+                children=[html.Div(id=f"dummy-input-for-boot-{i}") for i in range(10)],
+                hidden=True,
+            ),
             #
-            # Title
+            # Location Triggers (To Refresh Page)
+            # dcc.Location(id="url-1", refresh=True),
+            # dcc.Location(id="url-2", refresh=True),
+            #
+            # Logo & Login
             dbc.Row(
                 justify="start",
                 className="top-container",
                 children=[
+                    #
+                    # Logo
                     dbc.Row(
-                        className="title-container",
+                        className="logo-container",
                         children=[
-                            html.Label("MoU", className="mou-title"),
-                            html.Label("Dash", className="dashboard-title dash-title"),
-                            html.Label(
-                                "board", className="dashboard-title board-title"
-                            ),
+                            html.Label("MoU", className="logo-mou"),
+                            html.Label("Dash", className="logo-dashboard logo-dash"),
+                            html.Label("board", className="logo-dashboard logo-board"),
                         ],
                     ),
+                    #
+                    # Login
                     dbc.Row(
                         className="login-container",
                         children=[

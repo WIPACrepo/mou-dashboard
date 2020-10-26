@@ -17,43 +17,21 @@ def layout() -> html.Div:
     return html.Div(
         children=[
             #
-            # Load Snapshots
-            html.Div(
-                className="large-dropdown-container",
-                children=[
-                    dcc.Dropdown(
-                        id="wbs-snapshot-current-ts",
-                        className="large-dropdown",
-                        style={"width": "100rem"},
-                        placeholder="",
-                        value="",
-                        disabled=False,
-                        persistence=True,
-                    ),
-                ],
-            ),
-            # Make Snapshot
-            html.Div(
-                id="wbs-make-snapshot-button-div",
-                hidden=True,
-                children=[
-                    dbc.Button(
-                        "Make Snapshot",
-                        id="wbs-make-snapshot-button",
-                        n_clicks=0,
-                        outline=True,
-                        color=du.Color.SUCCESS,
-                        style={"margin-right": "1rem"},
-                    ),
-                ],
-            ),
-            #
             # "Viewing Snapshot" Alert
             dbc.Alert(
                 children=[
+                    html.Label(
+                        "— Viewing Snapshot —",
+                        style={
+                            "font-size": "3rem",
+                            "color": "#5a5a5a",
+                            "font-weight": "100",
+                            "margin-bottom": "1rem",
+                        },
+                    ),
                     html.Div(
                         id="wbs-snapshot-current-labels",
-                        style={"margin-bottom": "1rem", "color": "#5a5a5a"},
+                        style={"margin-bottom": "1.5rem", "color": "#5a5a5a"},
                     ),
                     dbc.Button(
                         "View Live Table",
@@ -69,10 +47,38 @@ def layout() -> html.Div:
                     "width": "100%",
                     "text-align": "center",
                     "padding": "1.5rem",
+                    "margin-bottom": "2rem",
                 },
                 className="caps",
                 color=du.Color.LIGHT,
                 is_open=False,
+            ),
+            #
+            # Load Snapshots
+            html.Div(
+                className="large-dropdown-container",
+                children=[
+                    dcc.Dropdown(
+                        id="wbs-snapshot-current-ts",
+                        className="large-dropdown snapshot-dropdown",
+                        style={"width": "100rem"},
+                        placeholder="— Viewing the Live Table (Last Updated YYYY-MM-DD) —",
+                        value="",
+                        disabled=False,
+                        persistence=True,
+                        searchable=False,
+                    ),
+                ],
+            ),
+            html.Div(
+                "click above to select a snapshot",
+                style={
+                    "font-style": "italic",
+                    "text-align": "center",
+                    "height": "1.5rem",
+                    "line-height": "1.5rem",
+                    "color": "gray",
+                },
             ),
             #
             html.H2(children="Institution"),
@@ -84,8 +90,8 @@ def layout() -> html.Div:
                     dcc.Dropdown(
                         id="wbs-filter-inst",
                         className="large-dropdown",
-                        style={"width": "55rem"},
-                        placeholder="",
+                        style={"width": "75rem"},
+                        placeholder="— Viewing Entire Collaboration —",
                         options=[
                             {"label": f"{abbrev} ({name})", "value": abbrev}
                             for name, abbrev in tconfig.get_institutions_w_abbrevs()
@@ -129,7 +135,7 @@ def layout() -> html.Div:
                 ],
             ),
             #
-            html.H2(id="wbs-h2-sow-table", children="Current SOW Table"),
+            html.H2(id="wbs-h2-sow-table", children="SOW Table"),
             #
             # Top Tools
             dbc.Row(
@@ -332,6 +338,19 @@ def layout() -> html.Div:
                                 merge_duplicate_headers=True,
                             ),
                         ],
+                    ),
+                    #
+                    html.Hr(),
+                    #
+                    # Make Snapshot
+                    dbc.Button(
+                        "Make Snapshot",
+                        id="wbs-make-snapshot-button",
+                        block=True,
+                        n_clicks=0,
+                        color=du.Color.SUCCESS,
+                        disabled=False,
+                        style={"margin-bottom": "1rem"},
                     ),
                     #
                     html.Hr(),

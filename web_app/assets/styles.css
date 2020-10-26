@@ -65,6 +65,11 @@ h2:before {
     background-color: whitesmoke;
 }
 
+.footer {
+    height: 3rem;
+    background-color: black;
+}
+
 
 /*------------------------------------------------------------------------------------*/
 /* Site Title */
@@ -76,10 +81,11 @@ h2:before {
     margin: 0;
 }
 
-.title-container {
+.logo-container {
     flex-basis: 65%;
     padding-left: 40%;
     margin: 0;
+    user-select: none;
 }
 
 .login-container {
@@ -112,7 +118,7 @@ h2:before {
     font-style: italic;
 }
 
-.mou-title {
+.logo-mou {
     font-family: Sarpanch, sans-serif;
     font-weight: bold;
     font-size: 70px;
@@ -122,7 +128,7 @@ h2:before {
     align-self: flex-end;
 }
 
-.dashboard-title {
+.logo-dashboard {
     font-weight: bold;
     font-family: Arial;
     text-transform: uppercase;
@@ -135,7 +141,7 @@ h2:before {
     height: 3.75rem;
 }
 
-.dash-title {
+.logo-dash {
     color: black;
     background-color: silver;
     border-top: 2.5px solid silver;
@@ -147,7 +153,7 @@ h2:before {
     margin-left: 0.5rem;
 }
 
-.board-title {
+.logo-board {
     color: silver;
     border-top: 2.5px solid silver;
     border-top-right-radius: .6rem;
@@ -199,6 +205,15 @@ h2:before {
 
 
 /*------------------------------------------------------------------------------------*/
+/* Snapshot Info */
+
+.make-snapshot {
+    display: flex;
+    justify-content: center;
+}
+
+
+/*------------------------------------------------------------------------------------*/
 /* Large Dropdown Styles & Institution Fields */
 
 .large-dropdown-container {
@@ -208,16 +223,33 @@ h2:before {
 
 .large-dropdown {
     text-align: center;
-    font-size: 1.6rem;
+    font-size: 1.9rem;
 }
 
 .large-dropdown > .Select-control {
     height: 4rem;
+    border: 0;
+    padding: 0;
+    background-color: transparent;
 }
 
-.large-dropdown > .Select-control > .Select-multi-value-wrapper > .Select-value {
+.large-dropdown > .Select-control > .Select-multi-value-wrapper > * {
     padding: 0 !important;
     padding-top: 0.25rem !important;
+    line-height: 2 !important;
+}
+
+.large-dropdown > .Select-control > .Select-arrow-zone {
+    visibility: hidden;
+}
+
+.large-dropdown > .Select-control > .Select-multi-value-wrapper > .Select-placeholder,
+.large-dropdown > .Select-control > .Select-multi-value-wrapper > .Select-value > * {
+    color: black !important;
+}
+
+.snapshot-dropdown > .Select-control > .Select-multi-value-wrapper > .Select-value > .Select-value-label {
+    color: #5a5a5a !important;
 }
 
 .institution-headcounts-inner-container {
@@ -245,6 +277,10 @@ h2:before {
 
 .Select-control {
     border-radius: .25rem;
+}
+
+.Select.is-disabled > .Select-control {
+    background-color: whitesmoke;
 }
 
 .is-disabled > .Select-control > .Select-arrow-zone {
@@ -442,39 +478,4 @@ h2:before {
     --accent: #17a2b8 !important;
     --selected-background: #17a2b8 !important;
     --selected-color: #17a2b8 !important;
-}
-
-
-/*------------------------------------------------------------------------------------*/
-/* Snapshots Modal */
-
-.snapshots label {
-    height: 40px;
-    border-radius: .25rem;
-    text-align: center;
-    line-height: 2.75;
-}
-
-.snapshots label:hover {
-    color: whitesmoke;
-    background-color: #5a5a5a;
-    border-color: #5a5a5a;
-}
-
-.snapshots input {
-    visibility: hidden;
-    height: 0;
-    width: 0;
-}
-
-.snapshots input[type='radio']:checked {
-    visibility: visible;
-    height: 10px;
-    width: 10px;
-    margin-right: 10px;
-}
-
-.footer {
-    height: 3rem;
-    background-color: black;
 }

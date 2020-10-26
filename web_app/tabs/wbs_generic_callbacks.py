@@ -518,9 +518,9 @@ def handle_load_snapshot(
             snap_info = all_snap_infos[snapshot_ts_selection]
         # get lines
         label_lines = [
-            html.Label(f"Viewing Snapshot: \"{snap_info['name']}\""),
+            html.Label(f"\"{snap_info['name']}\""),
             html.Label(
-                f"(created by {snap_info['creator']} on {du.get_human_time(snapshot_ts_selection)})",
+                f"(created by {snap_info['creator']} — {du.get_human_time(snapshot_ts_selection)})",
                 style={"font-size": "75%", "font-style": "italic"},
             ),
         ]
@@ -724,7 +724,6 @@ def push_institution_values(  # pylint: disable=R0913
         Output("wbs-data-table", "editable"),
         Output("wbs-new-data-div-1", "hidden"),
         Output("wbs-new-data-div-2", "hidden"),
-        Output("wbs-make-snapshot-button-div", "hidden"),
         Output("wbs-data-table", "row_deletable"),
         Output("wbs-filter-inst", "disabled"),
         Output("wbs-filter-inst", "value"),
@@ -741,7 +740,7 @@ def login_actions(
     # input(s)
     viewing_snapshot: bool,
     _: bool,
-) -> Tuple[bool, bool, bool, bool, bool, bool, str, bool, bool, bool, bool, bool, bool]:
+) -> Tuple[bool, bool, bool, bool, bool, str, bool, bool, bool, bool, bool, bool]:
     """Logged-in callback."""
     logging.warning(f"'{du.triggered_id()}' -> login_actions()")
 
@@ -750,7 +749,6 @@ def login_actions(
             False,  # data-table NOT editable
             True,  # new-data-div-1 hidden
             True,  # new-data-div-2 hidden
-            True,  # make-snapshot-button hidden
             False,  # row NOT deletable
             False,  # filter-inst NOT disabled
             current_user.institution if current_user.is_authenticated else "",
@@ -767,7 +765,6 @@ def login_actions(
             True,  # data-table editable
             False,  # new-data-div-1 NOT hidden
             False,  # new-data-div-2 NOT hidden
-            False,  # make-snapshot-button NOT hidden
             True,  # row is deletable
             not current_user.is_admin,  # filter-inst disabled if user is not an admin
             current_user.institution,
@@ -782,7 +779,6 @@ def login_actions(
         False,  # data-table NOT editable
         True,  # new-data-div-1 hidden
         True,  # new-data-div-2 hidden
-        True,  # make-snapshot-button hidden
         False,  # row NOT deletable
         False,  # filter-inst NOT disabled
         "",
