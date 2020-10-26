@@ -348,34 +348,12 @@ def table_columns(
     # state(s)
     state_tconfig_cache: tc.TableConfigParser.Cache,
 ) -> List[Dict[str, object]]:
-    """Grab table columns."""
+    """Grab table columns, toggle whether a column is editable."""
     logging.warning(f"'{du.triggered_id()}' -> table_columns()")
 
     tconfig = tc.TableConfigParser(state_tconfig_cache)
 
-    def _presentation(col_name: str) -> str:
-        if tconfig.is_column_dropdown(col_name):
-            return "dropdown"
-        return "input"  # default
-
-    def _type(col_name: str) -> str:
-        if tconfig.is_column_numeric(col_name):
-            return "numeric"
-        return "any"  # default
-
-    columns = [
-        {
-            "id": c,
-            "name": c,
-            "presentation": _presentation(c),
-            "type": _type(c),
-            "editable": table_editable and tconfig.is_column_editable(c),
-            "hideable": True,
-        }
-        for c in tconfig.get_table_columns()
-    ]
-
-    return columns
+    return du.table_columns(tconfig, table_editable=table_editable)
 
 
 @app.callback(  # type: ignore[misc]

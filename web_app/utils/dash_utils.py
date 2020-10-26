@@ -110,6 +110,36 @@ def new_data_button(id_num: int) -> html.Div:
     )
 
 
+def table_columns(
+    tconfig: tc.TableConfigParser, table_editable: bool
+) -> List[Dict[str, object]]:
+    """Grab table columns."""
+
+    def _presentation(col_name: str) -> str:
+        if tconfig.is_column_dropdown(col_name):
+            return "dropdown"
+        return "input"  # default
+
+    def _type(col_name: str) -> str:
+        if tconfig.is_column_numeric(col_name):
+            return "numeric"
+        return "any"  # default
+
+    columns = [
+        {
+            "id": c,
+            "name": c,
+            "presentation": _presentation(c),
+            "type": _type(c),
+            "editable": table_editable and tconfig.is_column_editable(c),
+            "hideable": True,
+        }
+        for c in tconfig.get_table_columns()
+    ]
+
+    return columns
+
+
 def _style_cell_conditional_fixed_width(
     _id: str, width: str, border_left: bool = False, align_right: bool = False
 ) -> Dict[str, Collection[str]]:

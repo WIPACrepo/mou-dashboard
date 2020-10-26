@@ -204,7 +204,7 @@ def layout() -> html.Div:
                 # hidden_columns set in callback
                 # page_size set in callback
                 # data set in callback
-                # columns set in callback
+                columns=du.table_columns(tconfig, table_editable=False),
                 # dropdown set in callback
                 # dropdown_conditional set in callback
                 export_format="xlsx",
