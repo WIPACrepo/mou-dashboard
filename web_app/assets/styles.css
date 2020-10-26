@@ -256,9 +256,35 @@ h2:before {
 /*------------------------------------------------------------------------------------*/
 /* Table Tools */
 
-.wbs-table-top-buttons {
+.wbs-table-top-toolbar {
     height: 38px;
     margin-right: 26rem;
+}
+
+.wbs-table-bottom-toolbar {
+    height: 38px;
+    margin-top: 1rem;
+}
+
+.table-tool-large, .table-tool-large > .Select-control {
+    height: 38px;
+    width: 27rem;
+    margin-right: 1rem;
+    padding: 0 !important;
+}
+
+.table-tool-medium {
+    height: 38px;
+    width: 18rem;
+    margin-right: 1rem;
+    padding: 0 !important;
+}
+
+.table-tool-small {
+    height: 38px;
+    width: 9rem;
+    margin-right: 1rem;
+    padding: 0 !important;
 }
 
 
@@ -282,20 +308,15 @@ h2:before {
     padding-left: 1.5em;
 }
 
-
-/*------------------------------------------------------------------------------------*/
-/* Buttons above DataTable */
-
 .dash-spreadsheet-menu {
     position: relative;
     float: right;
-    margin-bottom: 0.8em;
+    margin-bottom: 1rem;
     margin-top: -38px;
 }
 
 .dash-spreadsheet-menu > * {
-    padding-right: 0px !important;
-    margin-left: 0.7em !important;
+    padding: 0 !important;
 }
 
 .export, .show-hide { /* copy btn btn-outline-secondary */
@@ -304,10 +325,22 @@ h2:before {
     display: inline-block;
     font-weight: 400;
     font-size: 1rem;
-    padding: .375rem 2rem;
     line-height: 1.5;
     transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
     border-radius: .25rem;
+
+    height: 38px;
+    margin: 0;
+    margin-left: 1rem;
+    padding: 0 !important;
+}
+
+.export {
+    width: 9rem;
+}
+
+.show-hide {
+    width: 18rem;
 }
 
 .export:hover, .show-hide:hover { /* copy btn btn-outline-secondary */

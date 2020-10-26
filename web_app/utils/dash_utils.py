@@ -93,20 +93,20 @@ def was_recent(timestamp: str) -> bool:
 # Component/Attribute-Constructor Functions
 
 
-def new_data_button(num: int) -> html.Div:
+def new_data_button(id_num: int) -> html.Div:
     """Get a button for triggering adding of new data."""
     return html.Div(
-        id=f"wbs-new-data-div-{num}",
+        id=f"wbs-new-data-div-{id_num}",
         children=dbc.Button(
             "+ Add New Data",
-            id=f"wbs-new-data-button-{num}",
+            id=f"wbs-new-data-button-{id_num}",
             block=True,
             n_clicks=0,
             color=Color.DARK,
             disabled=False,
         ),
         hidden=True,
-        style={"width": "15rem", "margin-right": "1.05rem"},
+        className="table-tool-large",
     )
 
 

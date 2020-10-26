@@ -84,7 +84,7 @@ def layout() -> html.Div:
                     dcc.Dropdown(
                         id="wbs-filter-inst",
                         className="large-dropdown",
-                        style={"width": "50rem"},
+                        style={"width": "55rem"},
                         placeholder="",
                         options=[
                             {"label": f"{abbrev} ({name})", "value": abbrev}
@@ -131,9 +131,9 @@ def layout() -> html.Div:
             #
             html.H2(id="wbs-h2-sow-table", children="Current SOW Table"),
             #
-            # Top Buttons
+            # Top Tools
             dbc.Row(
-                className="wbs-table-top-buttons",
+                className="wbs-table-top-toolbar",
                 no_gutters=True,
                 children=[  #
                     # Add Button
@@ -142,7 +142,7 @@ def layout() -> html.Div:
                     dcc.Dropdown(
                         id="wbs-filter-labor",
                         placeholder="Filter by Labor Category",
-                        style={"width": "30rem", "height": "39px"},
+                        className="table-tool-large",
                         options=[
                             {"label": st, "value": st}
                             for st in tconfig.get_labor_categories()
@@ -207,50 +207,32 @@ def layout() -> html.Div:
             #
             # Bottom Buttons
             dbc.Row(
-                style={"margin-top": "0.8em"},
+                className="wbs-table-bottom-toolbar",
+                no_gutters=True,
                 children=[
                     #
-                    # Leftward Buttons
-                    dbc.Row(
-                        style={"width": "52rem", "margin-left": "0.25rem"},
-                        children=[
-                            #
-                            # New Data
-                            du.new_data_button(2),
-                        ],
+                    # New Data
+                    du.new_data_button(2),
+                    #
+                    # Show Totals
+                    dbc.Button(
+                        id="wbs-show-totals-button",
+                        n_clicks=0,
+                        className="table-tool-medium",
                     ),
                     #
-                    # Rightward Buttons
-                    dbc.Row(
-                        style={"flex-basis": "55%", "justify-content": "flex-end"},
-                        children=[
-                            dcc.Loading(
-                                type="default",
-                                fullscreen=True,
-                                style={"background": "transparent"},  # float atop all
-                                color="#17a2b8",
-                                children=[
-                                    # Show Totals
-                                    dbc.Button(
-                                        id="wbs-show-totals-button",
-                                        n_clicks=0,
-                                        style={"margin-right": "1rem"},
-                                    ),
-                                    # Show All Columns
-                                    dbc.Button(
-                                        id="wbs-show-all-columns-button",
-                                        n_clicks=0,
-                                        style={"margin-right": "1rem"},
-                                    ),
-                                    # Show All Rows
-                                    dbc.Button(
-                                        id="wbs-show-all-rows-button",
-                                        n_clicks=0,
-                                        style={"margin-right": "1rem"},
-                                    ),
-                                ],
-                            ),
-                        ],
+                    # Show All Columns
+                    dbc.Button(
+                        id="wbs-show-all-columns-button",
+                        n_clicks=0,
+                        className="table-tool-medium",
+                    ),
+                    #
+                    # Show All Rows
+                    dbc.Button(
+                        id="wbs-show-all-rows-button",
+                        n_clicks=0,
+                        className="table-tool-medium",
                     ),
                 ],
             ),
