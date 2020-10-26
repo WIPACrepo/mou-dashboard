@@ -455,9 +455,9 @@ def view_live_table(_: int) -> str:
     [Input("wbs-current-snapshot-ts", "value")],
     prevent_initial_call=True,
 )
-def select_deselect_snapshot(_: str) -> str:
+def pick_snapshot(_: str) -> str:
     """Refresh the page on snapshot select/de-select."""
-    logging.warning(f"'{du.triggered_id()}' -> select_deselect_snapshot()")
+    logging.warning(f"'{du.triggered_id()}' -> pick_snapshot()")
     return "location.reload();"
 
 
@@ -616,7 +616,7 @@ def setup_institution_components(
     assert not du.triggered_id()  # Guarantee this is the initial call
 
     if not institution:
-        return 0, 0, 0, 0, "", "Collaboration SOW Table", "", True, True
+        return 0, 0, 0, 0, "", "Collaboration-Wide SOW Table", "", True, True
 
     h2_sow_table = f"{institution}'s SOW Table"
     h2_notes = f"{institution}'s Notes and Descriptions"
@@ -637,6 +637,17 @@ def setup_institution_components(
 
     except DataSourceException:
         return -1, -1, -1, -1, "", h2_sow_table, h2_notes, False, False
+
+
+@app.callback(  # type: ignore[misc]
+    Output("refresh-for-institution-change", "run"),
+    [Input("wbs-current-institution", "value")],
+    prevent_initial_call=True,
+)
+def pick_institution(_: str) -> str:
+    """Set up institution-related components."""
+    logging.warning(f"'{du.triggered_id()}' -> pick_institution()")
+    return "location.reload();"
 
 
 @app.callback(  # type: ignore[misc]
@@ -720,7 +731,6 @@ def push_institution_values(  # pylint: disable=R0913
         Output("wbs-new-data-div-2", "hidden"),
         Output("wbs-data-table", "row_deletable"),
         Output("wbs-current-institution", "disabled"),
-        Output("wbs-current-institution", "value"),
         Output("wbs-admin-zone-div", "hidden"),
         Output("wbs-phds-authors", "disabled"),
         Output("wbs-faculty", "disabled"),
@@ -735,7 +745,7 @@ def setup_user_dependent_components(
     _: bool,
     # state(s)
     snap_ts: str,
-) -> Tuple[bool, bool, bool, bool, bool, str, bool, bool, bool, bool, bool, bool]:
+) -> Tuple[bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool]:
     """Logged-in callback."""
     logging.warning(f"'{du.triggered_id()}' -> setup_user_dependent_components()")
 
@@ -748,7 +758,6 @@ def setup_user_dependent_components(
             True,  # new-data-div-2 hidden
             False,  # row NOT deletable
             False,  # filter-inst NOT disabled
-            current_user.institution if current_user.is_authenticated else "",
             True,  # wbs-admin-zone-div hidden
             True,  # institution value disabled
             True,  # institution value disabled
@@ -764,7 +773,6 @@ def setup_user_dependent_components(
             False,  # new-data-div-2 NOT hidden
             True,  # row is deletable
             not current_user.is_admin,  # filter-inst disabled if user is not an admin
-            current_user.institution,
             not current_user.is_admin,  # wbs-admin-zone-div hidden if user is not an admin
             False,  # institution value NOT disabled
             False,  # institution value NOT disabled
@@ -778,7 +786,6 @@ def setup_user_dependent_components(
         True,  # new-data-div-2 hidden
         False,  # row NOT deletable
         False,  # filter-inst NOT disabled
-        "",
         True,  # wbs-admin-zone-div hidden
         True,  # institution value disabled
         True,  # institution value disabled

@@ -29,6 +29,7 @@ def layout() -> None:
             # JS calls for refreshing page
             visdcc.Run_js("refresh-for-snapshot-change"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-login-logout"),  # pylint: disable=E1101
+            visdcc.Run_js("refresh-for-institution-change"),  # pylint: disable=E1101
             #
             # Location Triggers (To Refresh Page)
             # dcc.Location(id="url-1", refresh=True),
@@ -154,12 +155,12 @@ def layout() -> None:
     [Input("wbs-current-l1", "value")],
     prevent_initial_call=True,
 )  # type: ignore
-def prep_for_tab_change(wbs_l1: str) -> int:
+def pick_tab(wbs_l1: str) -> int:
     """Prepare for a new tab: view the live table.
 
     Tab value is persisted in 'Tabs' between refreshes.
     """
-    logging.warning(f"'{du.triggered_id()}' -> prep_for_tab_change()")
+    logging.warning(f"'{du.triggered_id()}' -> pick_tab()")
     logging.warning(f"tab clicked: {wbs_l1=}")
     return 0
 
