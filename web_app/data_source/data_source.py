@@ -1,7 +1,7 @@
 """REST interface for reading and writing MoU data."""
 
 
-from typing import Any, cast, Dict, Final, List, Optional, Tuple, TypedDict
+from typing import Any, cast, Dict, Final, List, Optional, Tuple, TypedDict, Union
 
 from flask_login import current_user  # type: ignore[import]
 
@@ -163,6 +163,15 @@ def _convert_record_dash_to_rest(
     return out_record
 
 
+def _validate(
+    data: Any, type_: Union[type, Tuple[type, ...]], falsy_okay: bool = True,
+) -> None:
+    if not isinstance(data, type_):
+        raise TypeError(f"{data=} is {type(data)=}, should be {type_=}")
+    if (not falsy_okay) and (not data):
+        raise TypeError(f"{data=} is falsy ({type_=})")
+
+
 # --------------------------------------------------------------------------------------
 # Data/Table Functions
 
@@ -190,12 +199,12 @@ def pull_data_table(
     Returns:
         Table -- the returned table
     """
-    assert wbs_l1 and isinstance(wbs_l1, str)
-    assert isinstance(institution, str)
-    assert isinstance(labor, str)
-    assert isinstance(with_totals, bool)
-    assert isinstance(snapshot_ts, str)
-    assert isinstance(restore_id, str)
+    _validate(wbs_l1, str, falsy_okay=False)
+    _validate(institution, str)
+    _validate(labor, str)
+    _validate(with_totals, bool)
+    _validate(snapshot_ts, str)
+    _validate(restore_id, str)
 
     class _RespTableData(TypedDict):
         table: Table
@@ -238,12 +247,12 @@ def push_record(  # pylint: disable=R0913
     Returns:
         Record -- the returned record
     """
-    assert wbs_l1 and isinstance(wbs_l1, str)
-    assert isinstance(record, dict)
-    assert isinstance(labor, str)
-    assert isinstance(institution, str)
-    assert isinstance(novel, bool)
-    assert isinstance(tconfig_cache, (dict, type(None)))
+    _validate(wbs_l1, str, falsy_okay=False)
+    _validate(record, dict)
+    _validate(labor, str)
+    _validate(institution, str)
+    _validate(novel, bool)
+    _validate(tconfig_cache, (dict, type(None)))
 
     class _RespRecord(TypedDict):
         record: Record
@@ -261,8 +270,8 @@ def push_record(  # pylint: disable=R0913
 
 def delete_record(wbs_l1: str, record_id: str) -> None:
     """Delete the record, return True if successful."""
-    assert wbs_l1 and isinstance(wbs_l1, str)
-    assert isinstance(record_id, str)
+    _validate(wbs_l1, str, falsy_okay=False)
+    _validate(record_id, str)
 
     body = {"record_id": record_id}
     mou_request("DELETE", f"/record/{wbs_l1}", body=body)
@@ -270,7 +279,7 @@ def delete_record(wbs_l1: str, record_id: str) -> None:
 
 def list_snapshots(wbs_l1: str) -> List[SnapshotInfo]:
     """Get the list of snapshots."""
-    assert wbs_l1 and isinstance(wbs_l1, str)
+    _validate(wbs_l1, str, falsy_okay=False)
 
     class _RespSnapshots(TypedDict):
         snapshots: List[SnapshotInfo]
@@ -281,8 +290,8 @@ def list_snapshots(wbs_l1: str) -> List[SnapshotInfo]:
 
 def create_snapshot(wbs_l1: str, name: str) -> SnapshotInfo:
     """Create a snapshot."""
-    assert wbs_l1 and isinstance(wbs_l1, str)
-    assert isinstance(name, str)
+    _validate(wbs_l1, str, falsy_okay=False)
+    _validate(name, str)
 
     body = {"creator": current_user.name, "name": name}
     response = mou_request("POST", f"/snapshots/make/{wbs_l1}", body=body)
@@ -303,9 +312,9 @@ def override_table(
         str -- snapshot name of the previous live table ('' if no prior table)
         str -- snapshot name of the current live table
     """
-    assert wbs_l1 and isinstance(wbs_l1, str)
-    assert isinstance(base64_file, str)
-    assert isinstance(filename, str)
+    _validate(wbs_l1, str, falsy_okay=False)
+    _validate(base64_file, str)
+    _validate(filename, str)
 
     class _RespTableData(TypedDict):
         n_records: int
@@ -331,9 +340,9 @@ def pull_institution_values(
     wbs_l1: str, snapshot_timestamp: str, institution: str
 ) -> InstitutionValues:
     """Get the institution's values."""
-    assert wbs_l1 and isinstance(wbs_l1, str)
-    assert isinstance(snapshot_timestamp, str)
-    assert isinstance(institution, str)
+    _validate(wbs_l1, str, falsy_okay=False)
+    _validate(snapshot_timestamp, str)
+    _validate(institution, str)
 
     body = {"institution": institution, "snapshot_timestamp": snapshot_timestamp}
     response = mou_request("GET", f"/institution/values/{wbs_l1}", body=body)
@@ -344,9 +353,9 @@ def push_institution_values(
     wbs_l1: str, institution: str, values: InstitutionValues
 ) -> None:
     """Push the institution's values."""
-    assert wbs_l1 and isinstance(wbs_l1, str)
-    assert isinstance(institution, str)
-    assert isinstance(values, dict)
+    _validate(wbs_l1, str, falsy_okay=False)
+    _validate(institution, str)
+    _validate(values, dict)
 
     body = {"institution": institution}
     body.update(cast(Dict[str, Any], values))
