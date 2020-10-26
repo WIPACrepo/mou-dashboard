@@ -53,7 +53,7 @@ def _get_ingest_sucess_message(
         Input("wbs-upload-xlsx-cancel", "n_clicks"),
         Input("wbs-upload-xlsx-override-table", "n_clicks"),
     ],
-    [State("wbs-l1", "value"), State("wbs-upload-xlsx", "filename")],
+    [State("wbs-current-l1", "value"), State("wbs-upload-xlsx", "filename")],
     prevent_initial_call=True,
 )
 def handle_xlsx(  # pylint: disable=R0911
@@ -120,9 +120,9 @@ def handle_xlsx(  # pylint: disable=R0911
     [Output("wbs-summary-table", "data"), Output("wbs-summary-table", "columns")],
     [Input("wbs-summary-table-recalculate", "n_clicks")],
     [
-        State("wbs-l1", "value"),
+        State("wbs-current-l1", "value"),
         State("wbs-table-config-cache", "data"),
-        State("wbs-snapshot-current-ts", "value"),
+        State("wbs-current-snapshot-ts", "value"),
     ],
     prevent_initial_call=True,
 )

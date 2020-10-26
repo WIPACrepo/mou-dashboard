@@ -2,7 +2,7 @@
 
 import logging
 import re
-from typing import cast, Dict, List, Optional, Tuple, Union
+from typing import cast, Dict, List, Tuple, Union
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
@@ -18,7 +18,6 @@ from ..utils.types import (
     DataEntry,
     InstitutionValues,
     Record,
-    SnapshotInfo,
     Table,
     TColumns,
     TDDown,
@@ -102,20 +101,18 @@ def _add_new_data(  # pylint: disable=R0913
         Output("wbs-show-totals-button", "color"),
         Output("wbs-show-totals-button", "outline"),
         Output("wbs-show-all-columns-button", "n_clicks"),
-        Output("institution-headcounts-container", "hidden"),
-        Output("institution-textarea-container", "hidden"),
     ],
     [
-        Input("wbs-filter-inst", "value"),
         Input("wbs-filter-labor", "value"),
         Input("wbs-new-data-button-1", "n_clicks"),
         Input("wbs-new-data-button-2", "n_clicks"),
         Input("wbs-show-totals-button", "n_clicks"),
-        Input("wbs-snapshot-current-ts", "value"),
         Input("wbs-undo-last-delete", "n_clicks"),
     ],
     [
-        State("wbs-l1", "value"),
+        State("wbs-current-l1", "value"),
+        State("wbs-current-snapshot-ts", "value"),
+        State("wbs-current-institution", "value"),
         State("wbs-data-table", "data"),
         State("wbs-data-table", "columns"),
         State("wbs-show-all-columns-button", "n_clicks"),
@@ -124,23 +121,23 @@ def _add_new_data(  # pylint: disable=R0913
     ],
 )  # pylint: disable=R0913,R0914
 def table_data_exterior_controls(
-    # other input(s)
-    institution: str,
+    # input(s)
     labor: str,
     _: int,
     tot_n_clicks: int,
-    snapshot_ts: str,
     __: int,
     ___: int,
     # L1 input (state)
     wbs_l1: str,
     # state(s)
+    state_snapshot_ts: str,
+    state_institution: str,
     state_table: Table,
     state_columns: TColumns,
     state_all_cols: int,
     state_deleted_id: str,
     state_tconfig_cache: tc.TableConfigParser.Cache,
-) -> Tuple[Table, int, str, dbc.Toast, str, str, bool, int, bool, bool]:
+) -> Tuple[Table, int, str, dbc.Toast, str, str, bool, int]:
     """Exterior control signaled that the table should be updated.
 
     This is either a filter, "add new", refresh, or "show totals". Only
@@ -150,12 +147,12 @@ def table_data_exterior_controls(
     logging.warning(f"'{du.triggered_id()}' -> table_data_exterior_controls()")
 
     # Dash sets cleared values as 0
-    snapshot_ts = snapshot_ts if snapshot_ts else ""
+    state_snapshot_ts = state_snapshot_ts if state_snapshot_ts else ""
     labor = labor if labor else ""
-    institution = institution if institution else ""
+    state_institution = state_institution if state_institution else ""
 
     logging.warning(
-        f"Snapshot: {snapshot_ts=} {'' if snapshot_ts else '(Live Collection)'}"
+        f"Snapshot: {state_snapshot_ts=} {'' if state_snapshot_ts else '(Live Collection)'}"
     )
 
     table: Table = []
@@ -168,23 +165,23 @@ def table_data_exterior_controls(
 
     # Add New Data
     if re.match(r"wbs-new-data-button-\d+", du.triggered_id()):
-        if not snapshot_ts:  # are we looking at a snapshot?
+        if not state_snapshot_ts:  # are we looking at a snapshot?
             table, toast = _add_new_data(
                 wbs_l1,
                 state_table,
                 state_columns,
                 labor,
-                institution,
+                state_institution,
                 state_tconfig_cache,
             )
 
     # OR Restore a Record and Pull Table (optionally filtered)
     elif du.triggered_id() == "wbs-undo-last-delete":
-        if not snapshot_ts:  # are we looking at a snapshot?
+        if not state_snapshot_ts:  # are we looking at a snapshot?
             try:
                 table = src.pull_data_table(
                     wbs_l1,
-                    institution=institution,
+                    institution=state_institution,
                     labor=labor,
                     with_totals=show_totals,
                     restore_id=state_deleted_id,
@@ -200,10 +197,10 @@ def table_data_exterior_controls(
         try:
             table = src.pull_data_table(
                 wbs_l1,
-                institution=institution,
+                institution=state_institution,
                 labor=labor,
                 with_totals=show_totals,
-                snapshot_ts=snapshot_ts,
+                snapshot_ts=state_snapshot_ts,
             )
         except DataSourceException:
             table = []
@@ -217,8 +214,6 @@ def table_data_exterior_controls(
         tot_color,
         tot_outline,
         all_cols,
-        not institution,
-        not institution,
     )
 
 
@@ -285,12 +280,13 @@ def _delete_deleted_records(
     ],
     [Input("wbs-data-table", "data")],
     [
-        State("wbs-l1", "value"),
+        State("wbs-current-l1", "value"),
         State("wbs-data-table", "data_previous"),
         State("wbs-table-exterior-control-last-timestamp", "data"),
         State("wbs-table-config-cache", "data"),
-        State("wbs-snapshot-current-ts", "value"),
+        State("wbs-current-snapshot-ts", "value"),
     ],
+    prevent_initial_call=True,
 )
 def table_data_interior_controls(
     # other input(s)
@@ -316,7 +312,9 @@ def table_data_interior_controls(
 
     updated_message = f"Last Refreshed: {du.get_human_now()}"
 
-    # On page load OR table was just updated via exterior controls
+    # IF This is a snapshot
+    # OR no previous table -- probably unlikely
+    # OR table was just updated via exterior controls
     if (
         state_snap_current_ts
         or (not previous_table)
@@ -342,6 +340,7 @@ def table_data_interior_controls(
     Output("wbs-data-table", "columns"),
     [Input("wbs-data-table", "editable")],
     [State("wbs-table-config-cache", "data")],
+    prevent_initial_call=True,
 )
 def table_columns(
     # input(s)
@@ -441,7 +440,7 @@ def table_dropdown(
 
 
 @app.callback(  # type: ignore[misc]
-    Output("wbs-snapshot-current-ts", "value"),
+    Output("wbs-current-snapshot-ts", "value"),
     [Input("wbs-view-live-btn", "n_clicks")],
     prevent_initial_call=True,
 )
@@ -453,7 +452,7 @@ def view_live_table(_: int) -> str:
 
 @app.callback(  # type: ignore[misc]
     Output("refresh-for-snapshot-change", "run"),
-    [Input("wbs-snapshot-current-ts", "value")],
+    [Input("wbs-current-snapshot-ts", "value")],
     prevent_initial_call=True,
 )
 def select_deselect_snapshot(_: str) -> str:
@@ -464,41 +463,33 @@ def select_deselect_snapshot(_: str) -> str:
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("wbs-snapshot-current-ts", "options"),
+        Output("wbs-current-snapshot-ts", "options"),
         Output("wbs-snapshot-current-labels", "children"),
         Output("wbs-viewing-snapshot-alert", "is_open"),
-        Output("wbs-snapshot-info", "data"),
     ],
-    [Input("wbs-snapshot-current-ts", "disabled")],
-    [
-        State("wbs-l1", "value"),
-        State("wbs-snapshot-current-ts", "value"),
-        State("wbs-snapshot-info", "data"),
-    ],
+    [Input("dummy-input-for-setup", "hidden")],
+    [State("wbs-current-l1", "value"), State("wbs-current-snapshot-ts", "value")],
 )
-def handle_load_snapshot(
-    # input(s)
+def setup_snapshot_components(
     _: bool,
-    # L1 value (state)
+    # state(s)
     wbs_l1: str,
-    snapshot_ts_selection: str,
-    snap_info: Optional[SnapshotInfo],
-) -> Tuple[List[Dict[str, str]], List[html.Label], bool, Optional[SnapshotInfo]]:
-    """Populate snapshots dropdown, load live table, or select a snapshot."""
-    logging.warning(f"'{du.triggered_id()}' -> handle_load_snapshot()")
+    snap_ts: str,
+) -> Tuple[List[Dict[str, str]], List[html.Label], bool]:
+    """Set up snapshot-related components."""
+    logging.warning(f"'{du.triggered_id()}' -> setup_snapshot_components()")
 
-    snapshots_options: List[Dict[str, str]] = []
+    assert not du.triggered_id()  # Guarantee this is the initial call
+
+    snap_options: List[Dict[str, str]] = []
     label_lines: List[html.Label] = []
-
-    # Guarantee this is the initial call
-    assert not du.triggered_id()
 
     # Populate List of Snapshots
     try:
         snapshots = src.list_snapshots(wbs_l1)
     except DataSourceException:
         snapshots = []
-    snapshots_options = [
+    snap_options = [
         {
             "label": f"{snap['name']}  [created by {snap['creator']} on {du.get_human_time(snap['timestamp'])}]",
             "value": snap["timestamp"],
@@ -506,26 +497,24 @@ def handle_load_snapshot(
         for snap in snapshots
     ]
 
-    # This was a tab switch
-    if snapshot_ts_selection not in [snap["timestamp"] for snap in snapshots]:
-        snapshot_ts_selection = ""
+    # This was a tab switch w/ a now non-valid snap ts
+    if snap_ts not in [snap["timestamp"] for snap in snapshots]:
+        snap_ts = ""
 
     # Selected a Snapshot
-    if snapshot_ts_selection:
-        # get snap_info if needed
-        if not snap_info:
-            all_snap_infos = {snap["timestamp"]: snap for snap in snapshots}
-            snap_info = all_snap_infos[snapshot_ts_selection]
+    if snap_ts:
+        all_snap_infos = {snap["timestamp"]: snap for snap in snapshots}
+        snap_info = all_snap_infos[snap_ts]
         # get lines
         label_lines = [
             html.Label(f"\"{snap_info['name']}\""),
             html.Label(
-                f"(created by {snap_info['creator']} — {du.get_human_time(snapshot_ts_selection)})",
+                f"(created by {snap_info['creator']} — {du.get_human_time(snap_ts)})",
                 style={"font-size": "75%", "font-style": "italic"},
             ),
         ]
 
-    return snapshots_options, label_lines, bool(snapshot_ts_selection), snap_info
+    return snap_options, label_lines, bool(snap_ts)
 
 
 @app.callback(  # type: ignore[misc]
@@ -602,47 +591,52 @@ def handle_make_snapshot(
         Output("wbs-scientists-post-docs", "value"),
         Output("wbs-grad-students", "value"),
         Output("wbs-textarea", "value"),
+        Output("wbs-h2-sow-table", "children"),
+        Output("wbs-h2-inst-textarea", "children"),
+        Output("institution-headcounts-container", "hidden"),
+        Output("institution-textarea-container", "hidden"),
     ],
+    [Input("dummy-input-for-setup", "hidden")],
     [
-        Input("institution-headcounts-container", "hidden"),
-        Input("institution-textarea-container", "hidden"),
+        State("wbs-current-l1", "value"),
+        State("wbs-current-snapshot-ts", "value"),
+        State("wbs-current-institution", "value"),
     ],
-    [
-        State("wbs-l1", "value"),
-        State("wbs-snapshot-current-ts", "value"),
-        State("wbs-filter-inst", "value"),
-    ],
-    prevent_initial_call=True,
 )
-def get_institution_values(
+def setup_institution_components(
     _: bool,
-    __: bool,
-    # L1 value (state)
+    # state(s)
     wbs_l1: str,
-    # other state(s)
-    state_snap_current_ts: str,
-    state_institution: str,
-) -> Tuple[int, int, int, int, str]:
-    """Get the institution's values."""
-    logging.warning(f"'{du.triggered_id()}' -> get_institution_values()")
+    snap_ts: str,
+    institution: str,
+) -> Tuple[int, int, int, int, str, str, str, bool, bool]:
+    """Set up institution-related components."""
+    logging.warning(f"'{du.triggered_id()}' -> setup_institution_components()")
 
-    if not state_institution or not current_user.is_authenticated:
-        return 0, 0, 0, 0, ""
+    assert not du.triggered_id()  # Guarantee this is the initial call
+
+    if not institution:
+        return 0, 0, 0, 0, "", "Collaboration SOW Table", "", True, True
+
+    h2_sow_table = f"{institution}'s SOW Table"
+    h2_notes = f"{institution}'s Notes and Descriptions"
 
     try:
-        values = src.pull_institution_values(
-            wbs_l1, state_snap_current_ts, state_institution
-        )
+        values = src.pull_institution_values(wbs_l1, snap_ts, institution)
         return (
             values["phds_authors"],
             values["faculty"],
             values["scientists_post_docs"],
             values["grad_students"],
             values["text"],
+            h2_sow_table,
+            h2_notes,
+            False,
+            False,
         )
 
     except DataSourceException:
-        return -1, -1, -1, -1, ""
+        return -1, -1, -1, -1, "", h2_sow_table, h2_notes, False, False
 
 
 @app.callback(  # type: ignore[misc]
@@ -655,9 +649,9 @@ def get_institution_values(
         Input("wbs-textarea", "value"),
     ],
     [
-        State("wbs-l1", "value"),
-        State("wbs-filter-inst", "value"),
-        State("wbs-snapshot-current-ts", "value"),
+        State("wbs-current-l1", "value"),
+        State("wbs-current-institution", "value"),
+        State("wbs-current-snapshot-ts", "value"),
         State("wbs-previous-inst-and-vals", "data"),
         State("wbs-data-table", "data"),
     ],
@@ -725,8 +719,8 @@ def push_institution_values(  # pylint: disable=R0913
         Output("wbs-new-data-div-1", "hidden"),
         Output("wbs-new-data-div-2", "hidden"),
         Output("wbs-data-table", "row_deletable"),
-        Output("wbs-filter-inst", "disabled"),
-        Output("wbs-filter-inst", "value"),
+        Output("wbs-current-institution", "disabled"),
+        Output("wbs-current-institution", "value"),
         Output("wbs-admin-zone-div", "hidden"),
         Output("wbs-phds-authors", "disabled"),
         Output("wbs-faculty", "disabled"),
@@ -734,17 +728,20 @@ def push_institution_values(  # pylint: disable=R0913
         Output("wbs-grad-students", "disabled"),
         Output("wbs-textarea", "disabled"),
     ],
-    [Input("wbs-viewing-snapshot-alert", "is_open"), Input("logout-div", "hidden")],
+    [Input("dummy-input-for-setup", "hidden")],
+    [State("wbs-current-snapshot-ts", "value")],
 )
-def login_actions(
-    # input(s)
-    viewing_snapshot: bool,
+def setup_user_dependent_components(
     _: bool,
+    # state(s)
+    snap_ts: str,
 ) -> Tuple[bool, bool, bool, bool, bool, str, bool, bool, bool, bool, bool, bool]:
     """Logged-in callback."""
-    logging.warning(f"'{du.triggered_id()}' -> login_actions()")
+    logging.warning(f"'{du.triggered_id()}' -> setup_user_dependent_components()")
 
-    if viewing_snapshot:
+    assert not du.triggered_id()  # Guarantee this is the initial call
+
+    if snap_ts:
         return (
             False,  # data-table NOT editable
             True,  # new-data-div-1 hidden
@@ -833,6 +830,7 @@ def toggle_pagination(
     ],
     [Input("wbs-show-all-columns-button", "n_clicks")],
     [State("wbs-table-config-cache", "data")],
+    prevent_initial_call=True,
 )
 def toggle_hidden_columns(
     # input(s)

@@ -30,12 +30,6 @@ def layout() -> None:
             visdcc.Run_js("refresh-for-snapshot-change"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-login-logout"),  # pylint: disable=E1101
             #
-            # Dummy Divs for populating elements on boot, which rely solely on States
-            html.Div(
-                children=[html.Div(id=f"dummy-input-for-boot-{i}") for i in range(10)],
-                hidden=True,
-            ),
-            #
             # Location Triggers (To Refresh Page)
             # dcc.Location(id="url-1", refresh=True),
             # dcc.Location(id="url-2", refresh=True),
@@ -88,7 +82,7 @@ def layout() -> None:
             #
             # Tabs
             dcc.Tabs(
-                id="wbs-l1",
+                id="wbs-current-l1",
                 value="mo",
                 persistence=True,
                 children=[
@@ -157,7 +151,7 @@ def layout() -> None:
 
 @app.callback(
     Output("wbs-view-live-btn", "n_clicks"),
-    [Input("wbs-l1", "value")],
+    [Input("wbs-current-l1", "value")],
     prevent_initial_call=True,
 )  # type: ignore
 def prep_for_tab_change(wbs_l1: str) -> int:

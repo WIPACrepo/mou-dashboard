@@ -16,6 +16,7 @@ def layout() -> html.Div:
 
     return html.Div(
         children=[
+            html.Div(id="dummy-input-for-setup", hidden=True),
             #
             # "Viewing Snapshot" Alert
             dbc.Alert(
@@ -59,7 +60,7 @@ def layout() -> html.Div:
                 className="large-dropdown-container",
                 children=[
                     dcc.Dropdown(
-                        id="wbs-snapshot-current-ts",
+                        id="wbs-current-snapshot-ts",
                         className="large-dropdown snapshot-dropdown",
                         style={"width": "100rem"},
                         placeholder="— Viewing the Live Table (Last Updated YYYY-MM-DD) —",
@@ -88,7 +89,7 @@ def layout() -> html.Div:
                 className="large-dropdown-container",
                 children=[
                     dcc.Dropdown(
-                        id="wbs-filter-inst",
+                        id="wbs-current-institution",
                         className="large-dropdown",
                         style={"width": "75rem"},
                         placeholder="— Viewing Entire Collaboration —",
@@ -98,6 +99,7 @@ def layout() -> html.Div:
                         ],
                         value="",
                         disabled=False,
+                        persistence=True,
                     ),
                 ],
             ),
@@ -135,7 +137,7 @@ def layout() -> html.Div:
                 ],
             ),
             #
-            html.H2(id="wbs-h2-sow-table", children="SOW Table"),
+            html.H2(id="wbs-h2-sow-table"),
             #
             # Top Tools
             dbc.Row(
@@ -268,7 +270,9 @@ def layout() -> html.Div:
                 id="institution-textarea-container",
                 hidden=True,
                 children=[
-                    html.H2(id="wbs-inst-textarea", children="Notes and Descriptions"),
+                    html.H2(
+                        id="wbs-h2-inst-textarea", children="Notes and Descriptions"
+                    ),
                     dcc.Textarea(
                         id="wbs-textarea", style={"width": "100%", "height": "30rem"}
                     ),
@@ -380,10 +384,6 @@ def layout() -> html.Div:
             dcc.Store(
                 id="wbs-table-config-cache", storage_type="memory", data=tconfig.config,
             ),
-            # for caching all snapshots' infos
-            dcc.Store(id="wbs-snapshot-info", storage_type="memory"),
-            # for caching the visible Institution and its values
-            dcc.Store(id="wbs-previous-inst-and-vals", storage_type="memory"),
             #
             # Dummy Divs -- for adding dynamic toasts, dialogs, etc.
             html.Div(id="wbs-toast-via-exterior-control-div"),
