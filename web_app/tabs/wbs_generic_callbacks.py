@@ -103,6 +103,7 @@ def _add_new_data(  # pylint: disable=R0913
         Output("wbs-show-all-columns-button", "n_clicks"),
     ],
     [
+        Input("wbs-current-institution", "value"),
         Input("wbs-filter-labor", "value"),
         Input("wbs-new-data-button-1", "n_clicks"),
         Input("wbs-new-data-button-2", "n_clicks"),
@@ -112,26 +113,26 @@ def _add_new_data(  # pylint: disable=R0913
     [
         State("wbs-current-l1", "value"),
         State("wbs-current-snapshot-ts", "value"),
-        State("wbs-current-institution", "value"),
         State("wbs-data-table", "data"),
         State("wbs-data-table", "columns"),
         State("wbs-show-all-columns-button", "n_clicks"),
         State("wbs-last-deleted-id", "children"),
         State("wbs-table-config-cache", "data"),
     ],
+    prevent_initial_call=True,  # must wait for institution value
 )  # pylint: disable=R0913,R0914
 def table_data_exterior_controls(
     # input(s)
+    institution: str,
     labor: str,
     _: int,
     tot_n_clicks: int,
     __: int,
     ___: int,
-    # L1 input (state)
+    # L1 (state)
     wbs_l1: str,
     # state(s)
     state_snapshot_ts: str,
-    state_institution: str,
     state_table: Table,
     state_columns: TColumns,
     state_all_cols: int,
@@ -149,7 +150,7 @@ def table_data_exterior_controls(
     # Dash sets cleared values as 0
     state_snapshot_ts = state_snapshot_ts if state_snapshot_ts else ""
     labor = labor if labor else ""
-    state_institution = state_institution if state_institution else ""
+    institution = institution if institution else ""
 
     logging.warning(
         f"Snapshot: {state_snapshot_ts=} {'' if state_snapshot_ts else '(Live Collection)'}"
@@ -171,7 +172,7 @@ def table_data_exterior_controls(
                 state_table,
                 state_columns,
                 labor,
-                state_institution,
+                institution,
                 state_tconfig_cache,
             )
 
@@ -181,7 +182,7 @@ def table_data_exterior_controls(
             try:
                 table = src.pull_data_table(
                     wbs_l1,
-                    institution=state_institution,
+                    institution=institution,
                     labor=labor,
                     with_totals=show_totals,
                     restore_id=state_deleted_id,
@@ -197,7 +198,7 @@ def table_data_exterior_controls(
         try:
             table = src.pull_data_table(
                 wbs_l1,
-                institution=state_institution,
+                institution=institution,
                 labor=labor,
                 with_totals=show_totals,
                 snapshot_ts=state_snapshot_ts,
@@ -455,7 +456,9 @@ def setup_snapshot_components(
     snap_ts: str,
 ) -> Tuple[List[Dict[str, str]], List[html.Label], bool]:
     """Set up snapshot-related components."""
-    logging.warning(f"'{du.triggered_id()}' -> setup_snapshot_components()")
+    logging.warning(
+        f"'{du.triggered_id()}' -> setup_snapshot_components()  ({wbs_l1=} {snap_ts=})"
+    )
 
     assert not du.triggered_id()  # Guarantee this is the initial call
 
@@ -559,7 +562,7 @@ def handle_make_snapshot(
 
 
 # --------------------------------------------------------------------------------------
-# Institution Values Callbacks
+# Institution Callbacks
 
 
 @app.callback(  # type: ignore[misc]
@@ -573,6 +576,7 @@ def handle_make_snapshot(
         Output("wbs-h2-inst-textarea", "children"),
         Output("institution-headcounts-container", "hidden"),
         Output("institution-textarea-container", "hidden"),
+        Output("wbs-current-institution", "value"),
     ],
     [Input("dummy-input-for-setup", "hidden")],
     [
@@ -587,14 +591,22 @@ def setup_institution_components(
     wbs_l1: str,
     snap_ts: str,
     institution: str,
-) -> Tuple[int, int, int, int, str, str, str, bool, bool]:
+) -> Tuple[int, int, int, int, str, str, str, bool, bool, str]:
     """Set up institution-related components."""
-    logging.warning(f"'{du.triggered_id()}' -> setup_institution_components()")
+    logging.warning(
+        f"'{du.triggered_id()}' -> setup_institution_components() ({wbs_l1=} {snap_ts=} {institution=})"
+    )
 
     assert not du.triggered_id()  # Guarantee this is the initial call
 
+    h2_sow_table = "Collaboration-Wide SOW Table"
+
+    # auto-select institution if the user is a non-admin
+    if current_user.is_authenticated and not current_user.is_admin:
+        institution = current_user.institution
+
     if not institution:
-        return 0, 0, 0, 0, "", "Collaboration-Wide SOW Table", "", True, True
+        return 0, 0, 0, 0, "", h2_sow_table, "", True, True, institution
 
     h2_sow_table = f"{institution}'s SOW Table"
     h2_notes = f"{institution}'s Notes and Descriptions"
@@ -611,21 +623,32 @@ def setup_institution_components(
             h2_notes,
             False,
             False,
+            institution,
         )
 
     except DataSourceException:
-        return -1, -1, -1, -1, "", h2_sow_table, h2_notes, False, False
+        return -1, -1, -1, -1, "", h2_sow_table, h2_notes, False, False, institution
 
 
 @app.callback(  # type: ignore[misc]
-    Output("refresh-for-institution-change", "run"),
+    [
+        Output("refresh-for-institution-change", "run"),
+        Output("wbs-institution-first-time-flag", "data"),
+    ],
     [Input("wbs-current-institution", "value")],
+    [State("wbs-institution-first-time-flag", "data")],
     prevent_initial_call=True,
 )
-def pick_institution(_: str) -> str:
-    """Set up institution-related components."""
-    logging.warning(f"'{du.triggered_id()}' -> pick_institution()")
-    return "location.reload();"
+def pick_institution(institution: str, first_time: bool) -> Tuple[str, bool]:
+    """Refresh if the user selected an institution."""
+    logging.warning(
+        f"'{du.triggered_id()}' -> pick_institution() ({first_time=} {institution=})"
+    )
+
+    if first_time:
+        return "", False
+
+    return "location.reload();", False
 
 
 @app.callback(  # type: ignore[misc]
@@ -725,7 +748,9 @@ def setup_user_dependent_components(
     snap_ts: str,
 ) -> Tuple[bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool]:
     """Logged-in callback."""
-    logging.warning(f"'{du.triggered_id()}' -> setup_user_dependent_components()")
+    logging.warning(
+        f"'{du.triggered_id()}' -> setup_user_dependent_components()  ({snap_ts=})"
+    )
 
     assert not du.triggered_id()  # Guarantee this is the initial call
 

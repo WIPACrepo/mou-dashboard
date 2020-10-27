@@ -280,7 +280,7 @@ h2:before {
 }
 
 .Select.is-disabled > .Select-control {
-    background-color: whitesmoke;
+    background-color: whitesmoke !important;
 }
 
 .is-disabled > .Select-control > .Select-arrow-zone {

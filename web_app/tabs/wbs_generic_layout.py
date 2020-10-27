@@ -384,6 +384,10 @@ def layout() -> html.Div:
             dcc.Store(
                 id="wbs-table-config-cache", storage_type="memory", data=tconfig.config,
             ),
+            # - for fagging whether the user's institution value has been grabbed
+            dcc.Store(
+                id="wbs-institution-first-time-flag", storage_type="memory", data=True,
+            ),
             #
             # Dummy Divs -- for adding dynamic toasts, dialogs, etc.
             html.Div(id="wbs-toast-via-exterior-control-div"),
