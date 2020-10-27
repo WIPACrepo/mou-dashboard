@@ -1,6 +1,6 @@
 """Custom type definitions."""
 
-from typing import Dict, List, TypedDict, Union
+from typing import Dict, List, Optional, TypedDict, Union
 
 # Data Source types
 DataEntry = Union[int, float, str]  # just data
@@ -19,10 +19,10 @@ class SnapshotInfo(TypedDict):
 class InstitutionValues(TypedDict):
     """Values for an institution."""
 
-    phds_authors: int
-    faculty: int
-    scientists_post_docs: int
-    grad_students: int
+    phds_authors: Optional[int]
+    faculty: Optional[int]
+    scientists_post_docs: Optional[int]
+    grad_students: Optional[int]
     text: str
 
 

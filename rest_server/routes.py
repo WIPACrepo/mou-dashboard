@@ -341,17 +341,17 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
         institution = self.get_argument("institution")
-        phds_authors = self.get_argument("phds_authors", type_=int)
-        faculty = self.get_argument("faculty", type_=int)
-        scientists_post_docs = self.get_argument("scientists_post_docs", type_=int)
-        grad_students = self.get_argument("grad_students", type_=int)
-        text = self.get_argument("text")
+        phds = self.get_argument("phds_authors", type_=int, default=-1)
+        faculty = self.get_argument("faculty", type_=int, default=-1)
+        sci = self.get_argument("scientists_post_docs", type_=int, default=-1)
+        grad = self.get_argument("grad_students", type_=int, default=-1)
+        text = self.get_argument("text", default="")
 
         vals: types.InstitutionValues = {
-            "phds_authors": phds_authors,
-            "faculty": faculty,
-            "scientists_post_docs": scientists_post_docs,
-            "grad_students": grad_students,
+            "phds_authors": phds if phds > 0 else None,
+            "faculty": faculty if faculty > 0 else None,
+            "scientists_post_docs": sci if sci > 0 else None,
+            "grad_students": grad if grad > 0 else None,
             "text": text,
         }
 

@@ -17,16 +17,6 @@ class SnapshotInfo(TypedDict):
     creator: str
 
 
-class InstitutionValues(TypedDict):
-    """Values for an institution."""
-
-    phds_authors: int
-    faculty: int
-    scientists_post_docs: int
-    grad_students: int
-    text: str
-
-
 # Private
 _StrDict = Dict[str, str]  # Ceci n'est pas une pipe
 
@@ -40,6 +30,6 @@ TDDownCond = List[Dict[str, Union[_StrDict, List[_StrDict]]]]  # dropdown_condit
 TFocus = Optional[Dict[str, int]]  # which cell to focus
 
 # Other Dash types
-DDValue = Optional[StrNum]  # dcc.Dropdown().value
-DDValue_types: Final[Tuple[type, ...]] = (str, int, float, type(None))  # for runtime
-assert set(DDValue.__dict__["__args__"]) == set(DDValue_types)
+DashVal = Optional[StrNum]  # dcc.Dropdown().value, dcc.Input().value
+DashVal_types: Final[Tuple[type, ...]] = (str, int, float, type(None))  # for runtime
+assert set(DashVal.__dict__["__args__"]) == set(DashVal_types)

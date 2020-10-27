@@ -134,7 +134,7 @@ def summarize(
     # state(s)
     wbs_l1: str,
     state_tconfig_cache: tc.TableConfigParser.Cache,
-    state_snap_current_ts: types.DDValue,
+    state_snap_current_ts: types.DashVal,
 ) -> Tuple[types.Table, List[Dict[str, str]]]:
     """Manage uploading a new xlsx document as the new live table."""
     logging.warning(f"'{du.triggered_id()}' -> summarize()")

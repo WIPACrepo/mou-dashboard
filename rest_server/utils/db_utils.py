@@ -271,10 +271,10 @@ class MoUMotorClient:
         await self._check_database_state(snap_db)
 
         vals: types.InstitutionValues = {
-            "phds_authors": 0,
-            "faculty": 0,
-            "scientists_post_docs": 0,
-            "grad_students": 0,
+            "phds_authors": None,
+            "faculty": None,
+            "scientists_post_docs": None,
+            "grad_students": None,
             "text": "",
         }
 

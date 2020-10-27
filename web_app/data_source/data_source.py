@@ -212,10 +212,10 @@ def _validate(
 
 def pull_data_table(
     wbs_l1: str,
-    institution: types.DDValue = "",
-    labor: types.DDValue = "",
+    institution: types.DashVal = "",
+    labor: types.DashVal = "",
     with_totals: bool = False,
-    snapshot_ts: types.DDValue = "",
+    snapshot_ts: types.DashVal = "",
     restore_id: str = "",
 ) -> types.Table:
     """Get table, optionally filtered by institution and/or labor.
@@ -234,10 +234,10 @@ def pull_data_table(
         types.Table -- the returned table
     """
     _validate(wbs_l1, str, falsy_okay=False)
-    institution = _validate(institution, types.DDValue_types, out=str)
-    labor = _validate(labor, types.DDValue_types, out=str)
+    institution = _validate(institution, types.DashVal_types, out=str)
+    labor = _validate(labor, types.DashVal_types, out=str)
     _validate(with_totals, bool)
-    snapshot_ts = _validate(snapshot_ts, types.DDValue_types, out=str)
+    snapshot_ts = _validate(snapshot_ts, types.DashVal_types, out=str)
     _validate(restore_id, str)
 
     class _RespTableData(TypedDict):
@@ -262,8 +262,8 @@ def pull_data_table(
 def push_record(  # pylint: disable=R0913
     wbs_l1: str,
     record: types.Record,
-    labor: types.DDValue = "",
-    institution: types.DDValue = "",
+    labor: types.DashVal = "",
+    institution: types.DashVal = "",
     novel: bool = False,
     tconfig_cache: Optional[tc.TableConfigParser.Cache] = None,
 ) -> types.Record:
@@ -283,8 +283,8 @@ def push_record(  # pylint: disable=R0913
     """
     _validate(wbs_l1, str, falsy_okay=False)
     _validate(record, dict)
-    labor = _validate(labor, types.DDValue_types, out=str)
-    institution = _validate(institution, types.DDValue_types, out=str)
+    labor = _validate(labor, types.DashVal_types, out=str)
+    institution = _validate(institution, types.DashVal_types, out=str)
     _validate(novel, bool)
     _validate(tconfig_cache, (dict, type(None)))
 
@@ -371,26 +371,50 @@ def override_table(
 
 
 def pull_institution_values(
-    wbs_l1: str, snapshot_ts: types.DDValue, institution: types.DDValue
-) -> types.InstitutionValues:
+    wbs_l1: str, snapshot_ts: types.DashVal, institution: types.DashVal
+) -> Tuple[Optional[int], Optional[int], Optional[int], Optional[int], str]:
     """Get the institution's values."""
     _validate(wbs_l1, str, falsy_okay=False)
-    snapshot_ts = _validate(snapshot_ts, types.DDValue_types, out=str)
-    institution = _validate(institution, types.DDValue_types, out=str)
+    snapshot_ts = _validate(snapshot_ts, types.DashVal_types, out=str)
+    institution = _validate(institution, types.DashVal_types, out=str)
 
     body = {"institution": institution, "snapshot_timestamp": snapshot_ts}
     response = mou_request("GET", f"/institution/values/{wbs_l1}", body=body)
-    return cast(types.InstitutionValues, response)
+    return (
+        cast(Optional[int], response.get("phds_authors")),
+        cast(Optional[int], response.get("faculty")),
+        cast(Optional[int], response.get("scientists_post_docs")),
+        cast(Optional[int], response.get("grad_students")),
+        cast(str, response.get("text", "")),
+    )
 
 
 def push_institution_values(
-    wbs_l1: str, institution: types.DDValue, values: types.InstitutionValues
+    wbs_l1: str,
+    institution: types.DashVal,
+    phds: types.DashVal,
+    faculty: types.DashVal,
+    sci: types.DashVal,
+    grad: types.DashVal,
+    text: str,
 ) -> None:
     """Push the institution's values."""
     _validate(wbs_l1, str, falsy_okay=False)
-    institution = _validate(institution, types.DDValue_types, out=str)
-    _validate(values, dict)
+    institution = _validate(institution, types.DashVal_types)
+    phds = _validate(phds, types.DashVal_types)
+    faculty = _validate(faculty, types.DashVal_types)
+    sci = _validate(sci, types.DashVal_types)
+    grad = _validate(grad, types.DashVal_types)
+    _validate(text, str)
 
     body = {"institution": institution}
-    body.update(cast(Dict[str, Any], values))
+    if phds or phds == 0:
+        body["phds_authors"] = phds
+    if faculty or faculty == 0:
+        body["faculty"] = faculty
+    if sci or sci == 0:
+        body["scientists_post_docs"] = sci
+    if grad or grad == 0:
+        body["grad_students"] = grad
+    body["text"] = text
     _ = mou_request("POST", f"/institution/values/{wbs_l1}", body=body)

@@ -2,7 +2,7 @@
 
 import logging
 import re
-from typing import cast, Dict, List, Tuple, Union
+from typing import cast, Dict, List, Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
@@ -49,8 +49,8 @@ def _add_new_data(  # pylint: disable=R0913
     wbs_l1: str,
     state_table: types.Table,
     state_columns: types.TColumns,
-    labor: types.DDValue,
-    institution: types.DDValue,
+    labor: types.DashVal,
+    institution: types.DashVal,
     state_tconfig_cache: tc.TableConfigParser.Cache,
 ) -> Tuple[types.Table, dbc.Toast]:
     """Push new record to data source; add to table.
@@ -117,8 +117,8 @@ def _add_new_data(  # pylint: disable=R0913
 )  # pylint: disable=R0913,R0914
 def table_data_exterior_controls(
     # input(s)
-    institution: types.DDValue,
-    labor: types.DDValue,
+    institution: types.DashVal,
+    labor: types.DashVal,
     _: int,
     tot_n_clicks: int,
     __: int,
@@ -126,7 +126,7 @@ def table_data_exterior_controls(
     # L1 (state)
     wbs_l1: str,
     # state(s)
-    state_snapshot_ts: types.DDValue,
+    state_snapshot_ts: types.DashVal,
     state_table: types.Table,
     state_columns: types.TColumns,
     state_all_cols: int,
@@ -299,7 +299,7 @@ def table_data_interior_controls(
     previous_table: types.Table,
     table_exterior_control_ts: str,
     state_tconfig_cache: tc.TableConfigParser.Cache,
-    state_snap_current_ts: types.DDValue,
+    state_snap_current_ts: types.DashVal,
 ) -> Tuple[types.Table, dbc.Toast, str, str, bool]:
     """Interior control signaled that the table should be updated.
 
@@ -434,7 +434,7 @@ def table_dropdown(
     [Input("wbs-view-live-btn", "n_clicks")],
     prevent_initial_call=True,
 )
-def view_live_table(_: int) -> types.DDValue:
+def view_live_table(_: int) -> types.DashVal:
     """Clear the snapshot selection."""
     logging.warning(f"'{du.triggered_id()}' -> view_live_table()")
     return ""
@@ -445,7 +445,7 @@ def view_live_table(_: int) -> types.DDValue:
     [Input("wbs-current-snapshot-ts", "value")],
     prevent_initial_call=True,
 )
-def pick_snapshot(_: types.DDValue) -> str:
+def pick_snapshot(_: types.DashVal) -> str:
     """Refresh the page on snapshot select/de-select."""
     logging.warning(f"'{du.triggered_id()}' -> pick_snapshot()")
     return "location.reload();"
@@ -464,7 +464,7 @@ def setup_snapshot_components(
     _: bool,
     # state(s)
     wbs_l1: str,
-    snap_ts: types.DDValue,
+    snap_ts: types.DashVal,
 ) -> Tuple[List[Dict[str, str]], List[html.Label], bool]:
     """Set up snapshot-related components."""
     logging.warning(
@@ -601,9 +601,20 @@ def setup_institution_components(
     _: bool,
     # state(s)
     wbs_l1: str,
-    snap_ts: types.DDValue,
-    institution: types.DDValue,
-) -> Tuple[int, int, int, int, str, str, str, bool, bool, types.DDValue]:
+    snap_ts: types.DashVal,
+    institution: types.DashVal,
+) -> Tuple[
+    types.DashVal,
+    types.DashVal,
+    types.DashVal,
+    types.DashVal,
+    str,
+    str,
+    str,
+    bool,
+    bool,
+    types.DashVal,
+]:
     """Set up institution-related components."""
     logging.warning(
         f"'{du.triggered_id()}' -> setup_institution_components() ({wbs_l1=} {snap_ts=} {institution=})"
@@ -620,26 +631,23 @@ def setup_institution_components(
     if not institution:
         return 0, 0, 0, 0, "", h2_sow_table, "", True, True, institution
 
-    h2_sow_table = f"{institution}'s SOW Table"
+    h2_table = f"{institution}'s SOW Table"
     h2_notes = f"{institution}'s Notes and Descriptions"
 
-    try:
-        values = src.pull_institution_values(wbs_l1, snap_ts, institution)
-        return (
-            values["phds_authors"],
-            values["faculty"],
-            values["scientists_post_docs"],
-            values["grad_students"],
-            values["text"],
-            h2_sow_table,
-            h2_notes,
-            False,
-            False,
-            institution,
-        )
+    phds: types.DashVal = None
+    faculty: types.DashVal = None
+    sci: types.DashVal = None
+    grad: types.DashVal = None
+    text: str = ""
 
+    try:
+        phds, faculty, sci, grad, text = src.pull_institution_values(
+            wbs_l1, snap_ts, institution
+        )
     except DataSourceException:
-        return -1, -1, -1, -1, "", h2_sow_table, h2_notes, False, False, institution
+        pass
+
+    return phds, faculty, sci, grad, text, h2_table, h2_notes, False, False, institution
 
 
 @app.callback(  # type: ignore[misc]
@@ -651,7 +659,7 @@ def setup_institution_components(
     [State("wbs-institution-dropdown-first-time-flag", "data")],
     prevent_initial_call=True,
 )
-def pick_institution(institution: types.DDValue, first_time: bool) -> Tuple[str, bool]:
+def pick_institution(institution: types.DashVal, first_time: bool) -> Tuple[str, bool]:
     """Refresh if the user selected an institution."""
     logging.warning(
         f"'{du.triggered_id()}' -> pick_institution() ({first_time=} {institution=})"
@@ -687,16 +695,16 @@ def pick_institution(institution: types.DDValue, first_time: bool) -> Tuple[str,
 )
 def push_institution_values(  # pylint: disable=R0913
     # input(s)
-    phds_authors: int,
-    faculty: int,
-    scientists_post_docs: int,
-    grad_students: int,
+    phds: types.DashVal,
+    faculty: types.DashVal,
+    sci: types.DashVal,
+    grad: types.DashVal,
     text: str,
     # L1 value (state)
     wbs_l1: str,
     # other state(s)
-    state_institution: types.DDValue,
-    state_snap_current_ts: types.DDValue,
+    institution: types.DashVal,
+    state_snap_current_ts: types.DashVal,
     state_table: types.Table,
     first_time: bool,
 ) -> Tuple[bool, html.Label, html.Label]:
@@ -705,28 +713,33 @@ def push_institution_values(  # pylint: disable=R0913
         f"'{du.triggered_id()}' -> push_institution_values() ({first_time=})"
     )
 
-    now = du.get_human_now()
-    headcounts_label = html.Label(f"Headcounts Last Refreshed: {now}")
-    textarea_label = html.Label(f"Notes & Descriptions Last Refreshed: {now}")
+    # Is there an institution selected?
+    if not institution:
+        return False, None, None
 
-    if (
-        not state_institution  # no institution selected
-        or not current_user.is_authenticated
-        or state_snap_current_ts  # are we looking at a snapshot?
-        or first_time  # fields were just auto-populated for the first time
-    ):
+    # labels
+    now = du.get_human_now()
+    textarea_label = html.Label(f"Notes & Descriptions Last Refreshed: {now}")
+    headcounts_label = html.Label(f"Headcounts Last Refreshed: {now}")
+
+    # Are the fields editable?
+    if not current_user.is_authenticated and not state_snap_current_ts:
         return False, headcounts_label, textarea_label
 
-    values: types.InstitutionValues = {
-        "phds_authors": phds_authors,
-        "faculty": faculty,
-        "scientists_post_docs": scientists_post_docs,
-        "grad_students": grad_students,
-        "text": text,
-    }
+    # check if headcounts are filled out
+    if None in [phds, faculty, sci, grad]:
+        headcounts_label = html.Label(
+            "Headcounts are required. Please enter all four numbers.",
+            style={"color": "red", "font-weight": "bold"},
+        )
 
+    # Is this a redundant push? -- fields were just auto-populated for the first time
+    if first_time:
+        return False, headcounts_label, textarea_label
+
+    # push
     try:
-        src.push_institution_values(wbs_l1, state_institution, values)
+        src.push_institution_values(wbs_l1, institution, phds, faculty, sci, grad, text)
     except DataSourceException:
         assert len(state_table) == 0  # there's no collection to push to
 
@@ -757,7 +770,7 @@ def push_institution_values(  # pylint: disable=R0913
 def setup_user_dependent_components(
     _: bool,
     # state(s)
-    snap_ts: types.DDValue,
+    snap_ts: types.DashVal,
 ) -> Tuple[bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool]:
     """Logged-in callback."""
     logging.warning(
