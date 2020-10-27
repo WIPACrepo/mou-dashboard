@@ -193,6 +193,18 @@ def get_style_data_conditional(tconfig: tc.TableConfigParser) -> types.TSDCond:
     style_data_conditional = [
         {"if": {"row_index": "odd"}, "backgroundColor": "whitesmoke"},
     ]
+
+    # non-editable style
+    style_data_conditional += [
+        {
+            "if": {"column_id": col},
+            "color": "gray",
+            "fontSize": "18",
+            "fontStyle": "italic",
+        }
+        for col in tconfig.get_non_editable_columns()
+    ]
+
     # stylize changed data
     # https://community.plotly.com/t/highlight-cell-in-datatable-if-it-has-been-edited/28808/3
     style_data_conditional += [
@@ -208,35 +220,44 @@ def get_style_data_conditional(tconfig: tc.TableConfigParser) -> types.TSDCond:
         for col in tconfig.get_table_columns()
     ]
 
+    # selected cell style
     style_data_conditional += [
         {
             "if": {"state": "selected"},  # 'active' | 'selected'
             "backgroundColor": "transparent",
             "border": "2px solid #258835",
-        },
+        }
+    ]
+
+    # total row style
+    style_data_conditional += [
         {
             "if": {"filter_query": "{Total Of?} contains 'GRAND TOTAL'"},
             "backgroundColor": "#258835",
             "color": "whitesmoke",
             "fontWeight": "bold",
+            "fontStyle": "normal",
         },
         {
             "if": {"filter_query": "{Total Of?} contains 'L2'"},
             "backgroundColor": "#23272B",
             "color": "whitesmoke",
             "fontWeight": "normal",
+            "fontStyle": "normal",
         },
         {
             "if": {"filter_query": "{Total Of?} contains 'L3'"},
             "backgroundColor": "#17a2b8",
             "color": "whitesmoke",
             "fontWeight": "normal",
+            "fontStyle": "normal",
         },
         {
             "if": {"filter_query": "{Total Of?} contains 'US TOTAL'"},
             "backgroundColor": "#9FA5AA",
             "color": "whitesmoke",
             "fontWeight": "normal",
+            "fontStyle": "normal",
         },
     ]
 

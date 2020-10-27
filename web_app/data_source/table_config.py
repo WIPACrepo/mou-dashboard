@@ -65,6 +65,10 @@ class TableConfigParser:
         """Return whether column data can be edited by end-user."""
         return column not in self.config["non_editables"]
 
+    def get_non_editable_columns(self) -> List[str]:
+        """The columns whose data cannot be edited by end-user."""
+        return self.config["non_editables"]
+
     def get_hidden_columns(self) -> List[str]:
         """Return the columns hidden be default."""
         return self.config["hiddens"]

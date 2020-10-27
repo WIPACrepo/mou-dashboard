@@ -99,9 +99,9 @@ def _add_new_data(  # pylint: disable=R0913
     [
         Input("wbs-current-institution", "value"),
         Input("wbs-filter-labor", "value"),
+        Input("wbs-show-totals-button", "n_clicks"),
         Input("wbs-new-data-button-1", "n_clicks"),
         Input("wbs-new-data-button-2", "n_clicks"),
-        Input("wbs-show-totals-button", "n_clicks"),
         Input("wbs-undo-last-delete", "n_clicks"),
     ],
     [
@@ -119,8 +119,8 @@ def table_data_exterior_controls(
     # input(s)
     institution: types.DashVal,
     labor: types.DashVal,
-    _: int,
     tot_n_clicks: int,
+    _: int,
     __: int,
     ___: int,
     # L1 (state)
