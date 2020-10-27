@@ -111,7 +111,9 @@ def new_data_button(id_num: int) -> html.Div:
 
 
 def table_columns(
-    tconfig: tc.TableConfigParser, table_editable: bool
+    tconfig: tc.TableConfigParser,
+    table_editable: bool,
+    is_institution_editable: bool = False,
 ) -> List[Dict[str, object]]:
     """Grab table columns."""
 
@@ -125,13 +127,18 @@ def table_columns(
             return "numeric"
         return "any"  # default
 
+    def _editable(col_name: str) -> bool:
+        if (not is_institution_editable) and (col_name.lower() == "institution"):
+            return False
+        return table_editable and tconfig.is_column_editable(col_name)
+
     columns = [
         {
             "id": c,
             "name": c,
             "presentation": _presentation(c),
             "type": _type(c),
-            "editable": table_editable and tconfig.is_column_editable(c),
+            "editable": _editable(c),
             "hideable": True,
         }
         for c in tconfig.get_table_columns()

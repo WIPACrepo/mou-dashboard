@@ -148,9 +148,10 @@ def table_data_exterior_controls(
     logging.warning(f"'{du.triggered_id()}' -> table_data_exterior_controls()")
 
     # Dash sets cleared values as 0
-    state_snapshot_ts = state_snapshot_ts if state_snapshot_ts else ""
-    labor = labor if labor else ""
-    institution = institution if institution else ""
+    # TODO - move this to DS.py and fix types to reflect it can be None/0/etc.
+    # state_snapshot_ts = state_snapshot_ts if state_snapshot_ts else ""
+    # labor = labor if labor else ""
+    # institution = institution if institution else ""
 
     logging.warning(
         f"Snapshot: {state_snapshot_ts=} {'' if state_snapshot_ts else '(Live Collection)'}"
@@ -343,7 +344,7 @@ def table_data_interior_controls(
     [State("wbs-table-config-cache", "data")],
     prevent_initial_call=True,
 )
-def table_columns(
+def table_columns_callback(
     # input(s)
     table_editable: bool,
     # state(s)
@@ -354,7 +355,17 @@ def table_columns(
 
     tconfig = tc.TableConfigParser(state_tconfig_cache)
 
-    return du.table_columns(tconfig, table_editable=table_editable)
+    # disable institution, unless user is an admin
+    # follows order of precedence for editable-ness: table > column > disable_institution
+    is_institution_editable = False
+    if current_user.is_authenticated and current_user.is_admin:
+        is_institution_editable = True
+
+    return du.table_columns(
+        tconfig,
+        table_editable=table_editable,
+        is_institution_editable=is_institution_editable,
+    )
 
 
 @app.callback(  # type: ignore[misc]
