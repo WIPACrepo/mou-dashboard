@@ -7,10 +7,10 @@ from typing import cast
 from keycloak_setup.icecube_setup import ICECUBE_INSTS  # type: ignore[import]
 
 from .. import table_config as tc
-from .types import Record, Table
+from . import types
 
 
-def remove_on_the_fly_fields(record: Record) -> Record:
+def remove_on_the_fly_fields(record: types.Record) -> types.Record:
     """Remove (del) any fields that are only to be calculated on-the-fly."""
     for field in record.copy().keys():
         if field in tc.get_on_the_fly_fields():
@@ -23,7 +23,7 @@ def remove_on_the_fly_fields(record: Record) -> Record:
     return record
 
 
-def _get_fte_subcolumn(record: Record) -> str:
+def _get_fte_subcolumn(record: types.Record) -> str:
     source = record[tc.SOURCE_OF_FUNDS_US_ONLY]
     return cast(str, source)
 
@@ -37,7 +37,7 @@ def _us_or_non_us(institution: str) -> str:
     return ""
 
 
-def add_on_the_fly_fields(record: Record) -> Record:
+def add_on_the_fly_fields(record: types.Record) -> types.Record:
     """Add fields that are only to be calculated on-the-fly."""
     record = remove_on_the_fly_fields(record)
 
@@ -55,19 +55,19 @@ def add_on_the_fly_fields(record: Record) -> Record:
     return record
 
 
-def get_total_rows(table: Table, only_totals_w_data: bool = False) -> Table:
+def get_total_rows(table: types.Table, only_totals_w_data: bool = False) -> types.Table:
     """Calculate rows with totals of each category (cascadingly).
 
     Arguments:
-        table {Table} -- table with records (only read)
+        table {types.Table} -- table with records (only read)
 
     Keyword Arguments:
         only_totals_w_data {bool} -- exclude totals that only have 0s (default: {False})
 
     Returns:
-        Table -- a new table of rows with totals
+        types.Table -- a new table of rows with totals
     """
-    totals: Table = []
+    totals: types.Table = []
 
     def grab_a_total(  # pylint: disable=C0103
         l2: str = "", l3: str = "", fund_src: str = "", region: str = ""

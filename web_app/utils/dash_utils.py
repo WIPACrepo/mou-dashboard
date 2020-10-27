@@ -14,7 +14,7 @@ import dash_html_components as html  # type: ignore[import]
 
 from ..data_source import data_source as src
 from ..data_source import table_config as tc
-from ..utils.types import TSDCond
+from ..utils import types
 
 # constants
 _RECENT_THRESHOLD: Final[float] = 1.0
@@ -187,7 +187,7 @@ def style_cell_conditional(
     return style_cell_conditional_list
 
 
-def get_style_data_conditional(tconfig: tc.TableConfigParser) -> TSDCond:
+def get_style_data_conditional(tconfig: tc.TableConfigParser) -> types.TSDCond:
     """Style Data..."""
     # zebra-stripe
     style_data_conditional = [

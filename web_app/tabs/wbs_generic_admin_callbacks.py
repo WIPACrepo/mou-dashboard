@@ -13,15 +13,17 @@ from ..data_source import data_source as src
 from ..data_source import table_config as tc
 from ..data_source.utils import DataSourceException
 from ..utils import dash_utils as du
-from ..utils.types import SnapshotInfo, Table
+from ..utils import types
 
 
 def _get_ingest_sucess_message(
-    n_records: int, prev_snap: Optional[SnapshotInfo], curr_snap: Optional[SnapshotInfo]
+    n_records: int,
+    prev_snap: Optional[types.SnapshotInfo],
+    curr_snap: Optional[types.SnapshotInfo],
 ) -> List[str]:
     """Make the message for the ingest confirmation toast."""
 
-    def _pseudonym(_snap: SnapshotInfo) -> str:
+    def _pseudonym(_snap: types.SnapshotInfo) -> str:
         if _snap["name"]:
             return f"\"{_snap['name']}\""
         return du.get_human_time(_snap["timestamp"])
@@ -104,7 +106,7 @@ def handle_xlsx(  # pylint: disable=R0911
                 wbs_l1, base64_file, filename
             )
             success_toast = du.make_toast(
-                f'Live Table Updated with "{filename}"',
+                f'Live types.Table Updated with "{filename}"',
                 _get_ingest_sucess_message(n_records, prev_snap, curr_snap),
                 du.Color.SUCCESS,
             )
@@ -132,8 +134,8 @@ def summarize(
     # state(s)
     wbs_l1: str,
     state_tconfig_cache: tc.TableConfigParser.Cache,
-    state_snap_current_ts: str,
-) -> Tuple[Table, List[Dict[str, str]]]:
+    state_snap_current_ts: types.DDValue,
+) -> Tuple[types.Table, List[Dict[str, str]]]:
     """Manage uploading a new xlsx document as the new live table."""
     logging.warning(f"'{du.triggered_id()}' -> summarize()")
 
@@ -173,7 +175,7 @@ def summarize(
             and (not _l2 or r["WBS L2"] == _l2)
         )
 
-    summary_table: Table = []
+    summary_table: types.Table = []
     for inst_full, abbrev in tconfig.get_institutions_w_abbrevs():
         inst_info = src.pull_institution_values(wbs_l1, state_snap_current_ts, abbrev)
         summary_table.append(

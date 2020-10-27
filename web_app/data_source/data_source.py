@@ -5,7 +5,7 @@ from typing import Any, cast, Dict, Final, List, Optional, Tuple, TypedDict, Uni
 
 from flask_login import current_user  # type: ignore[import]
 
-from ..utils.types import InstitutionValues, Record, SnapshotInfo, Table
+from ..utils import types
 from . import table_config as tc
 from .utils import mou_request
 
@@ -15,7 +15,7 @@ _OC_SUFFIX: Final[str] = "_original"
 
 
 # --------------------------------------------------------------------------------------
-# Data/Table-Conversion Functions
+# Data/types.Table-Conversion Functions
 
 
 def get_touchstone_name(column: str) -> str:
@@ -31,20 +31,22 @@ def _is_touchstone_column(column: str) -> bool:
     return column.endswith(_OC_SUFFIX)
 
 
-def _convert_record_rest_to_dash(record: Record, novel: bool = False) -> Record:
+def _convert_record_rest_to_dash(
+    record: types.Record, novel: bool = False
+) -> types.Record:
     """Convert a record to be added to Dash's datatable.
 
     Make a copy of each field in an new column to detect changed values.
     These columns aren't meant to be seen by the user.
 
     Arguments:
-        record {Record} -- the record, that will be updated
+        record {types.Record} -- the record, that will be updated
 
     Keyword Arguments:
         novel {bool} -- if True, don't copy values, just set as '' (default: {False})
 
     Returns:
-        Record -- the argument value
+        types.Record -- the argument value
     """
     for field in record:  # don't add copies of copies, AKA make it safe to call this 2x
         if _is_touchstone_column(field):
@@ -59,7 +61,7 @@ def _convert_record_rest_to_dash(record: Record, novel: bool = False) -> Record:
     return record
 
 
-def _convert_table_rest_to_dash(table: Table) -> Table:
+def _convert_table_rest_to_dash(table: types.Table) -> types.Table:
     """Convert a table to be added as Dash's datatable.
 
     Make a copy of each column to detect changed values (aka the
@@ -73,7 +75,7 @@ def _convert_table_rest_to_dash(table: Table) -> Table:
 
 
 def _is_valid_simple_dropdown(
-    parser: tc.TableConfigParser, record: Record, field: str
+    parser: tc.TableConfigParser, record: types.Record, field: str
 ) -> bool:
     if not parser.is_simple_dropdown(field):
         raise Exception(f"not simple dropdown: {field} ({record})")
@@ -85,7 +87,7 @@ def _is_valid_simple_dropdown(
 
 
 def _is_valid_conditional_dropdown(
-    parser: tc.TableConfigParser, record: Record, field: str
+    parser: tc.TableConfigParser, record: types.Record, field: str
 ) -> bool:
     if not parser.is_conditional_dropdown(field):
         raise Exception(f"not conditional dropdown: {field} ({record})")
@@ -104,11 +106,11 @@ def _is_valid_conditional_dropdown(
 
 
 def _remove_invalid_data(
-    record: Record, tconfig_cache: tc.TableConfigParser.Cache
-) -> Record:
+    record: types.Record, tconfig_cache: tc.TableConfigParser.Cache
+) -> types.Record:
     """Remove items whose data aren't valid."""
 
-    def _remove_orphans(_record: Record) -> Record:
+    def _remove_orphans(_record: types.Record) -> types.Record:
         """Remove orphaned child fields."""
         return {
             k: v
@@ -148,8 +150,8 @@ def _remove_invalid_data(
 
 
 def _convert_record_dash_to_rest(
-    record: Record, tconfig_cache: Optional[tc.TableConfigParser.Cache] = None
-) -> Record:
+    record: types.Record, tconfig_cache: Optional[tc.TableConfigParser.Cache] = None
+) -> types.Record:
     """Convert a record from Dash's datatable to be sent to the rest server.
 
     Copy but leave out the touchstone columns used to detect changed
@@ -164,50 +166,82 @@ def _convert_record_dash_to_rest(
 
 
 def _validate(
-    data: Any, type_: Union[type, Tuple[type, ...]], falsy_okay: bool = True,
-) -> None:
-    if not isinstance(data, type_):
-        raise TypeError(f"{data=} is {type(data)=}, should be {type_=}")
-    if (not falsy_okay) and (not data):
-        raise TypeError(f"{data=} is falsy ({type_=})")
+    data: Any,
+    in_type: Union[type, Tuple[type, ...]],
+    falsy_okay: bool = True,
+    out: Optional[type] = None,
+) -> Any:
+    """Type-check `data`. Optionally, convert and return.
+
+    Arguments:
+        data {Any} -- data to be validated
+        in_type {Union[type, Tuple[type, ...]]} -- allowed type(s)
+
+    Keyword Arguments:
+        falsy_okay {bool} -- otherwise, raise `TypeError` if `not data` (default: {True})
+        out {Optional[type]} -- assure `data`'s returned type, AND assign `out`'s default falsy value (if `not data`) (default: {None})
+
+    Returns:
+        Any -- `data` potentially changed/converted
+
+    Raises:
+        TypeError -- raised if any type check failed
+    """
+    # check incoming type
+    if not isinstance(data, in_type):
+        raise TypeError(f"{data=} is {type(data)=}, should be {in_type=}")
+
+    # check if data is falsy
+    if (not data) and (not falsy_okay):
+        raise TypeError(f"{data=} is falsy ({in_type=})")
+
+    if out:
+        # get the falsy/default type's value, Ex: data = str()
+        if not data:
+            data = out()
+        # check outgoing type
+        if not isinstance(data, out):
+            raise TypeError(f"{data=} is {type(data)=}, should be {out=}")
+
+    return data
 
 
 # --------------------------------------------------------------------------------------
-# Data/Table Functions
+# Data/types.Table Functions
 
 
 def pull_data_table(
     wbs_l1: str,
-    institution: str = "",
-    labor: str = "",
+    institution: types.DDValue = "",
+    labor: types.DDValue = "",
     with_totals: bool = False,
-    snapshot_ts: str = "",
+    snapshot_ts: types.DDValue = "",
     restore_id: str = "",
-) -> Table:
+) -> types.Table:
     """Get table, optionally filtered by institution and/or labor.
 
-    Grab a snapshot table, if snapshot is given. "" gives live table.
+    Grab a snapshot table, if `snapshot_ts` is given ("" gives live table).
     # TODO - it would be nice to split out restore_id into its own thing
 
     Keyword Arguments:
         institution {str} -- filter by institution (default: {""})
         labor {str} -- filter by labor category (default: {""})
         with_totals {bool} -- whether to include "total" rows (default: {False})
-        snapshot {str} -- name of snapshot (default: {""})
+        snapshot_ts {str} -- name of snapshot (default: {""})
         restore_id {str} -- id of a record to be restored (default: {""})
 
     Returns:
-        Table -- the returned table
+        types.Table -- the returned table
     """
     _validate(wbs_l1, str, falsy_okay=False)
-    _validate(institution, str)
-    _validate(labor, str)
+    institution = _validate(institution, types.DDValue_types, out=str)
+    labor = _validate(labor, types.DDValue_types, out=str)
     _validate(with_totals, bool)
-    _validate(snapshot_ts, str)
+    snapshot_ts = _validate(snapshot_ts, types.DDValue_types, out=str)
     _validate(restore_id, str)
 
     class _RespTableData(TypedDict):
-        table: Table
+        table: types.Table
 
     # request
     body = {
@@ -227,16 +261,16 @@ def pull_data_table(
 
 def push_record(  # pylint: disable=R0913
     wbs_l1: str,
-    record: Record,
-    labor: str = "",
-    institution: str = "",
+    record: types.Record,
+    labor: types.DDValue = "",
+    institution: types.DDValue = "",
     novel: bool = False,
     tconfig_cache: Optional[tc.TableConfigParser.Cache] = None,
-) -> Record:
+) -> types.Record:
     """Push new/changed record to source.
 
     Arguments:
-        record {Record} -- the record
+        record {types.Record} -- the record
 
     Keyword Arguments:
         tconfig_cache {Optional[tc.TableConfigParser.Cache]} -- pass to remove invalid record data (default: {None})
@@ -245,17 +279,17 @@ def push_record(  # pylint: disable=R0913
         novel {bool} -- whether the record is new (default: {False})
 
     Returns:
-        Record -- the returned record
+        types.Record -- the returned record
     """
     _validate(wbs_l1, str, falsy_okay=False)
     _validate(record, dict)
-    _validate(labor, str)
-    _validate(institution, str)
+    labor = _validate(labor, types.DDValue_types, out=str)
+    institution = _validate(institution, types.DDValue_types, out=str)
     _validate(novel, bool)
     _validate(tconfig_cache, (dict, type(None)))
 
     class _RespRecord(TypedDict):
-        record: Record
+        record: types.Record
 
     # request
     body = {
@@ -277,30 +311,30 @@ def delete_record(wbs_l1: str, record_id: str) -> None:
     mou_request("DELETE", f"/record/{wbs_l1}", body=body)
 
 
-def list_snapshots(wbs_l1: str) -> List[SnapshotInfo]:
+def list_snapshots(wbs_l1: str) -> List[types.SnapshotInfo]:
     """Get the list of snapshots."""
     _validate(wbs_l1, str, falsy_okay=False)
 
     class _RespSnapshots(TypedDict):
-        snapshots: List[SnapshotInfo]
+        snapshots: List[types.SnapshotInfo]
 
     response = cast(_RespSnapshots, mou_request("GET", f"/snapshots/list/{wbs_l1}"),)
     return sorted(response["snapshots"], key=lambda i: i["timestamp"], reverse=True)
 
 
-def create_snapshot(wbs_l1: str, name: str) -> SnapshotInfo:
+def create_snapshot(wbs_l1: str, name: str) -> types.SnapshotInfo:
     """Create a snapshot."""
     _validate(wbs_l1, str, falsy_okay=False)
     _validate(name, str)
 
     body = {"creator": current_user.name, "name": name}
     response = mou_request("POST", f"/snapshots/make/{wbs_l1}", body=body)
-    return cast(SnapshotInfo, response)
+    return cast(types.SnapshotInfo, response)
 
 
 def override_table(
     wbs_l1: str, base64_file: str, filename: str
-) -> Tuple[int, Optional[SnapshotInfo], Optional[SnapshotInfo]]:
+) -> Tuple[int, Optional[types.SnapshotInfo], Optional[types.SnapshotInfo]]:
     """Ingest .xlsx file as the new live collection.
 
     Arguments:
@@ -318,8 +352,8 @@ def override_table(
 
     class _RespTableData(TypedDict):
         n_records: int
-        previous_snapshot: SnapshotInfo
-        current_snapshot: SnapshotInfo
+        previous_snapshot: types.SnapshotInfo
+        current_snapshot: types.SnapshotInfo
 
     body = {
         "base64_file": base64_file,
@@ -337,24 +371,24 @@ def override_table(
 
 
 def pull_institution_values(
-    wbs_l1: str, snapshot_timestamp: str, institution: str
-) -> InstitutionValues:
+    wbs_l1: str, snapshot_ts: types.DDValue, institution: types.DDValue
+) -> types.InstitutionValues:
     """Get the institution's values."""
     _validate(wbs_l1, str, falsy_okay=False)
-    _validate(snapshot_timestamp, str)
-    _validate(institution, str)
+    snapshot_ts = _validate(snapshot_ts, types.DDValue_types, out=str)
+    institution = _validate(institution, types.DDValue_types, out=str)
 
-    body = {"institution": institution, "snapshot_timestamp": snapshot_timestamp}
+    body = {"institution": institution, "snapshot_timestamp": snapshot_ts}
     response = mou_request("GET", f"/institution/values/{wbs_l1}", body=body)
-    return cast(InstitutionValues, response)
+    return cast(types.InstitutionValues, response)
 
 
 def push_institution_values(
-    wbs_l1: str, institution: str, values: InstitutionValues
+    wbs_l1: str, institution: types.DDValue, values: types.InstitutionValues
 ) -> None:
     """Push the institution's values."""
     _validate(wbs_l1, str, falsy_okay=False)
-    _validate(institution, str)
+    institution = _validate(institution, types.DDValue_types, out=str)
     _validate(values, dict)
 
     body = {"institution": institution}
