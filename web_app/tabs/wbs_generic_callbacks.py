@@ -17,7 +17,7 @@ from ..utils import dash_utils as du
 from ..utils import types
 
 # --------------------------------------------------------------------------------------
-# types.Table Callbacks
+# Table Callbacks
 
 
 def _totals_button_logic(
@@ -75,12 +75,10 @@ def _add_new_data(  # pylint: disable=R0913
         )
         table.insert(0, new_record)
         toast = du.make_toast(
-            "types.Record Added", f"id: {new_record[src.ID]}", du.Color.SUCCESS, 5
+            "Record Added", f"id: {new_record[src.ID]}", du.Color.SUCCESS, 5
         )
     except DataSourceException:
-        toast = du.make_toast(
-            "Failed to Make types.Record", du.REFRESH_MSG, du.Color.DANGER
-        )
+        toast = du.make_toast("Failed to Make Record", du.REFRESH_MSG, du.Color.DANGER)
 
     return table, toast
 
@@ -183,10 +181,7 @@ def table_data_exterior_controls(
                     restore_id=state_deleted_id,
                 )
                 toast = du.make_toast(
-                    "types.Record Restored",
-                    f"id: {state_deleted_id}",
-                    du.Color.SUCCESS,
-                    5,
+                    "Record Restored", f"id: {state_deleted_id}", du.Color.SUCCESS, 5,
                 )
             except DataSourceException:
                 table = []
@@ -264,7 +259,7 @@ def _delete_deleted_records(
     # make toast message if any records failed to be deleted
     if failures:
         toast = du.make_toast(
-            f"Failed to Delete types.Record {record[src.ID]}",
+            f"Failed to Delete Record {record[src.ID]}",
             du.REFRESH_MSG,
             du.Color.DANGER,
         )

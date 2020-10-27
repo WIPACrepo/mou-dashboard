@@ -173,7 +173,7 @@ class MoUMotorClient:
             if not all(k in tc.get_columns() for k in row.keys()):
                 raise web.HTTPError(
                     422,
-                    reason=f"types.Table not in correct format: XLSX's KEYS={row.keys()} vs ALLOWABLE KEYS={tc.get_columns()})",
+                    reason=f"Table not in correct format: XLSX's KEYS={row.keys()} vs ALLOWABLE KEYS={tc.get_columns()})",
                 )
 
         # mongofy table
@@ -187,7 +187,7 @@ class MoUMotorClient:
         # snapshot, ingest, snapshot
         try:
             previous_snap = await self.snapshot_live_collection(
-                snap_db, "State Before types.Table Replacement", f"{creator} (auto)"
+                snap_db, "State Before Table Replacement", f"{creator} (auto)"
             )
         except web.HTTPError as e:
             if e.status_code != 422:
@@ -195,7 +195,7 @@ class MoUMotorClient:
             previous_snap = ""
         await self._create_live_collection(snap_db, table, creator)
         current_snap = await self.snapshot_live_collection(
-            snap_db, f"Replacement types.Table ({filename})", creator
+            snap_db, f"Replacement Table ({filename})", creator
         )
 
         logging.debug(
@@ -429,7 +429,7 @@ class MoUMotorClient:
             i += 1
 
         logging.info(
-            f"types.Table [{snap_db=} {snap_coll=}] ({institution=}, {labor=}) has {i} records (and {dels} deleted records)."
+            f"Table [{snap_db=} {snap_coll=}] ({institution=}, {labor=}) has {i} records (and {dels} deleted records)."
         )
 
         return table
