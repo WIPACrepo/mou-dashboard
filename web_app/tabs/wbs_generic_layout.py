@@ -112,7 +112,8 @@ def layout() -> html.Div:
                 children=[
                     #
                     dbc.Row(
-                        align="center",
+                        justify="center",
+                        no_gutters=True,
                         children=[
                             dbc.Col(
                                 className="institution-headcount",
@@ -133,6 +134,11 @@ def layout() -> html.Div:
                                 ("wbs-grad-students", "Grad Students"),
                             ]
                         ],
+                    ),
+                    #
+                    html.Div(
+                        className="last-updated-label caps",
+                        id="wbs-institution-values-last-updated-label",
                     ),
                 ],
             ),
@@ -253,14 +259,8 @@ def layout() -> html.Div:
                 color="#17a2b8",
                 children=[
                     html.Label(
-                        id="wbs-last-updated-label",
-                        style={
-                            "font-style": "italic",
-                            "fontSize": "14px",
-                            "margin-top": "2.5rem",
-                            "text-align": "center",
-                        },
-                        className="caps",
+                        id="wbs-table-last-updated-label",
+                        className="last-updated-label caps",
                     )
                 ],
             ),
@@ -273,8 +273,10 @@ def layout() -> html.Div:
                     html.H2(
                         id="wbs-h2-inst-textarea", children="Notes and Descriptions"
                     ),
-                    dcc.Textarea(
-                        id="wbs-textarea", style={"width": "100%", "height": "30rem"}
+                    dcc.Textarea(id="wbs-textarea", className="institution-text-area"),
+                    html.Div(
+                        className="last-updated-label caps",
+                        id="wbs-institution-textarea-last-updated-label",
                     ),
                 ],
             ),
@@ -381,12 +383,21 @@ def layout() -> html.Div:
                 id="wbs-table-exterior-control-last-timestamp", storage_type="memory",
             ),
             # - for caching the table config, to limit REST calls
+            # TODO - change this to limit calls on refresh
             dcc.Store(
                 id="wbs-table-config-cache", storage_type="memory", data=tconfig.config,
             ),
             # - for fagging whether the user's institution value has been grabbed
             dcc.Store(
-                id="wbs-institution-first-time-flag", storage_type="memory", data=True,
+                id="wbs-institution-dropdown-first-time-flag",
+                storage_type="memory",
+                data=True,
+            ),
+            # - for fagging whether the institution values were changed
+            dcc.Store(
+                id="wbs-institution-values-first-time-flag",
+                storage_type="memory",
+                data=True,
             ),
             #
             # Dummy Divs -- for adding dynamic toasts, dialogs, etc.

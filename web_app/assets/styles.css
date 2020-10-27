@@ -47,6 +47,13 @@ h2:before {
     border-top: 0.16rem solid #5a5a5a;
 }
 
+.last-updated-label {
+    font-style: italic;
+    font-size: 14px;
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
 
 /*------------------------------------------------------------------------------------*/
 /* Backgrounds/Bodies */
@@ -253,22 +260,25 @@ h2:before {
 }
 
 .institution-headcounts-inner-container {
-    margin-top: 1rem;
+    margin-top: 2rem;
     margin-left: 10rem;
     margin-right: 10rem;
-    display: flex;
-    justify-content: center;
-    padding: 0 !important;
 }
 
 .institution-headcount {
-    margin: 1rem;
+    margin-left: 1rem;
+    margin-right: 1rem;
     max-width: 16.3rem !important;
-    padding: 0;
 }
 
 .institution-headcount-input {
     max-width: inherit;
+}
+
+.institution-text-area {
+    width: 100%;
+    height: 30rem;
+    padding-bottom: 0;
 }
 
 

@@ -276,7 +276,7 @@ def _delete_deleted_records(
     [
         Output("wbs-data-table", "data_previous"),
         Output("wbs-toast-via-interior-control-div", "children"),
-        Output("wbs-last-updated-label", "children"),
+        Output("wbs-table-last-updated-label", "children"),
         Output("wbs-last-deleted-id", "children"),
         Output("wbs-deletion-toast", "is_open"),
     ],
@@ -312,7 +312,7 @@ def table_data_interior_controls(
     """
     logging.warning(f"'{du.triggered_id()}' -> table_data_interior_controls()")
 
-    updated_message = f"Last Refreshed: {du.get_human_now()}"
+    updated_message = f"Table Last Refreshed: {du.get_human_now()}"
 
     # IF This is a snapshot
     # OR no previous table -- probably unlikely
@@ -611,7 +611,7 @@ def setup_institution_components(
 
     assert not du.triggered_id()  # Guarantee this is the initial call
 
-    h2_sow_table = "Collaboration-Wide SOW types.Table"
+    h2_sow_table = "Collaboration-Wide SOW Table"
 
     # auto-select institution if the user is a non-admin
     if current_user.is_authenticated and not current_user.is_admin:
@@ -620,7 +620,7 @@ def setup_institution_components(
     if not institution:
         return 0, 0, 0, 0, "", h2_sow_table, "", True, True, institution
 
-    h2_sow_table = f"{institution}'s SOW types.Table"
+    h2_sow_table = f"{institution}'s SOW Table"
     h2_notes = f"{institution}'s Notes and Descriptions"
 
     try:
@@ -645,10 +645,10 @@ def setup_institution_components(
 @app.callback(  # type: ignore[misc]
     [
         Output("refresh-for-institution-change", "run"),
-        Output("wbs-institution-first-time-flag", "data"),
+        Output("wbs-institution-dropdown-first-time-flag", "data"),
     ],
     [Input("wbs-current-institution", "value")],
-    [State("wbs-institution-first-time-flag", "data")],
+    [State("wbs-institution-dropdown-first-time-flag", "data")],
     prevent_initial_call=True,
 )
 def pick_institution(institution: types.DDValue, first_time: bool) -> Tuple[str, bool]:
@@ -664,7 +664,11 @@ def pick_institution(institution: types.DDValue, first_time: bool) -> Tuple[str,
 
 
 @app.callback(  # type: ignore[misc]
-    Output("wbs-previous-inst-and-vals", "data"),
+    [
+        Output("wbs-institution-values-first-time-flag", "data"),
+        Output("wbs-institution-values-last-updated-label", "children"),
+        Output("wbs-institution-textarea-last-updated-label", "children"),
+    ],
     [
         Input("wbs-phds-authors", "value"),
         Input("wbs-faculty", "value"),
@@ -676,8 +680,8 @@ def pick_institution(institution: types.DDValue, first_time: bool) -> Tuple[str,
         State("wbs-current-l1", "value"),
         State("wbs-current-institution", "value"),
         State("wbs-current-snapshot-ts", "value"),
-        State("wbs-previous-inst-and-vals", "data"),
         State("wbs-data-table", "data"),
+        State("wbs-institution-values-first-time-flag", "data"),
     ],
     prevent_initial_call=True,
 )
@@ -693,18 +697,25 @@ def push_institution_values(  # pylint: disable=R0913
     # other state(s)
     state_institution: types.DDValue,
     state_snap_current_ts: types.DDValue,
-    prev_inst_and_vals: Dict[str, Union[str, types.InstitutionValues]],
     state_table: types.Table,
-) -> Dict[str, Union[str, types.InstitutionValues]]:
+    first_time: bool,
+) -> Tuple[bool, html.Label, html.Label]:
     """Push the institution's values."""
-    logging.warning(f"'{du.triggered_id()}' -> push_institution_values()")
+    logging.warning(
+        f"'{du.triggered_id()}' -> push_institution_values() ({first_time=})"
+    )
 
-    if (not state_institution) or (not current_user.is_authenticated):
-        return {}
+    now = du.get_human_now()
+    headcounts_label = html.Label(f"Headcounts Last Refreshed: {now}")
+    textarea_label = html.Label(f"Notes & Descriptions Last Refreshed: {now}")
 
-    # are we looking at a snapshot?
-    if state_snap_current_ts:
-        return prev_inst_and_vals
+    if (
+        not state_institution  # no institution selected
+        or not current_user.is_authenticated
+        or state_snap_current_ts  # are we looking at a snapshot?
+        or first_time  # fields were just auto-populated for the first time
+    ):
+        return False, headcounts_label, textarea_label
 
     values: types.InstitutionValues = {
         "phds_authors": phds_authors,
@@ -714,23 +725,12 @@ def push_institution_values(  # pylint: disable=R0913
         "text": text,
     }
 
-    # check if anything actually changed
-    if (
-        prev_inst_and_vals
-        and state_institution == prev_inst_and_vals["inst"]
-        and values == prev_inst_and_vals["vals"]
-    ):
-        logging.warning(
-            f"pushing institution values suppressed (no change) {prev_inst_and_vals}"
-        )
-        return prev_inst_and_vals
-
     try:
         src.push_institution_values(wbs_l1, state_institution, values)
     except DataSourceException:
         assert len(state_table) == 0  # there's no collection to push to
 
-    return {"inst": state_institution, "vals": values}
+    return False, headcounts_label, textarea_label
 
 
 # --------------------------------------------------------------------------------------
