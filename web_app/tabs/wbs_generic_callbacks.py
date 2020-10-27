@@ -515,6 +515,7 @@ def setup_snapshot_components(
         Output("wbs-name-snapshot", "is_open"),
         Output("wbs-toast-via-snapshot-div", "children"),
         Output("wbs-make-snapshot-button", "color"),  # triggers "Loading" element
+        Output("refresh-for-snapshot-make", "run"),
     ],
     [
         Input("wbs-make-snapshot-button", "n_clicks"),
@@ -522,9 +523,9 @@ def setup_snapshot_components(
         Input("wbs-name-snapshot-input", "n_submit"),
     ],
     [
-        State("wbs-l1", "value"),
+        State("wbs-current-l1", "value"),
         State("wbs-name-snapshot-input", "value"),
-        State("wbs-snapshot-current-ts", "value"),
+        State("wbs-current-snapshot-ts", "value"),
     ],
     prevent_initial_call=True,
 )
@@ -538,37 +539,25 @@ def handle_make_snapshot(
     # other state(s)
     name: str,
     state_snap_current_ts: str,
-) -> Tuple[bool, dbc.Toast, str]:
+) -> Tuple[bool, dbc.Toast, str, str]:
     """Handle the naming and creating of a snapshot."""
     logging.warning(f"'{du.triggered_id()}' -> handle_make_snapshot()")
 
     if state_snap_current_ts:  # are we looking at a snapshot?
-        return False, None, ""
+        return False, None, "", ""
 
     if du.triggered_id() == "wbs-make-snapshot-button":
-        return True, None, ""
+        return True, None, "", ""
 
     if du.triggered_id() in ["wbs-name-snapshot-btn", "wbs-name-snapshot-input"]:
         try:
-            snapshot = src.create_snapshot(wbs_l1, name)
-            message = [
-                f"Name: {snapshot['name']}",
-                f"Timestamp: {du.get_human_time(snapshot['timestamp'])}",
-                f"Creator: {snapshot['creator']}",
-            ]
-            return (
-                False,
-                du.make_toast("Snapshot Created", message, du.Color.SUCCESS, 5),
-                du.Color.SUCCESS,
-            )
+            src.create_snapshot(wbs_l1, name)
+            return False, "", "", "location.reload();"
         except DataSourceException:
-            return (
-                False,
-                du.make_toast(
-                    "Failed to Make Snapshot", du.REFRESH_MSG, du.Color.DANGER
-                ),
-                du.Color.SUCCESS,
+            fail_toast = du.make_toast(
+                "Failed to Make Snapshot", du.REFRESH_MSG, du.Color.DANGER
             )
+            return False, fail_toast, du.Color.SUCCESS, ""
 
     raise Exception(f"Unaccounted trigger {du.triggered_id()}")
 
