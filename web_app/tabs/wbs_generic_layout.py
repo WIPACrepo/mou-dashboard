@@ -409,6 +409,7 @@ def layout() -> html.Div:
             # Modals & Toasts
             du.deletion_toast(),
             du.upload_modal(),
+            du.upload_success_modal(),
             du.name_snapshot_modal(),
             ###
         ]

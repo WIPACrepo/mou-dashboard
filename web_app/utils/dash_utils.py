@@ -366,6 +366,7 @@ def upload_modal() -> dbc.Modal:
             ),
             dbc.ModalFooter(
                 children=[
+                    html.Div(children=[]),
                     dbc.Button(
                         "Cancel",
                         id="wbs-upload-xlsx-cancel",
@@ -388,6 +389,30 @@ def upload_modal() -> dbc.Modal:
                         ],
                     ),
                 ]
+            ),
+        ],
+    )
+
+
+def upload_success_modal() -> dbc.Modal:
+    """Get a modal for selecting a snapshot."""
+    return dbc.Modal(
+        id="wbs-upload-success-modal",
+        size="md",
+        is_open=False,
+        backdrop="static",
+        centered=True,
+        children=[
+            dbc.ModalHeader("Live Table Updated", className="caps"),
+            dbc.ModalBody(id="wbs-upload-success-modal-body"),
+            dbc.ModalFooter(
+                dbc.Button(
+                    "View New Table",
+                    id="wbs-upload-success-view-new-table-button",
+                    n_clicks=0,
+                    block=True,
+                    color=Color.SUCCESS,
+                )
             ),
         ],
     )

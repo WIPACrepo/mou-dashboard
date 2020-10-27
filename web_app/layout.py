@@ -28,6 +28,7 @@ def layout() -> None:
             #
             # JS calls for refreshing page
             visdcc.Run_js("refresh-for-snapshot-make"),  # pylint: disable=E1101
+            visdcc.Run_js("refresh-for-override-success"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-snapshot-change"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-login-logout"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-institution-change"),  # pylint: disable=E1101
