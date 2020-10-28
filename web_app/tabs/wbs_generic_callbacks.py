@@ -92,9 +92,9 @@ def _add_new_data(  # pylint: disable=R0913
         Output("wbs-new-data-modal-header", "children"),
     ],
     [
-        Input("wbs-new-data-button-1", "n_clicks"),
-        Input("wbs-new-data-button-2", "n_clicks"),
-        Input("wbs-new-data-modal-add-button", "n_clicks"),
+        Input("wbs-new-data-button-1", "n_clicks"),  # user-only
+        Input("wbs-new-data-button-2", "n_clicks"),  # user-only
+        Input("wbs-new-data-modal-add-button", "n_clicks"),  # user-only
     ],
     [
         State("wbs-new-data-modal-task", "value"),
@@ -142,11 +142,11 @@ def handle_add_new_data(
         Output("wbs-show-all-columns-button", "n_clicks"),
     ],
     [
-        Input("wbs-current-institution", "value"),
-        Input("wbs-filter-labor", "value"),
-        Input("wbs-show-totals-button", "n_clicks"),
-        Input("wbs-new-data-modal-dummy-add", "n_clicks"),
-        Input("wbs-undo-last-delete", "n_clicks"),
+        Input("wbs-current-institution", "value"),  # user/setup_institution_components
+        Input("wbs-filter-labor", "value"),  # user-only
+        Input("wbs-show-totals-button", "n_clicks"),  # user-only
+        Input("wbs-new-data-modal-dummy-add", "n_clicks"),  # handle_add_new_data()-only
+        Input("wbs-undo-last-delete", "n_clicks"),  # user-only
     ],
     [
         State("wbs-current-l1", "value"),
@@ -328,7 +328,7 @@ def _delete_deleted_records(
         Output("wbs-deletion-toast", "is_open"),
         Output("wbs-deletion-toast-message", "children"),
     ],
-    [Input("wbs-data-table", "data")],
+    [Input("wbs-data-table", "data")],  # user/table_data_exterior_controls()
     [
         State("wbs-current-l1", "value"),
         State("wbs-data-table", "data_previous"),
@@ -395,7 +395,7 @@ def table_data_interior_controls(
 
 @app.callback(  # type: ignore[misc]
     Output("wbs-data-table", "columns"),
-    [Input("wbs-data-table", "editable")],
+    [Input("wbs-data-table", "editable")],  # setup_user_dependent_components()-only
     [State("wbs-table-config-cache", "data")],
     prevent_initial_call=True,
 )
@@ -428,7 +428,7 @@ def table_columns_callback(
         Output("wbs-data-table", "dropdown"),
         Output("wbs-data-table", "dropdown_conditional"),
     ],
-    [Input("wbs-data-table", "editable")],
+    [Input("wbs-data-table", "editable")],  # setup_user_dependent_components()-only
     [State("wbs-table-config-cache", "data")],
 )
 def table_dropdown(
@@ -486,7 +486,7 @@ def table_dropdown(
 
 @app.callback(  # type: ignore[misc]
     Output("wbs-current-snapshot-ts", "value"),
-    [Input("wbs-view-live-btn", "n_clicks")],
+    [Input("wbs-view-live-btn", "n_clicks")],  # user/pick_tab()
     prevent_initial_call=True,
 )
 def view_live_table(_: int) -> types.DashVal:
@@ -497,7 +497,7 @@ def view_live_table(_: int) -> types.DashVal:
 
 @app.callback(  # type: ignore[misc]
     Output("refresh-for-snapshot-change", "run"),
-    [Input("wbs-current-snapshot-ts", "value")],
+    [Input("wbs-current-snapshot-ts", "value")],  # user/view_live_table()
     prevent_initial_call=True,
 )
 def pick_snapshot(_: types.DashVal) -> str:
@@ -512,7 +512,7 @@ def pick_snapshot(_: types.DashVal) -> str:
         Output("wbs-snapshot-current-labels", "children"),
         Output("wbs-viewing-snapshot-alert", "is_open"),
     ],
-    [Input("dummy-input-for-setup", "hidden")],
+    [Input("dummy-input-for-setup", "hidden")],  # never triggered
     [State("wbs-current-l1", "value"), State("wbs-current-snapshot-ts", "value")],
 )
 def setup_snapshot_components(
@@ -573,9 +573,9 @@ def setup_snapshot_components(
         Output("refresh-for-snapshot-make", "run"),
     ],
     [
-        Input("wbs-make-snapshot-button", "n_clicks"),
-        Input("wbs-name-snapshot-btn", "n_clicks"),
-        Input("wbs-name-snapshot-input", "n_submit"),
+        Input("wbs-make-snapshot-button", "n_clicks"),  # user-only
+        Input("wbs-name-snapshot-btn", "n_clicks"),  # user-only
+        Input("wbs-name-snapshot-input", "n_submit"),  # user-only
     ],
     [
         State("wbs-current-l1", "value"),
@@ -634,7 +634,7 @@ def handle_make_snapshot(
         Output("institution-textarea-container", "hidden"),
         Output("wbs-current-institution", "value"),
     ],
-    [Input("dummy-input-for-setup", "hidden")],
+    [Input("dummy-input-for-setup", "hidden")],  # never triggered
     [
         State("wbs-current-l1", "value"),
         State("wbs-current-snapshot-ts", "value"),
@@ -699,7 +699,7 @@ def setup_institution_components(
         Output("refresh-for-institution-change", "run"),
         Output("wbs-institution-dropdown-first-time-flag", "data"),
     ],
-    [Input("wbs-current-institution", "value")],
+    [Input("wbs-current-institution", "value")],  # user/setup_institution_components()
     [State("wbs-institution-dropdown-first-time-flag", "data")],
     prevent_initial_call=True,
 )
@@ -722,11 +722,11 @@ def pick_institution(institution: types.DashVal, first_time: bool) -> Tuple[str,
         Output("wbs-institution-textarea-last-updated-label", "children"),
     ],
     [
-        Input("wbs-phds-authors", "value"),
-        Input("wbs-faculty", "value"),
-        Input("wbs-scientists-post-docs", "value"),
-        Input("wbs-grad-students", "value"),
-        Input("wbs-textarea", "value"),
+        Input("wbs-phds-authors", "value"),  # user/setup_institution_components()
+        Input("wbs-faculty", "value"),  # user/setup_institution_components()
+        Input("wbs-scientists-post-docs", "value"),  # user/setup_institution_components
+        Input("wbs-grad-students", "value"),  # user/setup_institution_components()
+        Input("wbs-textarea", "value"),  # user/setup_institution_components()
     ],
     [
         State("wbs-current-l1", "value"),
@@ -808,7 +808,7 @@ def push_institution_values(  # pylint: disable=R0913
         Output("wbs-grad-students", "disabled"),
         Output("wbs-textarea", "disabled"),
     ],
-    [Input("dummy-input-for-setup", "hidden")],
+    [Input("dummy-input-for-setup", "hidden")],  # never triggered
     [State("wbs-current-snapshot-ts", "value")],
 )
 def setup_user_dependent_components(
@@ -875,7 +875,7 @@ def setup_user_dependent_components(
         Output("wbs-data-table", "page_size"),
         Output("wbs-data-table", "page_action"),
     ],
-    [Input("wbs-show-all-rows-button", "n_clicks")],
+    [Input("wbs-show-all-rows-button", "n_clicks")],  # user-only
     [State("wbs-table-config-cache", "data")],
 )
 def toggle_pagination(
@@ -907,7 +907,7 @@ def toggle_pagination(
         Output("wbs-show-all-columns-button", "outline"),
         Output("wbs-data-table", "hidden_columns"),
     ],
-    [Input("wbs-show-all-columns-button", "n_clicks")],
+    [Input("wbs-show-all-columns-button", "n_clicks")],  # user/table_data_exterior_c...
     [State("wbs-table-config-cache", "data")],
     prevent_initial_call=True,
 )

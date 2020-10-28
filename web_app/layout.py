@@ -154,7 +154,7 @@ def layout() -> None:
 
 @app.callback(
     Output("wbs-view-live-btn", "n_clicks"),
-    [Input("wbs-current-l1", "value")],
+    [Input("wbs-current-l1", "value")],  # user-only
     prevent_initial_call=True,
 )  # type: ignore
 def pick_tab(wbs_l1: str) -> int:
@@ -200,10 +200,10 @@ def _logged_out_return(
         Output("refresh-for-login-logout", "run"),
     ],
     [
-        Input("login-button", "n_clicks"),
-        Input("login-launch", "n_clicks"),
-        Input("logout-launch", "n_clicks"),
-        Input("login-password", "n_submit"),
+        Input("login-button", "n_clicks"),  # user-only
+        Input("login-launch", "n_clicks"),  # user-only
+        Input("logout-launch", "n_clicks"),  # user-only
+        Input("login-password", "n_submit"),  # user-only
     ],
     [State("login-email", "value"), State("login-password", "value")],
 )

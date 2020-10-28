@@ -45,7 +45,7 @@ def _get_upload_success_modal_body(
 
 @app.callback(  # type: ignore[misc]
     Output("refresh-for-override-success", "run"),
-    [Input("wbs-upload-success-view-new-table-button", "n_clicks")],
+    [Input("wbs-upload-success-view-new-table-button", "n_clicks")],  # user-only
     prevent_initial_call=True,
 )
 def refresh_for_override_success(_: int) -> str:
@@ -64,10 +64,10 @@ def refresh_for_override_success(_: int) -> str:
         Output("wbs-upload-success-modal-body", "children"),
     ],
     [
-        Input("wbs-upload-xlsx-launch-modal-button", "n_clicks"),
-        Input("wbs-upload-xlsx", "contents"),
-        Input("wbs-upload-xlsx-cancel", "n_clicks"),
-        Input("wbs-upload-xlsx-override-table", "n_clicks"),
+        Input("wbs-upload-xlsx-launch-modal-button", "n_clicks"),  # user-only
+        Input("wbs-upload-xlsx", "contents"),  # user-only
+        Input("wbs-upload-xlsx-cancel", "n_clicks"),  # user-only
+        Input("wbs-upload-xlsx-override-table", "n_clicks"),  # user-only
     ],
     [State("wbs-current-l1", "value"), State("wbs-upload-xlsx", "filename")],
     prevent_initial_call=True,
@@ -128,7 +128,7 @@ def handle_xlsx(  # pylint: disable=R0911
 
 @app.callback(  # type: ignore[misc]
     [Output("wbs-summary-table", "data"), Output("wbs-summary-table", "columns")],
-    [Input("wbs-summary-table-recalculate", "n_clicks")],
+    [Input("wbs-summary-table-recalculate", "n_clicks")],  # user-only
     [
         State("wbs-current-l1", "value"),
         State("wbs-table-config-cache", "data"),
