@@ -12,8 +12,8 @@ WBS_L3 = "WBS L3"
 LABOR_CAT = "Labor Cat."
 US_NON_US = "US / Non-US"
 INSTITUTION = "Institution"
-_NAMES = "Names"
-TASK = "Tasks"
+_NAME = "Name"
+TASK_DESCRIPTION = "Task Description"
 SOURCE_OF_FUNDS_US_ONLY = "Source of Funds (U.S. Only)"
 FTE = "FTE"
 NSF_MO_CORE = "NSF M&O Core"
@@ -21,17 +21,21 @@ NSF_BASE_GRANTS = "NSF Base Grants"
 US_IN_KIND = "US In-Kind"
 NON_US_IN_KIND = "Non-US In-Kind"
 GRAND_TOTAL = "Grand Total"
-TOTAL_COL = "Total Of?"
+TOTAL_COL = "Total-Row Description"
 
 
 US = "US"
 NON_US = "Non-US"
 
 
+_TOOLTIP_FUNDING_SOURCE_VALUE = "This number is dependent on the Funding Source and FTE. Changing those values will affect this number."
+
+
 class _ColumnConfigTypedDict(TypedDict, total=False):
     """TypedDict for column configs."""
 
     width: int
+    tooltip: str
     non_editable: bool
     hidden: bool
     options: List[str]
@@ -45,7 +49,7 @@ class _ColumnConfigTypedDict(TypedDict, total=False):
 
 
 _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
-    ID: {"width": 100, "non_editable": True, "hidden": True},
+    ID: {"width": 0, "non_editable": True, "hidden": True},
     WBS_L2: {
         "width": 350,
         "options": [
@@ -57,6 +61,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
             "2.6 Calibration",
         ],
         "sort_value": 70,
+        "tooltip": "WBS Level 2 Category",
     },
     WBS_L3: {
         "width": 300,
@@ -110,6 +115,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
             ],
         },
         "sort_value": 60,
+        "tooltip": "WBS Level 3 Category",
     },
     US_NON_US: {
         "width": 100,
@@ -118,20 +124,26 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "border_left": True,
         "on_the_fly": True,
         "sort_value": 50,
+        "tooltip": "The institution's region. This cannot be changed.",
     },
     INSTITUTION: {
         "width": 140,
         "options": sorted(set(inst["abbreviation"] for inst in ICECUBE_INSTS.values())),
         "border_left": True,
         "sort_value": 40,
+        "tooltip": "The institution. This cannot be changed.",
     },
     LABOR_CAT: {
         "width": 125,
         "options": ["AD", "CS", "DS", "EN", "GR", "IT", "KE", "MA", "PO", "SC", "WO"],
         "sort_value": 30,
+        "tooltip": "The labor category",
     },
-    _NAMES: {"width": 150, "sort_value": 20},
-    TASK: {"width": 300},
+    _NAME: {"width": 150, "sort_value": 20, "tooltip": "Last, First"},
+    TASK_DESCRIPTION: {
+        "width": 300,
+        "tooltip": "A description of the task responsible",
+    },
     SOURCE_OF_FUNDS_US_ONLY: {
         "width": 185,
         "conditional_parent": US_NON_US,
@@ -141,14 +153,16 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         },
         "border_left": True,
         "sort_value": 10,
+        "tooltip": "The funding source",
     },
-    FTE: {"width": 90, "numeric": True},
+    FTE: {"width": 90, "numeric": True, "tooltip": "FTE for funding source"},
     TOTAL_COL: {
         "width": 400,
         "non_editable": True,
         "hidden": True,
         "border_left": True,
         "on_the_fly": True,
+        "tooltip": "TOTAL-ROWS ONLY: FTE totals to the right refer to this category.",
     },
     NSF_MO_CORE: {
         "width": 110,
@@ -157,6 +171,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "hidden": True,
         "numeric": True,
         "on_the_fly": True,
+        "tooltip": _TOOLTIP_FUNDING_SOURCE_VALUE,
     },
     NSF_BASE_GRANTS: {
         "width": 110,
@@ -165,6 +180,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "hidden": True,
         "numeric": True,
         "on_the_fly": True,
+        "tooltip": _TOOLTIP_FUNDING_SOURCE_VALUE,
     },
     US_IN_KIND: {
         "width": 110,
@@ -173,6 +189,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "hidden": True,
         "numeric": True,
         "on_the_fly": True,
+        "tooltip": _TOOLTIP_FUNDING_SOURCE_VALUE,
     },
     NON_US_IN_KIND: {
         "width": 110,
@@ -181,6 +198,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "hidden": True,
         "numeric": True,
         "on_the_fly": True,
+        "tooltip": _TOOLTIP_FUNDING_SOURCE_VALUE,
     },
     GRAND_TOTAL: {
         "width": 110,
@@ -189,6 +207,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "hidden": True,
         "border_left": True,
         "on_the_fly": True,
+        "tooltip": "This is is the total of the four FTEs to the left.",
     },
 }
 
@@ -276,6 +295,15 @@ def get_hiddens() -> List[str]:
 def get_widths() -> Dict[str, int]:
     """Get the widths of each column."""
     return {col: config["width"] for col, config in _COLUMN_CONFIGS.items()}
+
+
+def get_tooltips() -> Dict[str, str]:
+    """Get the widths of each column."""
+    return {
+        col: config["tooltip"]
+        for col, config in _COLUMN_CONFIGS.items()
+        if config.get("tooltip")
+    }
 
 
 def get_border_left_columns() -> List[str]:

@@ -227,7 +227,7 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
         if labor := self.get_argument("labor", default=None):
             record[tc.LABOR_CAT] = labor  # insert
         if task := self.get_argument("task", default=None):
-            record[tc.TASK] = task  # insert
+            record[tc.TASK_DESCRIPTION] = task  # insert
 
         record = utils.remove_on_the_fly_fields(record)
         record = await self.dbms.upsert_record(wbs_l1, record)
@@ -268,6 +268,7 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
                 "numerics": tc.get_numerics(),
                 "non_editables": tc.get_non_editables(),
                 "hiddens": tc.get_hiddens(),
+                "tooltips": tc.get_tooltips(),
                 "widths": tc.get_widths(),
                 "border_left_columns": tc.get_border_left_columns(),
                 "page_size": tc.get_page_size(),

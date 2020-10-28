@@ -337,6 +337,29 @@ body {
     padding: 0 !important;
 }
 
+.dash-tooltip {
+    margin-top: 0.25rem !important;
+}
+
+.dash-tooltip > * {
+    border-radius: .25rem !important;
+    text-align: center !important;
+    background-color: #5a5a5a !important;
+    opacity: 0.95 !important;
+}
+
+.dash-tooltip:before, .dash-tooltip:after {
+    border-bottom-color: rgba(90, 90, 90, .77) !important; /*#5a5a5a*/
+}
+
+.dash-table-tooltip {
+    max-width: 20rem !important;
+    min-width: 10rem !important;
+    font-size: 1.3rem !important;
+    color: whitesmoke !important;
+    letter-spacing: .05em;
+}
+
 
 /*------------------------------------------------------------------------------------*/
 /* DataTable */

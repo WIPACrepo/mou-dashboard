@@ -21,6 +21,7 @@ class TableConfigParser:
         numerics: List[str]
         non_editables: List[str]
         hiddens: List[str]
+        tooltips: Dict[str, str]
         widths: Dict[str, int]
         border_left_columns: List[str]
         page_size: int
@@ -40,6 +41,13 @@ class TableConfigParser:
     def get_table_columns(self) -> List[str]:
         """Return table column's names."""
         return self.config["columns"]
+
+    def get_column_tooltip(self, column: str) -> str:
+        """Return the tooltip for the given column."""
+        try:
+            return self.config["tooltips"][column]
+        except KeyError:
+            return column
 
     def get_simple_column_dropdown_menu(self, column: str) -> List[str]:
         """Return dropdown menu for a column."""
@@ -72,6 +80,13 @@ class TableConfigParser:
     def get_hidden_columns(self) -> List[str]:
         """Return the columns hidden be default."""
         return self.config["hiddens"]
+
+    def get_always_hidden_columns(self) -> List[str]:
+        """Return the columns that should never be shown to the user.
+
+        AKA, columns that are marked as hidden and have width of `0`.
+        """
+        return [c for c in self.config["hiddens"] if not self.get_column_width(c)]
 
     def get_dropdown_columns(self) -> List[str]:
         """Return list of dropdown-type columns."""

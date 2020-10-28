@@ -180,6 +180,19 @@ def style_cell_conditional(
     return style_cell_conditional_list
 
 
+def get_table_tooltips(tconfig: tc.TableConfigParser) -> types.TTooltips:
+    """Set tooltips for each column."""
+    return {
+        col: {
+            "type": "text",
+            "value": tconfig.get_column_tooltip(col),
+            "delay": 250,
+            "duration": None,
+        }
+        for col in tconfig.get_table_columns()
+    }
+
+
 def get_style_data_conditional(tconfig: tc.TableConfigParser) -> types.TSDCond:
     """Style Data..."""
     # zebra-stripe
@@ -225,28 +238,28 @@ def get_style_data_conditional(tconfig: tc.TableConfigParser) -> types.TSDCond:
     # total row style
     style_data_conditional += [
         {
-            "if": {"filter_query": "{Total Of?} contains 'GRAND TOTAL'"},
+            "if": {"filter_query": "{Total-Row Description} contains 'GRAND TOTAL'"},
             "backgroundColor": "#258835",
             "color": "whitesmoke",
             "fontWeight": "bold",
             "fontStyle": "normal",
         },
         {
-            "if": {"filter_query": "{Total Of?} contains 'L2'"},
+            "if": {"filter_query": "{Total-Row Description} contains 'L2'"},
             "backgroundColor": "#23272B",
             "color": "whitesmoke",
             "fontWeight": "normal",
             "fontStyle": "normal",
         },
         {
-            "if": {"filter_query": "{Total Of?} contains 'L3'"},
+            "if": {"filter_query": "{Total-Row Description} contains 'L3'"},
             "backgroundColor": "#17a2b8",
             "color": "whitesmoke",
             "fontWeight": "normal",
             "fontStyle": "normal",
         },
         {
-            "if": {"filter_query": "{Total Of?} contains 'US TOTAL'"},
+            "if": {"filter_query": "{Total-Row Description} contains 'US TOTAL'"},
             "backgroundColor": "#9FA5AA",
             "color": "whitesmoke",
             "fontWeight": "normal",

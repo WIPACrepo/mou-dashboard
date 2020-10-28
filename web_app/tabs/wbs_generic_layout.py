@@ -206,6 +206,7 @@ def layout() -> html.Div:
                     "wordBreak": "normal",
                 },
                 style_data_conditional=du.get_style_data_conditional(tconfig),
+                tooltip=du.get_table_tooltips(tconfig),
                 # row_deletable set in callback
                 # hidden_columns set in callback
                 # page_size set in callback

@@ -919,12 +919,15 @@ def toggle_hidden_columns(
     """Toggle hiding/showing the default hidden columns."""
     logging.warning(f"'{du.triggered_id()}' -> toggle_hidden_columns()")
 
+    tconfig = tc.TableConfigParser(state_tconfig_cache)
+
     if n_clicks % 2 == 0:
-        tconfig = tc.TableConfigParser(state_tconfig_cache)
         return (
             "Show Hidden Columns",
             du.Color.SECONDARY,
             True,
             tconfig.get_hidden_columns(),
         )
-    return "Show Default Columns", du.Color.DARK, False, []
+
+    always_hidden_columns = tconfig.get_always_hidden_columns()
+    return "Show Default Columns", du.Color.DARK, False, always_hidden_columns
