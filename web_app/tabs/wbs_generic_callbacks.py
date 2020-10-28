@@ -134,12 +134,12 @@ def handle_add_new_data(
     [
         Output("wbs-data-table", "data"),
         Output("wbs-data-table", "page_current"),
-        Output("wbs-table-exterior-control-last-timestamp", "data"),
         Output("wbs-toast-via-exterior-control-div", "children"),
         Output("wbs-show-totals-button", "children"),
         Output("wbs-show-totals-button", "color"),
         Output("wbs-show-totals-button", "outline"),
         Output("wbs-show-all-columns-button", "n_clicks"),
+        Output("wbs-table-update-flag-exterior-control", "data"),
     ],
     [
         Input("wbs-filter-labor", "value"),  # user/setup_institution_components()
@@ -157,6 +157,7 @@ def handle_add_new_data(
         State("wbs-table-config-cache", "data"),
         State("wbs-new-data-modal-task", "value"),
         State("wbs-current-institution", "value"),
+        State("wbs-table-update-flag-exterior-control", "data"),
     ],
     prevent_initial_call=True,  # must wait for "wbs-current-institution-dummy"
 )  # pylint: disable=R0913,R0914
@@ -177,7 +178,8 @@ def table_data_exterior_controls(
     state_tconfig_cache: tc.TableConfigParser.Cache,
     state_new_task: str,
     state_institution: types.DashVal,
-) -> Tuple[types.Table, int, str, dbc.Toast, str, str, bool, int]:
+    s_flag_extctrl: bool,
+) -> Tuple[types.Table, int, dbc.Toast, str, str, bool, int, bool]:
     """Exterior control signaled that the table should be updated.
 
     This is either a filter, "add new", refresh, or "show totals". Only
@@ -185,13 +187,6 @@ def table_data_exterior_controls(
     visible to the user.
     """
     logging.warning(f"'{du.triggered_id()}' -> table_data_exterior_controls()")
-
-    # Dash sets cleared values as 0
-    # TODO - move this to DS.py and fix types to reflect it can be None/0/etc.
-    # state_snapshot_ts = state_snapshot_ts if state_snapshot_ts else ""
-    # labor = labor if labor else ""
-    # institution = institution if institution else ""
-
     logging.warning(
         f"Snapshot: {state_snapshot_ts=} {'' if state_snapshot_ts else '(Live Collection)'}"
     )
@@ -249,13 +244,13 @@ def table_data_exterior_controls(
 
     return (
         table,
-        0,  # go to first page
-        du.get_now(),  # record now
+        0,
         toast,
         tot_label,
         tot_color,
         tot_outline,
         all_cols,
+        not s_flag_extctrl,  # toggle flag to send a message to table_interior_controls
     )
 
 
@@ -327,50 +322,51 @@ def _delete_deleted_records(
         Output("wbs-last-deleted-id", "data"),
         Output("wbs-deletion-toast", "is_open"),
         Output("wbs-deletion-toast-message", "children"),
+        Output("wbs-table-update-flag-interior-control", "data"),
     ],
     [Input("wbs-data-table", "data")],  # user/table_data_exterior_controls()
     [
         State("wbs-current-l1", "value"),
         State("wbs-data-table", "data_previous"),
-        State("wbs-table-exterior-control-last-timestamp", "data"),
         State("wbs-table-config-cache", "data"),
         State("wbs-current-snapshot-ts", "value"),
+        State("wbs-table-update-flag-exterior-control", "data"),
+        State("wbs-table-update-flag-interior-control", "data"),
     ],
     prevent_initial_call=True,
 )
 def table_data_interior_controls(
-    # other input(s)
+    # input(s)
     current_table: types.Table,
     # L1 value (state)
     wbs_l1: str,
     # state(s)
     previous_table: types.Table,
-    table_exterior_control_ts: str,
     state_tconfig_cache: tc.TableConfigParser.Cache,
     state_snap_current_ts: types.DashVal,
-) -> Tuple[types.Table, dbc.Toast, str, str, bool, List[html.Div]]:
+    s_flag_extctrl: bool,
+    s_flag_intctrl: bool,
+) -> Tuple[types.Table, dbc.Toast, str, str, bool, List[html.Div], bool]:
     """Interior control signaled that the table should be updated.
 
     This is either a row deletion or a field edit. The table's view has
     already been updated, so only DS communication is needed.
 
     NOTE: This function is also called following table_data_exterior_controls().
-    This is unnecessary, so the timestamp of table_data_exterior_controls()'s
-    last call will be checked to determine if that was indeed the case.
+    So the flags are XOR'd to see whether to proceed.
     """
     logging.warning(f"'{du.triggered_id()}' -> table_data_interior_controls()")
 
     updated_message = f"Table Last Refreshed: {du.get_human_now()}"
 
-    # IF This is a snapshot
-    # OR no previous table -- probably unlikely
-    # OR table was just updated via exterior controls
-    if (
-        state_snap_current_ts
-        or (not previous_table)
-        or du.was_recent(table_exterior_control_ts)
-    ):
-        return current_table, None, updated_message, "", False, []
+    # Was table just updated via exterior controls? -- if so, toggle flag
+    # flags will agree only after table_data_exterior_controls() triggers this function
+    if not du.flags_agree(s_flag_extctrl, s_flag_intctrl):
+        logging.warning("table_data_interior_controls() :: aborted callback")
+        return current_table, None, updated_message, "", False, [], not s_flag_intctrl
+
+    assert not state_snap_current_ts  # should not be a snapshot
+    assert previous_table  # should have previous table
 
     # Push (if any)
     mod_ids = _push_modified_records(
@@ -390,6 +386,7 @@ def table_data_interior_controls(
         last_deletion,
         bool(last_deletion),
         delete_success_message,
+        s_flag_intctrl,  # preserve flag
     )
 
 

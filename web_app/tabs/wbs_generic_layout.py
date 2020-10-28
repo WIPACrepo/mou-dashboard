@@ -380,10 +380,6 @@ def layout() -> html.Div:
             #
             #
             # Data Stores aka Cookies
-            # - for communicating when table was last updated by an exterior control
-            dcc.Store(
-                id="wbs-table-exterior-control-last-timestamp", storage_type="memory",
-            ),
             # - for caching the table config, to limit REST calls
             # TODO - change this to limit calls on refresh
             dcc.Store(
@@ -404,8 +400,17 @@ def layout() -> html.Div:
             # - for storing the last deleted record's id
             dcc.Store(id="wbs-last-deleted-id", storage_type="memory"),
             # - for discerning whether the table update was by the user vs automated
-            dcc.Store(id="wbs-table-update-flag-a", storage_type="memory"),
-            dcc.Store(id="wbs-table-update-flag-b", storage_type="memory"),
+            # -- flags will agree only after table_data_exterior_controls() triggers table_data_interior_controls()
+            dcc.Store(
+                id="wbs-table-update-flag-exterior-control",
+                storage_type="memory",
+                data=False,
+            ),
+            dcc.Store(
+                id="wbs-table-update-flag-interior-control",
+                storage_type="memory",
+                data=False,
+            ),
             #
             # Container Divs -- for adding dynamic toasts, dialogs, etc.
             html.Div(id="wbs-toast-via-exterior-control-div"),

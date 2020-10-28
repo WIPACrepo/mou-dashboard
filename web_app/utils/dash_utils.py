@@ -17,7 +17,6 @@ from ..data_source import table_config as tc
 from ..utils import types
 
 # constants
-_RECENT_THRESHOLD: Final[float] = 1.0
 REFRESH_MSG: Final[str] = "Refresh page and try again."
 
 
@@ -48,6 +47,15 @@ def triggered_id() -> str:
     return cast(str, trig)
 
 
+def flags_agree(one: bool, two: bool) -> bool:
+    """Check if flags are the same (XNOR)."""
+    if one == two:
+        logging.warning(f"Flags agree {one=} {two=}")
+    else:
+        logging.warning(f"Flags disagree {one=} {two=}")
+    return one == two
+
+
 # --------------------------------------------------------------------------------------
 # Time-Related Functions
 
@@ -72,21 +80,6 @@ def get_human_time(timestamp: str) -> str:
 def get_human_now() -> str:
     """Get the current date and time with timezone, human-readable."""
     return get_human_time(get_now())
-
-
-def was_recent(timestamp: str) -> bool:
-    """Return whether the event last occurred w/in the `_FILTER_THRESHOLD`."""
-    if not timestamp:
-        return False
-
-    diff = float(get_now()) - float(timestamp)
-
-    if diff < _RECENT_THRESHOLD:
-        logging.debug(f"RECENT EVENT ({diff})")
-        return True
-
-    logging.debug(f"NOT RECENT EVENT ({diff})")
-    return False
 
 
 # --------------------------------------------------------------------------------------
