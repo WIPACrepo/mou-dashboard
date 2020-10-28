@@ -403,8 +403,11 @@ def layout() -> html.Div:
             ),
             # - for storing the last deleted record's id
             dcc.Store(id="wbs-last-deleted-id", storage_type="memory"),
+            # - for discerning whether the table update was by the user vs automated
+            dcc.Store(id="wbs-table-update-flag-a", storage_type="memory"),
+            dcc.Store(id="wbs-table-update-flag-b", storage_type="memory"),
             #
-            # Dummy Divs -- for adding dynamic toasts, dialogs, etc.
+            # Container Divs -- for adding dynamic toasts, dialogs, etc.
             html.Div(id="wbs-toast-via-exterior-control-div"),
             html.Div(id="wbs-toast-via-interior-control-div"),
             html.Div(id="wbs-toast-via-snapshot-div"),

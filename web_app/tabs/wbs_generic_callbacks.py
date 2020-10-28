@@ -142,8 +142,7 @@ def handle_add_new_data(
         Output("wbs-show-all-columns-button", "n_clicks"),
     ],
     [
-        Input("wbs-current-institution", "value"),  # user/setup_institution_components
-        Input("wbs-filter-labor", "value"),  # user-only
+        Input("wbs-filter-labor", "value"),  # user/setup_institution_components()
         Input("wbs-show-totals-button", "n_clicks"),  # user-only
         Input("wbs-new-data-modal-dummy-add", "n_clicks"),  # handle_add_new_data()-only
         Input("wbs-undo-last-delete", "n_clicks"),  # user-only
@@ -157,12 +156,12 @@ def handle_add_new_data(
         State("wbs-last-deleted-id", "data"),
         State("wbs-table-config-cache", "data"),
         State("wbs-new-data-modal-task", "value"),
+        State("wbs-current-institution", "value"),
     ],
-    prevent_initial_call=True,  # must wait for institution value
+    prevent_initial_call=True,  # must wait for "wbs-current-institution-dummy"
 )  # pylint: disable=R0913,R0914
 def table_data_exterior_controls(
     # input(s)
-    institution: types.DashVal,
     labor: types.DashVal,
     tot_n_clicks: int,
     _: int,
@@ -177,6 +176,7 @@ def table_data_exterior_controls(
     state_deleted_id: str,
     state_tconfig_cache: tc.TableConfigParser.Cache,
     state_new_task: str,
+    state_institution: types.DashVal,
 ) -> Tuple[types.Table, int, str, dbc.Toast, str, str, bool, int]:
     """Exterior control signaled that the table should be updated.
 
@@ -212,7 +212,7 @@ def table_data_exterior_controls(
                 state_table,
                 state_columns,
                 labor,
-                institution,
+                state_institution,
                 state_tconfig_cache,
                 state_new_task,
             )
@@ -223,7 +223,7 @@ def table_data_exterior_controls(
             try:
                 table = src.pull_data_table(
                     wbs_l1,
-                    institution=institution,
+                    institution=state_institution,
                     labor=labor,
                     with_totals=show_totals,
                     restore_id=state_deleted_id,
@@ -239,7 +239,7 @@ def table_data_exterior_controls(
         try:
             table = src.pull_data_table(
                 wbs_l1,
-                institution=institution,
+                institution=state_institution,
                 labor=labor,
                 with_totals=show_totals,
                 snapshot_ts=state_snapshot_ts,
@@ -633,6 +633,7 @@ def handle_make_snapshot(
         Output("institution-headcounts-container", "hidden"),
         Output("institution-textarea-container", "hidden"),
         Output("wbs-current-institution", "value"),
+        Output("wbs-filter-labor", "value"),  # trigger table-population
     ],
     [Input("dummy-input-for-setup", "hidden")],  # never triggered
     [
@@ -646,7 +647,7 @@ def setup_institution_components(
     # state(s)
     wbs_l1: str,
     snap_ts: types.DashVal,
-    institution: types.DashVal,
+    inst: types.DashVal,
 ) -> Tuple[
     types.DashVal,
     types.DashVal,
@@ -658,10 +659,11 @@ def setup_institution_components(
     bool,
     bool,
     types.DashVal,
+    types.DashVal,
 ]:
     """Set up institution-related components."""
     logging.warning(
-        f"'{du.triggered_id()}' -> setup_institution_components() ({wbs_l1=} {snap_ts=} {institution=})"
+        f"'{du.triggered_id()}' -> setup_institution_components() ({wbs_l1=} {snap_ts=} {inst=})"
     )
 
     assert not du.triggered_id()  # Guarantee this is the initial call
@@ -670,13 +672,13 @@ def setup_institution_components(
 
     # auto-select institution if the user is a non-admin
     if current_user.is_authenticated and not current_user.is_admin:
-        institution = current_user.institution
+        inst = current_user.institution
 
-    if not institution:
-        return 0, 0, 0, 0, "", h2_sow_table, "", True, True, institution
+    if not inst:
+        return 0, 0, 0, 0, "", h2_sow_table, "", True, True, inst, ""
 
-    h2_table = f"{institution}'s SOW Table"
-    h2_notes = f"{institution}'s Notes and Descriptions"
+    h2_table = f"{inst}'s SOW Table"
+    h2_notes = f"{inst}'s Notes and Descriptions"
 
     phds: types.DashVal = None
     faculty: types.DashVal = None
@@ -686,12 +688,12 @@ def setup_institution_components(
 
     try:
         phds, faculty, sci, grad, text = src.pull_institution_values(
-            wbs_l1, snap_ts, institution
+            wbs_l1, snap_ts, inst
         )
     except DataSourceException:
         pass
 
-    return phds, faculty, sci, grad, text, h2_table, h2_notes, False, False, institution
+    return phds, faculty, sci, grad, text, h2_table, h2_notes, False, False, inst, ""
 
 
 @app.callback(  # type: ignore[misc]
