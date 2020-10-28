@@ -14,7 +14,7 @@ body {
     font: 12px Arial;
 }
 
-h2 {
+.section-header {
     text-transform: uppercase !important;
     letter-spacing: .075em !important;
     font: 15px Arial !important;
@@ -26,7 +26,7 @@ h2 {
     margin-top: 3rem;
 }
 
-h2:after {
+.section-header:after {
     content: "";
     display: inline-block;
     height: 0.955rem;
@@ -37,7 +37,7 @@ h2:after {
     border-top: 0.16rem solid #5a5a5a;
 }
 
-h2:before {
+.section-header:before {
     content: "";
     display: inline-block;
     height: 0.955rem;
@@ -52,6 +52,10 @@ h2:before {
     font-size: 14px;
     text-align: center;
     margin-top: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 0 !important;
 }
 
 

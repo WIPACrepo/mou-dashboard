@@ -82,7 +82,7 @@ def layout() -> html.Div:
                 },
             ),
             #
-            html.H2(children="Institution"),
+            html.H2(className="section-header", children="Institution"),
             #
             # Institution filter dropdown menu
             html.Div(
@@ -143,13 +143,13 @@ def layout() -> html.Div:
                 ],
             ),
             #
-            html.H2(id="wbs-h2-sow-table"),
+            html.H2(className="section-header", id="wbs-h2-sow-table"),
             #
             # Top Tools
             dbc.Row(
                 className="wbs-table-top-toolbar",
                 no_gutters=True,
-                children=[  #
+                children=[
                     # Add Button
                     du.new_data_button(1),
                     # Labor Category filter dropdown menu
@@ -271,7 +271,9 @@ def layout() -> html.Div:
                 hidden=True,
                 children=[
                     html.H2(
-                        id="wbs-h2-inst-textarea", children="Notes and Descriptions"
+                        className="section-header",
+                        id="wbs-h2-inst-textarea",
+                        children="Notes and Descriptions",
                     ),
                     dcc.Textarea(id="wbs-textarea", className="institution-text-area"),
                     html.Div(
@@ -286,7 +288,7 @@ def layout() -> html.Div:
                 id="wbs-admin-zone-div",
                 children=[
                     #
-                    html.H2(children="Admin Zone"),
+                    html.H2(className="section-header", children="Admin Zone"),
                     #
                     # Summary Table
                     dcc.Loading(
@@ -399,6 +401,8 @@ def layout() -> html.Div:
                 storage_type="memory",
                 data=True,
             ),
+            # - for storing the last deleted record's id
+            dcc.Store(id="wbs-last-deleted-id", storage_type="memory"),
             #
             # Dummy Divs -- for adding dynamic toasts, dialogs, etc.
             html.Div(id="wbs-toast-via-exterior-control-div"),
@@ -411,6 +415,7 @@ def layout() -> html.Div:
             du.upload_modal(),
             du.upload_success_modal(),
             du.name_snapshot_modal(),
+            du.add_new_data_modal(),
             ###
         ]
     )

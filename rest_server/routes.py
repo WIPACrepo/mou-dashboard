@@ -226,6 +226,8 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
             record[tc.INSTITUTION] = inst  # insert
         if labor := self.get_argument("labor", default=None):
             record[tc.LABOR_CAT] = labor  # insert
+        if task := self.get_argument("task", default=None):
+            record[tc.TASK] = task  # insert
 
         record = utils.remove_on_the_fly_fields(record)
         record = await self.dbms.upsert_record(wbs_l1, record)

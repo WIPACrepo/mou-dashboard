@@ -283,7 +283,7 @@ def deletion_toast() -> dbc.Toast:
             "font-size": "1.1em",
         },
         children=[
-            html.Div(id="wbs-last-deleted-id"),
+            html.Div(id="wbs-deletion-toast-message"),
             html.Div(
                 dbc.Button(
                     "Restore Row",
@@ -334,7 +334,7 @@ def upload_modal() -> dbc.Modal:
         is_open=False,
         backdrop="static",
         children=[
-            dbc.ModalHeader("Override Live Table", className="caps"),
+            html.Div("Override Live Table", className="caps section-header"),
             dbc.ModalBody(
                 children=[
                     dcc.Upload(
@@ -403,7 +403,7 @@ def upload_success_modal() -> dbc.Modal:
         backdrop="static",
         centered=True,
         children=[
-            dbc.ModalHeader("Live Table Updated", className="caps"),
+            html.Div("Live Table Updated", className="caps section-header"),
             dbc.ModalBody(id="wbs-upload-success-modal-body"),
             dbc.ModalFooter(
                 dbc.Button(
@@ -422,16 +422,17 @@ def name_snapshot_modal() -> dbc.Modal:
     """Get a modal for selecting a snapshot."""
     return dbc.Modal(
         id="wbs-name-snapshot",
-        size="sm",
+        size="md",
         is_open=False,
         # backdrop="static",
         centered=True,
         children=[
+            html.Div("Make a Snapshot", className="section-header caps"),
             dbc.ModalBody(
                 dcc.Input(
                     id="wbs-name-snapshot-input",
                     value="",
-                    placeholder="Snapshot Name",
+                    placeholder="Name",
                     style={"width": "100%"},
                 ),
             ),
@@ -442,6 +443,42 @@ def name_snapshot_modal() -> dbc.Modal:
                     n_clicks=0,
                     color=Color.SUCCESS,
                 )
+            ),
+        ],
+    )
+
+
+def add_new_data_modal() -> dbc.Modal:
+    """Get a modal for adding new data."""
+    return dbc.Modal(
+        id="wbs-new-data-modal",
+        size="md",
+        is_open=False,
+        # backdrop="static",
+        centered=True,
+        children=[
+            html.Div(
+                children=dbc.Button(id="wbs-new-data-modal-dummy-add", n_clicks=0),
+                hidden=True,
+            ),
+            html.Div(id="wbs-new-data-modal-header", className="section-header caps"),
+            dbc.ModalBody(
+                dcc.Textarea(
+                    id="wbs-new-data-modal-task",
+                    value="",
+                    minLength=5,
+                    placeholder="Enter Task Description",
+                    style={"width": "100%"},
+                ),
+            ),
+            dbc.ModalFooter(
+                dbc.Button(
+                    "+ Add",
+                    id="wbs-new-data-modal-add-button",
+                    n_clicks=0,
+                    color=Color.SUCCESS,
+                    className="table-tool-medium",
+                ),
             ),
         ],
     )

@@ -13,7 +13,7 @@ LABOR_CAT = "Labor Cat."
 US_NON_US = "US / Non-US"
 INSTITUTION = "Institution"
 _NAMES = "Names"
-_TASKS = "Tasks"
+TASK = "Tasks"
 SOURCE_OF_FUNDS_US_ONLY = "Source of Funds (U.S. Only)"
 FTE = "FTE"
 NSF_MO_CORE = "NSF M&O Core"
@@ -131,7 +131,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "sort_value": 30,
     },
     _NAMES: {"width": 150, "sort_value": 20},
-    _TASKS: {"width": 300},
+    TASK: {"width": 300},
     SOURCE_OF_FUNDS_US_ONLY: {
         "width": 185,
         "conditional_parent": US_NON_US,

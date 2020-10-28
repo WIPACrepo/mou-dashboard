@@ -1,11 +1,11 @@
 """Callbacks for a specified WBS layout."""
 
 import logging
-import re
 from typing import cast, Dict, List, Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
+from dash import no_update  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
 from flask_login import current_user  # type: ignore[import]
 
@@ -52,6 +52,7 @@ def _add_new_data(  # pylint: disable=R0913
     labor: types.DashVal,
     institution: types.DashVal,
     state_tconfig_cache: tc.TableConfigParser.Cache,
+    state_new_task: str,
 ) -> Tuple[types.Table, dbc.Toast]:
     """Push new record to data source; add to table.
 
@@ -68,19 +69,65 @@ def _add_new_data(  # pylint: disable=R0913
         new_record = src.push_record(
             wbs_l1,
             new_record,
+            task=state_new_task,
             labor=labor,
             institution=institution,
             novel=True,
             tconfig_cache=state_tconfig_cache,
         )
         table.insert(0, new_record)
-        toast = du.make_toast(
-            "Record Added", f"id: {new_record[src.ID]}", du.Color.SUCCESS, 5
-        )
+        message = [html.Div(s) for s in src.record_to_strings(new_record)]
+        toast = du.make_toast("Record Added", message, du.Color.SUCCESS, 5)
     except DataSourceException:
         toast = du.make_toast("Failed to Make Record", du.REFRESH_MSG, du.Color.DANGER)
 
     return table, toast
+
+
+@app.callback(  # type: ignore[misc]
+    [
+        Output("wbs-new-data-modal", "is_open"),
+        Output("wbs-new-data-modal-task", "value"),
+        Output("wbs-new-data-modal-dummy-add", "n_clicks"),
+        Output("wbs-new-data-modal-header", "children"),
+    ],
+    [
+        Input("wbs-new-data-button-1", "n_clicks"),
+        Input("wbs-new-data-button-2", "n_clicks"),
+        Input("wbs-new-data-modal-add-button", "n_clicks"),
+    ],
+    [
+        State("wbs-new-data-modal-task", "value"),
+        State("wbs-current-institution", "value"),
+        State("wbs-filter-labor", "value"),
+    ],
+    prevent_initial_call=True,
+)
+def handle_add_new_data(
+    # input(s)
+    _: int,
+    __: int,
+    ___: int,
+    # state(s)
+    task: str,
+    institution: str,
+    labor: str,
+) -> Tuple[bool, str, int, str]:
+    """Handle the modal for adding a new row."""
+    logging.warning(f"'{du.triggered_id()}' -> handle_add_new_data()")
+
+    if du.triggered_id() == "wbs-new-data-modal-add-button":
+        if not task:
+            return no_update, no_update, no_update, no_update
+        return False, task, 1, no_update
+
+    header = "Add New Data"
+    if institution:
+        header += f" for {institution}"
+    if labor:
+        header += f" ({labor})"
+
+    return True, "", no_update, header
 
 
 @app.callback(  # type: ignore[misc]
@@ -98,8 +145,7 @@ def _add_new_data(  # pylint: disable=R0913
         Input("wbs-current-institution", "value"),
         Input("wbs-filter-labor", "value"),
         Input("wbs-show-totals-button", "n_clicks"),
-        Input("wbs-new-data-button-1", "n_clicks"),
-        Input("wbs-new-data-button-2", "n_clicks"),
+        Input("wbs-new-data-modal-dummy-add", "n_clicks"),
         Input("wbs-undo-last-delete", "n_clicks"),
     ],
     [
@@ -108,8 +154,9 @@ def _add_new_data(  # pylint: disable=R0913
         State("wbs-data-table", "data"),
         State("wbs-data-table", "columns"),
         State("wbs-show-all-columns-button", "n_clicks"),
-        State("wbs-last-deleted-id", "children"),
+        State("wbs-last-deleted-id", "data"),
         State("wbs-table-config-cache", "data"),
+        State("wbs-new-data-modal-task", "value"),
     ],
     prevent_initial_call=True,  # must wait for institution value
 )  # pylint: disable=R0913,R0914
@@ -120,7 +167,6 @@ def table_data_exterior_controls(
     tot_n_clicks: int,
     _: int,
     __: int,
-    ___: int,
     # L1 (state)
     wbs_l1: str,
     # state(s)
@@ -130,6 +176,7 @@ def table_data_exterior_controls(
     state_all_cols: int,
     state_deleted_id: str,
     state_tconfig_cache: tc.TableConfigParser.Cache,
+    state_new_task: str,
 ) -> Tuple[types.Table, int, str, dbc.Toast, str, str, bool, int]:
     """Exterior control signaled that the table should be updated.
 
@@ -158,7 +205,7 @@ def table_data_exterior_controls(
     )
 
     # Add New Data
-    if re.match(r"wbs-new-data-button-\d+", du.triggered_id()):
+    if du.triggered_id() == "wbs-new-data-modal-dummy-add":
         if not state_snapshot_ts:  # are we looking at a snapshot?
             table, toast = _add_new_data(
                 wbs_l1,
@@ -167,6 +214,7 @@ def table_data_exterior_controls(
                 labor,
                 institution,
                 state_tconfig_cache,
+                state_new_task,
             )
 
     # OR Restore a types.Record and Pull types.Table (optionally filtered)
@@ -180,9 +228,9 @@ def table_data_exterior_controls(
                     with_totals=show_totals,
                     restore_id=state_deleted_id,
                 )
-                toast = du.make_toast(
-                    "Record Restored", f"id: {state_deleted_id}", du.Color.SUCCESS, 5,
-                )
+                record = next(r for r in table if r[src.ID] == state_deleted_id)
+                message = [html.Div(s) for s in src.record_to_strings(record)]
+                toast = du.make_toast("Record Restored", message, du.Color.SUCCESS, 5)
             except DataSourceException:
                 table = []
 
@@ -236,17 +284,21 @@ def _delete_deleted_records(
     current_table: types.Table,
     previous_table: types.Table,
     keeps: List[types.StrNum],
-) -> Tuple[dbc.Toast, str]:
+) -> Tuple[dbc.Toast, str, List[str]]:
     """For each row that was deleted by the user, delete its DS record."""
-    toast: dbc.Toast = None
-    last_deletion = ""
-
     delete_these = [
         r
         for r in previous_table
         if (r not in current_table) and (src.ID in r) and (r[src.ID] not in keeps)
     ]
 
+    if not delete_these:
+        return None, "", []
+
+    assert len(delete_these) == 1
+
+    toast: dbc.Toast = None
+    last_deletion = ""
     failures = []
     record = None
     for record in delete_these:
@@ -259,12 +311,12 @@ def _delete_deleted_records(
     # make toast message if any records failed to be deleted
     if failures:
         toast = du.make_toast(
-            f"Failed to Delete Record {record[src.ID]}",
-            du.REFRESH_MSG,
-            du.Color.DANGER,
+            "Failed to Delete Record", du.REFRESH_MSG, du.Color.DANGER
         )
+    else:
+        success_message = [html.Div(s) for s in src.record_to_strings(delete_these[0])]
 
-    return toast, last_deletion
+    return toast, last_deletion, success_message
 
 
 @app.callback(  # type: ignore[misc]
@@ -272,8 +324,9 @@ def _delete_deleted_records(
         Output("wbs-data-table", "data_previous"),
         Output("wbs-toast-via-interior-control-div", "children"),
         Output("wbs-table-last-updated-label", "children"),
-        Output("wbs-last-deleted-id", "children"),
+        Output("wbs-last-deleted-id", "data"),
         Output("wbs-deletion-toast", "is_open"),
+        Output("wbs-deletion-toast-message", "children"),
     ],
     [Input("wbs-data-table", "data")],
     [
@@ -295,7 +348,7 @@ def table_data_interior_controls(
     table_exterior_control_ts: str,
     state_tconfig_cache: tc.TableConfigParser.Cache,
     state_snap_current_ts: types.DashVal,
-) -> Tuple[types.Table, dbc.Toast, str, str, bool]:
+) -> Tuple[types.Table, dbc.Toast, str, str, bool, List[html.Div]]:
     """Interior control signaled that the table should be updated.
 
     This is either a row deletion or a field edit. The table's view has
@@ -317,7 +370,7 @@ def table_data_interior_controls(
         or (not previous_table)
         or du.was_recent(table_exterior_control_ts)
     ):
-        return current_table, None, updated_message, "", False
+        return current_table, None, updated_message, "", False, []
 
     # Push (if any)
     mod_ids = _push_modified_records(
@@ -325,12 +378,19 @@ def table_data_interior_controls(
     )
 
     # Delete (if any)
-    toast, last_deletion = _delete_deleted_records(
+    toast, last_deletion, delete_success_message = _delete_deleted_records(
         wbs_l1, current_table, previous_table, mod_ids
     )
 
     # Update data_previous
-    return current_table, toast, updated_message, last_deletion, bool(last_deletion)
+    return (
+        current_table,
+        toast,
+        updated_message,
+        last_deletion,
+        bool(last_deletion),
+        delete_success_message,
+    )
 
 
 @app.callback(  # type: ignore[misc]

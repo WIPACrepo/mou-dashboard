@@ -165,6 +165,19 @@ def _convert_record_dash_to_rest(
     return out_record
 
 
+def record_to_strings(record: types.Record) -> List[str]:
+    """Get a string representation of the record."""
+    strings = []
+    for field, value in _convert_record_dash_to_rest(record).items():
+        if field == ID:
+            continue
+        if not value and value != 0:
+            continue
+        strings.append(f"{field}: {value}")
+
+    return strings
+
+
 def _validate(
     data: Any,
     in_type: Union[type, Tuple[type, ...]],
@@ -262,6 +275,7 @@ def pull_data_table(
 def push_record(  # pylint: disable=R0913
     wbs_l1: str,
     record: types.Record,
+    task: str = "",
     labor: types.DashVal = "",
     institution: types.DashVal = "",
     novel: bool = False,
@@ -283,6 +297,7 @@ def push_record(  # pylint: disable=R0913
     """
     _validate(wbs_l1, str, falsy_okay=False)
     _validate(record, dict)
+    _validate(task, str)
     labor = _validate(labor, types.DashVal_types, out=str)
     institution = _validate(institution, types.DashVal_types, out=str)
     _validate(novel, bool)
@@ -292,11 +307,15 @@ def push_record(  # pylint: disable=R0913
         record: types.Record
 
     # request
-    body = {
-        "record": _convert_record_dash_to_rest(record, tconfig_cache),
-        "institution": institution,
-        "labor": labor,
+    body: Dict[str, Any] = {
+        "record": _convert_record_dash_to_rest(record, tconfig_cache)
     }
+    if institution:
+        body["institution"] = institution
+    if labor:
+        body["labor"] = labor
+    if task:
+        body["task"] = task.replace("\n", " ")
     response = cast(_RespRecord, mou_request("POST", f"/record/{wbs_l1}", body=body))
     # get & convert
     return _convert_record_rest_to_dash(response["record"], novel=novel)
