@@ -8,10 +8,14 @@ import coloredlogs  # type: ignore[import]
 # local imports
 from web_app.config import app, CONFIG, update_config_global
 
+from . import layout
+
 
 def main(debug: bool) -> None:
     """Start up application context."""
     update_config_global()
+
+    layout.layout()
 
     # Run Server
     app.run_server(debug=debug, host="localhost", port=CONFIG["WEB_SERVER_PORT"])

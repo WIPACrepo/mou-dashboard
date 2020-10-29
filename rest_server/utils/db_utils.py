@@ -5,16 +5,17 @@ import base64
 import io
 import logging
 import time
-from typing import Any, cast, Coroutine, Dict, List, Optional, Tuple
+from typing import Any, cast, Coroutine, Dict, List, Tuple
 
 import pandas as pd  # type: ignore[import]
+import pymongo.errors  # type: ignore[import]
 from bson.objectid import ObjectId  # type: ignore[import]
 from motor.motor_tornado import MotorClient  # type: ignore
 from tornado import web
 
 from .. import table_config as tc
 from ..config import EXCLUDE_COLLECTIONS, EXCLUDE_DBS
-from .types import InstitutionValues, Record, SnapshotInfo, SupplementalDoc, Table
+from . import types
 
 IS_DELETED = "deleted"
 _LIVE_COLLECTION = "LIVE_COLLECTION"
@@ -37,7 +38,7 @@ class MoUMotorClient:
         _run(self._ensure_all_db_indexes())
 
     @staticmethod
-    def _validate_record_data(record: Record) -> None:
+    def _validate_record_data(wbs_db: str, record: types.Record) -> None:
         """Check that each value in a dropdown-type column is valid.
 
         If not, raise Exception.
@@ -50,14 +51,14 @@ class MoUMotorClient:
                 continue
 
             # Validate a simple dropdown column
-            if col in tc.get_simple_dropdown_menus():
-                if value in tc.get_simple_dropdown_menus()[col]:
+            if col in tc.get_simple_dropdown_menus(wbs_db):
+                if value in tc.get_simple_dropdown_menus(wbs_db)[col]:
                     continue
                 raise Exception(f"Invalid Simple-Dropdown Data: {col=} {record=}")
 
             # Validate a conditional dropdown column
-            if col in tc.get_conditional_dropdown_menus():
-                parent_col, menus = tc.get_conditional_dropdown_menus()[col]
+            if col in tc.get_conditional_dropdown_menus(wbs_db):
+                parent_col, menus = tc.get_conditional_dropdown_menus(wbs_db)[col]
 
                 # Get parent value
                 if parent_col in record:
@@ -87,10 +88,12 @@ class MoUMotorClient:
         return key.replace(";", ".")
 
     @staticmethod
-    def _mongofy_record(record: Record, assert_data: bool = True) -> Record:
+    def _mongofy_record(
+        wbs_db: str, record: types.Record, assert_data: bool = True
+    ) -> types.Record:
         # assert data is valid
         if assert_data:
-            MoUMotorClient._validate_record_data(record)
+            MoUMotorClient._validate_record_data(wbs_db, record)
         # mongofy key names
         for key in list(record.keys()):
             record[MoUMotorClient._mongofy_key_name(key)] = record.pop(key)
@@ -101,7 +104,7 @@ class MoUMotorClient:
         return record
 
     @staticmethod
-    def _demongofy_record(record: Record) -> Record:
+    def _demongofy_record(record: types.Record) -> types.Record:
         # replace Nones with ""
         for key in record.keys():
             if record[key] is None:
@@ -116,25 +119,31 @@ class MoUMotorClient:
         return record
 
     async def _create_live_collection(
-        self, snap_db: str, table: Table, creator: str
+        self,
+        wbs_db: str,
+        table: types.Table,
+        creator: str,
+        all_insts_values: Dict[str, types.InstitutionValues],
     ) -> None:
         """Create the live collection."""
-        logging.debug(f"Creating Live Collection ({snap_db=})...")
+        logging.debug(f"Creating Live Collection ({wbs_db=})...")
 
-        await self._ingest_new_collection(snap_db, _LIVE_COLLECTION, table, "", creator)
+        await self._ingest_new_collection(
+            wbs_db, _LIVE_COLLECTION, table, "", creator, all_insts_values
+        )
 
-        logging.debug(f"Created Live Collection: ({snap_db=}) {len(table)} records.")
+        logging.debug(f"Created Live Collection: ({wbs_db=}) {len(table)} records.")
 
     async def ingest_xlsx(
-        self, snap_db: str, base64_xlsx: str, filename: str, creator: str
+        self, wbs_db: str, base64_xlsx: str, filename: str, creator: str
     ) -> Tuple[str, str]:
         """Ingest the xlsx's data as the new Live Collection.
 
         Also make snapshots of the previous live table and the new one.
         """
-        logging.info(f"Ingesting xlsx {filename} ({snap_db=})...")
+        logging.info(f"Ingesting xlsx {filename} ({wbs_db=})...")
 
-        def _is_a_total_row(row: Record) -> bool:
+        def _is_a_total_row(row: types.Record) -> bool:
             # check L2, L3, Inst., & US/Non-US  columns for "total" substring
             for key in [tc.WBS_L2, tc.WBS_L3, tc.INSTITUTION, tc.US_NON_US]:
                 data = row.get(key)
@@ -142,7 +151,7 @@ class MoUMotorClient:
                     return True
             return False
 
-        def _row_has_data(row: Record) -> bool:
+        def _row_has_data(row: types.Record) -> bool:
             # check purely blank rows
             if not any(row.values()):  # purely blank rows
                 return False
@@ -177,29 +186,38 @@ class MoUMotorClient:
                 )
 
         # mongofy table
-        table: Table = [
-            self._mongofy_record(utils.remove_on_the_fly_fields(row))
+        table: types.Table = [
+            self._mongofy_record(wbs_db, utils.remove_on_the_fly_fields(row))
             for row in raw_table
             if _row_has_data(row) and not _is_a_total_row(row)
         ]
-        logging.debug(f"xlsx table has {len(table)} records ({snap_db=}).")
+        logging.debug(f"xlsx table has {len(table)} records ({wbs_db=}).")
 
-        # snapshot, ingest, snapshot
+        # snapshot
         try:
             previous_snap = await self.snapshot_live_collection(
-                snap_db, "State Before Table Replacement", f"{creator} (auto)"
+                wbs_db, "State Before Table Replacement", f"{creator} (auto)"
             )
         except web.HTTPError as e:
             if e.status_code != 422:
                 raise
             previous_snap = ""
-        await self._create_live_collection(snap_db, table, creator)
+
+        # ingest
+        try:
+            doc = await self._get_supplemental_doc(wbs_db, previous_snap)
+            all_insts_values = doc["snapshot_institution_values"]
+        except (DocumentNotFoundError, pymongo.errors.InvalidName):
+            all_insts_values = dict()
+        await self._create_live_collection(wbs_db, table, creator, all_insts_values)
+
+        # snapshot
         current_snap = await self.snapshot_live_collection(
-            snap_db, f"Replacement Table ({filename})", creator
+            wbs_db, f"Replacement Table ({filename})", creator
         )
 
         logging.debug(
-            f"Ingested xlsx: {filename=}, {snap_db=}, {current_snap}, {previous_snap}."
+            f"Ingested xlsx: {filename=}, {wbs_db=}, {current_snap}, {previous_snap}."
         )
         return previous_snap, current_snap
 
@@ -217,15 +235,17 @@ class MoUMotorClient:
             if n not in EXCLUDE_COLLECTIONS
         ]
 
-    async def get_snapshot_info(self, snap_db: str, snap_coll: str) -> SnapshotInfo:
+    async def get_snapshot_info(
+        self, wbs_db: str, snap_coll: str
+    ) -> types.SnapshotInfo:
         """Get the name of the snapshot."""
-        logging.debug(f"Getting Snapshot Name ({snap_db=}, {snap_coll=})...")
+        logging.debug(f"Getting Snapshot Name ({wbs_db=}, {snap_coll=})...")
 
-        await self._check_database_state(snap_db)
+        await self._check_database_state(wbs_db)
 
-        doc = await self._get_supplemental_doc(snap_db, snap_coll)
+        doc = await self._get_supplemental_doc(wbs_db, snap_coll)
 
-        logging.info(f"Snapshot Name [{doc['name']}] ({snap_db=}, {snap_coll=})...")
+        logging.info(f"Snapshot Name [{doc['name']}] ({wbs_db=}, {snap_coll=})...")
         return {
             "name": doc["name"],
             "creator": doc["creator"],
@@ -233,66 +253,66 @@ class MoUMotorClient:
         }
 
     async def upsert_institution_values(
-        self, snap_db: str, institution: str, vals: InstitutionValues
+        self, wbs_db: str, institution: str, vals: types.InstitutionValues
     ) -> None:
         """Upsert the values for an institution."""
         logging.debug(
-            f"Upserting Institution's Values ({snap_db=}, {institution=}, {vals=})..."
+            f"Upserting Institution's Values ({wbs_db=}, {institution=}, {vals=})..."
         )
 
-        await self._check_database_state(snap_db)
+        await self._check_database_state(wbs_db)
 
-        doc = await self._get_supplemental_doc(snap_db, _LIVE_COLLECTION)
+        doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
         doc["snapshot_institution_values"].update({institution: vals})
-        await self._set_supplemental_doc(snap_db, _LIVE_COLLECTION, doc)
+        await self._set_supplemental_doc(wbs_db, _LIVE_COLLECTION, doc)
 
         logging.info(
-            f"Upserted Institution's Values ({snap_db=}, {institution=}, {vals=})."
+            f"Upserted Institution's Values ({wbs_db=}, {institution=}, {vals=})."
         )
 
-    async def _check_database_state(self, snap_db: str) -> None:
+    async def _check_database_state(self, wbs_db: str) -> None:
         """Raise 422 if there are no collections."""
-        if await self._list_collection_names(snap_db):
+        if await self._list_collection_names(wbs_db):
             return
 
-        logging.error(f"Snapshot Database has no collections ({snap_db=}).")
+        logging.error(f"Snapshot Database has no collections ({wbs_db=}).")
         raise web.HTTPError(
-            422, reason=f"Snapshot Database has no collections ({snap_db=}).",
+            422, reason=f"Snapshot Database has no collections ({wbs_db=}).",
         )
 
     async def get_institution_values(
-        self, snap_db: str, snapshot_timestamp: str, institution: str,
-    ) -> InstitutionValues:
+        self, wbs_db: str, snapshot_timestamp: str, institution: str,
+    ) -> types.InstitutionValues:
         """Get the values for an institution."""
-        logging.debug(f"Getting Institution's Values ({snap_db=}, {institution=})...")
+        logging.debug(f"Getting Institution's Values ({wbs_db=}, {institution=})...")
 
-        await self._check_database_state(snap_db)
+        await self._check_database_state(wbs_db)
 
-        vals: InstitutionValues = {
-            "phds_authors": 0,
-            "faculty": 0,
-            "scientists_post_docs": 0,
-            "grad_students": 0,
+        vals: types.InstitutionValues = {
+            "phds_authors": None,
+            "faculty": None,
+            "scientists_post_docs": None,
+            "grad_students": None,
             "text": "",
         }
 
         if not snapshot_timestamp:
             snapshot_timestamp = _LIVE_COLLECTION
 
-        doc = await self._get_supplemental_doc(snap_db, snapshot_timestamp)
+        doc = await self._get_supplemental_doc(wbs_db, snapshot_timestamp)
 
         try:
             vals = doc["snapshot_institution_values"][institution]
-            logging.info(f"Institution's Values [{vals}] ({snap_db=}, {institution=}).")
+            logging.info(f"Institution's Values [{vals}] ({wbs_db=}, {institution=}).")
             return vals
         except KeyError:
-            logging.info(f"Institution has no values ({snap_db=}, {institution=}).")
+            logging.info(f"Institution has no values ({wbs_db=}, {institution=}).")
             return vals
 
     async def _get_supplemental_doc(
-        self, snap_db: str, snap_coll: str
-    ) -> SupplementalDoc:
-        doc = await self._client[f"{snap_db}-supplemental"][snap_coll].find_one()
+        self, wbs_db: str, snap_coll: str
+    ) -> types.SupplementalDoc:
+        doc = await self._client[f"{wbs_db}-supplemental"][snap_coll].find_one()
         if not doc:
             raise DocumentNotFoundError(
                 f"No Supplemental document found for {snap_coll=}."
@@ -304,10 +324,10 @@ class MoUMotorClient:
                 reason=f"Erroneous supplemental document found: {snap_coll=}, {doc=}",
             )
 
-        return cast(SupplementalDoc, doc)
+        return cast(types.SupplementalDoc, doc)
 
     async def _set_supplemental_doc(
-        self, snap_db: str, snap_coll: str, doc: SupplementalDoc
+        self, wbs_db: str, snap_coll: str, doc: types.SupplementalDoc
     ) -> None:
         """Insert/update a Supplemental document."""
         if snap_coll != doc["timestamp"]:
@@ -316,69 +336,67 @@ class MoUMotorClient:
                 reason=f"Tried to set erroneous supplemental document: {snap_coll=}, {doc=}",
             )
 
-        coll_obj = self._client[f"{snap_db}-supplemental"][snap_coll]
+        coll_obj = self._client[f"{wbs_db}-supplemental"][snap_coll]
         await coll_obj.replace_one({"timestamp": doc["timestamp"]}, doc, upsert=True)
 
-    async def _create_supplemental_db_document(
+    async def _create_supplemental_db_document(  # pylint: disable=R0913
         self,
-        snap_db: str,
+        wbs_db: str,
         snap_coll: str,
         name: str,
         creator: str,
-        all_insts_values: Optional[Dict[str, InstitutionValues]] = None,
+        all_insts_values: Dict[str, types.InstitutionValues],
     ) -> None:
-        logging.debug(
-            f"Creating Supplemental DB/Document ({snap_db=}, {snap_coll=})..."
-        )
+        logging.debug(f"Creating Supplemental DB/Document ({wbs_db=}, {snap_coll=})...")
 
         # drop the collection if it already exists
-        await self._client[f"{snap_db}-supplemental"].drop_collection(snap_coll)
+        await self._client[f"{wbs_db}-supplemental"].drop_collection(snap_coll)
 
         # populate the singleton document
-        doc: SupplementalDoc = {
+        doc: types.SupplementalDoc = {
             "name": name,
             "timestamp": snap_coll,
             "creator": creator,
             "snapshot_institution_values": all_insts_values if all_insts_values else {},
         }
-        await self._set_supplemental_doc(snap_db, snap_coll, doc)
+        await self._set_supplemental_doc(wbs_db, snap_coll, doc)
 
         logging.debug(
-            f"Created Supplemental Document ({snap_db=}, {snap_coll=}): {await self._get_supplemental_doc(snap_db, snap_coll)}."
+            f"Created Supplemental Document ({wbs_db=}, {snap_coll=}): {await self._get_supplemental_doc(wbs_db, snap_coll)}."
         )
 
     async def _ingest_new_collection(  # pylint: disable=R0913
         self,
-        snap_db: str,
+        wbs_db: str,
         snap_coll: str,
-        table: Table,
+        table: types.Table,
         name: str,
         creator: str,
-        all_insts_values: Optional[Dict[str, InstitutionValues]] = None,
+        all_insts_values: Dict[str, types.InstitutionValues],
     ) -> None:
         """Add table to a new collection.
 
         If collection already exists, replace.
         """
-        db_obj = self._client[snap_db]
+        db_obj = self._client[wbs_db]
 
         # drop the collection if it already exists
         await db_obj.drop_collection(snap_coll)
 
         coll_obj = await db_obj.create_collection(snap_coll)
-        await self._ensure_collection_indexes(snap_db, snap_coll)
+        await self._ensure_collection_indexes(wbs_db, snap_coll)
 
         # Ingest
-        await coll_obj.insert_many([self._mongofy_record(r) for r in table])
+        await coll_obj.insert_many([self._mongofy_record(wbs_db, r) for r in table])
 
         # create supplemental document
         await self._create_supplemental_db_document(
-            snap_db, snap_coll, name, creator, all_insts_values
+            wbs_db, snap_coll, name, creator, all_insts_values
         )
 
-    async def _ensure_collection_indexes(self, snap_db: str, snap_coll: str) -> None:
+    async def _ensure_collection_indexes(self, wbs_db: str, snap_coll: str) -> None:
         """Create indexes in collection."""
-        coll_obj = self._client[snap_db][snap_coll]
+        coll_obj = self._client[wbs_db][snap_coll]
 
         _inst = self._mongofy_key_name(tc.INSTITUTION)
         await coll_obj.create_index(_inst, name=f"{_inst}_index", unique=False)
@@ -393,22 +411,22 @@ class MoUMotorClient:
         """Create all indexes in all databases."""
         logging.debug("Ensuring All Databases' Indexes...")
 
-        for snap_db in await self._list_database_names():
-            for snap_coll in await self._list_collection_names(snap_db):
-                await self._ensure_collection_indexes(snap_db, snap_coll)
+        for wbs_db in await self._list_database_names():
+            for snap_coll in await self._list_collection_names(wbs_db):
+                await self._ensure_collection_indexes(wbs_db, snap_coll)
 
         logging.debug("Ensured All Databases' Indexes.")
 
     async def get_table(
-        self, snap_db: str, snap_coll: str = "", labor: str = "", institution: str = ""
-    ) -> Table:
+        self, wbs_db: str, snap_coll: str = "", labor: str = "", institution: str = ""
+    ) -> types.Table:
         """Return the table from the collection name."""
         if not snap_coll:
             snap_coll = _LIVE_COLLECTION
 
-        logging.debug(f"Getting from {snap_coll} ({snap_db=})...")
+        logging.debug(f"Getting from {snap_coll} ({wbs_db=})...")
 
-        await self._check_database_state(snap_db)
+        await self._check_database_state(wbs_db)
 
         query = {}
         if labor:
@@ -417,9 +435,9 @@ class MoUMotorClient:
             query[self._mongofy_key_name(tc.INSTITUTION)] = institution
 
         # build demongofied table
-        table: Table = []
+        table: types.Table = []
         i, dels = 0, 0
-        async for record in self._client[snap_db][snap_coll].find(query):
+        async for record in self._client[wbs_db][snap_coll].find(query):
             if record.get(IS_DELETED):
                 dels += 1
                 continue
@@ -427,73 +445,75 @@ class MoUMotorClient:
             i += 1
 
         logging.info(
-            f"Table [{snap_db=} {snap_coll=}] ({institution=}, {labor=}) has {i} records (and {dels} deleted records)."
+            f"Table [{wbs_db=} {snap_coll=}] ({institution=}, {labor=}) has {i} records (and {dels} deleted records)."
         )
 
         return table
 
-    async def upsert_record(self, snap_db: str, record: Record) -> Record:
+    async def upsert_record(self, wbs_db: str, record: types.Record) -> types.Record:
         """Insert a record.
 
         Update if it already exists.
         """
-        logging.debug(f"Upserting {record} ({snap_db=})...")
+        logging.debug(f"Upserting {record} ({wbs_db=})...")
 
-        await self._check_database_state(snap_db)
+        await self._check_database_state(wbs_db)
 
-        record = self._mongofy_record(record)
-        coll_obj = self._client[snap_db][_LIVE_COLLECTION]
+        record = self._mongofy_record(wbs_db, record)
+        coll_obj = self._client[wbs_db][_LIVE_COLLECTION]
 
         # if record has an ID -- replace it
         if record.get(tc.ID):
             res = await coll_obj.replace_one({tc.ID: record[tc.ID]}, record)
-            logging.info(f"Updated {record} ({snap_db=}).")
+            logging.info(f"Updated {record} ({wbs_db=}).")
         # otherwise -- create it
         else:
             record.pop(tc.ID)
             res = await coll_obj.insert_one(record)
             record[tc.ID] = res.inserted_id
-            logging.info(f"Inserted {record} ({snap_db=}).")
+            logging.info(f"Inserted {record} ({wbs_db=}).")
 
         return self._demongofy_record(record)
 
     async def _set_is_deleted_status(
-        self, snap_db: str, record_id: str, is_deleted: bool
-    ) -> Record:
+        self, wbs_db: str, record_id: str, is_deleted: bool
+    ) -> types.Record:
         """Mark the record as deleted/not-deleted."""
-        query = self._mongofy_record({tc.ID: record_id})
-        record: Record = await self._client[snap_db][_LIVE_COLLECTION].find_one(query)
+        query = self._mongofy_record(wbs_db, {tc.ID: record_id})
+        record: types.Record = await self._client[wbs_db][_LIVE_COLLECTION].find_one(
+            query
+        )
 
         record.update({IS_DELETED: is_deleted})
-        record = await self.upsert_record(snap_db, record)
+        record = await self.upsert_record(wbs_db, record)
 
         return record
 
-    async def delete_record(self, snap_db: str, record_id: str) -> Record:
+    async def delete_record(self, wbs_db: str, record_id: str) -> types.Record:
         """Mark the record as deleted."""
-        logging.debug(f"Deleting {record_id} ({snap_db=})...")
+        logging.debug(f"Deleting {record_id} ({wbs_db=})...")
 
-        await self._check_database_state(snap_db)
+        await self._check_database_state(wbs_db)
 
-        record = await self._set_is_deleted_status(snap_db, record_id, True)
+        record = await self._set_is_deleted_status(wbs_db, record_id, True)
 
-        logging.info(f"Deleted {record} ({snap_db=}).")
+        logging.info(f"Deleted {record} ({wbs_db=}).")
         return record
 
     async def snapshot_live_collection(
-        self, snap_db: str, name: str, creator: str
+        self, wbs_db: str, name: str, creator: str
     ) -> str:
         """Create a snapshot collection by copying the live collection."""
-        logging.debug(f"Snapshotting ({snap_db=}, {creator=})...")
+        logging.debug(f"Snapshotting ({wbs_db=}, {creator=})...")
 
-        await self._check_database_state(snap_db)
+        await self._check_database_state(wbs_db)
 
-        table = await self.get_table(snap_db, _LIVE_COLLECTION)
-        supplemental_doc = await self._get_supplemental_doc(snap_db, _LIVE_COLLECTION)
+        table = await self.get_table(wbs_db, _LIVE_COLLECTION)
+        supplemental_doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
 
         snap_coll = str(time.time())
         await self._ingest_new_collection(
-            snap_db,
+            wbs_db,
             snap_coll,
             table,
             name,
@@ -501,30 +521,30 @@ class MoUMotorClient:
             supplemental_doc["snapshot_institution_values"],
         )
 
-        logging.info(f"Snapshotted {snap_coll} ({snap_db=}, {creator=}).")
+        logging.info(f"Snapshotted {snap_coll} ({wbs_db=}, {creator=}).")
         return snap_coll
 
-    async def list_snapshot_timestamps(self, snap_db: str) -> List[str]:
+    async def list_snapshot_timestamps(self, wbs_db: str) -> List[str]:
         """Return a list of the snapshot collections."""
-        logging.info(f"Getting Snapshot Timestamps ({snap_db=})...")
+        logging.info(f"Getting Snapshot Timestamps ({wbs_db=})...")
 
-        await self._check_database_state(snap_db)
+        await self._check_database_state(wbs_db)
 
         snapshots = [
             c
-            for c in await self._list_collection_names(snap_db)
+            for c in await self._list_collection_names(wbs_db)
             if c != _LIVE_COLLECTION
         ]
 
-        logging.debug(f"Snapshot Timestamps {snapshots} ({snap_db=}).")
+        logging.debug(f"Snapshot Timestamps {snapshots} ({wbs_db=}).")
         return snapshots
 
-    async def restore_record(self, snap_db: str, record_id: str) -> None:
+    async def restore_record(self, wbs_db: str, record_id: str) -> None:
         """Mark the record as not deleted."""
-        logging.debug(f"Restoring {record_id} ({snap_db=})...")
+        logging.debug(f"Restoring {record_id} ({wbs_db=})...")
 
-        await self._check_database_state(snap_db)
+        await self._check_database_state(wbs_db)
 
-        record = await self._set_is_deleted_status(snap_db, record_id, False)
+        record = await self._set_is_deleted_status(wbs_db, record_id, False)
 
-        logging.info(f"Restored {record} ({snap_db=}).")
+        logging.info(f"Restored {record} ({wbs_db=}).")

@@ -11,10 +11,11 @@ from rest_tools.client.json_util import json_decode  # type: ignore
 from rest_tools.server import handler, RestHandler  # type: ignore
 
 from . import table_config as tc
-from .config import AUTH_PREFIX, WBS_L1_VALUES
+from . import wbs
+from .config import AUTH_PREFIX
 from .utils import db_utils, types, utils
 
-_WBS_L1_REGEX_VALUES = "|".join(WBS_L1_VALUES)
+_WBS_L1_REGEX_VALUES = "|".join(wbs.WBS_L1_VALUES)
 
 
 # -----------------------------------------------------------------------------
@@ -175,7 +176,9 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
             utils.add_on_the_fly_fields(record)
         if total_rows:
             table.extend(
-                utils.get_total_rows(table, only_totals_w_data=labor or institution)
+                utils.get_total_rows(
+                    wbs_l1, table, only_totals_w_data=labor or institution
+                )
             )
 
         # sort
@@ -226,6 +229,8 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
             record[tc.INSTITUTION] = inst  # insert
         if labor := self.get_argument("labor", default=None):
             record[tc.LABOR_CAT] = labor  # insert
+        if task := self.get_argument("task", default=None):
+            record[tc.TASK_DESCRIPTION] = task  # insert
 
         record = utils.remove_on_the_fly_fields(record)
         record = await self.dbms.upsert_record(wbs_l1, record)
@@ -253,22 +258,24 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
-        # TODO: (goal) store timestamp and duration to cache most recent version from Smartsheet in DB
-
         self.write(
             {
-                "columns": tc.get_columns(),
-                "simple_dropdown_menus": tc.get_simple_dropdown_menus(),
-                "institutions": tc.get_institutions_and_abbrevs(),
-                "labor_categories": tc.get_labor_cats(),
-                "conditional_dropdown_menus": tc.get_conditional_dropdown_menus(),
-                "dropdowns": tc.get_dropdowns(),
-                "numerics": tc.get_numerics(),
-                "non_editables": tc.get_non_editables(),
-                "hiddens": tc.get_hiddens(),
-                "widths": tc.get_widths(),
-                "border_left_columns": tc.get_border_left_columns(),
-                "page_size": tc.get_page_size(),
+                l1: {
+                    "columns": tc.get_columns(),
+                    "simple_dropdown_menus": tc.get_simple_dropdown_menus(l1),
+                    "institutions": tc.get_institutions_and_abbrevs(),
+                    "labor_categories": tc.get_labor_cats(),
+                    "conditional_dropdown_menus": tc.get_conditional_dropdown_menus(l1),
+                    "dropdowns": tc.get_dropdowns(l1),
+                    "numerics": tc.get_numerics(),
+                    "non_editables": tc.get_non_editables(),
+                    "hiddens": tc.get_hiddens(),
+                    "tooltips": tc.get_tooltips(),
+                    "widths": tc.get_widths(),
+                    "border_left_columns": tc.get_border_left_columns(),
+                    "page_size": tc.get_page_size(),
+                }
+                for l1 in wbs.WBS_L1_VALUES
             }
         )
 
@@ -341,17 +348,17 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
         institution = self.get_argument("institution")
-        phds_authors = self.get_argument("phds_authors", type_=int)
-        faculty = self.get_argument("faculty", type_=int)
-        scientists_post_docs = self.get_argument("scientists_post_docs", type_=int)
-        grad_students = self.get_argument("grad_students", type_=int)
-        text = self.get_argument("text")
+        phds = self.get_argument("phds_authors", type_=int, default=-1)
+        faculty = self.get_argument("faculty", type_=int, default=-1)
+        sci = self.get_argument("scientists_post_docs", type_=int, default=-1)
+        grad = self.get_argument("grad_students", type_=int, default=-1)
+        text = self.get_argument("text", default="")
 
         vals: types.InstitutionValues = {
-            "phds_authors": phds_authors,
-            "faculty": faculty,
-            "scientists_post_docs": scientists_post_docs,
-            "grad_students": grad_students,
+            "phds_authors": phds if phds > 0 else None,
+            "faculty": faculty if faculty > 0 else None,
+            "scientists_post_docs": sci if sci > 0 else None,
+            "grad_students": grad if grad > 0 else None,
             "text": text,
         }
 

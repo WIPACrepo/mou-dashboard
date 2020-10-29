@@ -1,18 +1,61 @@
 /* Custom & Overriding CSS */
 
 
+/*------------------------------------------------------------------------------------*/
+/* General/Misc. */
+
 body {
     background-color: black !important;
 }
-
-
-/*------------------------------------------------------------------------------------*/
-/* General/Misc. */
 
 .caps {
     text-transform: uppercase;
     letter-spacing: .075em;
     font: 12px Arial;
+}
+
+.section-header {
+    text-transform: uppercase !important;
+    letter-spacing: .075em !important;
+    font: 15px Arial !important;
+    font-weight: bold !important;
+    font-style: italic !important;
+    overflow: hidden;
+    color: #5a5a5a;
+    margin-bottom: 2rem;
+    margin-top: 3rem;
+}
+
+.section-header:after {
+    content: "";
+    display: inline-block;
+    height: 0.955rem;
+    vertical-align: bottom;
+    width: 100%;
+    margin-right: -100%;
+    margin-left: 0.5rem;
+    border-top: 0.16rem solid #5a5a5a;
+}
+
+.section-header:before {
+    content: "";
+    display: inline-block;
+    height: 0.955rem;
+    vertical-align: bottom;
+    width: 2rem;
+    margin-right: 0.5rem;
+    border-top: 0.16rem solid #5a5a5a;
+}
+
+.last-updated-label {
+    font-style: italic;
+    font-size: 14px;
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 0 !important;
 }
 
 
@@ -33,6 +76,11 @@ body {
     background-color: whitesmoke;
 }
 
+.footer {
+    height: 3rem;
+    background-color: black;
+}
+
 
 /*------------------------------------------------------------------------------------*/
 /* Site Title */
@@ -44,10 +92,12 @@ body {
     margin: 0;
 }
 
-.title-container {
+.logo-container {
     flex-basis: 65%;
-    padding-left: 40%;
+    padding-right: 3.5rem;
+    justify-content: flex-end;
     margin: 0;
+    user-select: none;
 }
 
 .login-container {
@@ -80,7 +130,7 @@ body {
     font-style: italic;
 }
 
-.mou-title {
+.logo-mou {
     font-family: Sarpanch, sans-serif;
     font-weight: bold;
     font-size: 70px;
@@ -90,7 +140,7 @@ body {
     align-self: flex-end;
 }
 
-.dashboard-title {
+.logo-dashboard {
     font-weight: bold;
     font-family: Arial;
     text-transform: uppercase;
@@ -103,7 +153,7 @@ body {
     height: 3.75rem;
 }
 
-.dash-title {
+.logo-dash {
     color: black;
     background-color: silver;
     border-top: 2.5px solid silver;
@@ -115,7 +165,7 @@ body {
     margin-left: 0.5rem;
 }
 
-.board-title {
+.logo-board {
     color: silver;
     border-top: 2.5px solid silver;
     border-top-right-radius: .6rem;
@@ -167,25 +217,73 @@ body {
 
 
 /*------------------------------------------------------------------------------------*/
-/* Institution Value */
+/* Snapshot Info */
 
-
-.institution-fields-counts-container {
-    margin-left: 10rem;
-    margin-right: 10rem;
+.make-snapshot {
     display: flex;
     justify-content: center;
-    padding: 0 !important;
 }
 
-.institution-fields-headcount {
-    margin: 1rem;
-    max-width: 16.3rem !important;
+
+/*------------------------------------------------------------------------------------*/
+/* Large Dropdown Styles & Institution Fields */
+
+.large-dropdown-container {
+    display: flex;
+    justify-content: center;
+}
+
+.large-dropdown {
+    text-align: center;
+    font-size: 1.9rem;
+}
+
+.large-dropdown > .Select-control {
+    height: 4rem;
+    border: 0;
     padding: 0;
+    background-color: transparent;
 }
 
-.institution-fields-headcount-input {
+.large-dropdown > .Select-control > .Select-multi-value-wrapper > * {
+    padding: 0 !important;
+    padding-top: 0.25rem !important;
+    line-height: 2 !important;
+}
+
+.large-dropdown > .Select-control > .Select-arrow-zone {
+    visibility: hidden;
+}
+
+.large-dropdown > .Select-control > .Select-multi-value-wrapper > .Select-placeholder,
+.large-dropdown > .Select-control > .Select-multi-value-wrapper > .Select-value > * {
+    color: black !important;
+}
+
+.snapshot-dropdown > .Select-control > .Select-multi-value-wrapper > .Select-value > .Select-value-label {
+    color: #5a5a5a !important;
+}
+
+.institution-headcounts-inner-container {
+    margin-top: 2rem;
+    margin-left: 10rem;
+    margin-right: 10rem;
+}
+
+.institution-headcount {
+    margin-left: 1rem;
+    margin-right: 1rem;
+    max-width: 16.3rem !important;
+}
+
+.institution-headcount-input {
     max-width: inherit;
+}
+
+.institution-text-area {
+    width: 100%;
+    height: 30rem;
+    padding-bottom: 0;
 }
 
 
@@ -194,6 +292,73 @@ body {
 
 .Select-control {
     border-radius: .25rem;
+}
+
+.Select.is-disabled > .Select-control {
+    background-color: whitesmoke !important;
+}
+
+.is-disabled > .Select-control > .Select-arrow-zone {
+    /* Remove dropdown arrow from disabled dropdowns */
+    visibility: hidden;
+}
+
+
+/*------------------------------------------------------------------------------------*/
+/* Table Tools */
+
+.wbs-table-top-toolbar {
+    height: 38px;
+    margin-right: 26rem;
+}
+
+.wbs-table-bottom-toolbar {
+    height: 38px;
+    margin-top: 1rem;
+}
+
+.table-tool-large, .table-tool-large > .Select-control {
+    height: 38px;
+    width: 27rem;
+    margin-right: 1rem;
+    padding: 0 !important;
+}
+
+.table-tool-medium {
+    height: 38px;
+    width: 18rem;
+    margin-right: 1rem;
+    padding: 0 !important;
+}
+
+.table-tool-small {
+    height: 38px;
+    width: 9rem;
+    margin-right: 1rem;
+    padding: 0 !important;
+}
+
+.dash-tooltip {
+    margin-top: 0.25rem !important;
+}
+
+.dash-tooltip > * {
+    border-radius: .25rem !important;
+    text-align: center !important;
+    background-color: #5a5a5a !important;
+    opacity: 0.95 !important;
+}
+
+.dash-tooltip:before, .dash-tooltip:after {
+    border-bottom-color: rgba(90, 90, 90, .77) !important; /*#5a5a5a*/
+}
+
+.dash-table-tooltip {
+    max-width: 20rem !important;
+    min-width: 10rem !important;
+    font-size: 1.3rem !important;
+    color: whitesmoke !important;
+    letter-spacing: .05em;
 }
 
 
@@ -217,19 +382,15 @@ body {
     padding-left: 1.5em;
 }
 
-
-/*------------------------------------------------------------------------------------*/
-/* Buttons above DataTable */
-
 .dash-spreadsheet-menu {
     position: relative;
     float: right;
-    margin-bottom: 0.8em;
+    margin-bottom: 1rem;
+    margin-top: -38px;
 }
 
 .dash-spreadsheet-menu > * {
-    padding-right: 0px !important;
-    margin-left: 0.7em !important;
+    padding: 0 !important;
 }
 
 .export, .show-hide { /* copy btn btn-outline-secondary */
@@ -238,10 +399,22 @@ body {
     display: inline-block;
     font-weight: 400;
     font-size: 1rem;
-    padding: .375rem 2rem;
     line-height: 1.5;
     transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
     border-radius: .25rem;
+
+    height: 38px;
+    margin: 0;
+    margin-left: 1rem;
+    padding: 0 !important;
+}
+
+.export {
+    width: 9rem;
+}
+
+.show-hide {
+    width: 18rem;
 }
 
 .export:hover, .show-hide:hover { /* copy btn btn-outline-secondary */
@@ -343,39 +516,4 @@ body {
     --accent: #17a2b8 !important;
     --selected-background: #17a2b8 !important;
     --selected-color: #17a2b8 !important;
-}
-
-
-/*------------------------------------------------------------------------------------*/
-/* Snapshots Modal */
-
-.snapshots label {
-    height: 40px;
-    border-radius: .25rem;
-    text-align: center;
-    line-height: 2.75;
-}
-
-.snapshots label:hover {
-    color: whitesmoke;
-    background-color: #5a5a5a;
-    border-color: #5a5a5a;
-}
-
-.snapshots input {
-    visibility: hidden;
-    height: 0;
-    width: 0;
-}
-
-.snapshots input[type='radio']:checked {
-    visibility: visible;
-    height: 10px;
-    width: 10px;
-    margin-right: 10px;
-}
-
-.footer {
-    height: 3rem;
-    background-color: black;
 }

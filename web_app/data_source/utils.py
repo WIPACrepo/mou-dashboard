@@ -1,8 +1,9 @@
 """Utilities for MoU REST interfaces."""
 
 
+import copy
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Final
 
 import requests
 
@@ -29,14 +30,23 @@ def _rest_connection() -> RestClient:
     return rc
 
 
-def mou_request(
-    method: str, url: str, body: Any = None, wbs_l1: str = ""
-) -> Dict[str, Any]:
-    """Make a request to the MoU REST server."""
-    if wbs_l1:
-        url = f"{url}/{wbs_l1}"
+def _get_log_body(method: str, url: str, body: Any) -> str:
+    log_body = body
 
-    logging.info(f"REQUEST :: {method} @ {url}, body: {body}")
+    if method == "POST" and url.startswith("/table/data/"):
+        log_body = copy.deepcopy(body)
+        length: Final[int] = 10
+        b64 = log_body["base64_file"]
+        omitted = len(b64) - length
+        log_body["base64_file"] = f"{b64[:length]}... ({omitted} chars omitted)"
+
+    return str(log_body)
+
+
+def mou_request(method: str, url: str, body: Any = None) -> Dict[str, Any]:
+    """Make a request to the MoU REST server."""
+    log_body = _get_log_body(method, url, body)
+    logging.info(f"REQUEST :: {method} @ {url}, body: {log_body}")
 
     try:
         response: Dict[str, Any] = _rest_connection().request_seq(method, url, body)
@@ -51,7 +61,7 @@ def mou_request(
             return val.keys()
         return val
 
-    logging.info(f"RESPONSE ({method} @ {url}, body: {body}) ::")
+    logging.info(f"RESPONSE ({method} @ {url}, body: {log_body}) ::")
     for key, val in response.items():
         logging.info(f"> {key}")
         logging.debug(f"-> {str(type(val).__name__)}")

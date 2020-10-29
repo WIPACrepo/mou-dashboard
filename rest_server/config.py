@@ -34,8 +34,6 @@ EXCLUDE_DBS = [
 
 EXCLUDE_COLLECTIONS = ["system.indexes"]
 
-WBS_L1_VALUES = ["mo", "upgrade"]
-
 
 def log_environment(config_env: Dict[str, Any]) -> None:
     """Log the environment variables."""
