@@ -9,12 +9,14 @@ import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore
 import dash_html_components as html  # type: ignore
 import visdcc  # type: ignore[import]
+from dash import no_update  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore
 from flask_login import current_user, login_user, logout_user  # type: ignore[import]
 
 from .config import app
 from .tabs import wbs_generic_layout
 from .utils import dash_utils as du
+from .utils import types
 from .utils.login import User
 
 
@@ -30,12 +32,7 @@ def layout() -> None:
             visdcc.Run_js("refresh-for-snapshot-make"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-override-success"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-snapshot-change"),  # pylint: disable=E1101
-            visdcc.Run_js("refresh-for-login-logout"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-institution-change"),  # pylint: disable=E1101
-            #
-            # Location Triggers (To Refresh Page)
-            # dcc.Location(id="url-1", refresh=True),
-            # dcc.Location(id="url-2", refresh=True),
             #
             # Logo & Login
             dbc.Row(
@@ -153,7 +150,7 @@ def layout() -> None:
 
 
 @app.callback(
-    Output("wbs-view-live-btn", "n_clicks"),
+    Output("wbs-view-live-btn", "n_clicks"),  # update to call view_live_table()
     [Input("wbs-current-l1", "value")],  # user-only
     prevent_initial_call=True,
 )  # type: ignore
@@ -168,25 +165,25 @@ def pick_tab(wbs_l1: str) -> int:
 
 
 def _logged_in_return(
-    refresh: bool = True,
+    select_institution: bool = True,
 ) -> Tuple[bool, bool, bool, bool, str, str, str]:
     if current_user.is_admin:
         user_label = f"{current_user.name} (Admin)"
     else:
         user_label = f"{current_user.name} ({current_user.institution})"
 
-    if refresh:
-        return False, False, True, False, user_label, "", "location.reload();"
-    return False, False, True, False, user_label, "", ""
+    if select_institution:
+        return False, False, True, False, user_label, "", current_user.institution
+    return False, False, True, False, user_label, "", no_update
 
 
 def _logged_out_return(
-    refresh: bool = True,
+    select_institution: bool = True,
 ) -> Tuple[bool, bool, bool, bool, str, str, str]:
 
-    if refresh:
-        return False, False, False, True, "", "", "location.reload();"
-    return False, False, False, True, "", "", ""
+    if select_institution:
+        return False, False, False, True, "", "", ""
+    return False, False, False, True, "", "", no_update
 
 
 @app.callback(  # type: ignore[misc]
@@ -197,7 +194,7 @@ def _logged_out_return(
         Output("logout-div", "hidden"),
         Output("logged-in-user", "children"),
         Output("login-password", "value"),
-        Output("refresh-for-login-logout", "run"),
+        Output("wbs-login-institution", "data"),  # update to call pick_institution()
     ],
     [
         Input("login-button", "n_clicks"),  # user-only
@@ -209,12 +206,12 @@ def _logged_out_return(
 )
 def login(
     _: int, __: int, ___: int, ____: int, email: str, pwd: str,
-) -> Tuple[bool, bool, bool, bool, str, str, str]:
+) -> Tuple[bool, bool, bool, bool, str, str, types.DashVal]:
     """Log the institution leader in/out."""
     logging.warning(f"'{du.triggered_id()}' -> login()")
 
-    open_login_modal = (True, False, False, True, "", "", "")
-    bad_login = (True, True, False, True, "", "", "")
+    open_login_modal = (True, False, False, True, "", "", no_update)
+    bad_login = (True, True, False, True, "", "", no_update)
 
     if du.triggered_id() == "login-launch":
         assert not current_user.is_authenticated
@@ -236,9 +233,9 @@ def login(
     if du.triggered_id() == "":
         if current_user.is_authenticated:
             logging.warning(f"User already logged in {current_user}.")
-            return _logged_in_return(refresh=False)
+            return _logged_in_return(select_institution=False)
         # Initial Call w/o Stored Login
         logging.warning("User not already logged in.")
-        return _logged_out_return(refresh=False)
+        return _logged_out_return(select_institution=False)
 
     raise Exception(f"Unaccounted for trigger: {du.triggered_id()}")

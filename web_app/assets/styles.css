@@ -94,7 +94,8 @@ body {
 
 .logo-container {
     flex-basis: 65%;
-    padding-left: 40%;
+    padding-right: 3.5rem;
+    justify-content: flex-end;
     margin: 0;
     user-select: none;
 }

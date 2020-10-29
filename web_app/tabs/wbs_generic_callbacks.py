@@ -98,7 +98,7 @@ def _add_new_data(  # pylint: disable=R0913
     ],
     [
         State("wbs-new-data-modal-task", "value"),
-        State("wbs-current-institution", "value"),
+        State("wbs-institution-source-of-truth", "data"),
         State("wbs-filter-labor", "value"),
     ],
     prevent_initial_call=True,
@@ -143,7 +143,7 @@ def handle_add_new_data(
     ],
     [
         Input("wbs-data-table", "columns"),  # setup_table()-only
-        Input("wbs-filter-labor", "value"),  # user/setup_institution_components()
+        Input("wbs-filter-labor", "value"),  # user
         Input("wbs-show-totals-button", "n_clicks"),  # user-only
         Input("wbs-new-data-modal-dummy-add", "n_clicks"),  # handle_add_new_data()-only
         Input("wbs-undo-last-delete", "n_clicks"),  # user-only
@@ -156,7 +156,7 @@ def handle_add_new_data(
         State("wbs-last-deleted-id", "data"),
         State("wbs-table-config-cache", "data"),
         State("wbs-new-data-modal-task", "value"),
-        State("wbs-current-institution", "value"),
+        State("wbs-institution-source-of-truth", "data"),
         State("wbs-table-update-flag-exterior-control", "data"),
     ],
     prevent_initial_call=True,  # must wait for columns
@@ -503,7 +503,7 @@ def setup_table(
 
 
 @app.callback(  # type: ignore[misc]
-    Output("wbs-current-snapshot-ts", "value"),
+    Output("wbs-current-snapshot-ts", "value"),  # update to call pick_snapshot()
     [Input("wbs-view-live-btn", "n_clicks")],  # user/pick_tab()
     prevent_initial_call=True,
 )
@@ -649,15 +649,15 @@ def handle_make_snapshot(
         Output("wbs-h2-inst-textarea", "children"),
         Output("institution-headcounts-container", "hidden"),
         Output("institution-textarea-container", "hidden"),
-        Output("wbs-current-institution", "value"),
-        Output("wbs-current-institution", "options"),
+        Output("wbs-dropdown-institution", "value"),
+        Output("wbs-dropdown-institution", "options"),
         Output("wbs-filter-labor", "options"),
     ],
     [Input("dummy-input-for-setup", "hidden")],  # never triggered
     [
         State("wbs-current-l1", "value"),
         State("wbs-current-snapshot-ts", "value"),
-        State("wbs-institution-cache-between-refreshes", "data"),
+        State("wbs-institution-source-of-truth", "data"),
         State("wbs-table-config-cache", "data"),
     ],
 )
@@ -690,10 +690,6 @@ def setup_institution_components(
     assert not du.triggered_id()  # Guarantee this is the initial call
 
     h2_sow_table = "Collaboration-Wide SOW Table"
-
-    # auto-select institution if the user is a non-admin
-    if current_user.is_authenticated and not current_user.is_admin:
-        cached_inst = current_user.institution
 
     tconfig = tc.TableConfigParser(wbs_l1, cache=state_tconfig_cache)
     inst_options = [
@@ -753,22 +749,28 @@ def setup_institution_components(
 @app.callback(  # type: ignore[misc]
     [
         Output("refresh-for-institution-change", "run"),
-        Output("wbs-institution-dropdown-first-time-flag", "data"),
-        Output("wbs-institution-cache-between-refreshes", "data"),
+        Output("pick-institution-first-call-flag", "data"),
+        Output("wbs-institution-source-of-truth", "data"),
     ],
-    [Input("wbs-current-institution", "value")],  # user/setup_institution_components()
-    [State("wbs-institution-dropdown-first-time-flag", "data")],
+    [
+        Input("wbs-dropdown-institution", "value"),  # user/setup_institution_components
+        Input("wbs-login-institution", "data"),  # login()-only
+    ],
+    [State("pick-institution-first-call-flag", "data")],
     prevent_initial_call=True,
 )
 def pick_institution(
-    institution: types.DashVal, first_time: bool
+    institution: types.DashVal, user_institution: types.DashVal, first_call: bool
 ) -> Tuple[str, bool, types.DashVal]:
     """Refresh if the user selected an institution."""
     logging.warning(
-        f"'{du.triggered_id()}' -> pick_institution() ({first_time=} {institution=})"
+        f"'{du.triggered_id()}' -> pick_institution() ({first_call=} {institution=} {user_institution=})"
     )
 
-    if first_time:
+    if user_institution:
+        institution = user_institution
+
+    if first_call:
         return "", False, institution
 
     return "location.reload();", False, institution
@@ -789,7 +791,7 @@ def pick_institution(
     ],
     [
         State("wbs-current-l1", "value"),
-        State("wbs-current-institution", "value"),
+        State("wbs-institution-source-of-truth", "data"),
         State("wbs-current-snapshot-ts", "value"),
         State("wbs-data-table", "data"),
         State("wbs-institution-values-first-time-flag", "data"),
@@ -858,7 +860,7 @@ def push_institution_values(  # pylint: disable=R0913
         Output("wbs-new-data-div-1", "hidden"),
         Output("wbs-new-data-div-2", "hidden"),
         Output("wbs-data-table", "row_deletable"),
-        Output("wbs-current-institution", "disabled"),
+        Output("wbs-dropdown-institution", "disabled"),
         Output("wbs-admin-zone-div", "hidden"),
         Output("wbs-phds-authors", "disabled"),
         Output("wbs-faculty", "disabled"),

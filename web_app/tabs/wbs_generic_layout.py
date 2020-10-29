@@ -87,7 +87,7 @@ def layout() -> html.Div:
                 className="large-dropdown-container",
                 children=[
                     dcc.Dropdown(
-                        id="wbs-current-institution",
+                        id="wbs-dropdown-institution",
                         className="large-dropdown",
                         style={"width": "75rem"},
                         placeholder="— Viewing Entire Collaboration —",
@@ -381,9 +381,7 @@ def layout() -> html.Div:
             ),
             # - for fagging whether the user's institution value has been grabbed
             dcc.Store(
-                id="wbs-institution-dropdown-first-time-flag",
-                storage_type="memory",
-                data=True,
+                id="pick-institution-first-call-flag", storage_type="memory", data=True,
             ),
             # - for fagging whether the institution values were changed
             dcc.Store(
@@ -391,10 +389,10 @@ def layout() -> html.Div:
                 storage_type="memory",
                 data=True,
             ),
-            # - for caching the institution value between (and only between) refreshes
-            dcc.Store(
-                id="wbs-institution-cache-between-refreshes", storage_type="local",
-            ),
+            # - for signaling to pick_institution() what the user's institution is to cache it
+            dcc.Store(id="wbs-login-institution", storage_type="memory", data=""),
+            # - for caching the institution value
+            dcc.Store(id="wbs-institution-source-of-truth", storage_type="local"),
             # - for storing the last deleted record's id
             dcc.Store(id="wbs-last-deleted-id", storage_type="memory"),
             # - for discerning whether the table update was by the user vs automated
