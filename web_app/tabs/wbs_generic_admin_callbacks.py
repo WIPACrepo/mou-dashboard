@@ -112,7 +112,7 @@ def handle_xlsx(  # pylint: disable=R0911
                 False,
                 [],
             )
-        return True, f'Uploaded "{filename}"', du.Color.SUCCESS, False, None, False, []
+        return True, f'Staged "{filename}"', du.Color.SUCCESS, False, None, False, []
 
     if du.triggered_id() == "wbs-upload-xlsx-override-table":
         base64_file = contents.split(",")[1]

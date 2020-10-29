@@ -51,7 +51,6 @@ class _ColumnConfigTypedDict(TypedDict, total=False):
 
 
 _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
-    ID: {"width": 0, "non_editable": True, "hidden": True},
     WBS_L2: {"width": 350, "sort_value": 70, "tooltip": "WBS Level 2 Category"},
     WBS_L3: {"width": 300, "sort_value": 60, "tooltip": "WBS Level 3 Category"},
     US_NON_US: {
@@ -146,6 +145,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "on_the_fly": True,
         "tooltip": "This is is the total of the four FTEs to the left.",
     },
+    ID: {"width": 0, "non_editable": True, "border_left": True, "hidden": True},
 }
 
 

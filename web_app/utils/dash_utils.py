@@ -338,14 +338,15 @@ def upload_modal() -> dbc.Modal:
         is_open=False,
         backdrop="static",
         children=[
-            html.Div("Override Live Table", className="caps section-header"),
+            html.Div(
+                "Override All Institutions' SOW Tables with .xlsx",
+                className="caps section-header",
+            ),
             dbc.ModalBody(
                 children=[
                     dcc.Upload(
                         id="wbs-upload-xlsx",
-                        children=html.Div(
-                            ["Drag and Drop or ", html.A("Select Files")]
-                        ),
+                        children=html.Div(["Drag and Drop or ", html.A("Select File")]),
                         style={
                             "width": "100%",
                             "height": "5rem",
@@ -383,7 +384,7 @@ def upload_modal() -> dbc.Modal:
                         color="#258835",
                         children=[
                             dbc.Button(
-                                "Override Live Table",
+                                "Override",
                                 id="wbs-upload-xlsx-override-table",
                                 n_clicks=0,
                                 outline=True,
@@ -407,11 +408,11 @@ def upload_success_modal() -> dbc.Modal:
         backdrop="static",
         centered=True,
         children=[
-            html.Div("Live Table Updated", className="caps section-header"),
+            html.Div("Table Overridden", className="caps section-header"),
             dbc.ModalBody(id="wbs-upload-success-modal-body"),
             dbc.ModalFooter(
                 dbc.Button(
-                    "View New Table",
+                    "View Updated SOWs",
                     id="wbs-upload-success-view-new-table-button",
                     n_clicks=0,
                     block=True,
@@ -431,7 +432,7 @@ def name_snapshot_modal() -> dbc.Modal:
         # backdrop="static",
         centered=True,
         children=[
-            html.Div("Make a Snapshot", className="section-header caps"),
+            html.Div("Collaboration-Wide Snapshot", className="section-header caps"),
             dbc.ModalBody(
                 dcc.Input(
                     id="wbs-name-snapshot-input",

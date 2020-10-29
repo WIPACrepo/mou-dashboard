@@ -33,7 +33,7 @@ def layout() -> html.Div:
                         style={"margin-bottom": "1.5rem", "color": "#5a5a5a"},
                     ),
                     dbc.Button(
-                        "View Live Table",
+                        "View Today's SOW",
                         id="wbs-view-live-btn",
                         n_clicks=0,
                         color=du.Color.SUCCESS,
@@ -61,7 +61,7 @@ def layout() -> html.Div:
                         id="wbs-current-snapshot-ts",
                         className="large-dropdown snapshot-dropdown",
                         style={"width": "100rem"},
-                        placeholder="— Viewing the Live Table (Last Updated YYYY-MM-DD) —",
+                        placeholder="— Statement of Work as of YYYY-MM-DD —",
                         value="",
                         disabled=False,
                         persistence=True,
@@ -70,7 +70,7 @@ def layout() -> html.Div:
                 ],
             ),
             html.Div(
-                "click above to select a snapshot",
+                "click above to select and view an archived version",
                 style={
                     "font-style": "italic",
                     "text-align": "center",
@@ -309,7 +309,7 @@ def layout() -> html.Div:
                                         id="wbs-summary-table-recalculate",
                                         n_clicks=0,
                                         block=True,
-                                        children="Recalculate Summary",
+                                        children="Recalculate Institution Summary",
                                     ),
                                 ],
                             ),
@@ -357,7 +357,7 @@ def layout() -> html.Div:
                     #
                     # Make Snapshot
                     dbc.Button(
-                        "Make Snapshot",
+                        "Make Collaboration-Wide Snapshot",
                         id="wbs-make-snapshot-button",
                         block=True,
                         n_clicks=0,
@@ -370,7 +370,7 @@ def layout() -> html.Div:
                     #
                     # Upload/Override XLSX
                     dbc.Button(
-                        "Override Live Table with .xlsx",
+                        "Override All Institutions' SOW Tables with .xlsx",
                         id="wbs-upload-xlsx-launch-modal-button",
                         block=True,
                         n_clicks=0,
