@@ -176,7 +176,9 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
             utils.add_on_the_fly_fields(record)
         if total_rows:
             table.extend(
-                utils.get_total_rows(table, only_totals_w_data=labor or institution)
+                utils.get_total_rows(
+                    wbs_l1, table, only_totals_w_data=labor or institution
+                )
             )
 
         # sort

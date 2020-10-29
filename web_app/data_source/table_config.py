@@ -5,6 +5,8 @@ from typing import cast, Dict, List, Optional, Tuple, TypedDict
 
 from .utils import mou_request
 
+_WBS_L2 = "WBS L2"
+
 
 class _WBSTableCache(TypedDict):  # pylint: disable=R0903
     """The response dict from '/table/config'."""
@@ -59,6 +61,10 @@ class TableConfigParser:  # pylint: disable=R0904
     def get_simple_column_dropdown_menu(self, wbs_l1: str, column: str) -> List[str]:
         """Get dropdown menu for a column."""
         return sorted(self._configs[wbs_l1]["simple_dropdown_menus"][column])
+
+    def get_l2_categories(self, wbs_l1: str) -> List[str]:
+        """Get dropdown menu for a column."""
+        return self.get_simple_column_dropdown_menu(wbs_l1, _WBS_L2)
 
     def get_institutions_w_abbrevs(self, wbs_l1: str) -> List[Tuple[str, str]]:
         """Get list of institutions and their abbreviations."""

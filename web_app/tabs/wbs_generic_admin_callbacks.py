@@ -1,7 +1,7 @@
 """Admin-only callbacks for a specified WBS layout."""
 
-
 import logging
+from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
@@ -153,33 +153,28 @@ def summarize(
 
     tconfig = tc.TableConfigParser(state_tconfig_cache)
 
-    columns = [
-        {"id": c, "name": c}
-        for c in [
-            "Institution",
-            "Institutional Lead",
-            "Ph.D. Authors",
-            "Faculty",
-            "Scientists / Post Docs",
-            "Ph.D. Students",
-            "WBS 2.1 Program Management",
-            "WBS 2.2 Detector Operations & Maintenance",
-            "WBS 2.3 Computing & Data Management",
-            "WBS 2.4 Data Processing & Simulation",
-            "WBS 2.5 Software",
-            "WBS 2.6 Calibration",
-            "Total",
-        ]
+    column_names = [
+        "Institution",
+        "Institutional Lead",
+        "Ph.D. Authors",
+        "Faculty",
+        "Scientists / Post Docs",
+        "Ph.D. Students",
     ]
+    column_names.extend(tconfig.get_l2_categories(wbs_l1))
+    column_names.append("Total")
+    columns = [{"id": c, "name": c, "type": "numeric"} for c in column_names]
 
     def _sum_it(_inst: str, _l2: str = "") -> float:
-        return sum(
-            float(r["FTE"])
-            for r in data_table
-            if r
-            and r["FTE"]  # skip blanks (also 0s)
-            and r["Institution"] == _inst
-            and (not _l2 or r["WBS L2"] == _l2)
+        return float(
+            sum(
+                Decimal(str(r["FTE"]))  # avoid floating point loss
+                for r in data_table
+                if r
+                and r["FTE"]  # skip blanks (also 0s)
+                and r["Institution"] == _inst
+                and (not _l2 or r["WBS L2"] == _l2)
+            )
         )
 
     summary_table: types.Table = []
@@ -187,30 +182,21 @@ def summarize(
         phds, faculty, sci, grad, __ = src.pull_institution_values(
             wbs_l1, state_snap_current_ts, abbrev
         )
-        # TODO -- get rid of hard-coding
-        summary_table.append(
-            {
-                "Institution": inst_full,
-                "Ph.D. Authors": phds if phds else 0,
-                "Faculty": faculty if faculty else 0,
-                "Scientists / Post Docs": sci if sci else 0,
-                "Ph.D. Students": grad if grad else 0,
-                "WBS 2.1 Program Management": _sum_it(
-                    abbrev, "2.1 Program Coordination"
-                ),
-                "WBS 2.2 Detector Operations & Maintenance": _sum_it(
-                    abbrev, "2.2 Detector Operations & Maintenance (Online)"
-                ),
-                "WBS 2.3 Computing & Data Management": _sum_it(
-                    abbrev, "2.3 Computing & Data Management Services"
-                ),
-                "WBS 2.4 Data Processing & Simulation": _sum_it(
-                    abbrev, "2.4 Data Processing & Simulation Services"
-                ),
-                "WBS 2.5 Software": _sum_it(abbrev, "2.5 Software"),
-                "WBS 2.6 Calibration": _sum_it(abbrev, "2.6 Calibration"),
-                "Total": _sum_it(abbrev),
-            }
+
+        row: Dict[str, types.StrNum] = {
+            "Institution": inst_full,
+            "Ph.D. Authors": phds if phds else 0,
+            "Faculty": faculty if faculty else 0,
+            "Scientists / Post Docs": sci if sci else 0,
+            "Ph.D. Students": grad if grad else 0,
+        }
+
+        row.update(
+            {l2: _sum_it(abbrev, l2) for l2 in tconfig.get_l2_categories(wbs_l1)}
         )
+
+        row["Total"] = _sum_it(abbrev)
+
+        summary_table.append(row)
 
     return summary_table, columns

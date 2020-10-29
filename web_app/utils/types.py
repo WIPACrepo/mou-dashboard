@@ -29,7 +29,7 @@ assert set(DashVal.__dict__["__args__"]) == set(DashVal_types)
 
 # Dash DataTable Property types
 # NOTE: data is Table type
-TColumns = List[_StrDict]  # columns
+TColumns = List[Dict[str, object]]  # columns
 TSCCond = List[Dict[str, Collection[str]]]  # style_cell_conditional
 TSDCond = List[Dict[str, Collection[str]]]  # style_data_conditional
 TDDown = Dict[str, Dict[str, List[_StrDict]]]  # dropdown
