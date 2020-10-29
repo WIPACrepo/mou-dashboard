@@ -5,9 +5,10 @@ import base64
 import io
 import logging
 import time
-from typing import Any, cast, Coroutine, Dict, List, Optional, Tuple
+from typing import Any, cast, Coroutine, Dict, List, Tuple
 
 import pandas as pd  # type: ignore[import]
+import pymongo.errors  # type: ignore[import]
 from bson.objectid import ObjectId  # type: ignore[import]
 from motor.motor_tornado import MotorClient  # type: ignore
 from tornado import web
@@ -118,12 +119,18 @@ class MoUMotorClient:
         return record
 
     async def _create_live_collection(
-        self, wbs_db: str, table: types.Table, creator: str
+        self,
+        wbs_db: str,
+        table: types.Table,
+        creator: str,
+        all_insts_values: Dict[str, types.InstitutionValues],
     ) -> None:
         """Create the live collection."""
         logging.debug(f"Creating Live Collection ({wbs_db=})...")
 
-        await self._ingest_new_collection(wbs_db, _LIVE_COLLECTION, table, "", creator)
+        await self._ingest_new_collection(
+            wbs_db, _LIVE_COLLECTION, table, "", creator, all_insts_values
+        )
 
         logging.debug(f"Created Live Collection: ({wbs_db=}) {len(table)} records.")
 
@@ -186,7 +193,7 @@ class MoUMotorClient:
         ]
         logging.debug(f"xlsx table has {len(table)} records ({wbs_db=}).")
 
-        # snapshot, ingest, snapshot
+        # snapshot
         try:
             previous_snap = await self.snapshot_live_collection(
                 wbs_db, "State Before Table Replacement", f"{creator} (auto)"
@@ -195,7 +202,16 @@ class MoUMotorClient:
             if e.status_code != 422:
                 raise
             previous_snap = ""
-        await self._create_live_collection(wbs_db, table, creator)
+
+        # ingest
+        try:
+            doc = await self._get_supplemental_doc(wbs_db, previous_snap)
+            all_insts_values = doc["snapshot_institution_values"]
+        except (DocumentNotFoundError, pymongo.errors.InvalidName):
+            all_insts_values = dict()
+        await self._create_live_collection(wbs_db, table, creator, all_insts_values)
+
+        # snapshot
         current_snap = await self.snapshot_live_collection(
             wbs_db, f"Replacement Table ({filename})", creator
         )
@@ -329,7 +345,7 @@ class MoUMotorClient:
         snap_coll: str,
         name: str,
         creator: str,
-        all_insts_values: Optional[Dict[str, types.InstitutionValues]] = None,
+        all_insts_values: Dict[str, types.InstitutionValues],
     ) -> None:
         logging.debug(f"Creating Supplemental DB/Document ({wbs_db=}, {snap_coll=})...")
 
@@ -356,7 +372,7 @@ class MoUMotorClient:
         table: types.Table,
         name: str,
         creator: str,
-        all_insts_values: Optional[Dict[str, types.InstitutionValues]] = None,
+        all_insts_values: Dict[str, types.InstitutionValues],
     ) -> None:
         """Add table to a new collection.
 

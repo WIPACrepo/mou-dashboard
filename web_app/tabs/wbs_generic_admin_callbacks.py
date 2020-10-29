@@ -40,6 +40,12 @@ def _get_upload_success_modal_body(
     if curr_snap:
         body.append(dcc.Markdown(f"- the current table ({_pseudonym(curr_snap)})"))
 
+    body.append(
+        dcc.Markdown(
+            "Each institution's headcounts and notes were also copied forward."
+        )
+    )
+
     return body
 
 
@@ -134,7 +140,7 @@ def handle_xlsx(  # pylint: disable=R0911
         State("wbs-current-snapshot-ts", "value"),
     ],
     prevent_initial_call=True,
-)
+)  # pylint: disable=R0914
 def summarize(
     # input(s)
     _: int,
