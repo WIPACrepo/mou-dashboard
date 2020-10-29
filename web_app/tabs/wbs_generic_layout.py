@@ -131,9 +131,15 @@ def layout() -> html.Div:
                         ],
                     ),
                     #
-                    html.Div(
-                        className="last-updated-label caps",
-                        id="wbs-institution-values-last-updated-label",
+                    dcc.Loading(
+                        type="default",
+                        color="#17a2b8",
+                        children=[
+                            html.Div(
+                                className="last-updated-label caps",
+                                id="wbs-institution-values-last-updated-label",
+                            ),
+                        ],
                     ),
                 ],
             ),
@@ -213,33 +219,41 @@ def layout() -> html.Div:
             ),
             #
             # Bottom Buttons
-            dbc.Row(
-                className="wbs-table-bottom-toolbar",
-                no_gutters=True,
+            dcc.Loading(
+                type="cube",
+                color="#17a2b8",
+                fullscreen=True,
+                style={"background": "transparent"},  # float atop all
                 children=[
-                    #
-                    # New Data
-                    du.new_data_button(2),
-                    #
-                    # Show Totals
-                    dbc.Button(
-                        id="wbs-show-totals-button",
-                        n_clicks=0,
-                        className="table-tool-medium",
-                    ),
-                    #
-                    # Show All Columns
-                    dbc.Button(
-                        id="wbs-show-all-columns-button",
-                        n_clicks=0,
-                        className="table-tool-medium",
-                    ),
-                    #
-                    # Show All Rows
-                    dbc.Button(
-                        id="wbs-show-all-rows-button",
-                        n_clicks=0,
-                        className="table-tool-medium",
+                    dbc.Row(
+                        className="wbs-table-bottom-toolbar",
+                        no_gutters=True,
+                        children=[
+                            #
+                            # New Data
+                            du.new_data_button(2),
+                            #
+                            # Show Totals
+                            dbc.Button(
+                                id="wbs-show-totals-button",
+                                n_clicks=0,
+                                className="table-tool-medium",
+                            ),
+                            #
+                            # Show All Columns
+                            dbc.Button(
+                                id="wbs-show-all-columns-button",
+                                n_clicks=0,
+                                className="table-tool-medium",
+                            ),
+                            #
+                            # Show All Rows
+                            dbc.Button(
+                                id="wbs-show-all-rows-button",
+                                n_clicks=0,
+                                className="table-tool-medium",
+                            ),
+                        ],
                     ),
                 ],
             ),
@@ -247,8 +261,6 @@ def layout() -> html.Div:
             # Last Refreshed
             dcc.Loading(
                 type="default",
-                fullscreen=True,
-                style={"background": "transparent"},  # float atop all
                 color="#17a2b8",
                 children=[
                     html.Label(
@@ -285,7 +297,7 @@ def layout() -> html.Div:
                     #
                     # Summary Table
                     dcc.Loading(
-                        type="dot",
+                        type="cube",
                         color="#17a2b8",
                         fullscreen=True,
                         style={"background": "transparent"},  # float atop all
