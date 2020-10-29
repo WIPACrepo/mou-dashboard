@@ -104,7 +104,6 @@ def new_data_button(id_num: int) -> html.Div:
 
 
 def table_columns(
-    wbs_l1: str,
     tconfig: tc.TableConfigParser,
     table_editable: bool,
     is_institution_editable: bool = False,
@@ -112,19 +111,19 @@ def table_columns(
     """Grab table columns."""
 
     def _presentation(col_name: str) -> str:
-        if tconfig.is_column_dropdown(wbs_l1, col_name):
+        if tconfig.is_column_dropdown(col_name):
             return "dropdown"
         return "input"  # default
 
     def _type(col_name: str) -> str:
-        if tconfig.is_column_numeric(wbs_l1, col_name):
+        if tconfig.is_column_numeric(col_name):
             return "numeric"
         return "any"  # default
 
     def _editable(col_name: str) -> bool:
         if (not is_institution_editable) and (col_name.lower() == "institution"):
             return False
-        return table_editable and tconfig.is_column_editable(wbs_l1, col_name)
+        return table_editable and tconfig.is_column_editable(col_name)
 
     columns = [
         {
@@ -135,7 +134,7 @@ def table_columns(
             "editable": _editable(c),
             "hideable": True,
         }
-        for c in tconfig.get_table_columns(wbs_l1)
+        for c in tconfig.get_table_columns()
     ]
 
     return columns
@@ -160,15 +159,15 @@ def _style_cell_conditional_fixed_width(
     return style
 
 
-def style_cell_conditional(wbs_l1: str, tconfig: tc.TableConfigParser) -> types.TSCCond:
+def style_cell_conditional(tconfig: tc.TableConfigParser) -> types.TSCCond:
     """Get the `style_cell_conditional` list.."""
     style_cell_conditional_list = []
 
-    for col_name in tconfig.get_table_columns(wbs_l1):
+    for col_name in tconfig.get_table_columns():
         # get values
-        width = f"{tconfig.get_column_width(wbs_l1, col_name)}px"
-        border_left = tconfig.has_border_left(wbs_l1, col_name)
-        align_right = tconfig.is_column_numeric(wbs_l1, col_name)
+        width = f"{tconfig.get_column_width(col_name)}px"
+        border_left = tconfig.has_border_left(col_name)
+        align_right = tconfig.is_column_numeric(col_name)
 
         # set & add style
         fixed_width = _style_cell_conditional_fixed_width(
@@ -179,22 +178,20 @@ def style_cell_conditional(wbs_l1: str, tconfig: tc.TableConfigParser) -> types.
     return style_cell_conditional_list
 
 
-def get_table_tooltips(wbs_l1: str, tconfig: tc.TableConfigParser) -> types.TTooltips:
+def get_table_tooltips(tconfig: tc.TableConfigParser) -> types.TTooltips:
     """Set tooltips for each column."""
     return {
         col: {
             "type": "text",
-            "value": tconfig.get_column_tooltip(wbs_l1, col),
+            "value": tconfig.get_column_tooltip(col),
             "delay": 250,
             "duration": None,
         }
-        for col in tconfig.get_table_columns(wbs_l1,)
+        for col in tconfig.get_table_columns()
     }
 
 
-def get_style_data_conditional(
-    wbs_l1: str, tconfig: tc.TableConfigParser
-) -> types.TSDCond:
+def get_style_data_conditional(tconfig: tc.TableConfigParser) -> types.TSDCond:
     """Style Data..."""
     # zebra-stripe
     style_data_conditional = [
@@ -209,7 +206,7 @@ def get_style_data_conditional(
             "fontSize": "18",
             "fontStyle": "italic",
         }
-        for col in tconfig.get_non_editable_columns(wbs_l1)
+        for col in tconfig.get_non_editable_columns()
     ]
 
     # stylize changed data
@@ -224,7 +221,7 @@ def get_style_data_conditional(
             # "color": "#258835",  # doesn't color dropdown-type value
             "fontStyle": "oblique",
         }
-        for col in tconfig.get_table_columns(wbs_l1)
+        for col in tconfig.get_table_columns()
     ]
 
     # selected cell style

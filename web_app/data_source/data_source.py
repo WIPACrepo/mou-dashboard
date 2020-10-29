@@ -106,7 +106,7 @@ def _is_valid_conditional_dropdown(
 
 
 def _remove_invalid_data(
-    record: types.Record, tconfig_cache: tc.TableConfigParser.CacheType
+    record: types.Record, tconfig: tc.TableConfigParser
 ) -> types.Record:
     """Remove items whose data aren't valid."""
 
@@ -118,8 +118,6 @@ def _remove_invalid_data(
             if not tconfig.is_conditional_dropdown(k)
             or tconfig.get_conditional_column_parent(k) in record
         }
-
-    tconfig = tc.TableConfigParser(tconfig_cache)
 
     # remove blank fields
     record = {k: v for k, v in record.items() if v not in [None, ""]}
@@ -150,7 +148,7 @@ def _remove_invalid_data(
 
 
 def _convert_record_dash_to_rest(
-    record: types.Record, tconfig_cache: Optional[tc.TableConfigParser.CacheType] = None
+    record: types.Record, tconfig: Optional[tc.TableConfigParser] = None
 ) -> types.Record:
     """Convert a record from Dash's datatable to be sent to the rest server.
 
@@ -159,8 +157,8 @@ def _convert_record_dash_to_rest(
     """
     out_record = {k: v for k, v in record.items() if not _is_touchstone_column(k)}
 
-    if tconfig_cache:
-        out_record = _remove_invalid_data(out_record, tconfig_cache)
+    if tconfig:
+        out_record = _remove_invalid_data(out_record, tconfig)
 
     return out_record
 
@@ -279,7 +277,7 @@ def push_record(  # pylint: disable=R0913
     labor: types.DashVal = "",
     institution: types.DashVal = "",
     novel: bool = False,
-    tconfig_cache: Optional[tc.TableConfigParser.CacheType] = None,
+    tconfig: Optional[tc.TableConfigParser] = None,
 ) -> types.Record:
     """Push new/changed record to source.
 
@@ -301,15 +299,13 @@ def push_record(  # pylint: disable=R0913
     labor = _validate(labor, types.DashVal_types, out=str)
     institution = _validate(institution, types.DashVal_types, out=str)
     _validate(novel, bool)
-    _validate(tconfig_cache, (dict, type(None)))
+    _validate(tconfig, tc.TableConfigParser)
 
     class _RespRecord(TypedDict):
         record: types.Record
 
     # request
-    body: Dict[str, Any] = {
-        "record": _convert_record_dash_to_rest(record, tconfig_cache)
-    }
+    body: Dict[str, Any] = {"record": _convert_record_dash_to_rest(record, tconfig)}
     if institution:
         body["institution"] = institution
     if labor:

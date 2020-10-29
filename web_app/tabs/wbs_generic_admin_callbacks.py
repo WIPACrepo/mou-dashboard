@@ -151,7 +151,7 @@ def summarize(
     except DataSourceException:
         return [], []
 
-    tconfig = tc.TableConfigParser(state_tconfig_cache)
+    tconfig = tc.TableConfigParser(wbs_l1, cache=state_tconfig_cache)
 
     column_names = [
         "Institution",
@@ -161,7 +161,7 @@ def summarize(
         "Scientists / Post Docs",
         "Ph.D. Students",
     ]
-    column_names.extend(tconfig.get_l2_categories(wbs_l1))
+    column_names.extend(tconfig.get_l2_categories())
     column_names.append("Total")
     columns = [{"id": c, "name": c, "type": "numeric"} for c in column_names]
 
@@ -178,7 +178,7 @@ def summarize(
         )
 
     summary_table: types.Table = []
-    for inst_full, abbrev in tconfig.get_institutions_w_abbrevs(wbs_l1):
+    for inst_full, abbrev in tconfig.get_institutions_w_abbrevs():
         phds, faculty, sci, grad, __ = src.pull_institution_values(
             wbs_l1, state_snap_current_ts, abbrev
         )
@@ -191,9 +191,7 @@ def summarize(
             "Ph.D. Students": grad if grad else 0,
         }
 
-        row.update(
-            {l2: _sum_it(abbrev, l2) for l2 in tconfig.get_l2_categories(wbs_l1)}
-        )
+        row.update({l2: _sum_it(abbrev, l2) for l2 in tconfig.get_l2_categories()})
 
         row["Total"] = _sum_it(abbrev)
 

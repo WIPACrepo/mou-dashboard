@@ -61,7 +61,7 @@ def _add_new_data(  # pylint: disable=R0913
         dbc.Toast -- toast element with confirmation message
     """
     table = state_table
-    column_names = [c["name"] for c in state_columns]
+    column_names = [cast(str, c["name"]) for c in state_columns]
     new_record: types.Record = {n: "" for n in column_names}
 
     # push to data source AND auto-fill labor and/or institution
@@ -73,7 +73,7 @@ def _add_new_data(  # pylint: disable=R0913
             labor=labor,
             institution=institution,
             novel=True,
-            tconfig_cache=state_tconfig_cache,
+            tconfig=tc.TableConfigParser(wbs_l1, cache=state_tconfig_cache),
         )
         table.insert(0, new_record)
         message = [html.Div(s) for s in src.record_to_strings(new_record)]
@@ -259,7 +259,7 @@ def _push_modified_records(
     wbs_l1: str,
     current_table: types.Table,
     previous_table: types.Table,
-    state_tconfig_cache: tc.TableConfigParser.CacheType,
+    tconfig: tc.TableConfigParser,
 ) -> List[types.StrNum]:
     """For each row that changed, push the record to the DS."""
     modified_records = [
@@ -267,7 +267,7 @@ def _push_modified_records(
     ]
     for record in modified_records:
         try:
-            src.push_record(wbs_l1, record, tconfig_cache=state_tconfig_cache)
+            src.push_record(wbs_l1, record, tconfig=tconfig)
         except DataSourceException:
             pass
 
@@ -369,9 +369,8 @@ def table_data_interior_controls(
     assert previous_table  # should have previous table
 
     # Push (if any)
-    mod_ids = _push_modified_records(
-        wbs_l1, current_table, previous_table, state_tconfig_cache
-    )
+    tconfig = tc.TableConfigParser(wbs_l1, cache=state_tconfig_cache)
+    mod_ids = _push_modified_records(wbs_l1, current_table, previous_table, tconfig)
 
     # Delete (if any)
     toast, last_deletion, delete_success_message = _delete_deleted_records(
@@ -391,7 +390,7 @@ def table_data_interior_controls(
 
 
 def _table_columns_callback(
-    wbs_l1: str, table_editable: bool, tconfig: tc.TableConfigParser
+    table_editable: bool, tconfig: tc.TableConfigParser
 ) -> types.TColumns:
     """Grab table columns, toggle whether a column is editable.
 
@@ -403,7 +402,6 @@ def _table_columns_callback(
         is_institution_editable = True
 
     return du.table_columns(
-        wbs_l1,
         tconfig,
         table_editable=table_editable,
         is_institution_editable=is_institution_editable,
@@ -411,7 +409,7 @@ def _table_columns_callback(
 
 
 def _table_dropdown(
-    tconfig: tc.TableConfigParser, wbs_l1: str,
+    tconfig: tc.TableConfigParser,
 ) -> Tuple[types.TDDown, types.TDDownCond]:
     """Grab table dropdowns."""
     simple_dropdowns: types.TDDown = {}
@@ -420,24 +418,22 @@ def _table_dropdown(
     def _options(menu: List[str]) -> List[Dict[str, str]]:
         return [{"label": m, "value": m} for m in menu]
 
-    for col in tconfig.get_dropdown_columns(wbs_l1):
+    for col in tconfig.get_dropdown_columns():
         # Add simple dropdowns
-        if tconfig.is_simple_dropdown(wbs_l1, col):
-            dropdown = tconfig.get_simple_column_dropdown_menu(wbs_l1, col)
+        if tconfig.is_simple_dropdown(col):
+            dropdown = tconfig.get_simple_column_dropdown_menu(col)
             simple_dropdowns[col] = {"options": _options(dropdown)}
 
         # Add conditional dropdowns
-        elif tconfig.is_conditional_dropdown(wbs_l1, col):
+        elif tconfig.is_conditional_dropdown(col):
             # get parent column and its options
             (
                 parent_col,
                 parent_col_opts,
-            ) = tconfig.get_conditional_column_parent_and_options(wbs_l1, col)
+            ) = tconfig.get_conditional_column_parent_and_options(col)
             # make filter_query for each parent-column option
             for parent_opt in parent_col_opts:
-                dropdown = tconfig.get_conditional_column_dropdown_menu(
-                    wbs_l1, col, parent_opt
-                )
+                dropdown = tconfig.get_conditional_column_dropdown_menu(col, parent_opt)
                 conditional_dropdowns.append(
                     {
                         "if": {
@@ -484,13 +480,13 @@ def setup_table(
     """Set up table-related components."""
     logging.warning(f"'{du.triggered_id()}' -> setup_table()  ({wbs_l1=})")
 
-    tconfig = tc.TableConfigParser(state_tconfig_cache)
+    tconfig = tc.TableConfigParser(wbs_l1, cache=state_tconfig_cache)
 
-    style_cell_conditional = du.style_cell_conditional(wbs_l1, tconfig)
-    style_data_conditional = du.get_style_data_conditional(wbs_l1, tconfig)
-    tooltip = du.get_table_tooltips(wbs_l1, tconfig)
-    columns = _table_columns_callback(wbs_l1, table_editable, tconfig)
-    simple_dropdowns, conditional_dropdowns = _table_dropdown(tconfig, wbs_l1)
+    style_cell_conditional = du.style_cell_conditional(tconfig)
+    style_data_conditional = du.get_style_data_conditional(tconfig)
+    tooltip = du.get_table_tooltips(tconfig)
+    columns = _table_columns_callback(table_editable, tconfig)
+    simple_dropdowns, conditional_dropdowns = _table_dropdown(tconfig)
 
     return (
         style_cell_conditional,
@@ -699,14 +695,12 @@ def setup_institution_components(
     if current_user.is_authenticated and not current_user.is_admin:
         institution = current_user.institution
 
-    tconfig = tc.TableConfigParser(state_tconfig_cache)
+    tconfig = tc.TableConfigParser(wbs_l1, cache=state_tconfig_cache)
     inst_options = [
         {"label": f"{abbrev} ({name})", "value": abbrev}
-        for name, abbrev in tconfig.get_institutions_w_abbrevs(wbs_l1)
+        for name, abbrev in tconfig.get_institutions_w_abbrevs()
     ]
-    lab_options = [
-        {"label": st, "value": st} for st in tconfig.get_labor_categories(wbs_l1)
-    ]
+    lab_options = [{"label": st, "value": st} for st in tconfig.get_labor_categories()]
 
     if not institution:
         return (
@@ -950,12 +944,12 @@ def toggle_pagination(
     logging.warning(f"'{du.triggered_id()}' -> toggle_pagination()")
 
     if n_clicks % 2 == 0:
-        tconfig = tc.TableConfigParser(state_tconfig_cache)
+        tconfig = tc.TableConfigParser(wbs_l1, cache=state_tconfig_cache)
         return (
             "Show All Rows",
             du.Color.SECONDARY,
             True,
-            tconfig.get_page_size(wbs_l1),
+            tconfig.get_page_size(),
             "native",
         )
     # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
@@ -983,15 +977,15 @@ def toggle_hidden_columns(
     """Toggle hiding/showing the default hidden columns."""
     logging.warning(f"'{du.triggered_id()}' -> toggle_hidden_columns()")
 
-    tconfig = tc.TableConfigParser(state_tconfig_cache)
+    tconfig = tc.TableConfigParser(wbs_l1, cache=state_tconfig_cache)
 
     if n_clicks % 2 == 0:
         return (
             "Show Hidden Columns",
             du.Color.SECONDARY,
             True,
-            tconfig.get_hidden_columns(wbs_l1),
+            tconfig.get_hidden_columns(),
         )
 
-    always_hidden_columns = tconfig.get_always_hidden_columns(wbs_l1)
+    always_hidden_columns = tconfig.get_always_hidden_columns()
     return "Show Default Columns", du.Color.DARK, False, always_hidden_columns

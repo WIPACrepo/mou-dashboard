@@ -374,11 +374,10 @@ def layout() -> html.Div:
             #
             # Data Stores aka Cookies
             # - for caching the table config, to limit REST calls
-            # TODO - change this to limit calls on refresh
             dcc.Store(
                 id="wbs-table-config-cache",
                 storage_type="memory",
-                data=tc.TableConfigParser().get_configs(),  # get fresh table config
+                data=tc.TableConfigParser.get_configs(),  # get all tables' configs
             ),
             # - for fagging whether the user's institution value has been grabbed
             dcc.Store(
