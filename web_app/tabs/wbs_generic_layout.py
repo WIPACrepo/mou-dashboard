@@ -12,8 +12,6 @@ from ..utils import dash_utils as du
 
 def layout() -> html.Div:
     """Construct the HTML."""
-    tconfig = tc.TableConfigParser()  # get fresh table config
-
     return html.Div(
         children=[
             html.Div(id="dummy-input-for-setup", hidden=True),
@@ -93,11 +91,8 @@ def layout() -> html.Div:
                         className="large-dropdown",
                         style={"width": "75rem"},
                         placeholder="— Viewing Entire Collaboration —",
-                        options=[
-                            {"label": f"{abbrev} ({name})", "value": abbrev}
-                            for name, abbrev in tconfig.get_institutions_w_abbrevs()
-                        ],
-                        value="",
+                        # options set in callback
+                        # values set in callback
                         disabled=False,
                         persistence=True,
                     ),
@@ -157,11 +152,8 @@ def layout() -> html.Div:
                         id="wbs-filter-labor",
                         placeholder="Filter by Labor Category",
                         className="table-tool-large",
-                        options=[
-                            {"label": st, "value": st}
-                            for st in tconfig.get_labor_categories()
-                        ],
-                        value="",
+                        # options set in callback
+                        # vale set in callback
                     ),
                 ],
             ),
@@ -198,20 +190,20 @@ def layout() -> html.Div:
                     "width": "10px",
                     "maxWidth": "10px",
                 },
-                style_cell_conditional=du.style_cell_conditional(tconfig),
+                # style_cell_conditional set in callback
                 style_data={
                     "whiteSpace": "normal",
                     "height": "auto",
                     "lineHeight": "20px",
                     "wordBreak": "normal",
                 },
-                style_data_conditional=du.get_style_data_conditional(tconfig),
-                tooltip=du.get_table_tooltips(tconfig),
+                # style_data_conditional set in callback
+                # tooltip set in callback
                 # row_deletable set in callback
                 # hidden_columns set in callback
                 # page_size set in callback
                 # data set in callback
-                columns=du.table_columns(tconfig, table_editable=False),
+                # columns set in callback
                 # dropdown set in callback
                 # dropdown_conditional set in callback
                 export_format="xlsx",
@@ -384,7 +376,9 @@ def layout() -> html.Div:
             # - for caching the table config, to limit REST calls
             # TODO - change this to limit calls on refresh
             dcc.Store(
-                id="wbs-table-config-cache", storage_type="memory", data=tconfig.config,
+                id="wbs-table-config-cache",
+                storage_type="memory",
+                data=tc.TableConfigParser().get_configs(),  # get fresh table config
             ),
             # - for fagging whether the user's institution value has been grabbed
             dcc.Store(

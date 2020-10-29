@@ -78,9 +78,8 @@ def handle_xlsx(  # pylint: disable=R0911
     contents: str,
     __: int,
     ___: int,
-    # L1 value (state)
+    # state(s)
     wbs_l1: str,
-    # other state(s)
     filename: str,
 ) -> Tuple[bool, str, str, bool, dbc.Toast, bool, List[dcc.Markdown]]:
     """Manage uploading a new xlsx document as the new live table."""
@@ -141,7 +140,7 @@ def summarize(
     _: int,
     # state(s)
     wbs_l1: str,
-    state_tconfig_cache: tc.TableConfigParser.Cache,
+    state_tconfig_cache: tc.TableConfigParser.CacheType,
     state_snap_current_ts: types.DashVal,
 ) -> Tuple[types.Table, List[Dict[str, str]]]:
     """Manage uploading a new xlsx document as the new live table."""
@@ -184,15 +183,18 @@ def summarize(
         )
 
     summary_table: types.Table = []
-    for inst_full, abbrev in tconfig.get_institutions_w_abbrevs():
-        inst_info = src.pull_institution_values(wbs_l1, state_snap_current_ts, abbrev)
+    for inst_full, abbrev in tconfig.get_institutions_w_abbrevs(wbs_l1):
+        phds, faculty, sci, grad, __ = src.pull_institution_values(
+            wbs_l1, state_snap_current_ts, abbrev
+        )
+        # TODO -- get rid of hard-coding
         summary_table.append(
             {
                 "Institution": inst_full,
-                "Ph.D. Authors": inst_info["phds_authors"],
-                "Faculty": inst_info["faculty"],
-                "Scientists / Post Docs": inst_info["scientists_post_docs"],
-                "Ph.D. Students": inst_info["grad_students"],
+                "Ph.D. Authors": phds if phds else 0,
+                "Faculty": faculty if faculty else 0,
+                "Scientists / Post Docs": sci if sci else 0,
+                "Ph.D. Students": grad if grad else 0,
                 "WBS 2.1 Program Management": _sum_it(
                     abbrev, "2.1 Program Coordination"
                 ),

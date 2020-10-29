@@ -106,7 +106,7 @@ def _is_valid_conditional_dropdown(
 
 
 def _remove_invalid_data(
-    record: types.Record, tconfig_cache: tc.TableConfigParser.Cache
+    record: types.Record, tconfig_cache: tc.TableConfigParser.CacheType
 ) -> types.Record:
     """Remove items whose data aren't valid."""
 
@@ -150,7 +150,7 @@ def _remove_invalid_data(
 
 
 def _convert_record_dash_to_rest(
-    record: types.Record, tconfig_cache: Optional[tc.TableConfigParser.Cache] = None
+    record: types.Record, tconfig_cache: Optional[tc.TableConfigParser.CacheType] = None
 ) -> types.Record:
     """Convert a record from Dash's datatable to be sent to the rest server.
 
@@ -279,7 +279,7 @@ def push_record(  # pylint: disable=R0913
     labor: types.DashVal = "",
     institution: types.DashVal = "",
     novel: bool = False,
-    tconfig_cache: Optional[tc.TableConfigParser.Cache] = None,
+    tconfig_cache: Optional[tc.TableConfigParser.CacheType] = None,
 ) -> types.Record:
     """Push new/changed record to source.
 

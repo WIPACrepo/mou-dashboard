@@ -75,7 +75,7 @@ class TestPrivateDataSource:
     @staticmethod
     def test_remove_invalid_data() -> None:  # pylint: disable=R0915,R0912
         """Test _remove_invalid_data() & _convert_record_dash_to_rest()."""
-        tconfig_cache: tc.TableConfigParser.Cache = {  # type: ignore[typeddict-item]
+        tconfig_cache: tc.TableConfigParser.CacheType = {  # type: ignore[typeddict-item]
             "simple_dropdown_menus": {"Alpha": ["A1", "A2"], "Beta": []},
             "conditional_dropdown_menus": {
                 "Dish": (
@@ -336,7 +336,7 @@ class TestTableConfig:
     def test_table_config(mock_rest: Any) -> None:
         """Test TableConfig()."""
         # nonsense data, but correctly typed
-        response: tc.TableConfigParser.Cache = {
+        response: tc.TableConfigParser.CacheType = {
             "columns": ["a", "b", "c", "d"],
             "simple_dropdown_menus": {"a": ["1", "2", "3"], "c": ["4", "44", "444"]},
             "institutions": sorted([("foo", "F"), ("bar", "B")]),
@@ -368,7 +368,7 @@ class TestTableConfig:
         mock_rest.return_value.request_seq.assert_called_with(
             "GET", "/table/config", None
         )
-        assert table_config.config == response
+        assert table_config._configs == response
 
         # no-argument methods
         assert table_config.get_table_columns() == response["columns"]

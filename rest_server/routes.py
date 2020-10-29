@@ -11,10 +11,11 @@ from rest_tools.client.json_util import json_decode  # type: ignore
 from rest_tools.server import handler, RestHandler  # type: ignore
 
 from . import table_config as tc
-from .config import AUTH_PREFIX, WBS_L1_VALUES
+from . import wbs
+from .config import AUTH_PREFIX
 from .utils import db_utils, types, utils
 
-_WBS_L1_REGEX_VALUES = "|".join(WBS_L1_VALUES)
+_WBS_L1_REGEX_VALUES = "|".join(wbs.WBS_L1_VALUES)
 
 
 # -----------------------------------------------------------------------------
@@ -255,23 +256,24 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
-        # TODO: (goal) store timestamp and duration to cache most recent version from Smartsheet in DB
-
         self.write(
             {
-                "columns": tc.get_columns(),
-                "simple_dropdown_menus": tc.get_simple_dropdown_menus(),
-                "institutions": tc.get_institutions_and_abbrevs(),
-                "labor_categories": tc.get_labor_cats(),
-                "conditional_dropdown_menus": tc.get_conditional_dropdown_menus(),
-                "dropdowns": tc.get_dropdowns(),
-                "numerics": tc.get_numerics(),
-                "non_editables": tc.get_non_editables(),
-                "hiddens": tc.get_hiddens(),
-                "tooltips": tc.get_tooltips(),
-                "widths": tc.get_widths(),
-                "border_left_columns": tc.get_border_left_columns(),
-                "page_size": tc.get_page_size(),
+                l1: {
+                    "columns": tc.get_columns(),
+                    "simple_dropdown_menus": tc.get_simple_dropdown_menus(l1),
+                    "institutions": tc.get_institutions_and_abbrevs(),
+                    "labor_categories": tc.get_labor_cats(),
+                    "conditional_dropdown_menus": tc.get_conditional_dropdown_menus(l1),
+                    "dropdowns": tc.get_dropdowns(l1),
+                    "numerics": tc.get_numerics(),
+                    "non_editables": tc.get_non_editables(),
+                    "hiddens": tc.get_hiddens(),
+                    "tooltips": tc.get_tooltips(),
+                    "widths": tc.get_widths(),
+                    "border_left_columns": tc.get_border_left_columns(),
+                    "page_size": tc.get_page_size(),
+                }
+                for l1 in wbs.WBS_L1_VALUES
             }
         )
 

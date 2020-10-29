@@ -51,7 +51,7 @@ def _add_new_data(  # pylint: disable=R0913
     state_columns: types.TColumns,
     labor: types.DashVal,
     institution: types.DashVal,
-    state_tconfig_cache: tc.TableConfigParser.Cache,
+    state_tconfig_cache: tc.TableConfigParser.CacheType,
     state_new_task: str,
 ) -> Tuple[types.Table, dbc.Toast]:
     """Push new record to data source; add to table.
@@ -142,6 +142,7 @@ def handle_add_new_data(
         Output("wbs-table-update-flag-exterior-control", "data"),
     ],
     [
+        Input("wbs-data-table", "columns"),  # setup_table()-only
         Input("wbs-filter-labor", "value"),  # user/setup_institution_components()
         Input("wbs-show-totals-button", "n_clicks"),  # user-only
         Input("wbs-new-data-modal-dummy-add", "n_clicks"),  # handle_add_new_data()-only
@@ -151,7 +152,6 @@ def handle_add_new_data(
         State("wbs-current-l1", "value"),
         State("wbs-current-snapshot-ts", "value"),
         State("wbs-data-table", "data"),
-        State("wbs-data-table", "columns"),
         State("wbs-show-all-columns-button", "n_clicks"),
         State("wbs-last-deleted-id", "data"),
         State("wbs-table-config-cache", "data"),
@@ -159,23 +159,22 @@ def handle_add_new_data(
         State("wbs-current-institution", "value"),
         State("wbs-table-update-flag-exterior-control", "data"),
     ],
-    prevent_initial_call=True,  # must wait for "wbs-current-institution-dummy"
+    prevent_initial_call=True,  # must wait for columns
 )  # pylint: disable=R0913,R0914
 def table_data_exterior_controls(
     # input(s)
+    columns: types.TColumns,
     labor: types.DashVal,
     tot_n_clicks: int,
     _: int,
     __: int,
-    # L1 (state)
-    wbs_l1: str,
     # state(s)
+    wbs_l1: str,
     state_snapshot_ts: types.DashVal,
     state_table: types.Table,
-    state_columns: types.TColumns,
     state_all_cols: int,
     state_deleted_id: str,
-    state_tconfig_cache: tc.TableConfigParser.Cache,
+    state_tconfig_cache: tc.TableConfigParser.CacheType,
     state_new_task: str,
     state_institution: types.DashVal,
     s_flag_extctrl: bool,
@@ -191,6 +190,8 @@ def table_data_exterior_controls(
         f"Snapshot: {state_snapshot_ts=} {'' if state_snapshot_ts else '(Live Collection)'}"
     )
 
+    assert columns
+
     table: types.Table = []
     toast: dbc.Toast = None
 
@@ -205,7 +206,7 @@ def table_data_exterior_controls(
             table, toast = _add_new_data(
                 wbs_l1,
                 state_table,
-                state_columns,
+                columns,
                 labor,
                 state_institution,
                 state_tconfig_cache,
@@ -258,7 +259,7 @@ def _push_modified_records(
     wbs_l1: str,
     current_table: types.Table,
     previous_table: types.Table,
-    state_tconfig_cache: tc.TableConfigParser.Cache,
+    state_tconfig_cache: tc.TableConfigParser.CacheType,
 ) -> List[types.StrNum]:
     """For each row that changed, push the record to the DS."""
     modified_records = [
@@ -338,11 +339,10 @@ def _delete_deleted_records(
 def table_data_interior_controls(
     # input(s)
     current_table: types.Table,
-    # L1 value (state)
-    wbs_l1: str,
     # state(s)
+    wbs_l1: str,
     previous_table: types.Table,
-    state_tconfig_cache: tc.TableConfigParser.Cache,
+    state_tconfig_cache: tc.TableConfigParser.CacheType,
     state_snap_current_ts: types.DashVal,
     s_flag_extctrl: bool,
     s_flag_intctrl: bool,
@@ -390,76 +390,54 @@ def table_data_interior_controls(
     )
 
 
-@app.callback(  # type: ignore[misc]
-    Output("wbs-data-table", "columns"),
-    [Input("wbs-data-table", "editable")],  # setup_user_dependent_components()-only
-    [State("wbs-table-config-cache", "data")],
-    prevent_initial_call=True,
-)
-def table_columns_callback(
-    # input(s)
-    table_editable: bool,
-    # state(s)
-    state_tconfig_cache: tc.TableConfigParser.Cache,
-) -> List[Dict[str, object]]:
-    """Grab table columns, toggle whether a column is editable."""
-    logging.warning(f"'{du.triggered_id()}' -> table_columns()")
+def _table_columns_callback(
+    wbs_l1: str, table_editable: bool, tconfig: tc.TableConfigParser
+) -> types.TColumns:
+    """Grab table columns, toggle whether a column is editable.
 
-    tconfig = tc.TableConfigParser(state_tconfig_cache)
-
-    # disable institution, unless user is an admin
-    # follows order of precedence for editable-ness: table > column > disable_institution
+    Disable institution, unless user is an admin. Follow order of
+    precedence for editable-ness: table > column > disable_institution
+    """
     is_institution_editable = False
     if current_user.is_authenticated and current_user.is_admin:
         is_institution_editable = True
 
     return du.table_columns(
+        wbs_l1,
         tconfig,
         table_editable=table_editable,
         is_institution_editable=is_institution_editable,
     )
 
 
-@app.callback(  # type: ignore[misc]
-    [
-        Output("wbs-data-table", "dropdown"),
-        Output("wbs-data-table", "dropdown_conditional"),
-    ],
-    [Input("wbs-data-table", "editable")],  # setup_user_dependent_components()-only
-    [State("wbs-table-config-cache", "data")],
-)
-def table_dropdown(
-    # input(s)
-    _: bool,
-    # state(s)
-    state_tconfig_cache: tc.TableConfigParser.Cache,
+def _table_dropdown(
+    tconfig: tc.TableConfigParser, wbs_l1: str,
 ) -> Tuple[types.TDDown, types.TDDownCond]:
     """Grab table dropdowns."""
-    logging.warning(f"'{du.triggered_id()}' -> table_dropdown()")
-
     simple_dropdowns: types.TDDown = {}
     conditional_dropdowns: types.TDDownCond = []
-    tconfig = tc.TableConfigParser(state_tconfig_cache)
 
     def _options(menu: List[str]) -> List[Dict[str, str]]:
         return [{"label": m, "value": m} for m in menu]
 
-    for col in tconfig.get_dropdown_columns():
+    for col in tconfig.get_dropdown_columns(wbs_l1):
         # Add simple dropdowns
-        if tconfig.is_simple_dropdown(col):
-            dropdown = tconfig.get_simple_column_dropdown_menu(col)
+        if tconfig.is_simple_dropdown(wbs_l1, col):
+            dropdown = tconfig.get_simple_column_dropdown_menu(wbs_l1, col)
             simple_dropdowns[col] = {"options": _options(dropdown)}
 
         # Add conditional dropdowns
-        elif tconfig.is_conditional_dropdown(col):
+        elif tconfig.is_conditional_dropdown(wbs_l1, col):
             # get parent column and its options
             (
                 parent_col,
                 parent_col_opts,
-            ) = tconfig.get_conditional_column_parent_and_options(col)
+            ) = tconfig.get_conditional_column_parent_and_options(wbs_l1, col)
             # make filter_query for each parent-column option
             for parent_opt in parent_col_opts:
-                dropdown = tconfig.get_conditional_column_dropdown_menu(col, parent_opt)
+                dropdown = tconfig.get_conditional_column_dropdown_menu(
+                    wbs_l1, col, parent_opt
+                )
                 conditional_dropdowns.append(
                     {
                         "if": {
@@ -475,6 +453,53 @@ def table_dropdown(
             raise Exception(f"Dropdown column ({col}) is not simple nor conditional.")
 
     return simple_dropdowns, conditional_dropdowns
+
+
+@app.callback(  # type: ignore[misc]
+    [
+        Output("wbs-data-table", "style_cell_conditional"),
+        Output("wbs-data-table", "style_data_conditional"),
+        Output("wbs-data-table", "tooltip"),
+        Output("wbs-data-table", "columns"),
+        Output("wbs-data-table", "dropdown"),
+        Output("wbs-data-table", "dropdown_conditional"),
+    ],
+    [Input("wbs-data-table", "editable")],  # setup_user_dependent_components()-only
+    [State("wbs-current-l1", "value"), State("wbs-table-config-cache", "data")],
+    prevent_initial_call=True,
+)
+def setup_table(
+    table_editable: bool,
+    # state(s)
+    wbs_l1: str,
+    state_tconfig_cache: tc.TableConfigParser.CacheType,
+) -> Tuple[
+    types.TSCCond,
+    types.TSDCond,
+    types.TTooltips,
+    types.TColumns,
+    types.TDDown,
+    types.TDDownCond,
+]:
+    """Set up table-related components."""
+    logging.warning(f"'{du.triggered_id()}' -> setup_table()  ({wbs_l1=})")
+
+    tconfig = tc.TableConfigParser(state_tconfig_cache)
+
+    style_cell_conditional = du.style_cell_conditional(wbs_l1, tconfig)
+    style_data_conditional = du.get_style_data_conditional(wbs_l1, tconfig)
+    tooltip = du.get_table_tooltips(wbs_l1, tconfig)
+    columns = _table_columns_callback(wbs_l1, table_editable, tconfig)
+    simple_dropdowns, conditional_dropdowns = _table_dropdown(tconfig, wbs_l1)
+
+    return (
+        style_cell_conditional,
+        style_data_conditional,
+        tooltip,
+        columns,
+        simple_dropdowns,
+        conditional_dropdowns,
+    )
 
 
 # --------------------------------------------------------------------------------------
@@ -586,9 +611,8 @@ def handle_make_snapshot(
     _: int,
     __: int,
     ___: int,
-    # L1 value (state)
+    # state(s)
     wbs_l1: str,
-    # other state(s)
     name: str,
     state_snap_current_ts: str,
 ) -> Tuple[bool, dbc.Toast, str, str]:
@@ -630,13 +654,15 @@ def handle_make_snapshot(
         Output("institution-headcounts-container", "hidden"),
         Output("institution-textarea-container", "hidden"),
         Output("wbs-current-institution", "value"),
-        Output("wbs-filter-labor", "value"),  # trigger table-population
+        Output("wbs-current-institution", "options"),
+        Output("wbs-filter-labor", "options"),
     ],
     [Input("dummy-input-for-setup", "hidden")],  # never triggered
     [
         State("wbs-current-l1", "value"),
         State("wbs-current-snapshot-ts", "value"),
         State("wbs-current-institution", "value"),
+        State("wbs-table-config-cache", "data"),
     ],
 )
 def setup_institution_components(
@@ -644,7 +670,8 @@ def setup_institution_components(
     # state(s)
     wbs_l1: str,
     snap_ts: types.DashVal,
-    inst: types.DashVal,
+    institution: types.DashVal,
+    state_tconfig_cache: tc.TableConfigParser.CacheType,
 ) -> Tuple[
     types.DashVal,
     types.DashVal,
@@ -656,11 +683,12 @@ def setup_institution_components(
     bool,
     bool,
     types.DashVal,
-    types.DashVal,
+    List[Dict[str, str]],
+    List[Dict[str, str]],
 ]:
     """Set up institution-related components."""
     logging.warning(
-        f"'{du.triggered_id()}' -> setup_institution_components() ({wbs_l1=} {snap_ts=} {inst=})"
+        f"'{du.triggered_id()}' -> setup_institution_components() ({wbs_l1=} {snap_ts=} {institution=})"
     )
 
     assert not du.triggered_id()  # Guarantee this is the initial call
@@ -669,13 +697,35 @@ def setup_institution_components(
 
     # auto-select institution if the user is a non-admin
     if current_user.is_authenticated and not current_user.is_admin:
-        inst = current_user.institution
+        institution = current_user.institution
 
-    if not inst:
-        return 0, 0, 0, 0, "", h2_sow_table, "", True, True, inst, ""
+    tconfig = tc.TableConfigParser(state_tconfig_cache)
+    inst_options = [
+        {"label": f"{abbrev} ({name})", "value": abbrev}
+        for name, abbrev in tconfig.get_institutions_w_abbrevs(wbs_l1)
+    ]
+    lab_options = [
+        {"label": st, "value": st} for st in tconfig.get_labor_categories(wbs_l1)
+    ]
 
-    h2_table = f"{inst}'s SOW Table"
-    h2_notes = f"{inst}'s Notes and Descriptions"
+    if not institution:
+        return (
+            0,
+            0,
+            0,
+            0,
+            "",
+            h2_sow_table,
+            "",
+            True,
+            True,
+            institution,
+            inst_options,
+            lab_options,
+        )
+
+    h2_table = f"{institution}'s SOW Table"
+    h2_notes = f"{institution}'s Notes and Descriptions"
 
     phds: types.DashVal = None
     faculty: types.DashVal = None
@@ -685,12 +735,25 @@ def setup_institution_components(
 
     try:
         phds, faculty, sci, grad, text = src.pull_institution_values(
-            wbs_l1, snap_ts, inst
+            wbs_l1, snap_ts, institution
         )
     except DataSourceException:
         pass
 
-    return phds, faculty, sci, grad, text, h2_table, h2_notes, False, False, inst, ""
+    return (
+        phds,
+        faculty,
+        sci,
+        grad,
+        text,
+        h2_table,
+        h2_notes,
+        False,
+        False,
+        institution,
+        inst_options,
+        lab_options,
+    )
 
 
 @app.callback(  # type: ignore[misc]
@@ -743,9 +806,8 @@ def push_institution_values(  # pylint: disable=R0913
     sci: types.DashVal,
     grad: types.DashVal,
     text: str,
-    # L1 value (state)
+    # state(s)
     wbs_l1: str,
-    # other state(s)
     institution: types.DashVal,
     state_snap_current_ts: types.DashVal,
     state_table: types.Table,
@@ -875,13 +937,14 @@ def setup_user_dependent_components(
         Output("wbs-data-table", "page_action"),
     ],
     [Input("wbs-show-all-rows-button", "n_clicks")],  # user-only
-    [State("wbs-table-config-cache", "data")],
+    [State("wbs-table-config-cache", "data"), State("wbs-current-l1", "value")],
 )
 def toggle_pagination(
     # input(s)
     n_clicks: int,
     # state(s)
-    state_tconfig_cache: tc.TableConfigParser.Cache,
+    state_tconfig_cache: tc.TableConfigParser.CacheType,
+    wbs_l1: str,
 ) -> Tuple[str, str, bool, int, str]:
     """Toggle whether the table is paginated."""
     logging.warning(f"'{du.triggered_id()}' -> toggle_pagination()")
@@ -892,7 +955,7 @@ def toggle_pagination(
             "Show All Rows",
             du.Color.SECONDARY,
             True,
-            tconfig.get_page_size(),
+            tconfig.get_page_size(wbs_l1),
             "native",
         )
     # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
@@ -907,14 +970,15 @@ def toggle_pagination(
         Output("wbs-data-table", "hidden_columns"),
     ],
     [Input("wbs-show-all-columns-button", "n_clicks")],  # user/table_data_exterior_c...
-    [State("wbs-table-config-cache", "data")],
+    [State("wbs-table-config-cache", "data"), State("wbs-current-l1", "value")],
     prevent_initial_call=True,
 )
 def toggle_hidden_columns(
     # input(s)
     n_clicks: int,
     # state(s)
-    state_tconfig_cache: tc.TableConfigParser.Cache,
+    state_tconfig_cache: tc.TableConfigParser.CacheType,
+    wbs_l1: str,
 ) -> Tuple[str, str, bool, List[str]]:
     """Toggle hiding/showing the default hidden columns."""
     logging.warning(f"'{du.triggered_id()}' -> toggle_hidden_columns()")
@@ -926,8 +990,8 @@ def toggle_hidden_columns(
             "Show Hidden Columns",
             du.Color.SECONDARY,
             True,
-            tconfig.get_hidden_columns(),
+            tconfig.get_hidden_columns(wbs_l1),
         )
 
-    always_hidden_columns = tconfig.get_always_hidden_columns()
+    always_hidden_columns = tconfig.get_always_hidden_columns(wbs_l1)
     return "Show Default Columns", du.Color.DARK, False, always_hidden_columns

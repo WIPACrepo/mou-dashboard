@@ -6,6 +6,8 @@ from typing import Any, Dict, Final, List, Tuple, TypedDict, Union
 # local imports
 from keycloak_setup.icecube_setup import ICECUBE_INSTS  # type: ignore[import]
 
+from . import wbs
+
 ID = "_id"
 WBS_L2 = "WBS L2"
 WBS_L3 = "WBS L3"
@@ -50,73 +52,8 @@ class _ColumnConfigTypedDict(TypedDict, total=False):
 
 _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
     ID: {"width": 0, "non_editable": True, "hidden": True},
-    WBS_L2: {
-        "width": 350,
-        "options": [
-            "2.1 Program Coordination",
-            "2.2 Detector Operations & Maintenance (Online)",
-            "2.3 Computing & Data Management Services",
-            "2.4 Data Processing & Simulation Services",
-            "2.5 Software",
-            "2.6 Calibration",
-        ],
-        "sort_value": 70,
-        "tooltip": "WBS Level 2 Category",
-    },
-    WBS_L3: {
-        "width": 300,
-        "conditional_parent": WBS_L2,
-        "conditional_options": {
-            "2.1 Program Coordination": [
-                "2.1.0 Program Coordination",
-                "2.1.1 Administration",
-                "2.1.2 Engineering and R&D Support",
-                "2.1.3 USAP Support & Safety",
-                "2.1.4 Education & Outreach",
-                "2.1.5 Communications",
-            ],
-            "2.2 Detector Operations & Maintenance (Online)": [
-                "2.2.0 Detector Operations & Maintenance",
-                "2.2.1 Run Coordination",
-                "2.2.2 Data Acquisition",
-                "2.2.3 Online Filter (PnF)",
-                "2.2.4 Detector Monitoring",
-                "2.2.5 Experiment Control",
-                "2.2.6 Surface Detectors",
-                "2.2.7 Supernova System",
-                "2.2.8 Real-Time Alerts",
-                "2.2.9 SPS/SPTS",
-            ],
-            "2.3 Computing & Data Management Services": [
-                "2.3.0 Computing & Data Management Services",
-                "2.3.1 Data Storage & Transfer",
-                "2.3.2 Core Data Center Infrastructure",
-                "2.3.3 Central Computing Resources",
-                "2.3.4 Distributed Computing Resources",
-            ],
-            "2.4 Data Processing & Simulation Services": [
-                "2.4.0 Data Processing & Simulation Services",
-                "2.4.1 Offline Data Production",
-                "2.4.2 Simulation Production",
-                "2.4.3 Public Data Products",
-            ],
-            "2.5 Software": [
-                "2.5.0 Software",
-                "2.5.1 Core Software",
-                "2.5.2 Simulation Software",
-                "2.5.3 Reconstruction",
-                "2.5.4 Science Support Tools",
-                "2.5.5 Software Development Infrastructure",
-            ],
-            "2.6 Calibration": [
-                "2.6.0 Calibration",
-                "2.6.1 Detector Calibration",
-                "2.6.2 Ice Properties",
-            ],
-        },
-        "sort_value": 60,
-        "tooltip": "WBS Level 3 Category",
-    },
+    WBS_L2: {"width": 350, "sort_value": 70, "tooltip": "WBS Level 2 Category"},
+    WBS_L3: {"width": 300, "sort_value": 60, "tooltip": "WBS Level 3 Category"},
     US_NON_US: {
         "width": 100,
         "non_editable": True,
@@ -236,42 +173,48 @@ def get_labor_cats() -> List[str]:
     return _COLUMN_CONFIGS[LABOR_CAT]["options"]
 
 
-def get_l2_categories() -> List[str]:
+def get_l2_categories(l1: str) -> List[str]:  # pylint: disable=C0103
     """Get the L2 categories."""
-    return _COLUMN_CONFIGS[WBS_L2]["options"]
+    return wbs.WBS[l1]["L2_values"]
 
 
-def get_l3_categories_by_l2(l2: str) -> List[str]:  # pylint: disable=C0103
+def get_l3_categories_by_l2(l1: str, l2: str) -> List[str]:  # pylint: disable=C0103
     """Get the L3 categories for an L2 value."""
-    return _COLUMN_CONFIGS[WBS_L3]["conditional_options"][l2]
+    return wbs.WBS[l1]["L3_values_by_L2"][l2]
 
 
-def get_simple_dropdown_menus() -> Dict[str, List[str]]:
-    """Get the columns that are simple dropdowns."""
-    return {
+def get_simple_dropdown_menus(l1: str) -> Dict[str, List[str]]:  # pylint: disable=C0103
+    """Get the columns that are simple dropdowns, with their options."""
+    ret = {
         col: config["options"]
         for col, config in _COLUMN_CONFIGS.items()
         if "options" in config
     }
+    ret[WBS_L2] = get_l2_categories(l1)
+    return ret
 
 
-def get_conditional_dropdown_menus() -> Dict[str, Tuple[str, Dict[str, List[str]]]]:
+def get_conditional_dropdown_menus(  # pylint: disable=C0103
+    l1: str,
+) -> Dict[str, Tuple[str, Dict[str, List[str]]]]:
     """Get the columns (and conditions) that are conditionally dropdowns.
 
     Example:
     {'Col-Name-A' : ('Parent-Col-Name-1', {'Parent-Val-I' : ['Option-Alpha', ...] } ) }
     """
-    return {
+    ret = {
         col: (config["conditional_parent"], config["conditional_options"])
         for col, config in _COLUMN_CONFIGS.items()
         if ("conditional_parent" in config) and ("conditional_options" in config)
     }
+    ret[WBS_L3] = (WBS_L2, wbs.WBS[l1]["L3_values_by_L2"])
+    return ret
 
 
-def get_dropdowns() -> List[str]:
+def get_dropdowns(l1: str) -> List[str]:  # pylint: disable=C0103
     """Get the columns that are dropdowns."""
-    return list(get_simple_dropdown_menus().keys()) + list(
-        get_conditional_dropdown_menus().keys()
+    return list(get_simple_dropdown_menus(l1).keys()) + list(
+        get_conditional_dropdown_menus(l1).keys()
     )
 
 
