@@ -94,7 +94,7 @@ def layout() -> html.Div:
                         # options set in callback
                         # values set in callback
                         disabled=False,
-                        persistence=True,
+                        # persistence=True, # not working b/c "value" listed in output of initial-active callback (DASH BUG)
                     ),
                 ],
             ),
@@ -390,6 +390,10 @@ def layout() -> html.Div:
                 id="wbs-institution-values-first-time-flag",
                 storage_type="memory",
                 data=True,
+            ),
+            # - for caching the institution value between (and only between) refreshes
+            dcc.Store(
+                id="wbs-institution-cache-between-refreshes", storage_type="local",
             ),
             # - for storing the last deleted record's id
             dcc.Store(id="wbs-last-deleted-id", storage_type="memory"),

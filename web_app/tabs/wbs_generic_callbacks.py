@@ -518,9 +518,9 @@ def view_live_table(_: int) -> types.DashVal:
     [Input("wbs-current-snapshot-ts", "value")],  # user/view_live_table()
     prevent_initial_call=True,
 )
-def pick_snapshot(_: types.DashVal) -> str:
+def pick_snapshot(snap_ts: types.DashVal) -> str:
     """Refresh the page on snapshot select/de-select."""
-    logging.warning(f"'{du.triggered_id()}' -> pick_snapshot()")
+    logging.warning(f"'{du.triggered_id()}' -> pick_snapshot() {snap_ts=}")
     return "location.reload();"
 
 
@@ -657,7 +657,7 @@ def handle_make_snapshot(
     [
         State("wbs-current-l1", "value"),
         State("wbs-current-snapshot-ts", "value"),
-        State("wbs-current-institution", "value"),
+        State("wbs-institution-cache-between-refreshes", "data"),
         State("wbs-table-config-cache", "data"),
     ],
 )
@@ -666,7 +666,7 @@ def setup_institution_components(
     # state(s)
     wbs_l1: str,
     snap_ts: types.DashVal,
-    institution: types.DashVal,
+    cached_inst: types.DashVal,
     state_tconfig_cache: tc.TableConfigParser.CacheType,
 ) -> Tuple[
     types.DashVal,
@@ -684,7 +684,7 @@ def setup_institution_components(
 ]:
     """Set up institution-related components."""
     logging.warning(
-        f"'{du.triggered_id()}' -> setup_institution_components() ({wbs_l1=} {snap_ts=} {institution=})"
+        f"'{du.triggered_id()}' -> setup_institution_components() ({wbs_l1=} {snap_ts=} {cached_inst=})"
     )
 
     assert not du.triggered_id()  # Guarantee this is the initial call
@@ -693,7 +693,7 @@ def setup_institution_components(
 
     # auto-select institution if the user is a non-admin
     if current_user.is_authenticated and not current_user.is_admin:
-        institution = current_user.institution
+        cached_inst = current_user.institution
 
     tconfig = tc.TableConfigParser(wbs_l1, cache=state_tconfig_cache)
     inst_options = [
@@ -702,7 +702,7 @@ def setup_institution_components(
     ]
     lab_options = [{"label": st, "value": st} for st in tconfig.get_labor_categories()]
 
-    if not institution:
+    if not cached_inst:
         return (
             0,
             0,
@@ -713,13 +713,13 @@ def setup_institution_components(
             "",
             True,
             True,
-            institution,
+            cached_inst,
             inst_options,
             lab_options,
         )
 
-    h2_table = f"{institution}'s SOW Table"
-    h2_notes = f"{institution}'s Notes and Descriptions"
+    h2_table = f"{cached_inst}'s SOW Table"
+    h2_notes = f"{cached_inst}'s Notes and Descriptions"
 
     phds: types.DashVal = None
     faculty: types.DashVal = None
@@ -729,7 +729,7 @@ def setup_institution_components(
 
     try:
         phds, faculty, sci, grad, text = src.pull_institution_values(
-            wbs_l1, snap_ts, institution
+            wbs_l1, snap_ts, cached_inst
         )
     except DataSourceException:
         pass
@@ -744,7 +744,7 @@ def setup_institution_components(
         h2_notes,
         False,
         False,
-        institution,
+        cached_inst,
         inst_options,
         lab_options,
     )
@@ -754,21 +754,24 @@ def setup_institution_components(
     [
         Output("refresh-for-institution-change", "run"),
         Output("wbs-institution-dropdown-first-time-flag", "data"),
+        Output("wbs-institution-cache-between-refreshes", "data"),
     ],
     [Input("wbs-current-institution", "value")],  # user/setup_institution_components()
     [State("wbs-institution-dropdown-first-time-flag", "data")],
     prevent_initial_call=True,
 )
-def pick_institution(institution: types.DashVal, first_time: bool) -> Tuple[str, bool]:
+def pick_institution(
+    institution: types.DashVal, first_time: bool
+) -> Tuple[str, bool, types.DashVal]:
     """Refresh if the user selected an institution."""
     logging.warning(
         f"'{du.triggered_id()}' -> pick_institution() ({first_time=} {institution=})"
     )
 
     if first_time:
-        return "", False
+        return "", False, institution
 
-    return "location.reload();", False
+    return "location.reload();", False, institution
 
 
 @app.callback(  # type: ignore[misc]
