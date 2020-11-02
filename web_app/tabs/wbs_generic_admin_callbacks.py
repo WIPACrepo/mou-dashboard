@@ -14,7 +14,7 @@ from ..data_source import data_source as src
 from ..data_source import table_config as tc
 from ..data_source.utils import DataSourceException
 from ..utils import dash_utils as du
-from ..utils import types
+from ..utils import types, utils
 
 
 def _get_upload_success_modal_body(
@@ -28,7 +28,7 @@ def _get_upload_success_modal_body(
     def _pseudonym(_snap: types.SnapshotInfo) -> str:
         if _snap["name"]:
             return f"\"{_snap['name']}\""
-        return du.get_human_time(_snap["timestamp"])
+        return utils.get_human_time(_snap["timestamp"])
 
     body: List[dcc.Markdown] = [
         dcc.Markdown(f'Uploaded {n_records} records from "{filename}".'),

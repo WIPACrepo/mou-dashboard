@@ -128,6 +128,9 @@ class MoUMotorClient:
         """Create the live collection."""
         logging.debug(f"Creating Live Collection ({wbs_db=})...")
 
+        for record in table:
+            record.update({tc.EDITOR: "", tc.TIMESTAMP: time.time()})
+
         await self._ingest_new_collection(
             wbs_db, _LIVE_COLLECTION, table, "", creator, all_insts_values, False
         )
@@ -462,7 +465,9 @@ class MoUMotorClient:
 
         return table
 
-    async def upsert_record(self, wbs_db: str, record: types.Record) -> types.Record:
+    async def upsert_record(
+        self, wbs_db: str, record: types.Record, editor: str
+    ) -> types.Record:
         """Insert a record.
 
         Update if it already exists.
@@ -471,6 +476,12 @@ class MoUMotorClient:
 
         await self._check_database_state(wbs_db)
 
+        # record timestamp and editor's name
+        record[tc.TIMESTAMP] = time.time()
+        if editor:
+            record[tc.EDITOR] = editor
+
+        # prep
         record = self._mongofy_record(wbs_db, record)
         coll_obj = self._client[wbs_db][_LIVE_COLLECTION]
 
@@ -488,7 +499,7 @@ class MoUMotorClient:
         return self._demongofy_record(record)
 
     async def _set_is_deleted_status(
-        self, wbs_db: str, record_id: str, is_deleted: bool
+        self, wbs_db: str, record_id: str, is_deleted: bool, editor: str = ""
     ) -> types.Record:
         """Mark the record as deleted/not-deleted."""
         query = self._mongofy_record(wbs_db, {tc.ID: record_id})
@@ -497,17 +508,19 @@ class MoUMotorClient:
         )
 
         record.update({IS_DELETED: is_deleted})
-        record = await self.upsert_record(wbs_db, record)
+        record = await self.upsert_record(wbs_db, record, editor)
 
         return record
 
-    async def delete_record(self, wbs_db: str, record_id: str) -> types.Record:
+    async def delete_record(
+        self, wbs_db: str, record_id: str, editor: str
+    ) -> types.Record:
         """Mark the record as deleted."""
         logging.debug(f"Deleting {record_id} ({wbs_db=})...")
 
         await self._check_database_state(wbs_db)
 
-        record = await self._set_is_deleted_status(wbs_db, record_id, True)
+        record = await self._set_is_deleted_status(wbs_db, record_id, True, editor)
 
         logging.info(f"Deleted {record} ({wbs_db=}).")
         return record

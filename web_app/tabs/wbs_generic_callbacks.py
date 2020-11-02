@@ -14,7 +14,7 @@ from ..data_source import data_source as src
 from ..data_source import table_config as tc
 from ..data_source.utils import DataSourceException
 from ..utils import dash_utils as du
-from ..utils import types
+from ..utils import types, utils
 
 # --------------------------------------------------------------------------------------
 # Table Callbacks
@@ -357,7 +357,7 @@ def table_data_interior_controls(
     """
     logging.warning(f"'{du.triggered_id()}' -> table_data_interior_controls()")
 
-    updated_message = f"Table Last Refreshed: {du.get_human_now()}"
+    updated_message = f"Table Last Refreshed: {utils.get_human_now()}"
 
     # Was table just updated via exterior controls? -- if so, toggle flag
     # flags will agree only after table_data_exterior_controls() triggers this function
@@ -557,7 +557,7 @@ def setup_snapshot_components(
         pass
     snap_options = [
         {
-            "label": f"{snap['name']} — {du.get_human_time(snap['timestamp'])}",
+            "label": f"{snap['name']} — {utils.get_human_time(snap['timestamp'])}",
             "value": snap["timestamp"],
         }
         for snap in snapshots
@@ -570,7 +570,7 @@ def setup_snapshot_components(
     # Selected a Snapshot
     if snap_ts:
         snap_info = next(s for s in snapshots if s["timestamp"] == snap_ts)
-        human_time = du.get_human_time(snap_info["timestamp"])
+        human_time = utils.get_human_time(snap_info["timestamp"])
         # get lines
         label_lines = [
             html.Label(f"{snap_info['name']}"),
@@ -822,7 +822,7 @@ def push_institution_values(  # pylint: disable=R0913
         return False, None, None
 
     # labels
-    now = du.get_human_now()
+    now = utils.get_human_now()
     textarea_label = html.Label(f"Notes & Descriptions Last Refreshed: {now}")
     headcounts_label = html.Label(f"Headcounts Last Refreshed: {now}")
 

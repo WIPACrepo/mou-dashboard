@@ -2,9 +2,6 @@
 
 
 import logging
-import time
-from datetime import datetime as dt
-from datetime import timezone as tz
 from typing import cast, Collection, Dict, Final, List, Union
 
 import dash  # type: ignore[import]
@@ -14,7 +11,7 @@ import dash_html_components as html  # type: ignore[import]
 
 from ..data_source import data_source as src
 from ..data_source import table_config as tc
-from ..utils import types
+from ..utils import types, utils
 
 # constants
 REFRESH_MSG: Final[str] = "Refresh page and try again."
@@ -54,32 +51,6 @@ def flags_agree(one: bool, two: bool) -> bool:
     else:
         logging.warning(f"Flags disagree {one=} {two=}")
     return one == two
-
-
-# --------------------------------------------------------------------------------------
-# Time-Related Functions
-
-
-def get_now() -> str:
-    """Get epoch time as a str."""
-    return str(time.time())
-
-
-def get_human_time(timestamp: str) -> str:
-    """Get the given date and time with timezone, human-readable."""
-    try:
-        datetime = dt.fromtimestamp(float(timestamp))
-    except ValueError:
-        return timestamp
-
-    timezone = dt.now(tz.utc).astimezone().tzinfo
-
-    return f"{datetime.strftime('%Y-%m-%d %H:%M:%S')} {timezone}"
-
-
-def get_human_now() -> str:
-    """Get the current date and time with timezone, human-readable."""
-    return get_human_time(get_now())
 
 
 # --------------------------------------------------------------------------------------
@@ -180,14 +151,16 @@ def style_cell_conditional(tconfig: tc.TableConfigParser) -> types.TSCCond:
 
 def get_table_tooltips(tconfig: tc.TableConfigParser) -> types.TTooltips:
     """Set tooltips for each column."""
+
+    def _tooltip(column: str) -> str:
+        tooltip = tconfig.get_column_tooltip(column)
+        if not tconfig.is_column_editable(column) or tconfig.is_column_dropdown(column):
+            return tooltip
+        return f"{tooltip} (double-click to edit)"
+
     return {
-        col: {
-            "type": "text",
-            "value": tconfig.get_column_tooltip(col),
-            "delay": 250,
-            "duration": None,
-        }
-        for col in tconfig.get_table_columns()
+        c: {"type": "text", "value": _tooltip(c), "delay": 250, "duration": None}
+        for c in tconfig.get_table_columns()
     }
 
 
@@ -311,7 +284,7 @@ def make_toast(
         _messages = message
 
     return dbc.Toast(
-        id=f"wbs-toast-{get_now()}",
+        id=f"wbs-toast-{utils.get_now()}",
         header=header,
         is_open=True,
         dismissable=True,

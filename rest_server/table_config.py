@@ -24,6 +24,8 @@ US_IN_KIND = "US In-Kind"
 NON_US_IN_KIND = "Non-US In-Kind"
 GRAND_TOTAL = "Grand Total"
 TOTAL_COL = "Total-Row Description"
+TIMESTAMP = "Date & Time of Last Edit"
+EDITOR = "Name of Last Editor"
 
 
 US = "US"
@@ -75,11 +77,8 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "sort_value": 30,
         "tooltip": "The labor category",
     },
-    _NAME: {"width": 150, "sort_value": 20, "tooltip": "Last, First"},
-    TASK_DESCRIPTION: {
-        "width": 300,
-        "tooltip": "A description of the task responsible",
-    },
+    _NAME: {"width": 150, "sort_value": 20, "tooltip": "LastName, FirstName"},
+    TASK_DESCRIPTION: {"width": 300, "tooltip": "A description of the task",},
     SOURCE_OF_FUNDS_US_ONLY: {
         "width": 185,
         "conditional_parent": US_NON_US,
@@ -146,6 +145,19 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "tooltip": "This is is the total of the four FTEs to the left.",
     },
     ID: {"width": 0, "non_editable": True, "border_left": True, "hidden": True},
+    TIMESTAMP: {
+        "width": 125,
+        "non_editable": True,
+        "border_left": True,
+        "hidden": True,
+        "tooltip": f"{TIMESTAMP} (you may need to refresh to reflect a recent update)",
+    },
+    EDITOR: {
+        "width": 125,
+        "non_editable": True,
+        "hidden": True,
+        "tooltip": f"{EDITOR} (you may need to refresh to reflect a recent update)",
+    },
 }
 
 

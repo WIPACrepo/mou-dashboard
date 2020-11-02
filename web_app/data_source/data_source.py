@@ -5,13 +5,15 @@ from typing import Any, cast, Dict, Final, List, Optional, Tuple, TypedDict, Uni
 
 from flask_login import current_user  # type: ignore[import]
 
-from ..utils import types
+from ..utils import types, utils
 from . import table_config as tc
 from .utils import mou_request
 
 # constants
 ID: Final[str] = "_id"
 _OC_SUFFIX: Final[str] = "_original"
+_TIMESTAMP: Final[str] = "Date & Time of Last Edit"
+_EDITOR: Final[str] = "Name of Last Editor"
 
 
 # --------------------------------------------------------------------------------------
@@ -48,6 +50,12 @@ def _convert_record_rest_to_dash(
     Returns:
         types.Record -- the argument value
     """
+    if ts := record.get(_TIMESTAMP):
+        record[_TIMESTAMP] = utils.get_human_time(str(ts))
+
+    if not record.get(_EDITOR):
+        record[_EDITOR] = "—"
+
     for field in record:  # don't add copies of copies, AKA make it safe to call this 2x
         if _is_touchstone_column(field):
             return record
@@ -305,7 +313,10 @@ def push_record(  # pylint: disable=R0913
         record: types.Record
 
     # request
-    body: Dict[str, Any] = {"record": _convert_record_dash_to_rest(record, tconfig)}
+    body: Dict[str, Any] = {
+        "record": _convert_record_dash_to_rest(record, tconfig),
+        "editor": current_user.name,
+    }
     if institution:
         body["institution"] = institution
     if labor:
@@ -322,7 +333,10 @@ def delete_record(wbs_l1: str, record_id: str) -> None:
     _validate(wbs_l1, str, falsy_okay=False)
     _validate(record_id, str)
 
-    body = {"record_id": record_id}
+    body = {
+        "record_id": record_id,
+        "editor": current_user.name,
+    }
     mou_request("DELETE", f"/record/{wbs_l1}", body=body)
 
 
@@ -333,7 +347,9 @@ def list_snapshots(wbs_l1: str) -> List[types.SnapshotInfo]:
     class _RespSnapshots(TypedDict):
         snapshots: List[types.SnapshotInfo]
 
-    body = {"is_admin": current_user.is_authenticated and current_user.is_admin}
+    body = {
+        "is_admin": current_user.is_authenticated and current_user.is_admin,
+    }
     response = cast(
         _RespSnapshots, mou_request("GET", f"/snapshots/list/{wbs_l1}", body)
     )
@@ -346,7 +362,10 @@ def create_snapshot(wbs_l1: str, name: str) -> types.SnapshotInfo:
     _validate(wbs_l1, str, falsy_okay=False)
     _validate(name, str)
 
-    body = {"creator": current_user.name, "name": name}
+    body = {
+        "creator": current_user.name,
+        "name": name,
+    }
     response = mou_request("POST", f"/snapshots/make/{wbs_l1}", body=body)
     return cast(types.SnapshotInfo, response)
 
@@ -397,7 +416,10 @@ def pull_institution_values(
     snapshot_ts = _validate(snapshot_ts, types.DashVal_types, out=str)
     institution = _validate(institution, types.DashVal_types, out=str)
 
-    body = {"institution": institution, "snapshot_timestamp": snapshot_ts}
+    body = {
+        "institution": institution,
+        "snapshot_timestamp": snapshot_ts,
+    }
     response = mou_request("GET", f"/institution/values/{wbs_l1}", body=body)
     return (
         cast(Optional[int], response.get("phds_authors")),
@@ -436,4 +458,5 @@ def push_institution_values(
     if grad or grad == 0:
         body["grad_students"] = grad
     body["text"] = text
+
     _ = mou_request("POST", f"/institution/values/{wbs_l1}", body=body)
