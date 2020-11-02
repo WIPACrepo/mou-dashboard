@@ -557,7 +557,7 @@ def setup_snapshot_components(
         pass
     snap_options = [
         {
-            "label": f"{snap['name']}  [created by {snap['creator']} on {du.get_human_time(snap['timestamp'])}]",
+            "label": f"{snap['name']} — {du.get_human_time(snap['timestamp'])}",
             "value": snap["timestamp"],
         }
         for snap in snapshots
@@ -573,9 +573,9 @@ def setup_snapshot_components(
         human_time = du.get_human_time(snap_info["timestamp"])
         # get lines
         label_lines = [
-            html.Label(f"\"{snap_info['name']}\""),
+            html.Label(f"{snap_info['name']}"),
             html.Label(
-                f"(created by {snap_info['creator']} — {human_time})",
+                f"created by {snap_info['creator']} — {human_time}",
                 style={"font-size": "75%", "font-style": "italic"},
             ),
         ]

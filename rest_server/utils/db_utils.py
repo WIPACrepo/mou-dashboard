@@ -118,7 +118,7 @@ class MoUMotorClient:
 
         return record
 
-    async def _create_live_collection(
+    async def _create_live_collection(  # pylint: disable=R0913
         self,
         wbs_db: str,
         table: types.Table,
@@ -129,7 +129,7 @@ class MoUMotorClient:
         logging.debug(f"Creating Live Collection ({wbs_db=})...")
 
         await self._ingest_new_collection(
-            wbs_db, _LIVE_COLLECTION, table, "", creator, all_insts_values
+            wbs_db, _LIVE_COLLECTION, table, "", creator, all_insts_values, False
         )
 
         logging.debug(f"Created Live Collection: ({wbs_db=}) {len(table)} records.")
@@ -196,7 +196,7 @@ class MoUMotorClient:
         # snapshot
         try:
             previous_snap = await self.snapshot_live_collection(
-                wbs_db, "State Before Table Replacement", f"{creator} (auto)"
+                wbs_db, "Before Import", f"{creator} (auto)", admin_only=True
             )
         except web.HTTPError as e:
             if e.status_code != 422:
@@ -213,7 +213,7 @@ class MoUMotorClient:
 
         # snapshot
         current_snap = await self.snapshot_live_collection(
-            wbs_db, f"Replacement Table ({filename})", creator
+            wbs_db, "Initial Import", creator, admin_only=True
         )
 
         logging.debug(
@@ -250,6 +250,7 @@ class MoUMotorClient:
             "name": doc["name"],
             "creator": doc["creator"],
             "timestamp": doc["timestamp"],
+            "admin_only": doc["admin_only"],
         }
 
     async def upsert_institution_values(
@@ -346,6 +347,7 @@ class MoUMotorClient:
         name: str,
         creator: str,
         all_insts_values: Dict[str, types.InstitutionValues],
+        admin_only: bool,
     ) -> None:
         logging.debug(f"Creating Supplemental DB/Document ({wbs_db=}, {snap_coll=})...")
 
@@ -358,6 +360,7 @@ class MoUMotorClient:
             "timestamp": snap_coll,
             "creator": creator,
             "snapshot_institution_values": all_insts_values if all_insts_values else {},
+            "admin_only": admin_only,
         }
         await self._set_supplemental_doc(wbs_db, snap_coll, doc)
 
@@ -373,11 +376,20 @@ class MoUMotorClient:
         name: str,
         creator: str,
         all_insts_values: Dict[str, types.InstitutionValues],
+        admin_only: bool,
     ) -> None:
         """Add table to a new collection.
 
         If collection already exists, replace.
         """
+        if admin_only and snap_coll == _LIVE_COLLECTION:
+            raise Exception(
+                f"A Live Collection cannot be admin-only ({wbs_db=} {snap_coll=} {admin_only=})."
+            )
+
+        if admin_only:
+            name = f"{name} (admin-only)"
+
         db_obj = self._client[wbs_db]
 
         # drop the collection if it already exists
@@ -391,7 +403,7 @@ class MoUMotorClient:
 
         # create supplemental document
         await self._create_supplemental_db_document(
-            wbs_db, snap_coll, name, creator, all_insts_values
+            wbs_db, snap_coll, name, creator, all_insts_values, admin_only
         )
 
     async def _ensure_collection_indexes(self, wbs_db: str, snap_coll: str) -> None:
@@ -501,7 +513,7 @@ class MoUMotorClient:
         return record
 
     async def snapshot_live_collection(
-        self, wbs_db: str, name: str, creator: str
+        self, wbs_db: str, name: str, creator: str, admin_only: bool
     ) -> str:
         """Create a snapshot collection by copying the live collection."""
         logging.debug(f"Snapshotting ({wbs_db=}, {creator=})...")
@@ -519,12 +531,19 @@ class MoUMotorClient:
             name,
             creator,
             supplemental_doc["snapshot_institution_values"],
+            admin_only,
         )
 
         logging.info(f"Snapshotted {snap_coll} ({wbs_db=}, {creator=}).")
         return snap_coll
 
-    async def list_snapshot_timestamps(self, wbs_db: str) -> List[str]:
+    async def _is_snapshot_admin_only(self, wbs_db: str, name: str) -> bool:
+        doc = await self._get_supplemental_doc(wbs_db, name)
+        return doc["admin_only"]
+
+    async def list_snapshot_timestamps(
+        self, wbs_db: str, exclude_admin_snaps: bool
+    ) -> List[str]:
         """Return a list of the snapshot collections."""
         logging.info(f"Getting Snapshot Timestamps ({wbs_db=})...")
 
@@ -535,6 +554,13 @@ class MoUMotorClient:
             for c in await self._list_collection_names(wbs_db)
             if c != _LIVE_COLLECTION
         ]
+
+        if exclude_admin_snaps:
+            snapshots = [
+                s
+                for s in snapshots
+                if not await self._is_snapshot_admin_only(wbs_db, s)
+            ]
 
         logging.debug(f"Snapshot Timestamps {snapshots} ({wbs_db=}).")
         return snapshots

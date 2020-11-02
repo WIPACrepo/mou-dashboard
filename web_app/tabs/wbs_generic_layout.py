@@ -61,7 +61,7 @@ def layout() -> html.Div:
                         id="wbs-current-snapshot-ts",
                         className="large-dropdown snapshot-dropdown",
                         style={"width": "100rem"},
-                        placeholder="— Statement of Work as of YYYY-MM-DD —",
+                        placeholder="— Statements of Work as of YYYY-MM-DD —",
                         value="",
                         disabled=False,
                         persistence=True,
@@ -70,7 +70,7 @@ def layout() -> html.Div:
                 ],
             ),
             html.Div(
-                "click above to select and view an archived version",
+                "click above to select and view past statements of work",
                 style={
                     "font-style": "italic",
                     "text-align": "center",

@@ -9,11 +9,15 @@ Table = List[Record]
 
 
 class SnapshotInfo(TypedDict):
-    """The typed dict containing a snapshot's name, timestamp, and creator."""
+    """The typed dict containing a snapshot's name, timestamp, and creator.
+
+    Not a mongo schema. A subset of `SupplementalDoc` for REST calls.
+    """
 
     timestamp: str
     name: str
     creator: str
+    admin_only: bool
 
 
 class InstitutionValues(TypedDict):
@@ -27,9 +31,10 @@ class InstitutionValues(TypedDict):
 
 
 class SupplementalDoc(TypedDict):
-    """Fields for an Supplemental document."""
+    """Fields for an Supplemental document, which supplements a snapshot."""
 
     name: str
     timestamp: str
     creator: str
     snapshot_institution_values: Dict[str, InstitutionValues]
+    admin_only: bool

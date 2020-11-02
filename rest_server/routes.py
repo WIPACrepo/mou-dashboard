@@ -291,15 +291,14 @@ class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
-        timestamps = await self.dbms.list_snapshot_timestamps(wbs_l1)
+        is_admin = self.get_argument("is_admin", type_=bool, default=False)
+
+        timestamps = await self.dbms.list_snapshot_timestamps(
+            wbs_l1, exclude_admin_snaps=not is_admin
+        )
         timestamps.sort(reverse=True)
 
-        snapshots: List[types.SnapshotInfo] = []
-        for ts in timestamps:
-            info = await self.dbms.get_snapshot_info(wbs_l1, ts)
-            snapshots.append(
-                {"timestamp": ts, "name": info["name"], "creator": info["creator"]}
-            )
+        snapshots = [await self.dbms.get_snapshot_info(wbs_l1, ts) for ts in timestamps]
 
         self.write({"snapshots": snapshots})
 
@@ -318,7 +317,7 @@ class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
         name = self.get_argument("name")
         creator = self.get_argument("creator")
 
-        snap_ts = await self.dbms.snapshot_live_collection(wbs_l1, name, creator)
+        snap_ts = await self.dbms.snapshot_live_collection(wbs_l1, name, creator, False)
         snap_info = await self.dbms.get_snapshot_info(wbs_l1, snap_ts)
 
         self.write(snap_info)

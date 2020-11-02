@@ -333,7 +333,11 @@ def list_snapshots(wbs_l1: str) -> List[types.SnapshotInfo]:
     class _RespSnapshots(TypedDict):
         snapshots: List[types.SnapshotInfo]
 
-    response = cast(_RespSnapshots, mou_request("GET", f"/snapshots/list/{wbs_l1}"),)
+    body = {"is_admin": current_user.is_authenticated and current_user.is_admin}
+    response = cast(
+        _RespSnapshots, mou_request("GET", f"/snapshots/list/{wbs_l1}", body)
+    )
+
     return sorted(response["snapshots"], key=lambda i: i["timestamp"], reverse=True)
 
 
