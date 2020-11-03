@@ -21,7 +21,7 @@ from ..utils import types, utils
 
 
 def _totals_button_logic(
-    n_clicks: int, state_all_cols: int
+    n_clicks: int, all_cols: int
 ) -> Tuple[bool, str, str, bool, int]:
     """Figure out whether to include totals, and format the button.
 
@@ -36,23 +36,23 @@ def _totals_button_logic(
     triggered = du.triggered_id() == "wbs-show-totals-button"
 
     if not on:  # off -> don't trigger "show-all-columns"
-        return False, "Show Totals", du.Color.SECONDARY, True, state_all_cols
+        return False, "Show Totals", du.Color.SECONDARY, True, all_cols
 
     if triggered:  # on and triggered -> trigger "show-all-columns"
         return True, "Hide Totals", du.Color.DARK, False, 1
 
     # on and not triggered, AKA already on -> don't trigger "show-all-columns"
-    return True, "Hide Totals", du.Color.DARK, False, state_all_cols
+    return True, "Hide Totals", du.Color.DARK, False, all_cols
 
 
 def _add_new_data(  # pylint: disable=R0913
     wbs_l1: str,
-    state_table: types.Table,
-    state_columns: types.TColumns,
+    table: types.Table,
+    columns: types.TColumns,
     labor: types.DashVal,
     institution: types.DashVal,
-    state_tconfig_cache: tc.TableConfigParser.CacheType,
-    state_new_task: str,
+    tconfig_cache: tc.TableConfigParser.CacheType,
+    new_task: str,
 ) -> Tuple[types.Table, dbc.Toast]:
     """Push new record to data source; add to table.
 
@@ -60,8 +60,7 @@ def _add_new_data(  # pylint: disable=R0913
         TData     -- up-to-date data table
         dbc.Toast -- toast element with confirmation message
     """
-    table = state_table
-    column_names = [cast(str, c["name"]) for c in state_columns]
+    column_names = [cast(str, c["name"]) for c in columns]
     new_record: types.Record = {n: "" for n in column_names}
 
     # push to data source AND auto-fill labor and/or institution
@@ -69,17 +68,16 @@ def _add_new_data(  # pylint: disable=R0913
         new_record = src.push_record(
             wbs_l1,
             new_record,
-            task=state_new_task,
+            task=new_task,
             labor=labor,
             institution=institution,
             novel=True,
-            tconfig=tc.TableConfigParser(wbs_l1, cache=state_tconfig_cache),
+            tconfig=tc.TableConfigParser(wbs_l1, cache=tconfig_cache),
         )
         table.insert(0, new_record)
-        message = [html.Div(s) for s in src.record_to_strings(new_record)]
-        toast = du.make_toast("Record Added", message, du.Color.SUCCESS, 5)
+        toast = du.make_toast("Row Added", [], du.Color.SUCCESS, du.GOOD_WAIT)
     except DataSourceException:
-        toast = du.make_toast("Failed to Make Record", du.REFRESH_MSG, du.Color.DANGER)
+        toast = du.make_toast("Failed to Add Row", du.REFRESH_MSG, du.Color.DANGER)
 
     return table, toast
 
@@ -104,28 +102,27 @@ def _add_new_data(  # pylint: disable=R0913
     prevent_initial_call=True,
 )
 def handle_add_new_data(
-    # input(s)
     _: int,
     __: int,
     ___: int,
     # state(s)
-    task: str,
-    institution: str,
-    labor: str,
+    s_task: str,
+    s_institution: str,
+    s_labor: str,
 ) -> Tuple[bool, str, int, str]:
     """Handle the modal for adding a new row."""
     logging.warning(f"'{du.triggered_id()}' -> handle_add_new_data()")
 
     if du.triggered_id() == "wbs-new-data-modal-add-button":
-        if not task:
+        if not s_task:
             return no_update, no_update, no_update, no_update
-        return False, task, 1, no_update
+        return False, s_task, 1, no_update
 
     header = "Add New Data"
-    if institution:
-        header += f" for {institution}"
-    if labor:
-        header += f" ({labor})"
+    if s_institution:
+        header += f" for {s_institution}"
+    if s_labor:
+        header += f" ({s_labor})"
 
     return True, "", no_update, header
 
@@ -162,21 +159,20 @@ def handle_add_new_data(
     prevent_initial_call=True,  # must wait for columns
 )  # pylint: disable=R0913,R0914
 def table_data_exterior_controls(
-    # input(s)
     columns: types.TColumns,
     labor: types.DashVal,
     tot_n_clicks: int,
     _: int,
     __: int,
     # state(s)
-    wbs_l1: str,
-    state_snapshot_ts: types.DashVal,
-    state_table: types.Table,
-    state_all_cols: int,
-    state_deleted_id: str,
-    state_tconfig_cache: tc.TableConfigParser.CacheType,
-    state_new_task: str,
-    state_institution: types.DashVal,
+    s_wbs_l1: str,
+    s_snap_ts: types.DashVal,
+    s_table: types.Table,
+    s_all_cols: int,
+    s_deleted_id: str,
+    s_tconfig_cache: tc.TableConfigParser.CacheType,
+    s_new_task: str,
+    s_institution: types.DashVal,
     s_flag_extctrl: bool,
 ) -> Tuple[types.Table, int, dbc.Toast, str, str, bool, int, bool]:
     """Exterior control signaled that the table should be updated.
@@ -187,7 +183,7 @@ def table_data_exterior_controls(
     """
     logging.warning(f"'{du.triggered_id()}' -> table_data_exterior_controls()")
     logging.warning(
-        f"Snapshot: {state_snapshot_ts=} {'' if state_snapshot_ts else '(Live Collection)'}"
+        f"Snapshot: {s_snap_ts=} {'' if s_snap_ts else '(Live Collection)'}"
     )
 
     assert columns
@@ -197,36 +193,38 @@ def table_data_exterior_controls(
 
     # format "Show Totals" button
     show_totals, tot_label, tot_color, tot_outline, all_cols = _totals_button_logic(
-        tot_n_clicks, state_all_cols
+        tot_n_clicks, s_all_cols
     )
 
     # Add New Data
     if du.triggered_id() == "wbs-new-data-modal-dummy-add":
-        if not state_snapshot_ts:  # are we looking at a snapshot?
+        if not s_snap_ts:  # are we looking at a snapshot?
             table, toast = _add_new_data(
-                wbs_l1,
-                state_table,
+                s_wbs_l1,
+                s_table,
                 columns,
                 labor,
-                state_institution,
-                state_tconfig_cache,
-                state_new_task,
+                s_institution,
+                s_tconfig_cache,
+                s_new_task,
             )
 
     # OR Restore a types.Record and Pull types.Table (optionally filtered)
     elif du.triggered_id() == "wbs-undo-last-delete":
-        if not state_snapshot_ts:  # are we looking at a snapshot?
+        if not s_snap_ts:  # are we looking at a snapshot?
             try:
                 table = src.pull_data_table(
-                    wbs_l1,
-                    institution=state_institution,
+                    s_wbs_l1,
+                    institution=s_institution,
                     labor=labor,
                     with_totals=show_totals,
-                    restore_id=state_deleted_id,
+                    restore_id=s_deleted_id,
                 )
-                record = next(r for r in table if r[src.ID] == state_deleted_id)
+                record = next(r for r in table if r[src.ID] == s_deleted_id)
                 message = [html.Div(s) for s in src.record_to_strings(record)]
-                toast = du.make_toast("Record Restored", message, du.Color.SUCCESS, 5)
+                toast = du.make_toast(
+                    "Row Restored", message, du.Color.SUCCESS, du.GOOD_WAIT
+                )
             except DataSourceException:
                 table = []
 
@@ -234,11 +232,11 @@ def table_data_exterior_controls(
     else:
         try:
             table = src.pull_data_table(
-                wbs_l1,
-                institution=state_institution,
+                s_wbs_l1,
+                institution=s_institution,
                 labor=labor,
                 with_totals=show_totals,
-                snapshot_ts=state_snapshot_ts,
+                snapshot_ts=s_snap_ts,
             )
         except DataSourceException:
             table = []
@@ -306,9 +304,7 @@ def _delete_deleted_records(
 
     # make toast message if any records failed to be deleted
     if failures:
-        toast = du.make_toast(
-            "Failed to Delete Record", du.REFRESH_MSG, du.Color.DANGER
-        )
+        toast = du.make_toast("Failed to Delete Row", du.REFRESH_MSG, du.Color.DANGER)
     else:
         success_message = [html.Div(s) for s in src.record_to_strings(delete_these[0])]
 
@@ -337,18 +333,17 @@ def _delete_deleted_records(
         State("wbs-institution-source-of-truth", "data"),
     ],
     prevent_initial_call=True,
-)
+)  # pylint: disable=R0913
 def table_data_interior_controls(
-    # input(s)
     current_table: types.Table,
     # state(s)
-    wbs_l1: str,
-    previous_table: types.Table,
-    state_tconfig_cache: tc.TableConfigParser.CacheType,
-    state_snap_current_ts: types.DashVal,
+    s_wbs_l1: str,
+    s_previous_table: types.Table,
+    s_tconfig_cache: tc.TableConfigParser.CacheType,
+    s_snap_ts: types.DashVal,
     s_flag_extctrl: bool,
     s_flag_intctrl: bool,
-    state_institution: types.DashVal,
+    s_institution: types.DashVal,
 ) -> Tuple[types.Table, dbc.Toast, str, str, bool, List[html.Div], bool, str]:
     """Interior control signaled that the table should be updated.
 
@@ -362,7 +357,7 @@ def table_data_interior_controls(
 
     # Make labels
     updated_message = f"Table Last Refreshed: {utils.get_human_now()}"
-    snap_placeholder = du.get_snpapshot_placeholder(current_table, state_institution)
+    snap_placeholder = du.get_snpapshot_placeholder(current_table, s_institution)
 
     # Was table just updated via exterior controls? -- if so, toggle flag
     # flags will agree only after table_data_exterior_controls() triggers this function
@@ -379,16 +374,16 @@ def table_data_interior_controls(
             snap_placeholder,
         )
 
-    assert not state_snap_current_ts  # should not be a snapshot
-    assert previous_table  # should have previous table
+    assert not s_snap_ts  # should not be a snapshot
+    assert s_previous_table  # should have previous table
 
     # Push (if any)
-    tconfig = tc.TableConfigParser(wbs_l1, cache=state_tconfig_cache)
-    mod_ids = _push_modified_records(wbs_l1, current_table, previous_table, tconfig)
+    tconfig = tc.TableConfigParser(s_wbs_l1, cache=s_tconfig_cache)
+    mod_ids = _push_modified_records(s_wbs_l1, current_table, s_previous_table, tconfig)
 
     # Delete (if any)
     toast, last_deletion, delete_success_message = _delete_deleted_records(
-        wbs_l1, current_table, previous_table, mod_ids
+        s_wbs_l1, current_table, s_previous_table, mod_ids
     )
 
     # Update data_previous
@@ -482,8 +477,8 @@ def _table_dropdown(
 def setup_table(
     table_editable: bool,
     # state(s)
-    wbs_l1: str,
-    state_tconfig_cache: tc.TableConfigParser.CacheType,
+    s_wbs_l1: str,
+    s_tconfig_cache: tc.TableConfigParser.CacheType,
 ) -> Tuple[
     types.TSCCond,
     types.TSDCond,
@@ -493,9 +488,9 @@ def setup_table(
     types.TDDownCond,
 ]:
     """Set up table-related components."""
-    logging.warning(f"'{du.triggered_id()}' -> setup_table()  ({wbs_l1=})")
+    logging.warning(f"'{du.triggered_id()}' -> setup_table()  ({s_wbs_l1=})")
 
-    tconfig = tc.TableConfigParser(wbs_l1, cache=state_tconfig_cache)
+    tconfig = tc.TableConfigParser(s_wbs_l1, cache=s_tconfig_cache)
 
     style_cell_conditional = du.style_cell_conditional(tconfig)
     style_data_conditional = du.get_style_data_conditional(tconfig)
@@ -551,12 +546,12 @@ def pick_snapshot(snap_ts: types.DashVal) -> str:
 def setup_snapshot_components(
     _: bool,
     # state(s)
-    wbs_l1: str,
-    snap_ts: types.DashVal,
+    s_wbs_l1: str,
+    s_snap_ts: types.DashVal,
 ) -> Tuple[List[Dict[str, str]], List[html.Label], bool]:
     """Set up snapshot-related components."""
     logging.warning(
-        f"'{du.triggered_id()}' -> setup_snapshot_components()  ({wbs_l1=} {snap_ts=})"
+        f"'{du.triggered_id()}' -> setup_snapshot_components()  ({s_wbs_l1=} {s_snap_ts=})"
     )
 
     assert not du.triggered_id()  # Guarantee this is the initial call
@@ -567,24 +562,24 @@ def setup_snapshot_components(
 
     # Populate List of Snapshots
     try:
-        snapshots = src.list_snapshots(wbs_l1)
+        snapshots = src.list_snapshots(s_wbs_l1)
     except DataSourceException:
         pass
     snap_options = [
         {
-            "label": f"{snap['name']} — {utils.get_human_time(snap['timestamp'])}",
-            "value": snap["timestamp"],
+            "label": f"{s['name']} — {utils.get_human_time(s['timestamp'])}",
+            "value": s["timestamp"],
         }
-        for snap in snapshots
+        for s in snapshots
     ]
 
     # This was a tab switch w/ a now non-valid snap ts
-    if snap_ts not in [snap["timestamp"] for snap in snapshots]:
-        snap_ts = ""
+    if s_snap_ts not in [s["timestamp"] for s in snapshots]:
+        s_snap_ts = ""
 
     # Selected a Snapshot
-    if snap_ts:
-        snap_info = next(s for s in snapshots if s["timestamp"] == snap_ts)
+    if s_snap_ts:
+        snap_info = next(s for s in snapshots if s["timestamp"] == s_snap_ts)
         human_time = utils.get_human_time(snap_info["timestamp"])
         # get lines
         label_lines = [
@@ -595,7 +590,7 @@ def setup_snapshot_components(
             ),
         ]
 
-    return snap_options, label_lines, bool(snap_ts)
+    return snap_options, label_lines, bool(s_snap_ts)
 
 
 @app.callback(  # type: ignore[misc]
@@ -618,19 +613,18 @@ def setup_snapshot_components(
     prevent_initial_call=True,
 )
 def handle_make_snapshot(
-    # input(s)
     _: int,
     __: int,
     ___: int,
     # state(s)
-    wbs_l1: str,
-    name: str,
-    state_snap_current_ts: str,
+    s_wbs_l1: str,
+    s_name: str,
+    s_snap_ts: str,
 ) -> Tuple[bool, dbc.Toast, str, str]:
     """Handle the naming and creating of a snapshot."""
     logging.warning(f"'{du.triggered_id()}' -> handle_make_snapshot()")
 
-    if state_snap_current_ts:  # are we looking at a snapshot?
+    if s_snap_ts:  # are we looking at a snapshot?
         return False, None, "", ""
 
     if du.triggered_id() == "wbs-make-snapshot-button":
@@ -638,7 +632,7 @@ def handle_make_snapshot(
 
     if du.triggered_id() in ["wbs-name-snapshot-btn", "wbs-name-snapshot-input"]:
         try:
-            src.create_snapshot(wbs_l1, name)
+            src.create_snapshot(s_wbs_l1, s_name)
             return False, "", "", "location.reload();"
         except DataSourceException:
             fail_toast = du.make_toast(
@@ -679,10 +673,10 @@ def handle_make_snapshot(
 def setup_institution_components(
     _: bool,
     # state(s)
-    wbs_l1: str,
-    snap_ts: types.DashVal,
-    cached_inst: types.DashVal,
-    state_tconfig_cache: tc.TableConfigParser.CacheType,
+    s_wbs_l1: str,
+    s_snap_ts: types.DashVal,
+    s_institution: types.DashVal,
+    s_tconfig_cache: tc.TableConfigParser.CacheType,
 ) -> Tuple[
     types.DashVal,
     types.DashVal,
@@ -699,51 +693,37 @@ def setup_institution_components(
 ]:
     """Set up institution-related components."""
     logging.warning(
-        f"'{du.triggered_id()}' -> setup_institution_components() ({wbs_l1=} {snap_ts=} {cached_inst=})"
+        f"'{du.triggered_id()}' -> setup_institution_components() ({s_wbs_l1=} {s_snap_ts=} {s_institution=})"
     )
 
     assert not du.triggered_id()  # Guarantee this is the initial call
 
-    h2_sow_table = "Collaboration-Wide SOW Table"
+    phds: types.DashVal = 0
+    faculty: types.DashVal = 0
+    sci: types.DashVal = 0
+    grad: types.DashVal = 0
+    text = ""
+    h2_table = "Collaboration-Wide SOW Table"
+    h2_textarea = ""
 
-    tconfig = tc.TableConfigParser(wbs_l1, cache=state_tconfig_cache)
+    tconfig = tc.TableConfigParser(s_wbs_l1, cache=s_tconfig_cache)
     inst_options = [
         {"label": f"{abbrev} ({name})", "value": abbrev}
         for name, abbrev in tconfig.get_institutions_w_abbrevs()
     ]
-    lab_options = [{"label": st, "value": st} for st in tconfig.get_labor_categories()]
+    labor_options = [
+        {"label": st, "value": st} for st in tconfig.get_labor_categories()
+    ]
 
-    if not cached_inst:
-        return (
-            0,
-            0,
-            0,
-            0,
-            "",
-            h2_sow_table,
-            "",
-            True,
-            True,
-            cached_inst,
-            inst_options,
-            lab_options,
-        )
-
-    h2_table = f"{cached_inst}'s SOW Table"
-    h2_notes = f"{cached_inst}'s Notes and Descriptions"
-
-    phds: types.DashVal = None
-    faculty: types.DashVal = None
-    sci: types.DashVal = None
-    grad: types.DashVal = None
-    text: str = ""
-
-    try:
-        phds, faculty, sci, grad, text = src.pull_institution_values(
-            wbs_l1, snap_ts, cached_inst
-        )
-    except DataSourceException:
-        pass
+    if s_institution:
+        h2_table = f"{s_institution}'s SOW Table"
+        h2_textarea = f"{s_institution}'s Notes and Descriptions"
+        try:
+            phds, faculty, sci, grad, text = src.pull_institution_values(
+                s_wbs_l1, s_snap_ts, s_institution
+            )
+        except DataSourceException:
+            phds, faculty, sci, grad, text = None, None, None, None, ""
 
     return (
         phds,
@@ -752,12 +732,12 @@ def setup_institution_components(
         grad,
         text,
         h2_table,
-        h2_notes,
-        False,
-        False,
-        cached_inst,
+        h2_textarea,
+        not s_institution,
+        not s_institution,
+        s_institution,
         inst_options,
-        lab_options,
+        labor_options,
     )
 
 
@@ -775,17 +755,20 @@ def setup_institution_components(
     prevent_initial_call=True,
 )
 def pick_institution(
-    institution: types.DashVal, user_institution: types.DashVal, first_call: bool
+    institution: types.DashVal,
+    user_institution: types.DashVal,
+    # state(s)
+    s_first_call: bool,
 ) -> Tuple[str, bool, types.DashVal]:
     """Refresh if the user selected an institution."""
     logging.warning(
-        f"'{du.triggered_id()}' -> pick_institution() ({first_call=} {institution=} {user_institution=})"
+        f"'{du.triggered_id()}' -> pick_institution() ({s_first_call=} {institution=} {user_institution=})"
     )
 
     if user_institution:
         institution = user_institution
 
-    if first_call:
+    if s_first_call:
         return "", False, institution
 
     return "location.reload();", False, institution
@@ -814,26 +797,25 @@ def pick_institution(
     prevent_initial_call=True,
 )
 def push_institution_values(  # pylint: disable=R0913
-    # input(s)
     phds: types.DashVal,
     faculty: types.DashVal,
     sci: types.DashVal,
     grad: types.DashVal,
     text: str,
     # state(s)
-    wbs_l1: str,
-    institution: types.DashVal,
-    state_snap_current_ts: types.DashVal,
-    state_table: types.Table,
-    first_time: bool,
+    s_wbs_l1: str,
+    s_institution: types.DashVal,
+    s_snap_ts: types.DashVal,
+    s_table: types.Table,
+    s_first_time: bool,
 ) -> Tuple[bool, html.Label, html.Label]:
     """Push the institution's values."""
     logging.warning(
-        f"'{du.triggered_id()}' -> push_institution_values() ({first_time=})"
+        f"'{du.triggered_id()}' -> push_institution_values() ({s_first_time=})"
     )
 
     # Is there an institution selected?
-    if not institution:
+    if not s_institution:
         return False, None, None
 
     # labels
@@ -842,7 +824,7 @@ def push_institution_values(  # pylint: disable=R0913
     headcounts_label = html.Label(f"Headcounts Last Refreshed: {now}")
 
     # Are the fields editable?
-    if not current_user.is_authenticated and not state_snap_current_ts:
+    if not current_user.is_authenticated and not s_snap_ts:
         return False, headcounts_label, textarea_label
 
     # check if headcounts are filled out
@@ -853,14 +835,16 @@ def push_institution_values(  # pylint: disable=R0913
         )
 
     # Is this a redundant push? -- fields were just auto-populated for the first time
-    if first_time:
+    if s_first_time:
         return False, headcounts_label, textarea_label
 
     # push
     try:
-        src.push_institution_values(wbs_l1, institution, phds, faculty, sci, grad, text)
+        src.push_institution_values(
+            s_wbs_l1, s_institution, phds, faculty, sci, grad, text
+        )
     except DataSourceException:
-        assert len(state_table) == 0  # there's no collection to push to
+        assert len(s_table) == 0  # there's no collection to push to
 
     return False, headcounts_label, textarea_label
 
@@ -889,16 +873,16 @@ def push_institution_values(  # pylint: disable=R0913
 def setup_user_dependent_components(
     _: bool,
     # state(s)
-    snap_ts: types.DashVal,
+    s_snap_ts: types.DashVal,
 ) -> Tuple[bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool]:
     """Logged-in callback."""
     logging.warning(
-        f"'{du.triggered_id()}' -> setup_user_dependent_components()  ({snap_ts=})"
+        f"'{du.triggered_id()}' -> setup_user_dependent_components()  ({s_snap_ts=})"
     )
 
     assert not du.triggered_id()  # Guarantee this is the initial call
 
-    if snap_ts:
+    if s_snap_ts:
         return (
             False,  # data-table NOT editable
             True,  # new-data-div-1 hidden
@@ -954,17 +938,16 @@ def setup_user_dependent_components(
     [State("wbs-table-config-cache", "data"), State("wbs-current-l1", "value")],
 )
 def toggle_pagination(
-    # input(s)
     n_clicks: int,
     # state(s)
-    state_tconfig_cache: tc.TableConfigParser.CacheType,
-    wbs_l1: str,
+    s_tconfig_cache: tc.TableConfigParser.CacheType,
+    s_wbs_l1: str,
 ) -> Tuple[str, str, bool, int, str]:
     """Toggle whether the table is paginated."""
     logging.warning(f"'{du.triggered_id()}' -> toggle_pagination()")
 
     if n_clicks % 2 == 0:
-        tconfig = tc.TableConfigParser(wbs_l1, cache=state_tconfig_cache)
+        tconfig = tc.TableConfigParser(s_wbs_l1, cache=s_tconfig_cache)
         return (
             "Show All Rows",
             du.Color.SECONDARY,
@@ -988,16 +971,15 @@ def toggle_pagination(
     prevent_initial_call=True,
 )
 def toggle_hidden_columns(
-    # input(s)
     n_clicks: int,
     # state(s)
-    state_tconfig_cache: tc.TableConfigParser.CacheType,
-    wbs_l1: str,
+    s_tconfig_cache: tc.TableConfigParser.CacheType,
+    s_wbs_l1: str,
 ) -> Tuple[str, str, bool, List[str]]:
     """Toggle hiding/showing the default hidden columns."""
     logging.warning(f"'{du.triggered_id()}' -> toggle_hidden_columns()")
 
-    tconfig = tc.TableConfigParser(wbs_l1, cache=state_tconfig_cache)
+    tconfig = tc.TableConfigParser(s_wbs_l1, cache=s_tconfig_cache)
 
     if n_clicks % 2 == 0:
         return (

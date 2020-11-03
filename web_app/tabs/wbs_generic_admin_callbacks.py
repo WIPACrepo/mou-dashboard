@@ -20,8 +20,8 @@ from ..utils import types, utils
 def _get_upload_success_modal_body(
     filename: str,
     n_records: int,
-    prev_snap: Optional[types.SnapshotInfo],
-    curr_snap: Optional[types.SnapshotInfo],
+    prev_snap_info: Optional[types.SnapshotInfo],
+    curr_snap_info: Optional[types.SnapshotInfo],
 ) -> List[dcc.Markdown]:
     """Make the message for the ingest confirmation toast."""
 
@@ -31,14 +31,16 @@ def _get_upload_success_modal_body(
         return utils.get_human_time(_snap["timestamp"])
 
     body: List[dcc.Markdown] = [
-        dcc.Markdown(f'Uploaded {n_records} records from "{filename}".'),
+        dcc.Markdown(f'Uploaded {n_records} rows from "{filename}".'),
         dcc.Markdown("A snapshot was made of:"),
     ]
 
-    if prev_snap:
-        body.append(dcc.Markdown(f"- the previous table ({_pseudonym(prev_snap)}) and"))
-    if curr_snap:
-        body.append(dcc.Markdown(f"- the current table ({_pseudonym(curr_snap)})"))
+    if prev_snap_info:
+        body.append(
+            dcc.Markdown(f"- the previous table ({_pseudonym(prev_snap_info)}) and")
+        )
+    if curr_snap_info:
+        body.append(dcc.Markdown(f"- the current table ({_pseudonym(curr_snap_info)})"))
 
     body.append(
         dcc.Markdown(
@@ -85,8 +87,8 @@ def handle_xlsx(  # pylint: disable=R0911
     __: int,
     ___: int,
     # state(s)
-    wbs_l1: str,
-    filename: str,
+    s_wbs_l1: str,
+    s_filename: str,
 ) -> Tuple[bool, str, str, bool, dbc.Toast, bool, List[dcc.Markdown]]:
     """Manage uploading a new xlsx document as the new live table."""
     logging.warning(f"'{du.triggered_id()}' -> handle_xlsx()")
@@ -102,30 +104,30 @@ def handle_xlsx(  # pylint: disable=R0911
         return False, "", "", True, None, False, []
 
     if du.triggered_id() == "wbs-upload-xlsx":
-        if not filename.endswith(".xlsx"):
+        if not s_filename.endswith(".xlsx"):
             return (
                 True,
-                f'"{filename}" is not an .xlsx file',
+                f'"{s_filename}" is not an .xlsx file',
                 du.Color.DANGER,
                 True,
                 None,
                 False,
                 [],
             )
-        return True, f'Staged "{filename}"', du.Color.SUCCESS, False, None, False, []
+        return True, f'Staged "{s_filename}"', du.Color.SUCCESS, False, None, False, []
 
     if du.triggered_id() == "wbs-upload-xlsx-override-table":
         base64_file = contents.split(",")[1]
         try:
-            n_records, prev_snap, curr_snap = src.override_table(
-                wbs_l1, base64_file, filename
+            n_records, prev_snap_info, curr_snap_info = src.override_table(
+                s_wbs_l1, base64_file, s_filename
             )
             msg = _get_upload_success_modal_body(
-                filename, n_records, prev_snap, curr_snap
+                s_filename, n_records, prev_snap_info, curr_snap_info
             )
             return False, "", "", True, None, True, msg
         except DataSourceException as e:
-            error_message = f'Error overriding "{filename}" ({e})'
+            error_message = f'Error overriding "{s_filename}" ({e})'
             return True, error_message, du.Color.DANGER, True, None, False, []
 
     raise Exception(f"Unaccounted for trigger {du.triggered_id()}")
@@ -145,19 +147,19 @@ def summarize(
     # input(s)
     _: int,
     # state(s)
-    wbs_l1: str,
-    state_tconfig_cache: tc.TableConfigParser.CacheType,
-    state_snap_current_ts: types.DashVal,
+    s_wbs_l1: str,
+    s_tconfig_cache: tc.TableConfigParser.CacheType,
+    s_snap_ts: types.DashVal,
 ) -> Tuple[types.Table, List[Dict[str, str]]]:
     """Manage uploading a new xlsx document as the new live table."""
     logging.warning(f"'{du.triggered_id()}' -> summarize()")
 
     try:
-        data_table = src.pull_data_table(wbs_l1)
+        data_table = src.pull_data_table(s_wbs_l1)
     except DataSourceException:
         return [], []
 
-    tconfig = tc.TableConfigParser(wbs_l1, cache=state_tconfig_cache)
+    tconfig = tc.TableConfigParser(s_wbs_l1, cache=s_tconfig_cache)
 
     column_names = [
         "Institution",
@@ -186,7 +188,7 @@ def summarize(
     summary_table: types.Table = []
     for inst_full, abbrev in tconfig.get_institutions_w_abbrevs():
         phds, faculty, sci, grad, __ = src.pull_institution_values(
-            wbs_l1, state_snap_current_ts, abbrev
+            s_wbs_l1, s_snap_ts, abbrev
         )
 
         row: Dict[str, types.StrNum] = {

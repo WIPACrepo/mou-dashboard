@@ -15,6 +15,7 @@ from ..utils import types, utils
 
 # constants
 REFRESH_MSG: Final[str] = "Refresh page and try again."
+GOOD_WAIT: Final[int] = 30
 
 
 class Color:  # pylint: disable=R0903
@@ -68,10 +69,9 @@ def get_snpapshot_placeholder(
     ]
 
     if timestamps:
-        ts = max(timestamps)
+        most_recent = utils.get_human_time(max(timestamps))
     else:
-        ts = utils.get_now()
-    most_recent = utils.get_human_time(ts)
+        most_recent = utils.get_human_now()
 
     return (
         f"— Statement{'' if state_institution else 's'} of Work as of {most_recent} —"
@@ -270,7 +270,7 @@ def deletion_toast() -> dbc.Toast:
     """Get a toast for confirming a deletion."""
     return dbc.Toast(
         id="wbs-deletion-toast",
-        header="Deleted Record",
+        header="Row Deleted",
         is_open=False,
         dismissable=True,
         duration=0,  # 0 = forever

@@ -303,7 +303,10 @@ def layout() -> html.Div:
                         style={"background": "transparent"},  # float atop all
                         children=[
                             html.Div(
-                                style={"margin-right": "10rem", "width": "119.5rem"},
+                                style={
+                                    "margin-right": "10rem",
+                                    "width": "calc(100% - 10rem)",
+                                },
                                 children=[
                                     dbc.Button(
                                         id="wbs-summary-table-recalculate",

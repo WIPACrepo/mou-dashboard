@@ -3,7 +3,6 @@
 
 import time
 from datetime import datetime as dt
-from datetime import timezone as tz
 
 from dateutil import parser as dp
 
