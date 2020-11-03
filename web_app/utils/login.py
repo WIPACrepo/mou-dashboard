@@ -51,7 +51,7 @@ class User(UserMixin):  # type: ignore[misc]
     @staticmethod
     def _ldap_login(email: str, pwd: str) -> bool:
         # TODO: look up user w/ password
-        if "@" in email and pwd == "123456789":
+        if email and "@" in email and pwd == "123456789":
             return True
         return False
 

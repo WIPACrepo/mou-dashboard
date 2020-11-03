@@ -1,11 +1,9 @@
 """REST interface for get configurations for the table/columns."""
 
 
-from typing import cast, Dict, List, Optional, Tuple, TypedDict
+from typing import cast, Dict, Final, List, Optional, Tuple, TypedDict
 
 from .utils import mou_request
-
-_WBS_L2 = "WBS L2"
 
 
 class _WBSTableCache(TypedDict):  # pylint: disable=R0903
@@ -31,16 +29,45 @@ class TableConfigParser:  # pylint: disable=R0904
 
     CacheType = Dict[str, _WBSTableCache]  # The response dict from '/table/config'
 
+    class _Constants:  # pylint: disable=R0903,R0902
+        """Name-space for constants."""
+
+        def __init__(self) -> None:
+            # pylint: disable=C0103
+            self.ID: Final[str] = "_id"
+            self.WBS_L2: Final[str] = "WBS L2"
+            self.WBS_L3: Final[str] = "WBS L3"
+            self.LABOR_CAT: Final[str] = "Labor Cat."
+            self.US_NON_US: Final[str] = "US / Non-US"
+            self.INSTITUTION: Final[str] = "Institution"
+            self.NAME: Final[str] = "Name"
+            self.TASK_DESCRIPTION: Final[str] = "Task Description"
+            self.SOURCE_OF_FUNDS_US_ONLY: Final[str] = "Source of Funds (U.S. Only)"
+            self.FTE: Final[str] = "FTE"
+            self.NSF_MO_CORE: Final[str] = "NSF M&O Core"
+            self.NSF_BASE_GRANTS: Final[str] = "NSF Base Grants"
+            self.US_IN_KIND: Final[str] = "US In-Kind"
+            self.NON_US_IN_KIND: Final[str] = "Non-US In-Kind"
+            self.GRAND_TOTAL: Final[str] = "Grand Total"
+            self.TOTAL_COL: Final[str] = "Total-Row Description"
+            self.TIMESTAMP: Final[str] = "Date & Time of Last Edit"
+            self.EDITOR: Final[str] = "Name of Last Editor"
+
     def __init__(self, wbs_l1: str, cache: Optional[CacheType] = None) -> None:
         """Get the dictionary of table configurations.
 
         Use the parser functions to access configurations.
         """
         self._wbs_l1 = wbs_l1
+
         if cache:
             self._configs = cache
         else:
             self._configs = TableConfigParser.get_configs()
+
+        # set up constants for quick reference
+        self.const = TableConfigParser._Constants()
+        assert all(a in self.get_table_columns() for a in self.const.__dict__.values())
 
     @staticmethod
     def get_configs() -> CacheType:
@@ -64,7 +91,7 @@ class TableConfigParser:  # pylint: disable=R0904
 
     def get_l2_categories(self) -> List[str]:
         """Get dropdown menu for a column."""
-        return self.get_simple_column_dropdown_menu(_WBS_L2)
+        return self.get_simple_column_dropdown_menu(self.const.WBS_L2)
 
     def get_institutions_w_abbrevs(self) -> List[Tuple[str, str]]:
         """Get list of institutions and their abbreviations."""

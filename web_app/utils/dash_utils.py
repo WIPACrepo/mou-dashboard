@@ -59,13 +59,13 @@ def flags_agree(one: bool, two: bool) -> bool:
 
 
 def get_snpapshot_placeholder(
-    table: types.Table, state_institution: types.DashVal
+    table: types.Table, state_institution: types.DashVal, tconfig: tc.TableConfigParser
 ) -> str:
     """Get the placeholder for the snapshots dropdown."""
     timestamps = [
-        utils.iso_to_epoch(cast(str, r[src.TIMESTAMP]))
+        utils.iso_to_epoch(cast(str, r[tconfig.const.TIMESTAMP]))
         for r in table
-        if r.get(src.TIMESTAMP)
+        if r.get(tconfig.const.TIMESTAMP)
     ]
 
     if timestamps:

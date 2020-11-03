@@ -154,12 +154,14 @@ def summarize(
     """Manage uploading a new xlsx document as the new live table."""
     logging.warning(f"'{du.triggered_id()}' -> summarize()")
 
-    try:
-        data_table = src.pull_data_table(s_wbs_l1)
-    except DataSourceException:
-        return [], []
+    assert not s_snap_ts
 
     tconfig = tc.TableConfigParser(s_wbs_l1, cache=s_tconfig_cache)
+
+    try:
+        data_table = src.pull_data_table(s_wbs_l1, tconfig)
+    except DataSourceException:
+        return [], []
 
     column_names = [
         "Institution",

@@ -51,7 +51,7 @@ def _add_new_data(  # pylint: disable=R0913
     columns: types.TColumns,
     labor: types.DashVal,
     institution: types.DashVal,
-    tconfig_cache: tc.TableConfigParser.CacheType,
+    tconfig: tc.TableConfigParser,
     new_task: str,
 ) -> Tuple[types.Table, dbc.Toast]:
     """Push new record to data source; add to table.
@@ -68,11 +68,11 @@ def _add_new_data(  # pylint: disable=R0913
         new_record = src.push_record(
             wbs_l1,
             new_record,
+            tconfig,
             task=new_task,
             labor=labor,
             institution=institution,
             novel=True,
-            tconfig=tc.TableConfigParser(wbs_l1, cache=tconfig_cache),
         )
         table.insert(0, new_record)
         toast = du.make_toast("Row Added", [], du.Color.SUCCESS, du.GOOD_WAIT)
@@ -190,6 +190,7 @@ def table_data_exterior_controls(
 
     table: types.Table = []
     toast: dbc.Toast = None
+    tconfig = tc.TableConfigParser(s_wbs_l1, cache=s_tconfig_cache)
 
     # format "Show Totals" button
     show_totals, tot_label, tot_color, tot_outline, all_cols = _totals_button_logic(
@@ -200,13 +201,7 @@ def table_data_exterior_controls(
     if du.triggered_id() == "wbs-new-data-modal-dummy-add":
         if not s_snap_ts:  # are we looking at a snapshot?
             table, toast = _add_new_data(
-                s_wbs_l1,
-                s_table,
-                columns,
-                labor,
-                s_institution,
-                s_tconfig_cache,
-                s_new_task,
+                s_wbs_l1, s_table, columns, labor, s_institution, tconfig, s_new_task,
             )
 
     # OR Restore a types.Record and Pull types.Table (optionally filtered)
@@ -215,13 +210,14 @@ def table_data_exterior_controls(
             try:
                 table = src.pull_data_table(
                     s_wbs_l1,
+                    tconfig,
                     institution=s_institution,
                     labor=labor,
                     with_totals=show_totals,
                     restore_id=s_deleted_id,
                 )
-                record = next(r for r in table if r[src.ID] == s_deleted_id)
-                message = [html.Div(s) for s in src.record_to_strings(record)]
+                record = next(r for r in table if r[tconfig.const.ID] == s_deleted_id)
+                message = [html.Div(s) for s in src.record_to_strings(record, tconfig)]
                 toast = du.make_toast(
                     "Row Restored", message, du.Color.SUCCESS, du.GOOD_WAIT
                 )
@@ -233,6 +229,7 @@ def table_data_exterior_controls(
         try:
             table = src.pull_data_table(
                 s_wbs_l1,
+                tconfig,
                 institution=s_institution,
                 labor=labor,
                 with_totals=show_totals,
@@ -261,15 +258,17 @@ def _push_modified_records(
 ) -> List[types.StrNum]:
     """For each row that changed, push the record to the DS."""
     modified_records = [
-        r for r in current_table if (r not in previous_table) and (src.ID in r)
+        r
+        for r in current_table
+        if (r not in previous_table) and (tconfig.const.ID in r)
     ]
     for record in modified_records:
         try:
-            src.push_record(wbs_l1, record, tconfig=tconfig)
+            src.push_record(wbs_l1, record, tconfig)
         except DataSourceException:
             pass
 
-    ids = [c[src.ID] for c in modified_records]
+    ids = [c[tconfig.const.ID] for c in modified_records]
     return ids
 
 
@@ -278,12 +277,15 @@ def _delete_deleted_records(
     current_table: types.Table,
     previous_table: types.Table,
     keeps: List[types.StrNum],
+    tconfig: tc.TableConfigParser,
 ) -> Tuple[dbc.Toast, str, List[str]]:
     """For each row that was deleted by the user, delete its DS record."""
     delete_these = [
         r
         for r in previous_table
-        if (r not in current_table) and (src.ID in r) and (r[src.ID] not in keeps)
+        if (r not in current_table)
+        and (tconfig.const.ID in r)
+        and (r[tconfig.const.ID] not in keeps)
     ]
 
     if not delete_these:
@@ -297,8 +299,8 @@ def _delete_deleted_records(
     record = None
     for record in delete_these:
         try:
-            src.delete_record(wbs_l1, cast(str, record[src.ID]))
-            last_deletion = cast(str, record[src.ID])
+            src.delete_record(wbs_l1, cast(str, record[tconfig.const.ID]))
+            last_deletion = cast(str, record[tconfig.const.ID])
         except DataSourceException:
             failures.append(record)
 
@@ -306,7 +308,9 @@ def _delete_deleted_records(
     if failures:
         toast = du.make_toast("Failed to Delete Row", du.REFRESH_MSG, du.Color.DANGER)
     else:
-        success_message = [html.Div(s) for s in src.record_to_strings(delete_these[0])]
+        success_message = [
+            html.Div(s) for s in src.record_to_strings(delete_these[0], tconfig)
+        ]
 
     return toast, last_deletion, success_message
 
@@ -355,9 +359,13 @@ def table_data_interior_controls(
     """
     logging.warning(f"'{du.triggered_id()}' -> table_data_interior_controls()")
 
+    tconfig = tc.TableConfigParser(s_wbs_l1, cache=s_tconfig_cache)
+
     # Make labels
     updated_message = f"Table Last Refreshed: {utils.get_human_now()}"
-    snap_placeholder = du.get_snpapshot_placeholder(current_table, s_institution)
+    snap_placeholder = du.get_snpapshot_placeholder(
+        current_table, s_institution, tconfig
+    )
 
     # Was table just updated via exterior controls? -- if so, toggle flag
     # flags will agree only after table_data_exterior_controls() triggers this function
@@ -378,12 +386,11 @@ def table_data_interior_controls(
     assert s_previous_table  # should have previous table
 
     # Push (if any)
-    tconfig = tc.TableConfigParser(s_wbs_l1, cache=s_tconfig_cache)
     mod_ids = _push_modified_records(s_wbs_l1, current_table, s_previous_table, tconfig)
 
     # Delete (if any)
     toast, last_deletion, delete_success_message = _delete_deleted_records(
-        s_wbs_l1, current_table, s_previous_table, mod_ids
+        s_wbs_l1, current_table, s_previous_table, mod_ids, tconfig
     )
 
     # Update data_previous
