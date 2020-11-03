@@ -2,7 +2,7 @@
 
 import logging
 from decimal import Decimal
-from typing import Dict, List, Optional, Tuple
+from typing import cast, Dict, List, Optional, Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -208,3 +208,70 @@ def summarize(
         summary_table.append(row)
 
     return summary_table, columns
+
+
+@app.callback(  # type: ignore[misc]
+    [
+        Output("wbs-blame-table", "data"),
+        Output("wbs-blame-table", "columns"),
+        Output("wbs-blame-table", "style_cell_conditional"),
+    ],
+    [Input("wbs-blame-table-button", "n_clicks")],  # user-only
+    [
+        State("wbs-current-l1", "value"),
+        State("wbs-table-config-cache", "data"),
+        State("wbs-current-snapshot-ts", "value"),
+    ],
+    prevent_initial_call=True,
+)  # pylint: disable=R0914
+def blame(
+    # input(s)
+    _: int,
+    # state(s)
+    s_wbs_l1: str,
+    s_tconfig_cache: tc.TableConfigParser.CacheType,
+    s_snap_ts: types.DashVal,
+) -> Tuple[types.Table, List[Dict[str, str]], types.TSCCond]:
+    """Manage uploading a new xlsx document as the new live table."""
+    logging.warning(f"'{du.triggered_id()}' -> summarize()")
+
+    assert not s_snap_ts
+
+    tconfig = tc.TableConfigParser(s_wbs_l1, cache=s_tconfig_cache)
+
+    try:
+        data_table = src.pull_data_table(s_wbs_l1, tconfig)
+    except DataSourceException:
+        return [], [], []
+
+    column_names = [
+        tconfig.const.WBS_L2,
+        tconfig.const.WBS_L3,
+        tconfig.const.INSTITUTION,
+        tconfig.const.NAME,
+        tconfig.const.SOURCE_OF_FUNDS_US_ONLY,
+        "Changed Field",
+        "Before",
+        "Snapshot Name",
+        "Now",
+        tconfig.const.TIMESTAMP,
+        tconfig.const.EDITOR,
+    ]
+    columns = [{"id": c, "name": c, "type": "text"} for c in column_names]
+
+    data_table.sort(
+        key=lambda r: utils.iso_to_epoch(cast(str, r[tconfig.const.TIMESTAMP])),
+        reverse=True,
+    )
+
+    blame_table = []
+    for record in data_table:
+        blame_table.append({k: v for k, v in record.items() if k in column_names})
+
+    style_cell_conditional = []
+    for col in ["Changed Field", "Before", "Now"]:
+        style_cell_conditional.append(
+            {"if": {"column_id": col}, "border-left": f"2.5px solid {du.TABLE_GRAY}"}
+        )
+
+    return blame_table, columns, style_cell_conditional

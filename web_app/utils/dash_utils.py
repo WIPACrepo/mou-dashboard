@@ -2,12 +2,13 @@
 
 
 import logging
-from typing import cast, Collection, Dict, Final, List, Union
+from typing import Any, cast, Collection, Dict, Final, List, Union
 
 import dash  # type: ignore[import]
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
+import dash_table  # type: ignore[import]
 
 from ..data_source import data_source as src
 from ..data_source import table_config as tc
@@ -16,6 +17,9 @@ from ..utils import types, utils
 # constants
 REFRESH_MSG: Final[str] = "Refresh page and try again."
 GOOD_WAIT: Final[int] = 30
+TEAL: Final[str] = "#17a2b8"
+GREEN: Final[str] = "#258835"
+TABLE_GRAY: Final[str] = "#23272B"
 
 
 class Color:  # pylint: disable=R0903
@@ -147,7 +151,7 @@ def _style_cell_conditional_fixed_width(
     }
 
     if border_left:
-        style["border-left"] = "2.5px solid #23272B"
+        style["border-left"] = f"2.5px solid {TABLE_GRAY}"
 
     if align_right:
         style["textAlign"] = "right"
@@ -216,7 +220,7 @@ def get_style_data_conditional(tconfig: tc.TableConfigParser) -> types.TSDCond:
                 "filter_query": f"{{{col}}} != {{{src.get_touchstone_name(col)}}}",
             },
             "fontWeight": "bold",
-            # "color": "#258835",  # doesn't color dropdown-type value
+            # "color": GREEN,  # doesn't color dropdown-type value
             "fontStyle": "oblique",
         }
         for col in tconfig.get_table_columns()
@@ -227,7 +231,7 @@ def get_style_data_conditional(tconfig: tc.TableConfigParser) -> types.TSDCond:
         {
             "if": {"state": "selected"},  # 'active' | 'selected'
             "backgroundColor": "transparent",
-            "border": "2px solid #258835",
+            "border": f"2px solid {GREEN}",
         }
     ]
 
@@ -235,21 +239,21 @@ def get_style_data_conditional(tconfig: tc.TableConfigParser) -> types.TSDCond:
     style_data_conditional += [
         {
             "if": {"filter_query": "{Total-Row Description} contains 'GRAND TOTAL'"},
-            "backgroundColor": "#258835",
+            "backgroundColor": GREEN,
             "color": "whitesmoke",
             "fontWeight": "bold",
             "fontStyle": "normal",
         },
         {
             "if": {"filter_query": "{Total-Row Description} contains 'L2'"},
-            "backgroundColor": "#23272B",
+            "backgroundColor": TABLE_GRAY,
             "color": "whitesmoke",
             "fontWeight": "normal",
             "fontStyle": "normal",
         },
         {
             "if": {"filter_query": "{Total-Row Description} contains 'L3'"},
-            "backgroundColor": "#17a2b8",
+            "backgroundColor": TEAL,
             "color": "whitesmoke",
             "fontWeight": "normal",
             "fontStyle": "normal",
@@ -379,7 +383,7 @@ def upload_modal() -> dbc.Modal:
                     ),
                     dcc.Loading(
                         type="default",
-                        color="#258835",
+                        color=GREEN,
                         children=[
                             dbc.Button(
                                 "Override",
@@ -484,4 +488,51 @@ def add_new_data_modal() -> dbc.Modal:
                 ),
             ),
         ],
+    )
+
+
+def simple_table(id_: str) -> dash_table.DataTable:
+    """Make a simple, read-only table."""
+    return dash_table.DataTable(
+        id=id_,
+        editable=False,
+        style_table={"overflowX": "auto", "overflowY": "auto", "padding-left": "1em"},
+        style_header={
+            "backgroundColor": "black",
+            "color": "whitesmoke",
+            "whiteSpace": "normal",
+            "fontWeight": "normal",
+            "height": "auto",
+            "fontSize": "10px",
+            "lineHeight": "10px",
+        },
+        style_cell={
+            "textAlign": "left",
+            "fontSize": 14,
+            "font-family": "sans-serif",
+            "padding-left": "0.5em",
+            "minWidth": "5px",
+            "width": "5px",
+            "maxWidth": "10px",
+        },
+        style_data={
+            "whiteSpace": "normal",
+            "height": "auto",
+            "lineHeight": "20px",
+            "wordBreak": "break-all",
+        },
+        export_format="xlsx",
+        export_headers="display",
+        merge_duplicate_headers=True,
+    )
+
+
+def fullscreen_loading(children: List[Any]) -> dcc.Loading:
+    """Wrap components in a full-screen dcc.Loading component."""
+    return dcc.Loading(
+        type="cube",
+        color=TEAL,
+        fullscreen=True,
+        style={"background": "transparent"},  # float atop all
+        children=children,
     )
