@@ -1,15 +1,31 @@
 """General-purpose utility functions."""
+
+
 import time
 from datetime import datetime as dt
 from datetime import timezone as tz
+
+from dateutil import parser as dp
 
 # --------------------------------------------------------------------------------------
 # Time-Related Functions
 
 
+def iso_to_epoch(iso: str) -> str:
+    """From ISO datetime, return the epoch timestamp."""
+    return dp.parse(iso).strftime("%s")
+
+
 def get_now() -> str:
     """Get epoch time as a str."""
     return str(time.time())
+
+
+def get_iso(timestamp: str) -> str:
+    """Get the ISO datetime, YYYY-MM-DD HH:MM:SS."""
+    datetime = dt.fromtimestamp(float(timestamp))
+
+    return datetime.strftime("%Y-%m-%d %H:%M:%S")
 
 
 def get_human_time(timestamp: str) -> str:
@@ -19,9 +35,11 @@ def get_human_time(timestamp: str) -> str:
     except ValueError:
         return timestamp
 
-    timezone = dt.now(tz.utc).astimezone().tzinfo
+    date = datetime.strftime("%d-%B %Y")
+    time_ = datetime.strftime("%I:%M:%S%p").lower()
+    timezone = datetime.astimezone().tzinfo
 
-    return f"{datetime.strftime('%Y-%m-%d %H:%M:%S')} {timezone}"
+    return f"{date} ({time_} {timezone})"
 
 
 def get_human_now() -> str:

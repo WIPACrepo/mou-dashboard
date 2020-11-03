@@ -61,7 +61,7 @@ def layout() -> html.Div:
                         id="wbs-current-snapshot-ts",
                         className="large-dropdown snapshot-dropdown",
                         style={"width": "100rem"},
-                        placeholder="— Statements of Work as of YYYY-MM-DD —",
+                        placeholder="...",  # set in callback
                         value="",
                         disabled=False,
                         persistence=True,

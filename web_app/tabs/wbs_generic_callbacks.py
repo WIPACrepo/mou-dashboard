@@ -324,6 +324,7 @@ def _delete_deleted_records(
         Output("wbs-deletion-toast", "is_open"),
         Output("wbs-deletion-toast-message", "children"),
         Output("wbs-table-update-flag-interior-control", "data"),
+        Output("wbs-current-snapshot-ts", "placeholder"),
     ],
     [Input("wbs-data-table", "data")],  # user/table_data_exterior_controls()
     [
@@ -333,6 +334,7 @@ def _delete_deleted_records(
         State("wbs-current-snapshot-ts", "value"),
         State("wbs-table-update-flag-exterior-control", "data"),
         State("wbs-table-update-flag-interior-control", "data"),
+        State("wbs-institution-source-of-truth", "data"),
     ],
     prevent_initial_call=True,
 )
@@ -346,7 +348,8 @@ def table_data_interior_controls(
     state_snap_current_ts: types.DashVal,
     s_flag_extctrl: bool,
     s_flag_intctrl: bool,
-) -> Tuple[types.Table, dbc.Toast, str, str, bool, List[html.Div], bool]:
+    state_institution: types.DashVal,
+) -> Tuple[types.Table, dbc.Toast, str, str, bool, List[html.Div], bool, str]:
     """Interior control signaled that the table should be updated.
 
     This is either a row deletion or a field edit. The table's view has
@@ -357,13 +360,24 @@ def table_data_interior_controls(
     """
     logging.warning(f"'{du.triggered_id()}' -> table_data_interior_controls()")
 
+    # Make labels
     updated_message = f"Table Last Refreshed: {utils.get_human_now()}"
+    snap_placeholder = du.get_snpapshot_placeholder(current_table, state_institution)
 
     # Was table just updated via exterior controls? -- if so, toggle flag
     # flags will agree only after table_data_exterior_controls() triggers this function
     if not du.flags_agree(s_flag_extctrl, s_flag_intctrl):
         logging.warning("table_data_interior_controls() :: aborted callback")
-        return current_table, None, updated_message, "", False, [], not s_flag_intctrl
+        return (
+            current_table,
+            None,
+            updated_message,
+            "",
+            False,
+            [],
+            not s_flag_intctrl,
+            snap_placeholder,
+        )
 
     assert not state_snap_current_ts  # should not be a snapshot
     assert previous_table  # should have previous table
@@ -386,6 +400,7 @@ def table_data_interior_controls(
         bool(last_deletion),
         delete_success_message,
         s_flag_intctrl,  # preserve flag
+        snap_placeholder,
     )
 
 

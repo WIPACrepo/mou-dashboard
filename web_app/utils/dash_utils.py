@@ -54,6 +54,31 @@ def flags_agree(one: bool, two: bool) -> bool:
 
 
 # --------------------------------------------------------------------------------------
+# Callback Helper Functions
+
+
+def get_snpapshot_placeholder(
+    table: types.Table, state_institution: types.DashVal
+) -> str:
+    """Get the placeholder for the snapshots dropdown."""
+    timestamps = [
+        utils.iso_to_epoch(cast(str, r[src.TIMESTAMP]))
+        for r in table
+        if r.get(src.TIMESTAMP)
+    ]
+
+    if timestamps:
+        ts = max(timestamps)
+    else:
+        ts = utils.get_now()
+    most_recent = utils.get_human_time(ts)
+
+    return (
+        f"— Statement{'' if state_institution else 's'} of Work as of {most_recent} —"
+    )
+
+
+# --------------------------------------------------------------------------------------
 # Component/Attribute-Constructor Functions
 
 

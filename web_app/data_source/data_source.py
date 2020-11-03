@@ -12,7 +12,7 @@ from .utils import mou_request
 # constants
 ID: Final[str] = "_id"
 _OC_SUFFIX: Final[str] = "_original"
-_TIMESTAMP: Final[str] = "Date & Time of Last Edit"
+TIMESTAMP: Final[str] = "Date & Time of Last Edit"
 _EDITOR: Final[str] = "Name of Last Editor"
 
 
@@ -50,8 +50,8 @@ def _convert_record_rest_to_dash(
     Returns:
         types.Record -- the argument value
     """
-    if ts := record.get(_TIMESTAMP):
-        record[_TIMESTAMP] = utils.get_human_time(str(ts))
+    if ts := record.get(TIMESTAMP):
+        record[TIMESTAMP] = utils.get_iso(str(ts))
 
     if not record.get(_EDITOR):
         record[_EDITOR] = "—"
