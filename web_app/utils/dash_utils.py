@@ -496,6 +496,7 @@ def simple_table(id_: str) -> dash_table.DataTable:
     return dash_table.DataTable(
         id=id_,
         editable=False,
+        sort_action="native",
         style_table={"overflowX": "auto", "overflowY": "auto", "padding-left": "1em"},
         style_header={
             "backgroundColor": "black",
@@ -524,6 +525,8 @@ def simple_table(id_: str) -> dash_table.DataTable:
         export_format="xlsx",
         export_headers="display",
         merge_duplicate_headers=True,
+        # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
+        page_size=9999999999,
     )
 
 

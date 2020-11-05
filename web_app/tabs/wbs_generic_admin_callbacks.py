@@ -1,8 +1,9 @@
 """Admin-only callbacks for a specified WBS layout."""
 
 import logging
+from collections import OrderedDict as ODict
 from decimal import Decimal
-from typing import cast, Dict, List, Optional, Tuple
+from typing import Dict, Final, List, Optional, Tuple, TypedDict
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -15,6 +16,13 @@ from ..data_source import table_config as tc
 from ..data_source.utils import DataSourceException
 from ..utils import dash_utils as du
 from ..utils import types, utils
+
+CHANGES_COL: Final[str] = "Changes"
+
+
+class _SnapshotBundle(TypedDict):
+    table: types.Table
+    info: types.SnapshotInfo
 
 
 def _get_upload_success_modal_body(
@@ -210,6 +218,91 @@ def summarize(
     return summary_table, columns
 
 
+def _blame_row(
+    record: types.Record,
+    tconfig: tc.TableConfigParser,
+    column_names: List[str],
+    snap_bundles: Dict[str, _SnapshotBundle],
+) -> types.Record:
+
+    # get each field's history
+    field_history: Dict[str, Dict[str, types.StrNum]] = {}
+    field_history = ODict({k: ODict({"today": record[k]}) for k in record})
+    for snap_ts, bundle in snap_bundles.items():
+        match = next(
+            r
+            for r in bundle["table"]
+            if r[tconfig.const.ID] == record[tconfig.const.ID]
+        )
+        for field in record:
+            field_history[field][snap_ts] = match[field]  # snapshot's value
+
+    # throw out fields that have never changed
+    for field in field_history:
+        if len(set(field_history[field].values())) < 2:
+            field_history[field] = {}
+
+    # make markdown for cell
+    blame_row = {k: v for k, v in record.items() if k in column_names}
+    blame_row[CHANGES_COL] = ""
+    for field, changes in field_history.items():
+        if not changes:
+            continue
+        blame_row[CHANGES_COL] += f"\n**{field}**\n"
+        for snap_ts, snap_val in changes.items():
+            if field == tconfig.const.TIMESTAMP:
+                snap_val = utils.get_human_time(str(snap_val))
+            snap_val = f"`{snap_val}`" if snap_val else "*none*"
+            blame_row[CHANGES_COL] += f"- {snap_val}\n"
+            if snap_ts == "today":
+                blame_row[CHANGES_COL] += f"    + today\n"
+                blame_row[CHANGES_COL] += f"    + {utils.get_human_now()}\n"
+            else:
+                snap_time = utils.get_human_time(str(snap_ts))
+                name = snap_bundles[snap_ts]["info"]["name"]
+                blame_row[CHANGES_COL] += f"    + {name}\n"
+                blame_row[CHANGES_COL] += f"    + {snap_time}\n"
+
+    if not blame_row[CHANGES_COL]:
+        blame_row[CHANGES_COL] = "*no changes*"
+
+    return blame_row
+
+
+def _blame_columns(column_names: List[str]):
+    return [
+        {
+            "id": c,
+            "name": c,
+            "type": "text",
+            "presentation": "markdown" if c == CHANGES_COL else "input",
+        }
+        for c in column_names
+    ]
+
+
+def _blame_style_cell_conditional(column_names: List[str]) -> types.TSCCond:
+    style_cell_conditional = []
+    # border-left
+    for col in [CHANGES_COL]:
+        style_cell_conditional.append(
+            {"if": {"column_id": col}, "border-left": f"2.5px solid {du.TABLE_GRAY}"}
+        )
+    # width
+    widths = {CHANGES_COL: 50}
+    default_width = 20
+    for col in column_names:
+        style_cell_conditional.append(
+            {
+                "if": {"column_id": col},
+                "minWidth": widths.get(col, default_width),
+                "width": widths.get(col, default_width),
+                "maxWidth": widths.get(col, default_width),
+            }
+        )
+    return style_cell_conditional
+
+
 @app.callback(  # type: ignore[misc]
     [
         Output("wbs-blame-table", "data"),
@@ -237,10 +330,14 @@ def blame(
 
     assert not s_snap_ts
 
+    # setup
     tconfig = tc.TableConfigParser(s_wbs_l1, cache=s_tconfig_cache)
 
     try:
-        data_table = src.pull_data_table(s_wbs_l1, tconfig)
+        data_table = src.pull_data_table(s_wbs_l1, tconfig, raw=True)
+        data_table.sort(
+            key=lambda r: r[tconfig.const.TIMESTAMP], reverse=True,
+        )
     except DataSourceException:
         return [], [], []
 
@@ -250,28 +347,25 @@ def blame(
         tconfig.const.INSTITUTION,
         tconfig.const.NAME,
         tconfig.const.SOURCE_OF_FUNDS_US_ONLY,
-        "Changed Field",
-        "Before",
-        "Snapshot Name",
-        "Now",
-        tconfig.const.TIMESTAMP,
-        tconfig.const.EDITOR,
+        CHANGES_COL,
     ]
-    columns = [{"id": c, "name": c, "type": "text"} for c in column_names]
 
-    data_table.sort(
-        key=lambda r: utils.iso_to_epoch(cast(str, r[tconfig.const.TIMESTAMP])),
-        reverse=True,
+    # populate blame table
+    snap_bundles: Dict[str, _SnapshotBundle] = {
+        info["timestamp"]: {
+            "table": src.pull_data_table(
+                s_wbs_l1, tconfig, snapshot_ts=info["timestamp"], raw=True
+            ),
+            "info": info,
+        }
+        for info in src.list_snapshots(s_wbs_l1)
+    }
+    blame_table = [
+        _blame_row(r, tconfig, column_names, snap_bundles) for r in data_table
+    ]
+
+    return (
+        blame_table,
+        _blame_columns(column_names),
+        _blame_style_cell_conditional(column_names),
     )
-
-    blame_table = []
-    for record in data_table:
-        blame_table.append({k: v for k, v in record.items() if k in column_names})
-
-    style_cell_conditional = []
-    for col in ["Changed Field", "Before", "Now"]:
-        style_cell_conditional.append(
-            {"if": {"column_id": col}, "border-left": f"2.5px solid {du.TABLE_GRAY}"}
-        )
-
-    return blame_table, columns, style_cell_conditional

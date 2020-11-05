@@ -236,6 +236,7 @@ def pull_data_table(  # pylint: disable=R0913
     with_totals: bool = False,
     snapshot_ts: types.DashVal = "",
     restore_id: str = "",
+    raw: bool = False,
 ) -> types.Table:
     """Get table, optionally filtered by institution and/or labor.
 
@@ -248,6 +249,7 @@ def pull_data_table(  # pylint: disable=R0913
         with_totals {bool} -- whether to include "total" rows (default: {False})
         snapshot_ts {str} -- name of snapshot (default: {""})
         restore_id {str} -- id of a record to be restored (default: {""})
+        raw -- {bool} -- True if data isn't for datatable display (default: {False})
 
     Returns:
         types.Table -- the returned table
@@ -275,6 +277,8 @@ def pull_data_table(  # pylint: disable=R0913
         _RespTableData, mou_request("GET", f"/table/data/{wbs_l1}", body=body),
     )
     # get & convert
+    if raw:
+        return response["table"]
     return _convert_table_rest_to_dash(response["table"], tconfig)
 
 

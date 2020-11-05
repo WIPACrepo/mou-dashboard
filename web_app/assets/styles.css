@@ -60,6 +60,30 @@ body {
 
 
 /*------------------------------------------------------------------------------------*/
+/* Markdown */
+
+ul {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+li {
+    margin-bottom: 0 !important;
+}
+
+p {
+   margin-bottom: 0 !important;
+   margin-top: 0.5rem !important;
+}
+
+code {
+    font-size: 100%;
+    color: #17a2b8;
+    word-wrap: break-word;
+}
+
+
+/*------------------------------------------------------------------------------------*/
 /* Backgrounds/Bodies */
 
 .background {

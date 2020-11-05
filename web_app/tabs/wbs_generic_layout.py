@@ -328,7 +328,7 @@ def layout() -> html.Div:
                                         n_clicks=0,
                                         block=True,
                                         color=du.Color.DARK,
-                                        children="View Last Edit of Each Row",
+                                        children="View How SOWs Have Changed",
                                     ),
                                 ],
                             ),
