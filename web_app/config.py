@@ -2,7 +2,7 @@
 
 import logging
 import os
-from typing import Any, cast, Dict, TypedDict
+from typing import TypedDict
 from urllib.parse import urljoin
 
 import dash  # type: ignore
@@ -40,44 +40,43 @@ login_manager.init_app(server)
 
 
 # --------------------------------------------------------------------------------------
-# configure CONFIG global
+# configure config_vars
 
 
-class _ConfigTypedDict(TypedDict, total=False):
+class ConfigVarsTypedDict(TypedDict, total=False):
+    """Global configuration-variable types."""
+
     REST_SERVER_URL: str
     TOKEN_SERVER_URL: str
     WEB_SERVER_PORT: int
     AUTH_PREFIX: str
     TOKEN_REQUEST_URL: str
     TOKEN: str
+    NO_AUTH: bool
 
 
-CONFIG: _ConfigTypedDict = {
-    "REST_SERVER_URL": "http://localhost:8080",
-    "TOKEN_SERVER_URL": "http://localhost:8888",
-    "WEB_SERVER_PORT": 8050,
-    "AUTH_PREFIX": "mou",
-    "TOKEN": "",
-}
+def get_config_vars() -> ConfigVarsTypedDict:
+    """Get the global configuration variables."""
+    config_vars: ConfigVarsTypedDict = from_environment(
+        {
+            "REST_SERVER_URL": "http://localhost:8080",
+            "TOKEN_SERVER_URL": "http://localhost:8888",
+            "WEB_SERVER_PORT": 8050,
+            "AUTH_PREFIX": "mou",
+            "TOKEN": "",
+            "NO_USER_AUTH_REQ": False,
+        }
+    )
 
-
-def update_config_global() -> Dict[str, Any]:
-    """Update `CONFIG` using environment variables."""
-    global CONFIG  # pylint: disable=W0603
-
-    config_vars = from_environment(CONFIG)
     config_vars["TOKEN_REQUEST_URL"] = urljoin(
         config_vars["TOKEN_SERVER_URL"],
         f"token?scope={config_vars['AUTH_PREFIX']}:admin",
     )
 
-    CONFIG.update(config_vars)
-    _log_config()
-
-    return cast(Dict[str, Any], config_vars)
+    return config_vars
 
 
-def _log_config() -> None:
-    """Log the `CONFIG` dict, key-value."""
-    for key, val in CONFIG.items():
-        logging.info(f"{key} \t {val}")
+def log_config_vars() -> None:
+    """Log the global configuration variables, key-value."""
+    for key, val in get_config_vars().items():
+        logging.info(f"{key}\t{val}\t({type(val).__name__})")

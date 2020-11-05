@@ -30,7 +30,7 @@ WBS_L1 = "upgrade"
 @pytest.fixture  # type: ignore
 def ds_rc() -> RestClient:
     """Get data source REST client via web_app."""
-    web_app.config.update_config_global()
+    web_app.config.get_config()
     return web_app.data_source.utils._rest_connection()
 
 
