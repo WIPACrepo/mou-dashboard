@@ -8,13 +8,13 @@ from flask_login import UserMixin  # type: ignore[import]
 from ..config import login_manager
 
 
-def _mock_account_lookup(email: str) -> Dict[str, Any]:
+# TODO: remove when keycloak
+def _mock_account_lookup(email: str, institution: str) -> Dict[str, Any]:
     name = email.split("@")[0]
     if email.split("@")[1].upper() == "ADMIN":
         response = {"name": name, "is_admin": True}
     else:
-        inst = email.split("@")[1].upper()
-        response = {"institution": inst, "name": name}
+        response = {"institution": institution, "name": name}
 
     return response
 
@@ -31,7 +31,7 @@ class User(UserMixin):  # type: ignore[misc]
         self.is_admin = False
 
     @staticmethod
-    def lookup_user(email: str) -> "User":
+    def lookup_user(email: str, institution: str = "") -> "User":
         """Look-up user by their email.
 
         Assumes login has already occurred and email is valid.
@@ -40,8 +40,7 @@ class User(UserMixin):  # type: ignore[misc]
         user.id = email  # use email as the id
         user.email = email
 
-        # TODO: look up leader info w/ email
-        response = _mock_account_lookup(email)
+        response = _mock_account_lookup(email, institution)  # TODO: replace w/ keycloak
         user.name = response["name"]
         user.institution = response.get("institution", "")
         user.is_admin = response.get("is_admin", False)
@@ -49,18 +48,25 @@ class User(UserMixin):  # type: ignore[misc]
         return user
 
     @staticmethod
-    def _ldap_login(email: str, pwd: str) -> bool:
-        # TODO: look up user w/ password
-        if email and "@" in email and pwd == "123456789":
-            return True
-        return False
+    def _login(email: str, pwd: str, institution: str) -> Optional["User"]:
+        # TODO: refactor when keycloak
+
+        if not (email and "@" in email and pwd == "123456789"):
+            return None
+
+        user = User.lookup_user(email, institution)
+
+        if not user.is_admin and not institution:
+            return None
+
+        return user
 
     @staticmethod
-    def login(email: str, pwd: str) -> Optional["User"]:
+    def login(email: str, pwd: str, institution: str) -> Optional["User"]:
         """Login user, return User object if successful."""
-        if User._ldap_login(email, pwd):
+        if user := User._login(email, pwd, institution):
             logging.info(f"Login: {email}")
-            return User.lookup_user(email)
+            return user
 
         logging.info(f"Bad login: {email}")
         return None
@@ -75,4 +81,4 @@ def load_user(user_id: str) -> UserMixin:
     logging.warning(f"Grabbing user {user_id}")
     if user_id:
         return User.lookup_user(user_id)
-    return User()
+    return User()  # aka anonymous user

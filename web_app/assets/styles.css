@@ -516,7 +516,8 @@ code {
 
 .column-header--sort {
     float: right !important;
-    margin-left: 0.5em;
+    margin-left: 0.25rem;
+    margin-right: -0.25rem;
     text-align: right;
     flex-basis: 1%;
 }

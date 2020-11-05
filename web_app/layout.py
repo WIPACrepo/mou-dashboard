@@ -14,6 +14,7 @@ from dash.dependencies import Input, Output, State  # type: ignore
 from flask_login import current_user, login_user, logout_user  # type: ignore[import]
 
 from .config import app
+from .data_source import table_config as tc
 from .tabs import wbs_generic_layout
 from .utils import dash_utils as du
 from .utils import types
@@ -126,6 +127,20 @@ def layout() -> None:
                                 type="password",
                                 style={"width": "50%"},
                             ),
+                            # User-Institution Dropdown
+                            # TODO: remove when keycloak
+                            dcc.Dropdown(
+                                id="login-institution",
+                                style={"margin-top": "1rem"},
+                                placeholder="Your Institution",
+                                options=[
+                                    {"label": f"{abbrev} ({name})", "value": abbrev}
+                                    for name, abbrev in tc.TableConfigParser(
+                                        "mo"
+                                    ).get_institutions_w_abbrevs()
+                                ],
+                            ),
+                            # Log-in Button
                             dbc.Button(
                                 "Log In",
                                 id="login-button",
@@ -134,8 +149,10 @@ def layout() -> None:
                                 outline=True,
                                 style={"margin-top": "1rem"},
                             ),
+                            # Alert
                             dbc.Alert(
-                                "Incorrect email or password",
+                                # TODO: remove 'institution' when keycloak
+                                "Incorrect email, password, or institution",
                                 id="login-bad-message",
                                 color=du.Color.DANGER,
                                 style={"margin-top": "2rem"},
@@ -170,9 +187,10 @@ def _logged_in_return(
     if current_user.is_admin:
         user_label = f"{current_user.name} (Admin)"
     else:
-        user_label = f"{current_user.name} ({current_user.institution})"
+        user_label = f"{current_user.name}"
 
     if select_institution:
+        assert current_user.institution or current_user.is_admin
         return False, False, True, False, user_label, "", current_user.institution
     return False, False, True, False, user_label, "", no_update
 
@@ -202,10 +220,14 @@ def _logged_out_return(
         Input("logout-launch", "n_clicks"),  # user-only
         Input("login-password", "n_submit"),  # user-only
     ],
-    [State("login-email", "value"), State("login-password", "value")],
+    [
+        State("login-email", "value"),
+        State("login-password", "value"),
+        State("login-institution", "value"),  # TODO: remove when keycloak]
+    ],
 )
 def login(
-    _: int, __: int, ___: int, ____: int, email: str, pwd: str,
+    _: int, __: int, ___: int, ____: int, email: str, pwd: str, inst: types.DashVal
 ) -> Tuple[bool, bool, bool, bool, str, str, types.DashVal]:
     """Log the institution leader in/out."""
     logging.warning(f"'{du.triggered_id()}' -> login()")
@@ -224,13 +246,14 @@ def login(
 
     if du.triggered_id() in ["login-button", "login-password"]:
         assert not current_user.is_authenticated
-        if user := User.login(email, pwd):
+        inst = inst if isinstance(inst, str) else ""  # TODO: remove when keycloak
+        if user := User.login(email, pwd, inst):
             login_user(user, duration=timedelta(days=50))
             return _logged_in_return()
         # bad log-in
         return bad_login
 
-    if du.triggered_id() == "":
+    if du.triggered_id() == "":  # aka on page-load
         if current_user.is_authenticated:
             logging.warning(f"User already logged in {current_user}.")
             return _logged_in_return(select_institution=False)

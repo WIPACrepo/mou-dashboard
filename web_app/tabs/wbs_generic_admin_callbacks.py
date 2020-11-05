@@ -17,7 +17,7 @@ from ..data_source.utils import DataSourceException
 from ..utils import dash_utils as du
 from ..utils import types, utils
 
-CHANGES_COL: Final[str] = "Changes"
+_CHANGES_COL: Final[str] = "Changes"
 
 
 class _SnapshotBundle(TypedDict):
@@ -225,7 +225,7 @@ def _blame_row(
     snap_bundles: Dict[str, _SnapshotBundle],
 ) -> types.Record:
 
-    # get each field's history
+    # get each field's history; Schema: { <field>: {<snap_ts>:<field_value>} }
     field_history: Dict[str, Dict[str, types.StrNum]] = {}
     field_history = ODict({k: ODict({"today": record[k]}) for k in record})
     for snap_ts, bundle in snap_bundles.items():
@@ -243,39 +243,40 @@ def _blame_row(
             field_history[field] = {}
 
     # make markdown for cell
-    blame_row = {k: v for k, v in record.items() if k in column_names}
-    blame_row[CHANGES_COL] = ""
+    markdown = ""
     for field, changes in field_history.items():
         if not changes:
             continue
-        blame_row[CHANGES_COL] += f"\n**{field}**\n"
+        markdown += f"\n**{field}**\n"
         for snap_ts, snap_val in changes.items():
             if field == tconfig.const.TIMESTAMP:
                 snap_val = utils.get_human_time(str(snap_val))
             snap_val = f"`{snap_val}`" if snap_val else "*none*"
-            blame_row[CHANGES_COL] += f"- {snap_val}\n"
+            markdown += f"- {snap_val}\n"
             if snap_ts == "today":
-                blame_row[CHANGES_COL] += f"    + today\n"
-                blame_row[CHANGES_COL] += f"    + {utils.get_human_now()}\n"
+                markdown += "    + today\n"
+                markdown += f"    + {utils.get_human_now()}\n"
             else:
                 snap_time = utils.get_human_time(str(snap_ts))
                 name = snap_bundles[snap_ts]["info"]["name"]
-                blame_row[CHANGES_COL] += f"    + {name}\n"
-                blame_row[CHANGES_COL] += f"    + {snap_time}\n"
+                markdown += f"    + {name}\n"
+                markdown += f"    + {snap_time}\n"
 
-    if not blame_row[CHANGES_COL]:
-        blame_row[CHANGES_COL] = "*no changes*"
+    if not markdown:
+        markdown = "*no changes*"
 
+    blame_row = {k: v for k, v in record.items() if k in column_names}
+    blame_row[_CHANGES_COL] = markdown
     return blame_row
 
 
-def _blame_columns(column_names: List[str]):
+def _blame_columns(column_names: List[str]) -> List[Dict[str, str]]:
     return [
         {
             "id": c,
             "name": c,
             "type": "text",
-            "presentation": "markdown" if c == CHANGES_COL else "input",
+            "presentation": "markdown" if c == _CHANGES_COL else "input",
         }
         for c in column_names
     ]
@@ -284,13 +285,13 @@ def _blame_columns(column_names: List[str]):
 def _blame_style_cell_conditional(column_names: List[str]) -> types.TSCCond:
     style_cell_conditional = []
     # border-left
-    for col in [CHANGES_COL]:
+    for col in [_CHANGES_COL]:
         style_cell_conditional.append(
             {"if": {"column_id": col}, "border-left": f"2.5px solid {du.TABLE_GRAY}"}
         )
     # width
-    widths = {CHANGES_COL: 50}
-    default_width = 20
+    widths = {_CHANGES_COL: "50"}
+    default_width = "20"
     for col in column_names:
         style_cell_conditional.append(
             {
@@ -347,7 +348,7 @@ def blame(
         tconfig.const.INSTITUTION,
         tconfig.const.NAME,
         tconfig.const.SOURCE_OF_FUNDS_US_ONLY,
-        CHANGES_COL,
+        _CHANGES_COL,
     ]
 
     # populate blame table
