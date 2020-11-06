@@ -52,7 +52,7 @@ class ConfigVarsTypedDict(TypedDict, total=False):
     AUTH_PREFIX: str
     TOKEN_REQUEST_URL: str
     TOKEN: str
-    NO_AUTH: bool
+    NO_USER_AUTH_REQ: bool
 
 
 def get_config_vars() -> ConfigVarsTypedDict:

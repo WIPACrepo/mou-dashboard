@@ -18,7 +18,7 @@ from .data_source import table_config as tc
 from .tabs import wbs_generic_layout
 from .utils import dash_utils as du
 from .utils import types
-from .utils.login import User
+from .utils.login import InvalidLoginException, User
 
 
 def layout() -> None:
@@ -247,11 +247,13 @@ def login(
     if du.triggered_id() in ["login-button", "login-password"]:
         assert not current_user.is_authenticated
         inst = inst if isinstance(inst, str) else ""  # TODO: remove when keycloak
-        if user := User.login(email, pwd, inst):
+        try:
+            user = User.try_login(email, pwd, inst)
             login_user(user, duration=timedelta(days=50))
             return _logged_in_return()
         # bad log-in
-        return bad_login
+        except InvalidLoginException:
+            return bad_login
 
     if du.triggered_id() == "":  # aka on page-load
         if current_user.is_authenticated:
