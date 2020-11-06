@@ -772,7 +772,7 @@ def setup_institution_components(
         Output("pick-institution-first-call-flag", "data"),
         Output("wbs-institution-source-of-truth", "data"),
     ],
-    [Input("wbs-dropdown-institution", "value"),],  # user/setup_institution_components
+    [Input("wbs-dropdown-institution", "value")],  # user/setup_institution_components
     [State("pick-institution-first-call-flag", "data")],
     prevent_initial_call=True,
 )

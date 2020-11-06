@@ -8,7 +8,7 @@ import pprint
 import sys
 from decimal import Decimal
 from typing import Any, Final, List
-from unittest.mock import ANY, AsyncMock, call, Mock, patch, sentinel
+from unittest.mock import ANY, AsyncMock, Mock, patch, sentinel
 
 import nest_asyncio  # type: ignore[import]
 import pytest

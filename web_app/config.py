@@ -8,7 +8,7 @@ from urllib.parse import urljoin
 import dash  # type: ignore
 import dash_bootstrap_components as dbc  # type: ignore
 import flask
-from flask_caching import Cache
+from flask_caching import Cache  # type: ignore[import]
 from flask_login import LoginManager  # type: ignore[import]
 
 # local imports

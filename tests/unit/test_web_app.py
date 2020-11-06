@@ -10,7 +10,7 @@ import sys
 from copy import deepcopy
 from enum import Enum
 from typing import Any, Final
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
@@ -29,7 +29,7 @@ WBS = "mo"
 @pytest.fixture  # type: ignore
 def tconfig() -> Any:
     """Provide a TableConfigParser instance."""
-    return tc.TableConfigParser(WBS)
+    return tc.TableConfigParser(WBS, MagicMock())
 
 
 class TestPrivateDataSource:
