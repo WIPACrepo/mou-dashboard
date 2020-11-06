@@ -78,7 +78,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "tooltip": "The labor category",
     },
     _NAME: {"width": 150, "sort_value": 20, "tooltip": "LastName, FirstName"},
-    TASK_DESCRIPTION: {"width": 300, "tooltip": "A description of the task",},
+    TASK_DESCRIPTION: {"width": 300, "tooltip": "A description of the task"},
     SOURCE_OF_FUNDS_US_ONLY: {
         "width": 185,
         "conditional_parent": US_NON_US,

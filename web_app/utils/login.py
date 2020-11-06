@@ -16,6 +16,11 @@ def _ldap_server() -> ldap3.Server:
     return ldap3.Server(_LDAP_URI, connect_timeout=5)
 
 
+def _ldap_uid(uid: str) -> str:
+    """Little hack to launch into non-admin mode using an admin account."""
+    return uid.strip("~")
+
+
 class InvalidLoginException(Exception):
     """Exception for an invalid login attempt."""
 
@@ -28,9 +33,9 @@ def _ldap_lookup_user(
 
     if not conn:
         conn = ldap3.Connection(_ldap_server(), auto_bind=True)
-    conn.search(_LDAP_BASE, f"(uid={user.id})", attributes=["*"])
+    conn.search(_LDAP_BASE, f"(uid={_ldap_uid(user.id)})", attributes=["*"])
     info = conn.entries[0]
-    logging.warning(f"{info=}")
+    # logging.warning(f"{info=}")
 
     # name
     user.name = cast(str, info.cn.value)
@@ -41,7 +46,7 @@ def _ldap_lookup_user(
         pass
 
     # institution
-    user.institution = institution
+    user.institution = institution  # TODO: now, this is '' on each `current_user` call
 
     # admin status
     user.is_admin = user.id in ADMINS
@@ -58,7 +63,7 @@ def _ldap_try_login(uid: str, pwd: str) -> ldap3.Connection:
     try:
         logging.debug(f"Verifying login via LDAP ({uid=})...")
         conn = ldap3.Connection(
-            _ldap_server(), f"uid={uid},{_LDAP_BASE}", pwd, auto_bind=True
+            _ldap_server(), f"uid={_ldap_uid(uid)},{_LDAP_BASE}", pwd, auto_bind=True
         )
         logging.debug(f"LDAP Successful! ({uid=})")
         return conn
