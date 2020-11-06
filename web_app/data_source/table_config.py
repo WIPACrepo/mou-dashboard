@@ -67,7 +67,6 @@ class TableConfigParser:  # pylint: disable=R0904
 
         # set up constants for quick reference
         self.const = TableConfigParser._Constants()
-        assert all(a in self.get_table_columns() for a in self.const.__dict__.values())
 
     @staticmethod
     def get_configs() -> CacheType:
