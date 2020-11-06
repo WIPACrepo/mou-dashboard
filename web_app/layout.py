@@ -30,6 +30,7 @@ def layout() -> None:
         children=[
             #
             # JS calls for refreshing page
+            visdcc.Run_js("refresh-for-login-logout"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-snapshot-make"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-override-success"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-snapshot-change"),  # pylint: disable=E1101
@@ -97,6 +98,7 @@ def layout() -> None:
                 id="tab-content",
                 className="content",
                 children=wbs_generic_layout.layout(),
+                hidden=False,
             ),
             #
             # Footer
@@ -167,6 +169,17 @@ def layout() -> None:
 
 
 @app.callback(
+    Output("tab-content", "hidden"),  # update to call view_live_table()
+    [Input("tab-content", "className")],  # never triggered
+)  # type: ignore
+def show_tab_content(_: str) -> bool:
+    """Show/Hide tab content."""
+    assert not du.triggered_id()
+
+    return not current_user.is_authenticated
+
+
+@app.callback(
     Output("wbs-view-live-btn", "n_clicks"),  # update to call view_live_table()
     [Input("wbs-current-l1", "value")],  # user-only
     prevent_initial_call=True,
@@ -182,37 +195,38 @@ def pick_tab(wbs_l1: str) -> int:
 
 
 def _logged_in_return(
-    select_institution: bool = True,
-) -> Tuple[bool, bool, bool, bool, str, str, str]:
+    reload: bool = True,
+) -> Tuple[str, bool, bool, bool, bool, str, str]:
     if current_user.is_admin:
         user_label = f"{current_user.name} (Admin)"
     else:
         user_label = f"{current_user.name}"
 
-    if select_institution:
-        assert current_user.institution or current_user.is_admin
-        return False, False, True, False, user_label, "", current_user.institution
-    return False, False, True, False, user_label, "", no_update
+    logging.error(f"{current_user=}")
+
+    if reload:
+        return du.RELOAD, False, False, True, False, user_label, ""
+    return no_update, False, False, True, False, user_label, ""
 
 
 def _logged_out_return(
-    select_institution: bool = True,
-) -> Tuple[bool, bool, bool, bool, str, str, str]:
+    reload: bool = True,
+) -> Tuple[str, bool, bool, bool, bool, str, str]:
 
-    if select_institution:
-        return False, False, False, True, "", "", ""
-    return False, False, False, True, "", "", no_update
+    if reload:
+        return du.RELOAD, False, False, False, True, "", ""
+    return no_update, False, False, False, True, "", ""
 
 
 @app.callback(  # type: ignore[misc]
     [
+        Output("refresh-for-login-logout", "run"),
         Output("login-modal", "is_open"),
         Output("login-bad-message", "is_open"),
         Output("login-div", "hidden"),
         Output("logout-div", "hidden"),
         Output("logged-in-user", "children"),
         Output("login-password", "value"),
-        Output("wbs-login-institution", "data"),  # update to call pick_institution()
     ],
     [
         Input("login-button", "n_clicks"),  # user-only
@@ -228,12 +242,12 @@ def _logged_out_return(
 )
 def login(
     _: int, __: int, ___: int, ____: int, username: str, pwd: str, inst: types.DashVal
-) -> Tuple[bool, bool, bool, bool, str, str, types.DashVal]:
+) -> Tuple[str, bool, bool, bool, bool, str, str]:
     """Log the institution leader in/out."""
     logging.warning(f"'{du.triggered_id()}' -> login()")
 
-    open_login_modal = (True, False, False, True, "", "", no_update)
-    bad_login = (True, True, False, True, "", "", no_update)
+    open_login_modal = (no_update, True, False, False, True, "", "")
+    bad_login = (no_update, True, True, False, True, "", "")
 
     if du.triggered_id() == "login-launch":
         assert not current_user.is_authenticated
@@ -246,9 +260,15 @@ def login(
 
     if du.triggered_id() in ["login-button", "login-password"]:
         assert not current_user.is_authenticated
-        inst = inst if isinstance(inst, str) else ""  # TODO: remove when keycloak
         try:
-            user = User.try_login(username, pwd, inst)
+            User.INSTITUTION_WORKAROUND[username] = (  # TODO: remove when keycloak
+                inst if isinstance(inst, str) else ""
+            )
+            user = User.try_login(username, pwd)
+            # non-admin users must have an institution
+            if (not user.is_admin) and (not user.institution):
+                logging.warning(f"User does not have an institution: {user.id=}")
+                raise InvalidLoginException()
             login_user(user, duration=timedelta(days=50))
             return _logged_in_return()
         # bad log-in
@@ -258,9 +278,9 @@ def login(
     if du.triggered_id() == "":  # aka on page-load
         if current_user.is_authenticated:
             logging.warning(f"User already logged in {current_user}.")
-            return _logged_in_return(select_institution=False)
+            return _logged_in_return(reload=False)
         # Initial Call w/o Stored Login
         logging.warning("User not already logged in.")
-        return _logged_out_return(select_institution=False)
+        return _logged_out_return(reload=False)
 
     raise Exception(f"Unaccounted for trigger: {du.triggered_id()}")

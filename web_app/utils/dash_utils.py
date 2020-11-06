@@ -20,6 +20,7 @@ GOOD_WAIT: Final[int] = 30
 TEAL: Final[str] = "#17a2b8"
 GREEN: Final[str] = "#258835"
 TABLE_GRAY: Final[str] = "#23272B"
+RELOAD: Final[str] = "location.reload();"
 
 
 class Color:  # pylint: disable=R0903

@@ -197,8 +197,12 @@ def table_data_exterior_controls(
         tot_n_clicks, s_all_cols
     )
 
+    # Check Login
+    if not current_user.is_authenticated:
+        pass
+
     # Add New Data
-    if du.triggered_id() == "wbs-new-data-modal-dummy-add":
+    elif du.triggered_id() == "wbs-new-data-modal-dummy-add":
         if not s_snap_ts:  # are we looking at a snapshot?
             table, toast = _add_new_data(
                 s_wbs_l1, s_table, columns, labor, s_institution, tconfig, s_new_task,
@@ -538,7 +542,7 @@ def view_live_table(_: int) -> types.DashVal:
 def pick_snapshot(snap_ts: types.DashVal) -> str:
     """Refresh the page on snapshot select/de-select."""
     logging.warning(f"'{du.triggered_id()}' -> pick_snapshot() {snap_ts=}")
-    return "location.reload();"
+    return du.RELOAD
 
 
 @app.callback(  # type: ignore[misc]
@@ -562,6 +566,10 @@ def setup_snapshot_components(
     )
 
     assert not du.triggered_id()  # Guarantee this is the initial call
+
+    # Check Login
+    if not current_user.is_authenticated:
+        return no_update, no_update, no_update
 
     snap_options: List[Dict[str, str]] = []
     label_lines: List[html.Label] = []
@@ -640,7 +648,7 @@ def handle_make_snapshot(
     if du.triggered_id() in ["wbs-name-snapshot-btn", "wbs-name-snapshot-input"]:
         try:
             src.create_snapshot(s_wbs_l1, s_name)
-            return False, "", "", "location.reload();"
+            return False, "", "", du.RELOAD
         except DataSourceException:
             fail_toast = du.make_toast(
                 "Failed to Make Snapshot", du.REFRESH_MSG, du.Color.DANGER
@@ -682,7 +690,7 @@ def setup_institution_components(
     # state(s)
     s_wbs_l1: str,
     s_snap_ts: types.DashVal,
-    s_institution: types.DashVal,
+    s_institution_before_reload: types.DashVal,
     s_tconfig_cache: tc.TableConfigParser.CacheType,
 ) -> Tuple[
     types.DashVal,
@@ -700,10 +708,20 @@ def setup_institution_components(
 ]:
     """Set up institution-related components."""
     logging.warning(
-        f"'{du.triggered_id()}' -> setup_institution_components() ({s_wbs_l1=} {s_snap_ts=} {s_institution=})"
+        f"'{du.triggered_id()}' -> setup_institution_components() ({s_wbs_l1=} {s_snap_ts=} {s_institution_before_reload=} {current_user=})"
     )
 
     assert not du.triggered_id()  # Guarantee this is the initial call
+
+    # Check Login
+    if not current_user.is_authenticated:
+        return tuple(no_update for _ in range(12))  # type: ignore[return-value]
+
+    # Figure which institution value to use
+    if current_user.institution:
+        institution = current_user.institution
+    else:
+        institution = s_institution_before_reload
 
     phds: types.DashVal = 0
     faculty: types.DashVal = 0
@@ -722,12 +740,12 @@ def setup_institution_components(
         {"label": st, "value": st} for st in tconfig.get_labor_categories()
     ]
 
-    if s_institution:
-        h2_table = f"{s_institution}'s SOW Table"
-        h2_textarea = f"{s_institution}'s Notes and Descriptions"
+    if institution:
+        h2_table = f"{institution}'s SOW Table"
+        h2_textarea = f"{institution}'s Notes and Descriptions"
         try:
             phds, faculty, sci, grad, text = src.pull_institution_values(
-                s_wbs_l1, s_snap_ts, s_institution
+                s_wbs_l1, s_snap_ts, institution
             )
         except DataSourceException:
             phds, faculty, sci, grad, text = None, None, None, None, ""
@@ -740,9 +758,9 @@ def setup_institution_components(
         text,
         h2_table,
         h2_textarea,
-        not s_institution,
-        not s_institution,
-        s_institution,
+        not institution,
+        not institution,
+        institution,
         inst_options,
         labor_options,
     )
@@ -754,31 +772,24 @@ def setup_institution_components(
         Output("pick-institution-first-call-flag", "data"),
         Output("wbs-institution-source-of-truth", "data"),
     ],
-    [
-        Input("wbs-dropdown-institution", "value"),  # user/setup_institution_components
-        Input("wbs-login-institution", "data"),  # login()-only
-    ],
+    [Input("wbs-dropdown-institution", "value"),],  # user/setup_institution_components
     [State("pick-institution-first-call-flag", "data")],
     prevent_initial_call=True,
 )
 def pick_institution(
     institution: types.DashVal,
-    user_institution: types.DashVal,
     # state(s)
     s_first_call: bool,
 ) -> Tuple[str, bool, types.DashVal]:
     """Refresh if the user selected an institution."""
     logging.warning(
-        f"'{du.triggered_id()}' -> pick_institution() ({s_first_call=} {institution=} {user_institution=})"
+        f"'{du.triggered_id()}' -> pick_institution() ({s_first_call=} {institution=} {current_user.institution=})"
     )
-
-    if user_institution:
-        institution = user_institution
 
     if s_first_call:
         return "", False, institution
 
-    return "location.reload();", False, institution
+    return du.RELOAD, False, institution
 
 
 @app.callback(  # type: ignore[misc]

@@ -8,6 +8,7 @@ from urllib.parse import urljoin
 import dash  # type: ignore
 import dash_bootstrap_components as dbc  # type: ignore
 import flask
+from flask_caching import Cache
 from flask_login import LoginManager  # type: ignore[import]
 
 # local imports
@@ -35,6 +36,7 @@ server.config.update(SECRET_KEY=os.urandom(12))
 
 # Setup the LoginManager for the server
 # NOTE: https://github.com/RafaelMiquelino/dash-flask-login
+user_lookup_cache = Cache(app.server, config={"CACHE_TYPE": "simple"})
 login_manager = LoginManager()
 login_manager.init_app(server)
 ADMINS = ["eevans", "desiati", "dschultz", "cvakhnina"]

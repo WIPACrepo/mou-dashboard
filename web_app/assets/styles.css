@@ -93,6 +93,7 @@ code {
 }
 
 .content {
+    min-height: 100rem;
     padding-top: 2em;
     padding-bottom: 2em;
     padding-left: 6em;

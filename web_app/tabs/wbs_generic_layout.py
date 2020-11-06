@@ -384,8 +384,6 @@ def layout() -> html.Div:
                 storage_type="memory",
                 data=True,
             ),
-            # - for signaling to pick_institution() what the user's institution is to cache it
-            dcc.Store(id="wbs-login-institution", storage_type="memory", data=""),
             # - for caching the institution value
             dcc.Store(id="wbs-institution-source-of-truth", storage_type="local"),
             # - for storing the last deleted record's id

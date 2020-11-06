@@ -66,7 +66,7 @@ def _get_upload_success_modal_body(
 )
 def refresh_for_override_success(_: int) -> str:
     """Refresh page for to view new live table."""
-    return "location.reload();"
+    return du.RELOAD
 
 
 @app.callback(  # type: ignore[misc]
