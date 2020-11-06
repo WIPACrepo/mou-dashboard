@@ -111,13 +111,13 @@ def layout() -> None:
                     dbc.ModalBody(
                         children=[
                             html.Div("Institution Leader Login", className="caps"),
-                            # Email
+                            # username
                             dcc.Input(
-                                id="login-email",
-                                placeholder="email",
+                                id="login-username",
+                                placeholder="username",
                                 persistence=True,
                                 persistence_type="memory",
-                                type="email",
+                                type="text",
                                 style={"width": "50%"},
                             ),
                             # Password
@@ -130,7 +130,7 @@ def layout() -> None:
                             # User-Institution Dropdown
                             # TODO: remove when keycloak
                             dcc.Dropdown(
-                                id="login-institution",
+                                id="login-manual-institution",
                                 style={"margin-top": "1rem"},
                                 placeholder="Your Institution",
                                 options=[
@@ -152,7 +152,7 @@ def layout() -> None:
                             # Alert
                             dbc.Alert(
                                 # TODO: remove 'institution' when keycloak
-                                "Incorrect email, password, or institution",
+                                "Incorrect username, password, or institution",
                                 id="login-bad-message",
                                 color=du.Color.DANGER,
                                 style={"margin-top": "2rem"},
@@ -221,13 +221,13 @@ def _logged_out_return(
         Input("login-password", "n_submit"),  # user-only
     ],
     [
-        State("login-email", "value"),
+        State("login-username", "value"),
         State("login-password", "value"),
-        State("login-institution", "value"),  # TODO: remove when keycloak]
+        State("login-manual-institution", "value"),  # TODO: remove when keycloak
     ],
 )
 def login(
-    _: int, __: int, ___: int, ____: int, email: str, pwd: str, inst: types.DashVal
+    _: int, __: int, ___: int, ____: int, username: str, pwd: str, inst: types.DashVal
 ) -> Tuple[bool, bool, bool, bool, str, str, types.DashVal]:
     """Log the institution leader in/out."""
     logging.warning(f"'{du.triggered_id()}' -> login()")
@@ -248,7 +248,7 @@ def login(
         assert not current_user.is_authenticated
         inst = inst if isinstance(inst, str) else ""  # TODO: remove when keycloak
         try:
-            user = User.try_login(email, pwd, inst)
+            user = User.try_login(username, pwd, inst)
             login_user(user, duration=timedelta(days=50))
             return _logged_in_return()
         # bad log-in

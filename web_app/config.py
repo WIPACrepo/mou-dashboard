@@ -37,6 +37,7 @@ server.config.update(SECRET_KEY=os.urandom(12))
 # NOTE: https://github.com/RafaelMiquelino/dash-flask-login
 login_manager = LoginManager()
 login_manager.init_app(server)
+ADMINS = ["eevans", "desiati", "schultz", "cvakhnina"]
 
 
 # --------------------------------------------------------------------------------------
@@ -64,7 +65,6 @@ def get_config_vars() -> ConfigVarsTypedDict:
             "WEB_SERVER_PORT": 8050,
             "AUTH_PREFIX": "mou",
             "TOKEN": "",
-            "NO_USER_AUTH_REQ": False,
         }
     )
 
