@@ -37,7 +37,7 @@ server.config.update(SECRET_KEY=os.urandom(12))
 # NOTE: https://github.com/RafaelMiquelino/dash-flask-login
 login_manager = LoginManager()
 login_manager.init_app(server)
-ADMINS = ["eevans", "desiati", "schultz", "cvakhnina"]
+ADMINS = ["eevans", "desiati", "dschultz", "cvakhnina"]
 
 
 # --------------------------------------------------------------------------------------
