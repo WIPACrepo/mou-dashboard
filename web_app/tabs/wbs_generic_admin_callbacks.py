@@ -1,8 +1,9 @@
 """Admin-only callbacks for a specified WBS layout."""
 
 import logging
+from collections import OrderedDict as ODict
 from decimal import Decimal
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Final, List, Optional, Tuple, TypedDict
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -14,31 +15,40 @@ from ..data_source import data_source as src
 from ..data_source import table_config as tc
 from ..data_source.utils import DataSourceException
 from ..utils import dash_utils as du
-from ..utils import types
+from ..utils import types, utils
+
+_CHANGES_COL: Final[str] = "Changes"
+
+
+class _SnapshotBundle(TypedDict):
+    table: types.Table
+    info: types.SnapshotInfo
 
 
 def _get_upload_success_modal_body(
     filename: str,
     n_records: int,
-    prev_snap: Optional[types.SnapshotInfo],
-    curr_snap: Optional[types.SnapshotInfo],
+    prev_snap_info: Optional[types.SnapshotInfo],
+    curr_snap_info: Optional[types.SnapshotInfo],
 ) -> List[dcc.Markdown]:
     """Make the message for the ingest confirmation toast."""
 
     def _pseudonym(_snap: types.SnapshotInfo) -> str:
         if _snap["name"]:
             return f"\"{_snap['name']}\""
-        return du.get_human_time(_snap["timestamp"])
+        return utils.get_human_time(_snap["timestamp"])
 
     body: List[dcc.Markdown] = [
-        dcc.Markdown(f'Uploaded {n_records} records from "{filename}".'),
+        dcc.Markdown(f'Uploaded {n_records} rows from "{filename}".'),
         dcc.Markdown("A snapshot was made of:"),
     ]
 
-    if prev_snap:
-        body.append(dcc.Markdown(f"- the previous table ({_pseudonym(prev_snap)}) and"))
-    if curr_snap:
-        body.append(dcc.Markdown(f"- the current table ({_pseudonym(curr_snap)})"))
+    if prev_snap_info:
+        body.append(
+            dcc.Markdown(f"- the previous table ({_pseudonym(prev_snap_info)}) and")
+        )
+    if curr_snap_info:
+        body.append(dcc.Markdown(f"- the current table ({_pseudonym(curr_snap_info)})"))
 
     body.append(
         dcc.Markdown(
@@ -56,7 +66,7 @@ def _get_upload_success_modal_body(
 )
 def refresh_for_override_success(_: int) -> str:
     """Refresh page for to view new live table."""
-    return "location.reload();"
+    return du.RELOAD
 
 
 @app.callback(  # type: ignore[misc]
@@ -85,8 +95,8 @@ def handle_xlsx(  # pylint: disable=R0911
     __: int,
     ___: int,
     # state(s)
-    wbs_l1: str,
-    filename: str,
+    s_wbs_l1: str,
+    s_filename: str,
 ) -> Tuple[bool, str, str, bool, dbc.Toast, bool, List[dcc.Markdown]]:
     """Manage uploading a new xlsx document as the new live table."""
     logging.warning(f"'{du.triggered_id()}' -> handle_xlsx()")
@@ -102,30 +112,30 @@ def handle_xlsx(  # pylint: disable=R0911
         return False, "", "", True, None, False, []
 
     if du.triggered_id() == "wbs-upload-xlsx":
-        if not filename.endswith(".xlsx"):
+        if not s_filename.endswith(".xlsx"):
             return (
                 True,
-                f'"{filename}" is not an .xlsx file',
+                f'"{s_filename}" is not an .xlsx file',
                 du.Color.DANGER,
                 True,
                 None,
                 False,
                 [],
             )
-        return True, f'Staged "{filename}"', du.Color.SUCCESS, False, None, False, []
+        return True, f'Staged "{s_filename}"', du.Color.SUCCESS, False, None, False, []
 
     if du.triggered_id() == "wbs-upload-xlsx-override-table":
         base64_file = contents.split(",")[1]
         try:
-            n_records, prev_snap, curr_snap = src.override_table(
-                wbs_l1, base64_file, filename
+            n_records, prev_snap_info, curr_snap_info = src.override_table(
+                s_wbs_l1, base64_file, s_filename
             )
             msg = _get_upload_success_modal_body(
-                filename, n_records, prev_snap, curr_snap
+                s_filename, n_records, prev_snap_info, curr_snap_info
             )
             return False, "", "", True, None, True, msg
         except DataSourceException as e:
-            error_message = f'Error overriding "{filename}" ({e})'
+            error_message = f'Error overriding "{s_filename}" ({e})'
             return True, error_message, du.Color.DANGER, True, None, False, []
 
     raise Exception(f"Unaccounted for trigger {du.triggered_id()}")
@@ -145,19 +155,21 @@ def summarize(
     # input(s)
     _: int,
     # state(s)
-    wbs_l1: str,
-    state_tconfig_cache: tc.TableConfigParser.CacheType,
-    state_snap_current_ts: types.DashVal,
+    s_wbs_l1: str,
+    s_tconfig_cache: tc.TableConfigParser.CacheType,
+    s_snap_ts: types.DashVal,
 ) -> Tuple[types.Table, List[Dict[str, str]]]:
     """Manage uploading a new xlsx document as the new live table."""
     logging.warning(f"'{du.triggered_id()}' -> summarize()")
 
+    assert not s_snap_ts
+
+    tconfig = tc.TableConfigParser(s_wbs_l1, cache=s_tconfig_cache)
+
     try:
-        data_table = src.pull_data_table(wbs_l1)
+        data_table = src.pull_data_table(s_wbs_l1, tconfig)
     except DataSourceException:
         return [], []
-
-    tconfig = tc.TableConfigParser(wbs_l1, cache=state_tconfig_cache)
 
     column_names = [
         "Institution",
@@ -186,7 +198,7 @@ def summarize(
     summary_table: types.Table = []
     for inst_full, abbrev in tconfig.get_institutions_w_abbrevs():
         phds, faculty, sci, grad, __ = src.pull_institution_values(
-            wbs_l1, state_snap_current_ts, abbrev
+            s_wbs_l1, s_snap_ts, abbrev
         )
 
         row: Dict[str, types.StrNum] = {
@@ -204,3 +216,157 @@ def summarize(
         summary_table.append(row)
 
     return summary_table, columns
+
+
+def _blame_row(
+    record: types.Record,
+    tconfig: tc.TableConfigParser,
+    column_names: List[str],
+    snap_bundles: Dict[str, _SnapshotBundle],
+) -> types.Record:
+
+    # get each field's history; Schema: { <field>: {<snap_ts>:<field_value>} }
+    field_history: Dict[str, Dict[str, types.StrNum]] = {}
+    field_history = ODict({k: ODict({"today": record[k]}) for k in record})
+    for snap_ts, bundle in snap_bundles.items():
+        match = next(
+            r
+            for r in bundle["table"]
+            if r[tconfig.const.ID] == record[tconfig.const.ID]
+        )
+        for field in record:
+            field_history[field][snap_ts] = match[field]  # snapshot's value
+
+    # throw out fields that have never changed
+    for field in field_history:
+        if len(set(field_history[field].values())) < 2:
+            field_history[field] = {}
+
+    # make markdown for cell
+    markdown = ""
+    for field, changes in field_history.items():
+        if not changes:
+            continue
+        markdown += f"\n**{field}**\n"
+        for snap_ts, snap_val in changes.items():
+            if field == tconfig.const.TIMESTAMP:
+                snap_val = utils.get_human_time(str(snap_val))
+            snap_val = f"`{snap_val}`" if snap_val else "*none*"
+            markdown += f"- {snap_val}\n"
+            if snap_ts == "today":
+                markdown += "    + today\n"
+                markdown += f"    + {utils.get_human_now()}\n"
+            else:
+                snap_time = utils.get_human_time(str(snap_ts))
+                name = snap_bundles[snap_ts]["info"]["name"]
+                markdown += f"    + {name}\n"
+                markdown += f"    + {snap_time}\n"
+
+    if not markdown:
+        markdown = "*no changes*"
+
+    blame_row = {k: v for k, v in record.items() if k in column_names}
+    blame_row[_CHANGES_COL] = markdown
+    return blame_row
+
+
+def _blame_columns(column_names: List[str]) -> List[Dict[str, str]]:
+    return [
+        {
+            "id": c,
+            "name": c,
+            "type": "text",
+            "presentation": "markdown" if c == _CHANGES_COL else "input",
+        }
+        for c in column_names
+    ]
+
+
+def _blame_style_cell_conditional(column_names: List[str]) -> types.TSCCond:
+    style_cell_conditional = []
+    # border-left
+    for col in [_CHANGES_COL]:
+        style_cell_conditional.append(
+            {"if": {"column_id": col}, "border-left": f"2.5px solid {du.TABLE_GRAY}"}
+        )
+    # width
+    widths = {_CHANGES_COL: "50"}
+    default_width = "20"
+    for col in column_names:
+        style_cell_conditional.append(
+            {
+                "if": {"column_id": col},
+                "minWidth": widths.get(col, default_width),
+                "width": widths.get(col, default_width),
+                "maxWidth": widths.get(col, default_width),
+            }
+        )
+    return style_cell_conditional
+
+
+@app.callback(  # type: ignore[misc]
+    [
+        Output("wbs-blame-table", "data"),
+        Output("wbs-blame-table", "columns"),
+        Output("wbs-blame-table", "style_cell_conditional"),
+    ],
+    [Input("wbs-blame-table-button", "n_clicks")],  # user-only
+    [
+        State("wbs-current-l1", "value"),
+        State("wbs-table-config-cache", "data"),
+        State("wbs-current-snapshot-ts", "value"),
+    ],
+    prevent_initial_call=True,
+)  # pylint: disable=R0914
+def blame(
+    # input(s)
+    _: int,
+    # state(s)
+    s_wbs_l1: str,
+    s_tconfig_cache: tc.TableConfigParser.CacheType,
+    s_snap_ts: types.DashVal,
+) -> Tuple[types.Table, List[Dict[str, str]], types.TSCCond]:
+    """Manage uploading a new xlsx document as the new live table."""
+    logging.warning(f"'{du.triggered_id()}' -> summarize()")
+
+    assert not s_snap_ts
+
+    # setup
+    tconfig = tc.TableConfigParser(s_wbs_l1, cache=s_tconfig_cache)
+
+    try:
+        data_table = src.pull_data_table(s_wbs_l1, tconfig, raw=True)
+        data_table.sort(
+            key=lambda r: r[tconfig.const.TIMESTAMP], reverse=True,
+        )
+    except DataSourceException:
+        return [], [], []
+
+    column_names = [
+        tconfig.const.WBS_L2,
+        tconfig.const.WBS_L3,
+        tconfig.const.INSTITUTION,
+        tconfig.const.NAME,
+        tconfig.const.SOURCE_OF_FUNDS_US_ONLY,
+        _CHANGES_COL,
+    ]
+
+    # populate blame table
+    snap_bundles: Dict[str, _SnapshotBundle] = {
+        info["timestamp"]: {
+            "table": src.pull_data_table(
+                s_wbs_l1, tconfig, snapshot_ts=info["timestamp"], raw=True
+            ),
+            "info": info,
+        }
+        for info in src.list_snapshots(s_wbs_l1)
+    }
+    blame_table = [
+        _blame_row(r, tconfig, column_names, snap_bundles) for r in data_table
+    ]
+
+    return (
+        blame_table,
+        _blame_columns(column_names),
+        _blame_style_cell_conditional(column_names),
+    )

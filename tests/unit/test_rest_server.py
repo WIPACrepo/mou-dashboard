@@ -6,12 +6,12 @@
 import copy
 import pprint
 import sys
+from decimal import Decimal
 from typing import Any, Final, List
-from unittest.mock import ANY, AsyncMock, call, MagicMock, Mock, patch, sentinel
+from unittest.mock import ANY, AsyncMock, Mock, patch, sentinel
 
 import nest_asyncio  # type: ignore[import]
 import pytest
-import tornado
 from bson.objectid import ObjectId  # type: ignore[import]
 
 from . import data
@@ -34,6 +34,7 @@ nest_asyncio.apply()  # allows nested event loops
 MOU_MOTOR_CLIENT: Final[str] = "rest_server.utils.db_utils.MoUMotorClient"
 MOTOR_CLIENT: Final[str] = "motor.motor_tornado.MotorClient"
 TABLE_CONFIG: Final[str] = "rest_server.table_config"
+WBS: Final[str] = "mo"
 
 
 def reset_mock(*args: Mock) -> None:
@@ -54,7 +55,7 @@ class TestDBUtils:  # pylint: disable=R0904
         return mock_mongo
 
     @staticmethod
-    @patch(MOU_MOTOR_CLIENT + "._ensure_all_databases_indexes")
+    @patch(MOU_MOTOR_CLIENT + "._ensure_all_db_indexes")
     def test_init(mock_eadi: Any) -> None:
         """Test MoUMotorClient.__init__()."""
         # Call
@@ -144,7 +145,7 @@ class TestDBUtils:  # pylint: disable=R0904
         ]
 
         for record in good_records:
-            db_utils.MoUMotorClient._validate_record_data(record)
+            db_utils.MoUMotorClient._validate_record_data(WBS, record)
 
         # Test bad records
         bad_records: List[types.Record] = [
@@ -165,7 +166,7 @@ class TestDBUtils:  # pylint: disable=R0904
 
         for record in bad_records:
             with pytest.raises(Exception):
-                db_utils.MoUMotorClient._validate_record_data(record)
+                db_utils.MoUMotorClient._validate_record_data(WBS, record)
 
     @staticmethod
     def test_mongofy_key_name() -> None:
@@ -209,7 +210,7 @@ class TestDBUtils:  # pylint: disable=R0904
 
         # Call & Assert
         for record, mrecord in zip(records, mongofied_records):
-            assert db_utils.MoUMotorClient._mongofy_record(record) == mrecord
+            assert db_utils.MoUMotorClient._mongofy_record(WBS, record) == mrecord
 
     @staticmethod
     def test_demongofy_record() -> None:
@@ -241,23 +242,6 @@ class TestDBUtils:  # pylint: disable=R0904
 
     @staticmethod
     @pytest.mark.asyncio  # type: ignore[misc]
-    @patch(MOU_MOTOR_CLIENT + "._ingest_new_collection")
-    async def test_create_live_collection(mock_inc: Any, mock_mongo: Any) -> None:
-        """Test _create_live_collection()."""
-        # Mock
-        db_utils._LIVE_COLLECTION = sentinel.live_collection
-        mock_inc.return_value = AsyncMock()
-        mock_inc.insert_many.side_effect = AsyncMock()
-
-        # Call
-        moumc = db_utils.MoUMotorClient(mock_mongo)
-        await moumc._create_live_collection(sentinel.db, MagicMock())
-
-        # Assert
-        mock_inc.assert_called_with(sentinel.db, sentinel.live_collection, ANY)
-
-    @staticmethod
-    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_list_database_names(mock_mongo: Any) -> None:
         """Test _list_database_names()."""
         # Mock
@@ -271,140 +255,6 @@ class TestDBUtils:  # pylint: disable=R0904
         # Assert
         assert ret == dbs[:3]
         assert mock_mongo.list_database_names.side_effect.await_count == 1
-
-    @staticmethod
-    def test_get_db(mock_mongo: Any) -> None:
-        """Test _get_db()."""
-        # Mock
-        mock_mongo.__getitem__.return_value = sentinel.db_obj
-        moumc = db_utils.MoUMotorClient(mock_mongo)
-
-        # Call
-        ret = moumc._get_db(ANY)
-
-        # Assert
-        assert ret == sentinel.db_obj
-
-        # test w/ Error
-        # Mock
-        reset_mock(mock_mongo)
-        mock_mongo.__getitem__.side_effect = KeyError
-        moumc = db_utils.MoUMotorClient(mock_mongo)
-
-        # Call
-        with pytest.raises(tornado.web.HTTPError):
-            ret = moumc._get_db(ANY)
-
-        # test w/ Error
-        # Mock
-        reset_mock(mock_mongo)
-        mock_mongo.__getitem__.side_effect = TypeError
-        moumc = db_utils.MoUMotorClient(mock_mongo)
-
-        # Call
-        with pytest.raises(tornado.web.HTTPError):
-            ret = moumc._get_db(ANY)
-
-    @staticmethod
-    @pytest.mark.asyncio  # type: ignore[misc]
-    @patch(MOU_MOTOR_CLIENT + "._get_db")
-    async def test_list_collection_names(mock_gdb: Any, mock_mongo: Any) -> None:
-        """Test _list_collection_names()."""
-        # Mock
-        colls = ["foo", "bar", "baz"] + config.EXCLUDE_COLLECTIONS[:3]
-        moumc = db_utils.MoUMotorClient(mock_mongo)
-        mock_gdb.return_value.list_collection_names.side_effect = AsyncMock(
-            return_value=colls
-        )
-
-        # Call
-        ret = await moumc._list_collection_names(sentinel.db)
-
-        # Assert
-        assert ret == colls[:3]
-        mock_gdb.return_value.list_collection_names.side_effect.assert_awaited_once()
-
-    @staticmethod
-    @patch(MOU_MOTOR_CLIENT + "._get_db")
-    def test_get_collection(mock_gdb: Any, mock_mongo: Any) -> None:
-        """Test _get_collection()."""
-        # Mock
-        mock_gdb.return_value.__getitem__.return_value = sentinel.coll_obj
-        moumc = db_utils.MoUMotorClient(mock_mongo)
-
-        # Call
-        ret = moumc._get_collection(sentinel.db, ANY)
-
-        # Assert
-        assert ret == sentinel.coll_obj
-
-        # test w/ Error
-        # Mock
-        reset_mock(mock_gdb, mock_mongo)
-        mock_gdb.return_value.__getitem__.side_effect = KeyError
-        moumc = db_utils.MoUMotorClient(mock_mongo)
-
-        # Call
-        with pytest.raises(tornado.web.HTTPError):
-            ret = moumc._get_collection(sentinel.db, ANY)
-
-    @staticmethod
-    @pytest.mark.asyncio  # type: ignore[misc]
-    @patch(MOU_MOTOR_CLIENT + "._get_db")
-    @patch(MOU_MOTOR_CLIENT + "._ensure_collection_indexes")
-    @patch(MOU_MOTOR_CLIENT + "._mongofy_record")
-    async def test_ingest_new_collection(
-        _: Any, mock_eci: Any, mock_gdb: Any, mock_mongo: Any
-    ) -> None:
-        """Test _ingest_new_collection()."""
-        # test w/ drop & replace
-        # Mock
-        mock_gdb.return_value.__getitem__.return_value = AsyncMock()
-        mock_gdb.return_value.create_collection.side_effect = AsyncMock()
-        moumc = db_utils.MoUMotorClient(mock_mongo)
-
-        # Call
-        await moumc._ingest_new_snapshot_collection(sentinel.db, sentinel.coll, [ANY, ANY])
-
-        # Assert
-        mock_gdb.return_value.__getitem__.return_value.drop.assert_awaited_once()
-        mock_gdb.return_value.create_collection.side_effect.assert_awaited_once_with(
-            sentinel.coll
-        )
-        mock_eci.assert_awaited_once_with(sentinel.db, sentinel.coll)
-
-        # test w/ new
-        # Mock
-        reset_mock(mock_eci, mock_gdb, mock_mongo)
-        mock_gdb.return_value.__getitem__.side_effect = KeyError
-        moumc = db_utils.MoUMotorClient(mock_mongo)
-
-        # Call
-        await moumc._ingest_new_snapshot_collection(sentinel.db, sentinel.coll, [ANY, ANY])
-
-        # Assert
-        mock_gdb.return_value.create_collection.assert_called_once_with(sentinel.coll)
-        mock_eci.assert_awaited_once_with(sentinel.db, sentinel.coll)
-
-    @staticmethod
-    @pytest.mark.asyncio  # type: ignore[misc]
-    @patch(MOU_MOTOR_CLIENT + "._get_collection")
-    @patch(MOU_MOTOR_CLIENT + "._mongofy_key_name")
-    async def test_ensure_collection_indexes(
-        mock_mkn: Any, mock_gc: Any, mock_mongo: Any
-    ) -> None:
-        """Test _ensure_collection_indexes()."""
-        # Mock
-        mock_gc.return_value.create_index.side_effect = AsyncMock()
-        moumc = db_utils.MoUMotorClient(mock_mongo)
-
-        # Call
-        await moumc._ensure_collection_indexes(sentinel.db, sentinel.coll)
-
-        # Assert
-        assert mock_mkn.call_count == 2
-        assert mock_mkn.call_args_list == [call("Institution"), call("Labor Cat.")]
-        assert len(mock_gc.return_value.create_index.side_effect.await_args) == 2
 
     # NOTE: public methods are tested in integration tests
 
@@ -550,22 +400,28 @@ class TestUtils:
             print("\n-----------------------------------------------------\n")
             pprint.pprint(_rows)
             pprint.pprint(_total_row)
-            assert _total_row[tc.GRAND_TOTAL] == sum(r[tc.FTE] for r in _rows)
+            assert _total_row[tc.GRAND_TOTAL] == float(
+                sum(Decimal(str(r[tc.FTE])) for r in _rows)
+            )
             for fund in [
                 tc.NSF_MO_CORE,
                 tc.NSF_BASE_GRANTS,
                 tc.US_IN_KIND,
                 tc.NON_US_IN_KIND,
             ]:
-                assert _total_row[fund] == sum(
-                    r[tc.FTE] for r in _rows if r[tc.SOURCE_OF_FUNDS_US_ONLY] == fund
+                assert _total_row[fund] == float(
+                    sum(
+                        Decimal(str(r[tc.FTE]))
+                        for r in _rows
+                        if r[tc.SOURCE_OF_FUNDS_US_ONLY] == fund
+                    )
                 )
 
         # Test example table and empty table
         test_tables: Final[List[types.Table]] = [copy.deepcopy(data.FTE_ROWS), []]
         for table in test_tables:
             # Call
-            totals = utils.get_total_rows(table)
+            totals = utils.get_total_rows(WBS, table)
             # pprint.pprint(totals)
 
             # Assert total sums
@@ -615,7 +471,7 @@ class TestUtils:
                     raise Exception(f"Unaccounted total row ({total_row}).")
 
             # Assert that every possible total is there (including rows with only 0s)
-            for l2_cat in tc.get_l2_categories():
+            for l2_cat in tc.get_l2_categories(WBS):
                 assert l2_cat in set(r.get(tc.WBS_L2) for r in totals)
-                for l3_cat in tc.get_l3_categories_by_l2(l2_cat):
+                for l3_cat in tc.get_l3_categories_by_l2(WBS, l2_cat):
                     assert l3_cat in set(r.get(tc.WBS_L3) for r in totals)

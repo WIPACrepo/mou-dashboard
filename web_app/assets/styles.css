@@ -60,6 +60,30 @@ body {
 
 
 /*------------------------------------------------------------------------------------*/
+/* Markdown */
+
+ul {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+li {
+    margin-bottom: 0 !important;
+}
+
+p {
+   margin-bottom: 0 !important;
+   margin-top: 0.5rem !important;
+}
+
+code {
+    font-size: 100%;
+    color: #17a2b8;
+    word-wrap: break-word;
+}
+
+
+/*------------------------------------------------------------------------------------*/
 /* Backgrounds/Bodies */
 
 .background {
@@ -69,6 +93,7 @@ body {
 }
 
 .content {
+    min-height: 100rem;
     padding-top: 2em;
     padding-bottom: 2em;
     padding-left: 6em;
@@ -492,7 +517,8 @@ body {
 
 .column-header--sort {
     float: right !important;
-    margin-left: 0.5em;
+    margin-left: 0.25rem;
+    margin-right: -0.25rem;
     text-align: right;
     flex-basis: 1%;
 }

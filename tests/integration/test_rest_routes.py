@@ -5,7 +5,6 @@
 
 
 import base64
-import pprint
 import sys
 import time
 
@@ -24,13 +23,12 @@ import web_app.data_source.utils  # isort:skip  # noqa # pylint: disable=E0401,C
 import web_app.config  # isort:skip  # noqa # pylint: disable=E0401,C0413
 
 
-WBS_L1 = "upgrade"
+WBS_L1 = "mo"
 
 
 @pytest.fixture  # type: ignore
 def ds_rc() -> RestClient:
     """Get data source REST client via web_app."""
-    web_app.config.update_config_global()
     return web_app.data_source.utils._rest_connection()
 
 
@@ -44,7 +42,7 @@ def test_ingest(ds_rc: RestClient) -> None:
         base64_bin = base64.b64encode(f.read())
         base64_file = base64_bin.decode(encoding="utf-8")
 
-    body = {"base64_file": base64_file, "filename": filename}
+    body = {"base64_file": base64_file, "filename": filename, "creator": "Hank"}
     resp = ds_rc.request_seq("POST", f"/table/data/{WBS_L1}", body)
 
     assert resp["n_records"]
@@ -57,7 +55,11 @@ def test_ingest(ds_rc: RestClient) -> None:
     assert resp["n_records"]
     assert (previous_2 := resp["previous_snapshot"])  # pylint: disable=C0325
     assert (current_2 := resp["current_snapshot"])  # pylint: disable=C0325
-    assert float(current_1) < float(previous_2) < float(current_2)
+    assert (
+        float(current_1["timestamp"])
+        < float(previous_2["timestamp"])
+        < float(current_2["timestamp"])
+    )
 
     # Now fail...
     with pytest.raises(requests.exceptions.HTTPError):
@@ -87,8 +89,10 @@ class TestNoArgumentRoutes:
         assert "get" in dir(routes.SnapshotsHandler)
 
         resp = ds_rc.request_seq("GET", f"/snapshots/list/{WBS_L1}")
-        assert list(resp.keys()) == ["timestamps"]
-        assert isinstance(resp["timestamps"], list)
+        assert list(resp.keys()) == ["snapshots"]
+        assert isinstance(resp["snapshots"], list)
+        for snap in resp["snapshots"]:
+            assert snap.keys() == ["timestamp", "name", "creator"]
 
     @staticmethod
     def test_snapshots_make_post() -> None:
@@ -107,26 +111,53 @@ class TestNoArgumentRoutes:
         # 3 snapshots were taken in test_ingest()
         assert (
             len(
-                ds_rc.request_seq("GET", f"/snapshots/list/{WBS_L1}")[
-                    "timestamps"
-                ]
+                ds_rc.request_seq(
+                    "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": True}
+                )["snapshots"]
             )
             == 3
         )
 
-        for i in range(4, 100):
+        assert not ds_rc.request_seq("GET", f"/snapshots/list/{WBS_L1}")["snapshots"]
+        assert not ds_rc.request_seq(
+            "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": False}
+        )["snapshots"]
+
+        for i in range(1, 20):
             time.sleep(1)
             print(i)
-            resp = ds_rc.request_seq("POST", f"/snapshots/make/{WBS_L1}")
-            assert list(resp.keys()) == ["timestamp"]
+            resp = ds_rc.request_seq(
+                "POST",
+                f"/snapshots/make/{WBS_L1}",
+                {"name": f"#{i}", "creator": "Hank"},
+            )
+            assert list(resp.keys()) == ["name", "creator", "timestamp", "admin_only"]
+            assert resp["name"] == f"#{i}"
+            assert resp["creator"] == "Hank"
             now = time.time()
             assert now - float(resp["timestamp"]) < 2  # account for travel time
 
-            timestamps = ds_rc.request_seq("GET", f"/snapshots/list/{WBS_L1}")[
-                "timestamps"
-            ]
-            assert len(timestamps) == i
-            assert resp["timestamp"] in timestamps
+            # admin
+            if i % 2 == 1:  # odd
+                snapshots = ds_rc.request_seq(
+                    "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": True}
+                )["snapshots"]
+                assert len(snapshots) == i + 3
+            # explicitly non-admin
+            elif i % 4 == 0:  # every-4
+                snapshots = ds_rc.request_seq(
+                    "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": False}
+                )["snapshots"]
+                assert len(snapshots) == i
+            # implicitly non-admin
+            else:  # every-4 off by 2
+                assert i % 4 == 2
+                snapshots = ds_rc.request_seq("GET", f"/snapshots/list/{WBS_L1}")[
+                    "snapshots"
+                ]
+                assert len(snapshots) == i
+
+            assert resp["timestamp"] in [s["timestamp"] for s in snapshots]
 
     @staticmethod
     def test_table_config_get(ds_rc: RestClient) -> None:
@@ -134,21 +165,24 @@ class TestNoArgumentRoutes:
         assert routes.TableConfigHandler.ROUTE == r"/table/config$"
         assert "get" in dir(routes.TableConfigHandler)
 
-        resp = ds_rc.request_seq("GET", f"/table/config")
-        assert list(resp.keys()) == [
-            "columns",
-            "simple_dropdown_menus",
-            "institutions",
-            "labor_categories",
-            "conditional_dropdown_menus",
-            "dropdowns",
-            "numerics",
-            "non_editables",
-            "hiddens",
-            "widths",
-            "border_left_columns",
-            "page_size",
-        ]
+        resp = ds_rc.request_seq("GET", "/table/config")
+        assert list(resp.keys()) == ["mo", "upgrade"]
+        for config in resp.values():
+            assert list(config.keys()) == [
+                "columns",
+                "simple_dropdown_menus",
+                "institutions",
+                "labor_categories",
+                "conditional_dropdown_menus",
+                "dropdowns",
+                "numerics",
+                "non_editables",
+                "hiddens",
+                "tooltips",
+                "widths",
+                "border_left_columns",
+                "page_size",
+            ]
 
 
 class TestTableHandler:
@@ -172,16 +206,18 @@ class TestTableHandler:
 
     @staticmethod
     def _assert_schema(record: types.Record, has_total_rows: bool = False) -> None:
-        pprint.pprint(record)
+        # pprint.pprint(record)
         assert record
         required_keys = [
+            "Date & Time of Last Edit",
             "FTE",
             "Grand Total",
             "Institution",
             "Labor Cat.",
-            "Names",
+            "Name",
+            "Name of Last Editor",
             "Source of Funds (U.S. Only)",
-            "Tasks",
+            "Task Description",
             "US / Non-US",
             "WBS L2",
             "WBS L3",
@@ -216,10 +252,10 @@ class TestTableHandler:
 
         # assert schema in Snapshot Collections
         for snapshot in ds_rc.request_seq("GET", f"/snapshots/list/{WBS_L1}")[
-            "timestamps"
+            "snapshots"
         ]:
             resp = ds_rc.request_seq(
-                "GET", f"/table/data/{WBS_L1}", {"snapshot": snapshot}
+                "GET", f"/table/data/{WBS_L1}", {"snapshot": snapshot["timestamp"]}
             )
             for record in resp["table"]:
                 self._assert_schema(record)

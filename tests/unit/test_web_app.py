@@ -1,7 +1,7 @@
 """Unit test web_app module."""
 
 
-# pylint: disable=W0212
+# pylint: disable=W0212,W0621
 
 
 import inspect
@@ -10,7 +10,7 @@ import sys
 from copy import deepcopy
 from enum import Enum
 from typing import Any, Final
-from unittest.mock import ANY
+from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
@@ -20,7 +20,16 @@ from web_app.utils import types  # isort:skip  # noqa # pylint: disable=E0401,C0
 from web_app.data_source import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
     data_source as src,
     table_config as tc,
+    utils,
 )
+
+WBS = "mo"
+
+
+@pytest.fixture  # type: ignore
+def tconfig() -> Any:
+    """Provide a TableConfigParser instance."""
+    return tc.TableConfigParser(WBS, MagicMock())
 
 
 class TestPrivateDataSource:
@@ -31,29 +40,33 @@ class TestPrivateDataSource:
     def _get_new_record(self) -> types.Record:
         return deepcopy(self.RECORD)
 
-    def test_add_original_copies_to_record(self) -> None:
+    def test_add_original_copies_to_record(self, tconfig: tc.TableConfigParser) -> None:
         """Test add_original_copies_to_record()."""
         record = self._get_new_record()
         record_orig = deepcopy(record)
 
         for _ in range(2):
-            record_out = src._convert_record_rest_to_dash(record)
+            record_out = src._convert_record_rest_to_dash(record, tconfig)
             assert record_out == record  # check in-place update
-            assert len(record) == 2 * len(record_orig)
+            assert len(record) == (2 * len(record_orig)) + 2  # editor + editor_original
+            assert tconfig.const.EDITOR in record
             # check copied values
             for key in record_orig.keys():
                 assert record_orig[key] == record[key]
                 assert record_orig[key] == record[src.get_touchstone_name(key)]
 
-    def test_add_original_copies_to_record_novel(self) -> None:
+    def test_add_original_copies_to_record_novel(
+        self, tconfig: tc.TableConfigParser
+    ) -> None:
         """Test add_original_copies_to_record(novel=True)."""
         record = self._get_new_record()
         record_orig = deepcopy(record)
 
         for _ in range(2):
-            record_out = src._convert_record_rest_to_dash(record, novel=True)
+            record_out = src._convert_record_rest_to_dash(record, tconfig, novel=True)
             assert record_out == record  # check in-place update
-            assert len(record) == 2 * len(record_orig)
+            assert len(record) == (2 * len(record_orig)) + 2  # editor + editor_original
+            assert tconfig.const.EDITOR in record
             # check copied values
             for key in record_orig.keys():
                 assert record_orig[key] == record[key]
@@ -61,39 +74,46 @@ class TestPrivateDataSource:
                 assert record_orig[key] != record[src.get_touchstone_name(key)]
                 assert record[src.get_touchstone_name(key)] == ""
 
-    def test_without_original_copies_from_record(self) -> None:
+    def test_without_original_copies_from_record(
+        self, tconfig: tc.TableConfigParser
+    ) -> None:
         """Test without_original_copies_from_record()."""
         record = self._get_new_record()
         record_orig = deepcopy(record)
 
-        src._convert_record_rest_to_dash(record)
+        src._convert_record_rest_to_dash(record, tconfig)
         record_out = src._convert_record_dash_to_rest(record)
 
         assert record_out != record
+        assert record_out.pop(tconfig.const.EDITOR) == "—"
         assert record_out == record_orig
 
     @staticmethod
     def test_remove_invalid_data() -> None:  # pylint: disable=R0915,R0912
         """Test _remove_invalid_data() & _convert_record_dash_to_rest()."""
-        tconfig_cache: tc.TableConfigParser.CacheType = {  # type: ignore[typeddict-item]
-            "simple_dropdown_menus": {"Alpha": ["A1", "A2"], "Beta": []},
-            "conditional_dropdown_menus": {
-                "Dish": (
-                    "Alpha",
-                    {
-                        "A1": ["chicken", "beef", "pork", "fish", "shrimp", "goat"],
-                        "A2": [],
-                    },
-                ),
-            },
-            "columns": ["Alpha", "Dish", "F1", "Beta"],
+        tconfig_cache: tc.TableConfigParser.CacheType = {
+            WBS: {  # type: ignore[typeddict-item]
+                "simple_dropdown_menus": {"Alpha": ["A1", "A2"], "Beta": []},
+                "conditional_dropdown_menus": {
+                    "Dish": (
+                        "Alpha",
+                        {
+                            "A1": ["chicken", "beef", "pork", "fish", "shrimp", "goat"],
+                            "A2": [],
+                        },
+                    ),
+                },
+                "columns": ["Alpha", "Dish", "F1", "Beta"],
+            }
         }
+
+        tconfig = tc.TableConfigParser(WBS, cache=tconfig_cache)
 
         def _assert(_orig: types.Record, _good: types.Record) -> None:
             assert (
                 _good
-                == src._remove_invalid_data(_orig, tconfig_cache=tconfig_cache)
-                == src._convert_record_dash_to_rest(_orig, tconfig_cache=tconfig_cache)
+                == src._remove_invalid_data(_orig, tconfig)
+                == src._convert_record_dash_to_rest(_orig, tconfig)
             )
 
         class Scenario(Enum):  # pylint: disable=C0115
@@ -187,7 +207,7 @@ class TestDataSource:
         return mocker.patch("web_app.data_source.utils._rest_connection")
 
     @staticmethod
-    def test_pull_data_table(mock_rest: Any) -> None:
+    def test_pull_data_table(mock_rest: Any, tconfig: tc.TableConfigParser) -> None:
         """Test pull_data_table()."""
         response = {"foo": 0, "table": [{"a": "a"}, {"b": 2}, {"c": None}]}
         bodies = [
@@ -212,33 +232,47 @@ class TestDataSource:
             mock_rest.return_value.request_seq.return_value = response
             # Default values
             if i == 0:
-                ret = src.pull_data_table(ANY)
+                ret = src.pull_data_table(WBS, tconfig)
             # Other values
             else:
                 ret = src.pull_data_table(
-                    ANY,
+                    WBS,
+                    tconfig,
                     institution=bodies[i]["institution"],  # type: ignore[arg-type]
                     labor=bodies[i]["labor"],  # type: ignore[arg-type]
                     with_totals=bodies[i]["total_rows"],  # type: ignore[arg-type]
-                    snapshot=bodies[i]["snapshot"],  # type: ignore[arg-type]
+                    snapshot_ts=bodies[i]["snapshot"],  # type: ignore[arg-type]
                     restore_id=bodies[i]["restore_id"],  # type: ignore[arg-type]
                 )
 
             # Assert
             mock_rest.return_value.request_seq.assert_called_with(
-                "GET", f"/table/data/{ANY}", bodies[i]
+                "GET", f"/table/data/{WBS}", bodies[i]
             )
             assert ret == response["table"]
 
     @staticmethod
-    def test_push_record(mock_rest: Any) -> None:
+    @patch("flask_login.utils._get_user")
+    def test_push_record(
+        current_user: Any, mock_rest: Any, tconfig: tc.TableConfigParser
+    ) -> None:
         """Test push_record()."""
-        response = {"foo": 0, "record": {"x": "foo", "y": 22, "z": "z"}}
+        current_user.return_value.name = "Hank"
+        response = {
+            "foo": 0,
+            "record": {"x": "foo", "y": 22, "z": "z"},
+            # "editor": "Hank",
+        }
         bodies = [
             # Default values
-            {"institution": "", "labor": "", "record": {"BAR": 23}},
+            {"record": {"BAR": 23}, "editor": "Hank"},
             # Other values
-            {"institution": "foo", "labor": "bar", "record": {"a": 1}},
+            {
+                "institution": "foo",
+                "labor": "bar",
+                "record": {"a": 1},
+                "editor": "Hank",
+            },
         ]
 
         for i, _ in enumerate(bodies):
@@ -246,81 +280,91 @@ class TestDataSource:
             mock_rest.return_value.request_seq.return_value = response
             # Default values
             if i == 0:
-                ret = src.push_record(ANY, bodies[0]["record"])  # type: ignore[arg-type]
+                ret = src.push_record(WBS, bodies[0]["record"], tconfig)  # type: ignore[arg-type]
             # Other values
             else:
                 ret = src.push_record(
-                    ANY,
+                    WBS,
                     bodies[i]["record"],  # type: ignore[arg-type]
+                    tconfig,
                     labor=bodies[i]["labor"],  # type: ignore[arg-type]
                     institution=bodies[i]["institution"],  # type: ignore[arg-type]
                 )
 
             # Assert
             mock_rest.return_value.request_seq.assert_called_with(
-                "POST", f"/record/{ANY}", bodies[i]
+                "POST", f"/record/{WBS}", bodies[i]
             )
             assert ret == response["record"]
 
     @staticmethod
-    def test_delete_record(mock_rest: Any) -> None:
+    @patch("flask_login.utils._get_user")
+    def test_delete_record(current_user: Any, mock_rest: Any) -> None:
         """Test delete_record()."""
+        current_user.return_value.name = "Hank"
         record_id = "23"
 
         # Call
-        ret = src.delete_record(ANY, record_id)
+        src.delete_record(WBS, record_id)  # raises if fail
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
-            "DELETE", f"/record/{ANY}", {"record_id": record_id}
+            "DELETE", f"/record/{WBS}", {"record_id": record_id, "editor": "Hank"}
         )
-        assert ret
 
         # Fail Test #
         # Call
         mock_rest.return_value.request_seq.side_effect = requests.exceptions.HTTPError
-        ret = src.delete_record(ANY, record_id)
+
+        with pytest.raises(utils.DataSourceException):
+            src.delete_record(WBS, record_id)
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
-            "DELETE", f"/record/{ANY}", {"record_id": record_id}
+            "DELETE", f"/record/{WBS}", {"record_id": record_id, "editor": "Hank"}
         )
-        assert not ret
 
     @staticmethod
-    def test_list_snapshot_timestamps(mock_rest: Any) -> None:
+    @patch("flask_login.utils._get_user")
+    def test_list_snapshot_timestamps(current_user: Any, mock_rest: Any) -> None:
         """Test list_snapshot_timestamps()."""
-        response = {"timestamps": ["a", "b", "c"], "foo": "bar"}
+        current_user.return_value.is_authenticated = True
+        current_user.return_value.is_admin = True
+        response = {
+            "snapshots": [
+                {"timestamp": "a", "name": "aye", "creator": "George"},
+                {"timestamp": "b", "name": "bee", "creator": "Ringo"},
+                {"timestamp": "c", "name": "see", "creator": "John"},
+                {"timestamp": "d", "name": "dee", "creator": "Paul"},
+            ],
+        }
 
         # Call
         mock_rest.return_value.request_seq.return_value = response
-        ret = src.list_snapshots(ANY)
+        ret = src.list_snapshots(WBS)
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
-            "GET", f"/snapshots/list/{ANY}", None
+            "GET", f"/snapshots/list/{WBS}", {"is_admin": True}
         )
-        assert sorted(ret) == sorted(response["timestamps"])
+        assert sorted(ret, key=lambda k: k["timestamp"]) == response["snapshots"]
 
     @staticmethod
-    def test_create_snapshot(mock_rest: Any) -> None:
+    @patch("flask_login.utils._get_user")
+    def test_create_snapshot(current_user: Any, mock_rest: Any) -> None:
         """Test create_snapshot()."""
+        current_user.return_value.name = "Hank"
         response = {"timestamp": "a", "foo": "bar"}
 
         # Call
         mock_rest.return_value.request_seq.return_value = response
-        ret = src.create_snapshot(ANY)
+        ret = src.create_snapshot(WBS, "snap_name")
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
-            "POST", f"/snapshots/make/{ANY}", None
+            "POST", f"/snapshots/make/{WBS}", {"creator": "Hank", "name": "snap_name"}
         )
-        assert ret == response["timestamp"]
-
-    @staticmethod
-    def test_id_constant() -> None:
-        """Check the ID constant, this corresponds to the mongodb id field."""
-        assert src.ID == "_id"
+        assert ret == response
 
 
 class TestTableConfig:
@@ -333,79 +377,117 @@ class TestTableConfig:
         return mocker.patch("web_app.data_source.utils._rest_connection")
 
     @staticmethod
+    def test_consts(tconfig: tc.TableConfigParser) -> None:
+        """Check the conts, these correspond to the column names."""
+        assert tconfig.const.ID == "_id"
+        assert tconfig.const.WBS_L2 == "WBS L2"
+        assert tconfig.const.WBS_L3 == "WBS L3"
+        assert tconfig.const.LABOR_CAT == "Labor Cat."
+        assert tconfig.const.US_NON_US == "US / Non-US"
+        assert tconfig.const.INSTITUTION == "Institution"
+        assert tconfig.const.NAME == "Name"
+        assert tconfig.const.TASK_DESCRIPTION == "Task Description"
+        assert tconfig.const.SOURCE_OF_FUNDS_US_ONLY == "Source of Funds (U.S. Only)"
+        assert tconfig.const.FTE == "FTE"
+        assert tconfig.const.NSF_MO_CORE == "NSF M&O Core"
+        assert tconfig.const.NSF_BASE_GRANTS == "NSF Base Grants"
+        assert tconfig.const.US_IN_KIND == "US In-Kind"
+        assert tconfig.const.NON_US_IN_KIND == "Non-US In-Kind"
+        assert tconfig.const.GRAND_TOTAL == "Grand Total"
+        assert tconfig.const.TOTAL_COL == "Total-Row Description"
+        assert tconfig.const.TIMESTAMP == "Date & Time of Last Edit"
+        assert tconfig.const.EDITOR == "Name of Last Editor"
+
+    @staticmethod
     def test_table_config(mock_rest: Any) -> None:
         """Test TableConfig()."""
         # nonsense data, but correctly typed
-        response: tc.TableConfigParser.CacheType = {
-            "columns": ["a", "b", "c", "d"],
-            "simple_dropdown_menus": {"a": ["1", "2", "3"], "c": ["4", "44", "444"]},
-            "institutions": sorted([("foo", "F"), ("bar", "B")]),
-            "labor_categories": sorted(["foobar", "baz"]),
-            "conditional_dropdown_menus": {
-                "column1": (
-                    "parent_of_1",
-                    {"optA": ["alpha", "a", "atlantic"], "optB": ["beta", "b", "boat"]},
-                ),
-                "column2": (
-                    "parent_of_2",
-                    {"optD": ["delta", "d", "dock"], "optG": ["gamma", "g", "gulf"]},
-                ),
-            },
-            "dropdowns": ["gamma", "mu"],
-            "numerics": ["foobarbaz"],
-            "non_editables": ["alpha", "beta"],
-            "hiddens": ["z", "y", "x"],
-            "widths": {"Zetta": 888, "Yotta": -50},
-            "border_left_columns": ["ee", "e"],
-            "page_size": 55,
+        resp: tc.TableConfigParser.CacheType = {
+            WBS: {
+                "columns": ["a", "b", "c", "d"],
+                "simple_dropdown_menus": {
+                    "a": ["1", "2", "3"],
+                    "c": ["4", "44", "444"],
+                },
+                "institutions": sorted([("foo", "F"), ("bar", "B")]),
+                "labor_categories": sorted(["foobar", "baz"]),
+                "conditional_dropdown_menus": {
+                    "column1": (
+                        "parent_of_1",
+                        {
+                            "optA": ["alpha", "a", "atlantic"],
+                            "optB": ["beta", "b", "boat"],
+                        },
+                    ),
+                    "column2": (
+                        "parent_of_2",
+                        {
+                            "optD": ["delta", "d", "dock"],
+                            "optG": ["gamma", "g", "gulf"],
+                        },
+                    ),
+                },
+                "dropdowns": ["gamma", "mu"],
+                "numerics": ["foobarbaz"],
+                "non_editables": ["alpha", "beta"],
+                "hiddens": ["z", "y", "x"],
+                "widths": {"Zetta": 888, "Yotta": -50},
+                "border_left_columns": ["ee", "e"],
+                "page_size": 55,
+                "tooltips": {"ham": "blah"},
+            }
         }
 
         # Call
-        mock_rest.return_value.request_seq.return_value = response
-        table_config = tc.TableConfigParser()
+        mock_rest.return_value.request_seq.return_value = resp
+        table_config = tc.TableConfigParser(WBS)
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
             "GET", "/table/config", None
         )
-        assert table_config._configs == response
+        assert table_config._configs == resp
 
         # no-argument methods
-        assert table_config.get_table_columns() == response["columns"]
-        assert table_config.get_institutions_w_abbrevs() == response["institutions"]
-        assert table_config.get_labor_categories() == response["labor_categories"]
-        assert table_config.get_hidden_columns() == response["hiddens"]
-        assert table_config.get_dropdown_columns() == response["dropdowns"]
-        assert table_config.get_page_size() == response["page_size"]
+        assert table_config.get_table_columns() == resp[WBS]["columns"]
+        assert table_config.get_institutions_w_abbrevs() == resp[WBS]["institutions"]
+        assert table_config.get_labor_categories() == resp[WBS]["labor_categories"]
+        assert table_config.get_hidden_columns() == resp[WBS]["hiddens"]
+        assert table_config.get_dropdown_columns() == resp[WBS]["dropdowns"]
+        assert table_config.get_page_size() == resp[WBS]["page_size"]
 
         # is_column_*()
-        for col in response["dropdowns"]:
+        for col in resp[WBS]["dropdowns"]:
             assert table_config.is_column_dropdown(col)
             assert not table_config.is_column_dropdown(col + "!")
-        for col in response["numerics"]:
+        for col in resp[WBS]["numerics"]:
             assert table_config.is_column_numeric(col)
             assert not table_config.is_column_numeric(col + "!")
-        for col in response["non_editables"]:
+        for col in resp[WBS]["non_editables"]:
             assert not table_config.is_column_editable(col)
             assert table_config.is_column_editable(col + "!")
-        for col in response["simple_dropdown_menus"]:
+        for col in resp[WBS]["simple_dropdown_menus"]:
             assert table_config.is_simple_dropdown(col)
             assert not table_config.is_simple_dropdown(col + "!")
-        for col in response["conditional_dropdown_menus"]:
+        for col in resp[WBS]["conditional_dropdown_menus"]:
             assert table_config.is_conditional_dropdown(col)
             assert not table_config.is_conditional_dropdown(col + "!")
-        for col in response["border_left_columns"]:
+        for col in resp[WBS]["border_left_columns"]:
             assert table_config.has_border_left(col)
             assert not table_config.has_border_left(col + "!")
 
+        # tooltips
+        for col, tooltip in resp[WBS]["tooltips"].items():
+            assert tooltip == table_config.get_column_tooltip(col)
+
         # get_simple_column_dropdown_menu()
-        for col, menu in response["simple_dropdown_menus"].items():
+        for col, menu in resp[WBS]["simple_dropdown_menus"].items():
             assert table_config.get_simple_column_dropdown_menu(col) == menu
             with pytest.raises(KeyError):
                 table_config.get_simple_column_dropdown_menu(col + "!")
 
         # get_conditional_column_parent()
-        for col, par_opts in response["conditional_dropdown_menus"].items():
+        for col, par_opts in resp[WBS]["conditional_dropdown_menus"].items():
             assert table_config.get_conditional_column_parent_and_options(col) == (
                 par_opts[0],  # parent
                 list(par_opts[1].keys()),  # options
@@ -414,7 +496,7 @@ class TestTableConfig:
                 table_config.get_conditional_column_parent_and_options(col + "!")
 
         # get_conditional_column_dropdown_menu()
-        for col, par_opts in response["conditional_dropdown_menus"].items():
+        for col, par_opts in resp[WBS]["conditional_dropdown_menus"].items():
             for parent_col_option, menu in par_opts[1].items():
                 assert (
                     table_config.get_conditional_column_dropdown_menu(
@@ -431,11 +513,11 @@ class TestTableConfig:
                     )
 
         # Error handling methods
-        for col, wid in response["widths"].items():
+        for col, wid in resp[WBS]["widths"].items():
             assert table_config.get_column_width(col) == wid
         mock_rest.return_value.request_seq.return_value = {}
-        table_config = tc.TableConfigParser()
-        for col, wid in response["widths"].items():
+        table_config = tc.TableConfigParser(WBS)
+        for col, wid in resp[WBS]["widths"].items():
             default = (
                 inspect.signature(table_config.get_column_width)
                 .parameters["default"]

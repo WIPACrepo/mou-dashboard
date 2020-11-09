@@ -61,7 +61,7 @@ def layout() -> html.Div:
                         id="wbs-current-snapshot-ts",
                         className="large-dropdown snapshot-dropdown",
                         style={"width": "100rem"},
-                        placeholder="— Statement of Work as of YYYY-MM-DD —",
+                        placeholder="...",  # set in callback
                         value="",
                         disabled=False,
                         persistence=True,
@@ -70,7 +70,7 @@ def layout() -> html.Div:
                 ],
             ),
             html.Div(
-                "click above to select and view an archived version",
+                "click above to select and view past statements of work",
                 style={
                     "font-style": "italic",
                     "text-align": "center",
@@ -133,7 +133,7 @@ def layout() -> html.Div:
                     #
                     dcc.Loading(
                         type="default",
-                        color="#17a2b8",
+                        color=du.TEAL,
                         children=[
                             html.Div(
                                 className="last-updated-label caps",
@@ -219,11 +219,7 @@ def layout() -> html.Div:
             ),
             #
             # Bottom Buttons
-            dcc.Loading(
-                type="cube",
-                color="#17a2b8",
-                fullscreen=True,
-                style={"background": "transparent"},  # float atop all
+            du.fullscreen_loading(
                 children=[
                     dbc.Row(
                         className="wbs-table-bottom-toolbar",
@@ -255,13 +251,13 @@ def layout() -> html.Div:
                             ),
                         ],
                     ),
-                ],
+                ]
             ),
             #
             # Last Refreshed
             dcc.Loading(
                 type="default",
-                color="#17a2b8",
+                color=du.TEAL,
                 children=[
                     html.Label(
                         id="wbs-table-last-updated-label",
@@ -296,14 +292,13 @@ def layout() -> html.Div:
                     html.H2(className="section-header", children="Admin Zone"),
                     #
                     # Summary Table
-                    dcc.Loading(
-                        type="cube",
-                        color="#17a2b8",
-                        fullscreen=True,
-                        style={"background": "transparent"},  # float atop all
+                    du.fullscreen_loading(
                         children=[
                             html.Div(
-                                style={"margin-right": "10rem", "width": "119.5rem"},
+                                style={
+                                    "margin-right": "10rem",
+                                    "width": "calc(100% - 10rem)",
+                                },
                                 children=[
                                     dbc.Button(
                                         id="wbs-summary-table-recalculate",
@@ -313,43 +308,31 @@ def layout() -> html.Div:
                                     ),
                                 ],
                             ),
-                            dash_table.DataTable(
-                                id="wbs-summary-table",
-                                editable=False,
-                                style_table={
-                                    "overflowX": "auto",
-                                    "overflowY": "auto",
-                                    "padding-left": "1em",
+                            du.simple_table("wbs-summary-table"),
+                        ]
+                    ),
+                    #
+                    html.Hr(),
+                    #
+                    # Blame Table
+                    du.fullscreen_loading(
+                        children=[
+                            html.Div(
+                                style={
+                                    "margin-right": "10rem",
+                                    "width": "calc(100% - 10rem)",
                                 },
-                                style_header={
-                                    "backgroundColor": "black",
-                                    "color": "whitesmoke",
-                                    "whiteSpace": "normal",
-                                    "fontWeight": "normal",
-                                    "height": "auto",
-                                    "fontSize": "10px",
-                                    "lineHeight": "10px",
-                                    "wordBreak": "break-all",
-                                },
-                                style_cell={
-                                    "textAlign": "left",
-                                    "fontSize": 14,
-                                    "font-family": "sans-serif",
-                                    "padding-left": "0.5em",
-                                    "minWidth": "5px",
-                                    "width": "5px",
-                                    "maxWidth": "10px",
-                                },
-                                style_data={
-                                    "whiteSpace": "normal",
-                                    "height": "auto",
-                                    "lineHeight": "20px",
-                                    "wordBreak": "break-all",
-                                },
-                                export_format="xlsx",
-                                export_headers="display",
-                                merge_duplicate_headers=True,
+                                children=[
+                                    dbc.Button(
+                                        id="wbs-blame-table-button",
+                                        n_clicks=0,
+                                        block=True,
+                                        color=du.Color.DARK,
+                                        children="View How SOWs Have Changed",
+                                    ),
+                                ],
                             ),
+                            du.simple_table("wbs-blame-table"),
                         ],
                     ),
                     #
@@ -401,8 +384,6 @@ def layout() -> html.Div:
                 storage_type="memory",
                 data=True,
             ),
-            # - for signaling to pick_institution() what the user's institution is to cache it
-            dcc.Store(id="wbs-login-institution", storage_type="memory", data=""),
             # - for caching the institution value
             dcc.Store(id="wbs-institution-source-of-truth", storage_type="local"),
             # - for storing the last deleted record's id

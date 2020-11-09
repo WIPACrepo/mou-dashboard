@@ -12,6 +12,8 @@ from rest_server import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
     table_config as tc,
 )
 
+WBS: Final[str] = "mo"
+
 
 FTE_ROWS: Final[types.Table] = [
     {
@@ -365,7 +367,7 @@ def _make_fte_rows() -> None:
         "2.1 Program Coordination",
         "2.2 Detector Operations & Maintenance (Online)",
     ]:
-        for l3 in tc.get_l3_categories_by_l2(l2):
+        for l3 in tc.get_l3_categories_by_l2(WBS, l2):
             if ".3" in l3:
                 break
             # append 2 US for each funding source

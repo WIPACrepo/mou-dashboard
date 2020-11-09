@@ -10,7 +10,7 @@ import requests
 # local imports
 from rest_tools.client import RestClient  # type: ignore
 
-from ..config import CONFIG
+from ..config import get_config_vars
 
 
 class DataSourceException(Exception):
@@ -19,13 +19,15 @@ class DataSourceException(Exception):
 
 def _rest_connection() -> RestClient:
     """Return REST Client connection object."""
-    if CONFIG["TOKEN"]:
-        token = CONFIG["TOKEN"]
+    config_vars = get_config_vars()
+
+    if config_vars["TOKEN"]:
+        token = config_vars["TOKEN"]
     else:
-        token_json = requests.get(CONFIG["TOKEN_REQUEST_URL"]).json()
+        token_json = requests.get(config_vars["TOKEN_REQUEST_URL"]).json()
         token = token_json["access"]
 
-    rc = RestClient(CONFIG["REST_SERVER_URL"], token=token, timeout=30, retries=0)
+    rc = RestClient(config_vars["REST_SERVER_URL"], token=token, timeout=30, retries=0)
 
     return rc
 

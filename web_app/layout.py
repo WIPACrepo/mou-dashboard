@@ -14,10 +14,11 @@ from dash.dependencies import Input, Output, State  # type: ignore
 from flask_login import current_user, login_user, logout_user  # type: ignore[import]
 
 from .config import app
+from .data_source import table_config as tc
 from .tabs import wbs_generic_layout
 from .utils import dash_utils as du
 from .utils import types
-from .utils.login import User
+from .utils.login import InvalidLoginException, User
 
 
 def layout() -> None:
@@ -29,6 +30,7 @@ def layout() -> None:
         children=[
             #
             # JS calls for refreshing page
+            visdcc.Run_js("refresh-for-login-logout"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-snapshot-make"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-override-success"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-snapshot-change"),  # pylint: disable=E1101
@@ -96,6 +98,7 @@ def layout() -> None:
                 id="tab-content",
                 className="content",
                 children=wbs_generic_layout.layout(),
+                hidden=False,
             ),
             #
             # Footer
@@ -110,13 +113,13 @@ def layout() -> None:
                     dbc.ModalBody(
                         children=[
                             html.Div("Institution Leader Login", className="caps"),
-                            # Email
+                            # username
                             dcc.Input(
-                                id="login-email",
-                                placeholder="email",
+                                id="login-username",
+                                placeholder="username",
                                 persistence=True,
                                 persistence_type="memory",
-                                type="email",
+                                type="text",
                                 style={"width": "50%"},
                             ),
                             # Password
@@ -126,6 +129,20 @@ def layout() -> None:
                                 type="password",
                                 style={"width": "50%"},
                             ),
+                            # User-Institution Dropdown
+                            # TODO: remove when keycloak
+                            dcc.Dropdown(
+                                id="login-manual-institution",
+                                style={"margin-top": "1rem"},
+                                placeholder="Your Institution",
+                                options=[
+                                    {"label": f"{abbrev} ({name})", "value": abbrev}
+                                    for name, abbrev in tc.TableConfigParser(
+                                        "mo"
+                                    ).get_institutions_w_abbrevs()
+                                ],
+                            ),
+                            # Log-in Button
                             dbc.Button(
                                 "Log In",
                                 id="login-button",
@@ -134,8 +151,10 @@ def layout() -> None:
                                 outline=True,
                                 style={"margin-top": "1rem"},
                             ),
+                            # Alert
                             dbc.Alert(
-                                "Incorrect email or password",
+                                # TODO: remove 'institution' when keycloak
+                                "Incorrect username, password, or institution",
                                 id="login-bad-message",
                                 color=du.Color.DANGER,
                                 style={"margin-top": "2rem"},
@@ -147,6 +166,17 @@ def layout() -> None:
             ),
         ],
     )
+
+
+@app.callback(
+    Output("tab-content", "hidden"),  # update to call view_live_table()
+    [Input("tab-content", "className")],  # never triggered
+)  # type: ignore
+def show_tab_content(_: str) -> bool:
+    """Show/Hide tab content."""
+    assert not du.triggered_id()
+
+    return not current_user.is_authenticated
 
 
 @app.callback(
@@ -165,36 +195,38 @@ def pick_tab(wbs_l1: str) -> int:
 
 
 def _logged_in_return(
-    select_institution: bool = True,
-) -> Tuple[bool, bool, bool, bool, str, str, str]:
+    reload: bool = True,
+) -> Tuple[str, bool, bool, bool, bool, str, str]:
     if current_user.is_admin:
         user_label = f"{current_user.name} (Admin)"
     else:
-        user_label = f"{current_user.name} ({current_user.institution})"
+        user_label = f"{current_user.name}"
 
-    if select_institution:
-        return False, False, True, False, user_label, "", current_user.institution
-    return False, False, True, False, user_label, "", no_update
+    logging.error(f"{current_user=}")
+
+    if reload:
+        return du.RELOAD, False, False, True, False, user_label, ""
+    return no_update, False, False, True, False, user_label, ""
 
 
 def _logged_out_return(
-    select_institution: bool = True,
-) -> Tuple[bool, bool, bool, bool, str, str, str]:
+    reload: bool = True,
+) -> Tuple[str, bool, bool, bool, bool, str, str]:
 
-    if select_institution:
-        return False, False, False, True, "", "", ""
-    return False, False, False, True, "", "", no_update
+    if reload:
+        return du.RELOAD, False, False, False, True, "", ""
+    return no_update, False, False, False, True, "", ""
 
 
 @app.callback(  # type: ignore[misc]
     [
+        Output("refresh-for-login-logout", "run"),
         Output("login-modal", "is_open"),
         Output("login-bad-message", "is_open"),
         Output("login-div", "hidden"),
         Output("logout-div", "hidden"),
         Output("logged-in-user", "children"),
         Output("login-password", "value"),
-        Output("wbs-login-institution", "data"),  # update to call pick_institution()
     ],
     [
         Input("login-button", "n_clicks"),  # user-only
@@ -202,16 +234,20 @@ def _logged_out_return(
         Input("logout-launch", "n_clicks"),  # user-only
         Input("login-password", "n_submit"),  # user-only
     ],
-    [State("login-email", "value"), State("login-password", "value")],
+    [
+        State("login-username", "value"),
+        State("login-password", "value"),
+        State("login-manual-institution", "value"),  # TODO: remove when keycloak
+    ],
 )
 def login(
-    _: int, __: int, ___: int, ____: int, email: str, pwd: str,
-) -> Tuple[bool, bool, bool, bool, str, str, types.DashVal]:
+    _: int, __: int, ___: int, ____: int, username: str, pwd: str, inst: types.DashVal
+) -> Tuple[str, bool, bool, bool, bool, str, str]:
     """Log the institution leader in/out."""
     logging.warning(f"'{du.triggered_id()}' -> login()")
 
-    open_login_modal = (True, False, False, True, "", "", no_update)
-    bad_login = (True, True, False, True, "", "", no_update)
+    open_login_modal = (no_update, True, False, False, True, "", "")
+    bad_login = (no_update, True, True, False, True, "", "")
 
     if du.triggered_id() == "login-launch":
         assert not current_user.is_authenticated
@@ -224,18 +260,27 @@ def login(
 
     if du.triggered_id() in ["login-button", "login-password"]:
         assert not current_user.is_authenticated
-        if user := User.login(email, pwd):
+        try:
+            User.INSTITUTION_WORKAROUND[username] = (  # TODO: remove when keycloak
+                inst if isinstance(inst, str) else ""
+            )
+            user = User.try_login(username, pwd)
+            # non-admin users must have an institution
+            if (not user.is_admin) and (not user.institution):
+                logging.warning(f"User does not have an institution: {user.id=}")
+                raise InvalidLoginException()
             login_user(user, duration=timedelta(days=50))
             return _logged_in_return()
         # bad log-in
-        return bad_login
+        except InvalidLoginException:
+            return bad_login
 
-    if du.triggered_id() == "":
+    if du.triggered_id() == "":  # aka on page-load
         if current_user.is_authenticated:
             logging.warning(f"User already logged in {current_user}.")
-            return _logged_in_return(select_institution=False)
+            return _logged_in_return(reload=False)
         # Initial Call w/o Stored Login
         logging.warning("User not already logged in.")
-        return _logged_out_return(select_institution=False)
+        return _logged_out_return(reload=False)
 
     raise Exception(f"Unaccounted for trigger: {du.triggered_id()}")

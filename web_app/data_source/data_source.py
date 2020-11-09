@@ -5,12 +5,11 @@ from typing import Any, cast, Dict, Final, List, Optional, Tuple, TypedDict, Uni
 
 from flask_login import current_user  # type: ignore[import]
 
-from ..utils import types
+from ..utils import types, utils
 from . import table_config as tc
 from .utils import mou_request
 
 # constants
-ID: Final[str] = "_id"
 _OC_SUFFIX: Final[str] = "_original"
 
 
@@ -32,7 +31,7 @@ def _is_touchstone_column(column: str) -> bool:
 
 
 def _convert_record_rest_to_dash(
-    record: types.Record, novel: bool = False
+    record: types.Record, tconfig: tc.TableConfigParser, novel: bool = False
 ) -> types.Record:
     """Convert a record to be added to Dash's datatable.
 
@@ -48,6 +47,12 @@ def _convert_record_rest_to_dash(
     Returns:
         types.Record -- the argument value
     """
+    if ts := record.get(tconfig.const.TIMESTAMP):
+        record[tconfig.const.TIMESTAMP] = utils.get_iso(str(ts))
+
+    if not record.get(tconfig.const.EDITOR):
+        record[tconfig.const.EDITOR] = "—"
+
     for field in record:  # don't add copies of copies, AKA make it safe to call this 2x
         if _is_touchstone_column(field):
             return record
@@ -61,7 +66,9 @@ def _convert_record_rest_to_dash(
     return record
 
 
-def _convert_table_rest_to_dash(table: types.Table) -> types.Table:
+def _convert_table_rest_to_dash(
+    table: types.Table, tconfig: tc.TableConfigParser
+) -> types.Table:
     """Convert a table to be added as Dash's datatable.
 
     Make a copy of each column to detect changed values (aka the
@@ -69,7 +76,7 @@ def _convert_table_rest_to_dash(table: types.Table) -> types.Table:
     to the Dash's datatable's `columns` property.
     """
     for record in table:
-        _convert_record_rest_to_dash(record)
+        _convert_record_rest_to_dash(record, tconfig)
 
     return table
 
@@ -163,11 +170,11 @@ def _convert_record_dash_to_rest(
     return out_record
 
 
-def record_to_strings(record: types.Record) -> List[str]:
+def record_to_strings(record: types.Record, tconfig: tc.TableConfigParser) -> List[str]:
     """Get a string representation of the record."""
     strings = []
     for field, value in _convert_record_dash_to_rest(record).items():
-        if field == ID:
+        if field == tconfig.const.ID:
             continue
         if not value and value != 0:
             continue
@@ -221,13 +228,15 @@ def _validate(
 # Data/types.Table Functions
 
 
-def pull_data_table(
+def pull_data_table(  # pylint: disable=R0913
     wbs_l1: str,
+    tconfig: tc.TableConfigParser,
     institution: types.DashVal = "",
     labor: types.DashVal = "",
     with_totals: bool = False,
     snapshot_ts: types.DashVal = "",
     restore_id: str = "",
+    raw: bool = False,
 ) -> types.Table:
     """Get table, optionally filtered by institution and/or labor.
 
@@ -240,6 +249,7 @@ def pull_data_table(
         with_totals {bool} -- whether to include "total" rows (default: {False})
         snapshot_ts {str} -- name of snapshot (default: {""})
         restore_id {str} -- id of a record to be restored (default: {""})
+        raw -- {bool} -- True if data isn't for datatable display (default: {False})
 
     Returns:
         types.Table -- the returned table
@@ -267,25 +277,23 @@ def pull_data_table(
         _RespTableData, mou_request("GET", f"/table/data/{wbs_l1}", body=body),
     )
     # get & convert
-    return _convert_table_rest_to_dash(response["table"])
+    if raw:
+        return response["table"]
+    return _convert_table_rest_to_dash(response["table"], tconfig)
 
 
 def push_record(  # pylint: disable=R0913
     wbs_l1: str,
     record: types.Record,
+    tconfig: tc.TableConfigParser,
     task: str = "",
     labor: types.DashVal = "",
     institution: types.DashVal = "",
     novel: bool = False,
-    tconfig: Optional[tc.TableConfigParser] = None,
 ) -> types.Record:
     """Push new/changed record to source.
 
-    Arguments:
-        record {types.Record} -- the record
-
     Keyword Arguments:
-        tconfig_cache {Optional[tc.TableConfigParser.Cache]} -- pass to remove invalid record data (default: {None})
         labor {str} -- labor category value to be inserted into record (default: {""})
         institution {str} -- institution value to be inserted into record (default: {""})
         novel {bool} -- whether the record is new (default: {False})
@@ -305,7 +313,10 @@ def push_record(  # pylint: disable=R0913
         record: types.Record
 
     # request
-    body: Dict[str, Any] = {"record": _convert_record_dash_to_rest(record, tconfig)}
+    body: Dict[str, Any] = {
+        "record": _convert_record_dash_to_rest(record, tconfig),
+        "editor": current_user.name,
+    }
     if institution:
         body["institution"] = institution
     if labor:
@@ -314,7 +325,7 @@ def push_record(  # pylint: disable=R0913
         body["task"] = task.replace("\n", " ")
     response = cast(_RespRecord, mou_request("POST", f"/record/{wbs_l1}", body=body))
     # get & convert
-    return _convert_record_rest_to_dash(response["record"], novel=novel)
+    return _convert_record_rest_to_dash(response["record"], tconfig, novel=novel)
 
 
 def delete_record(wbs_l1: str, record_id: str) -> None:
@@ -322,7 +333,10 @@ def delete_record(wbs_l1: str, record_id: str) -> None:
     _validate(wbs_l1, str, falsy_okay=False)
     _validate(record_id, str)
 
-    body = {"record_id": record_id}
+    body = {
+        "record_id": record_id,
+        "editor": current_user.name,
+    }
     mou_request("DELETE", f"/record/{wbs_l1}", body=body)
 
 
@@ -333,7 +347,13 @@ def list_snapshots(wbs_l1: str) -> List[types.SnapshotInfo]:
     class _RespSnapshots(TypedDict):
         snapshots: List[types.SnapshotInfo]
 
-    response = cast(_RespSnapshots, mou_request("GET", f"/snapshots/list/{wbs_l1}"),)
+    body = {
+        "is_admin": current_user.is_authenticated and current_user.is_admin,
+    }
+    response = cast(
+        _RespSnapshots, mou_request("GET", f"/snapshots/list/{wbs_l1}", body)
+    )
+
     return sorted(response["snapshots"], key=lambda i: i["timestamp"], reverse=True)
 
 
@@ -342,7 +362,10 @@ def create_snapshot(wbs_l1: str, name: str) -> types.SnapshotInfo:
     _validate(wbs_l1, str, falsy_okay=False)
     _validate(name, str)
 
-    body = {"creator": current_user.name, "name": name}
+    body = {
+        "creator": current_user.name,
+        "name": name,
+    }
     response = mou_request("POST", f"/snapshots/make/{wbs_l1}", body=body)
     return cast(types.SnapshotInfo, response)
 
@@ -393,7 +416,10 @@ def pull_institution_values(
     snapshot_ts = _validate(snapshot_ts, types.DashVal_types, out=str)
     institution = _validate(institution, types.DashVal_types, out=str)
 
-    body = {"institution": institution, "snapshot_timestamp": snapshot_ts}
+    body = {
+        "institution": institution,
+        "snapshot_timestamp": snapshot_ts,
+    }
     response = mou_request("GET", f"/institution/values/{wbs_l1}", body=body)
     return (
         cast(Optional[int], response.get("phds_authors")),
@@ -404,7 +430,7 @@ def pull_institution_values(
     )
 
 
-def push_institution_values(
+def push_institution_values(  # pylint: disable=R0913
     wbs_l1: str,
     institution: types.DashVal,
     phds: types.DashVal,
@@ -432,4 +458,5 @@ def push_institution_values(
     if grad or grad == 0:
         body["grad_students"] = grad
     body["text"] = text
+
     _ = mou_request("POST", f"/institution/values/{wbs_l1}", body=body)

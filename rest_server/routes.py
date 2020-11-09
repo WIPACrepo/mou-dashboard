@@ -21,11 +21,11 @@ _WBS_L1_REGEX_VALUES = "|".join(wbs.WBS_L1_VALUES)
 # -----------------------------------------------------------------------------
 
 
-class NoDefualtValue:  # pylint: disable=R0903
+class NoDefaultValue:  # pylint: disable=R0903
     """Signal no default value, AKA argument is required."""
 
 
-_NO_DEFAULT = NoDefualtValue()
+_NO_DEFAULT = NoDefaultValue()
 
 
 def _qualify_argument(
@@ -81,7 +81,7 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
             return _qualify_argument(type_, choices, val)
         except (KeyError, json.decoder.JSONDecodeError):
             # Required -> raise 400
-            if isinstance(default, NoDefualtValue):
+            if isinstance(default, NoDefaultValue):
                 raise tornado.web.MissingArgumentError(name)
 
         # Else:
@@ -105,7 +105,7 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
         """
         # If:
         # Required -> raise 400
-        if isinstance(default, NoDefualtValue):
+        if isinstance(default, NoDefaultValue):
             # check JSON'd body arguments
             try:
                 json_arg = self.get_json_body_argument(name, strip=strip)
@@ -159,6 +159,7 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
         collection = self.get_argument("snapshot", "")
+
         institution = self.get_argument("institution", default=None)
         restore_id = self.get_argument("restore_id", default=None)
         labor = self.get_argument("labor", default=None)
@@ -225,6 +226,8 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
         record = self.get_argument("record")
+        editor = self.get_argument("editor")
+
         if inst := self.get_argument("institution", default=None):
             record[tc.INSTITUTION] = inst  # insert
         if labor := self.get_argument("labor", default=None):
@@ -233,7 +236,7 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
             record[tc.TASK_DESCRIPTION] = task  # insert
 
         record = utils.remove_on_the_fly_fields(record)
-        record = await self.dbms.upsert_record(wbs_l1, record)
+        record = await self.dbms.upsert_record(wbs_l1, record, editor)
 
         self.write({"record": record})
 
@@ -241,8 +244,9 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
     async def delete(self, wbs_l1: str) -> None:
         """Handle DELETE."""
         record_id = self.get_argument("record_id")
+        editor = self.get_argument("editor")
 
-        await self.dbms.delete_record(wbs_l1, record_id)
+        await self.dbms.delete_record(wbs_l1, record_id, editor)
 
         self.write({})
 
@@ -291,15 +295,14 @@ class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
-        timestamps = await self.dbms.list_snapshot_timestamps(wbs_l1)
+        is_admin = self.get_argument("is_admin", type_=bool, default=False)
+
+        timestamps = await self.dbms.list_snapshot_timestamps(
+            wbs_l1, exclude_admin_snaps=not is_admin
+        )
         timestamps.sort(reverse=True)
 
-        snapshots: List[types.SnapshotInfo] = []
-        for ts in timestamps:
-            info = await self.dbms.get_snapshot_info(wbs_l1, ts)
-            snapshots.append(
-                {"timestamp": ts, "name": info["name"], "creator": info["creator"]}
-            )
+        snapshots = [await self.dbms.get_snapshot_info(wbs_l1, ts) for ts in timestamps]
 
         self.write({"snapshots": snapshots})
 
@@ -318,7 +321,7 @@ class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
         name = self.get_argument("name")
         creator = self.get_argument("creator")
 
-        snap_ts = await self.dbms.snapshot_live_collection(wbs_l1, name, creator)
+        snap_ts = await self.dbms.snapshot_live_collection(wbs_l1, name, creator, False)
         snap_info = await self.dbms.get_snapshot_info(wbs_l1, snap_ts)
 
         self.write(snap_info)
@@ -348,6 +351,7 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
         institution = self.get_argument("institution")
+
         phds = self.get_argument("phds_authors", type_=int, default=-1)
         faculty = self.get_argument("faculty", type_=int, default=-1)
         sci = self.get_argument("scientists_post_docs", type_=int, default=-1)
