@@ -171,15 +171,15 @@ class MoUMotorClient:
         # format as if this was done via POST @ '/record'
         from . import utils  # pylint: disable=C0415
 
+        # decode base64-excel
         try:
             decoded = base64.b64decode(base64_xlsx)
             df = pd.read_excel(io.BytesIO(decoded))
             raw_table = df.fillna("").to_dict("records")
         except Exception as e:
-            logging.error(str(e))
             raise web.HTTPError(400, reason=str(e))
 
-        # check schema (aka column names)
+        # check schema -- aka verify column names
         for row in raw_table:
             # check for extra keys
             if not all(k in tc.get_columns() for k in row.keys()):
@@ -188,12 +188,15 @@ class MoUMotorClient:
                     reason=f"Table not in correct format: XLSX's KEYS={row.keys()} vs ALLOWABLE KEYS={tc.get_columns()})",
                 )
 
-        # mongofy table
-        table: types.Table = [
-            self._mongofy_record(wbs_db, utils.remove_on_the_fly_fields(row))
-            for row in raw_table
-            if _row_has_data(row) and not _is_a_total_row(row)
-        ]
+        # mongofy table -- and verify data
+        try:
+            table: types.Table = [
+                self._mongofy_record(wbs_db, utils.remove_on_the_fly_fields(row))
+                for row in raw_table
+                if _row_has_data(row) and not _is_a_total_row(row)
+            ]
+        except Exception as e:
+            raise web.HTTPError(422, reason=str(e))
         logging.debug(f"xlsx table has {len(table)} records ({wbs_db=}).")
 
         # snapshot
