@@ -57,7 +57,7 @@ def layout() -> None:
                     dbc.Row(
                         className="login-container",
                         children=[
-                            html.Div(id="logged-in-user", className="user",),
+                            html.Div(id="logged-in-user", className="user"),
                             html.Div(
                                 id="login-div",
                                 children=dbc.Button(

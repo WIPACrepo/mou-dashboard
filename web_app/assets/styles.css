@@ -135,9 +135,9 @@ code {
 
 .btn-link, .btn-link:hover {
     color: #258835;
-    font-weight: bold !important;
     border: 0;
     outline: 0;
+    font: bold 13px Arial;
 }
 
 .btn-link:hover{
@@ -149,7 +149,7 @@ code {
     letter-spacing: .075em;
     font: 14px Arial;
     color: silver !important;
-    padding-top: 1rem;
+    padding-top: 1.15rem;
     line-height: 1.2;
     font-style: italic;
 }
