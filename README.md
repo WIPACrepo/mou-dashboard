@@ -1,10 +1,12 @@
 # mou-dashboard
-Web App and Servers for the MoU Dashboard
+
+A front-end to allow PIs to easily report to the ICC their
+Statements of Work in accordance with MoUs (M&O, Upgrade):
+[mou.icecube.aq](https://mou.icecube.aq/)
+
 
 [![CircleCI](https://circleci.com/gh/WIPACrepo/mou-dashboard/tree/master.svg?style=shield)](https://circleci.com/gh/WIPACrepo/mou-dashboard/tree/master)
 
-A front-end to Smartsheet docs which allows PIs to easily report to the ICC their
-Statements of Work in accordance with MoUs.
 
 ## How to Run Locally
 You will need to launch four servers:
