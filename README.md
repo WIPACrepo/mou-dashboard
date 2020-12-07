@@ -1,11 +1,14 @@
 # mou-dashboard
 
+[![CircleCI](https://circleci.com/gh/WIPACrepo/mou-dashboard/tree/master.svg?style=shield)](https://circleci.com/gh/WIPACrepo/mou-dashboard/tree/master)
+
 A front-end to allow PIs to easily report to the ICC their
-Statements of Work in accordance with MoUs (M&O, Upgrade):
+Statements of Work in accordance with MoUs:
 [mou.icecube.aq](https://mou.icecube.aq/)
 
-
-[![CircleCI](https://circleci.com/gh/WIPACrepo/mou-dashboard/tree/master.svg?style=shield)](https://circleci.com/gh/WIPACrepo/mou-dashboard/tree/master)
+#### MoUs
+- IceCube M&O
+- IceCube Upgrade
 
 
 ## How to Run Locally
