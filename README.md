@@ -6,7 +6,7 @@ A front-end to allow PIs to easily report to the ICC their
 Statements of Work in accordance with MoUs:
 [mou.icecube.aq](https://mou.icecube.aq/)
 
-#### MoUs
+*Active MoUs:*
 - IceCube M&O
 - IceCube Upgrade
 
