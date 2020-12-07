@@ -25,6 +25,7 @@ app = dash.Dash(
         "https://codepen.io/chriddyp/pen/bWLwgP.css",
         "https://fonts.googleapis.com/css2?family=Syncopate",
         "https://fonts.googleapis.com/css2?family=Sarpanch",
+        "https://fonts.googleapis.com/css2?family=Kanit:ital,wght@1,200",
     ],
 )
 

@@ -119,9 +119,8 @@ code {
 
 .logo-container {
     flex-basis: 65%;
-    padding-right: 3.5rem;
-    justify-content: flex-end;
     margin: 0;
+    padding-left: 9rem;
     user-select: none;
 }
 
@@ -201,6 +200,20 @@ code {
     padding-right: 0.05rem;
 }
 
+.logo-mou-current {
+    color: #17a2b8;
+    font-family: serif;
+    font-family: Kanit, sans-serif;
+    font-size: 40px;
+    letter-spacing: 0.3rem;
+    line-height: 1.35;
+    align-self: flex-end;
+    margin-bottom: 2.15rem;
+    margin-left: 3rem;
+    display: flex;
+    height: 3.75rem;
+}
+
 
 /*------------------------------------------------------------------------------------*/
 /* Tabs */
@@ -209,12 +222,12 @@ code {
     height: 2.5rem !important;
     text-transform: uppercase !important;
     letter-spacing: .075rem !important;
-    font: 13px Arial !important;
+    font: 12px Arial !important;
     line-height: 2 !important;
     padding-left: 25rem;
     padding-right: 25rem;
     background-color: black !important;
-    border-top: 0.5px solid silver !important;
+    border-top: 2px solid silver !important;
 }
 
 .tab {
@@ -225,7 +238,7 @@ code {
 }
 
 .tab:hover {
-    color: #258835 !important;
+    color: #17a2b8 !important;
     font-weight: bold;
 }
 
@@ -234,10 +247,13 @@ code {
 }
 
 .tab--selected {
-    color: #17a2b8 !important;
+    color: #258835 !important;
     font-weight: bold;
-    font-size: 125%;
-    line-height: 1.6 !important;
+    font-style: italic;
+}
+
+.tab--selected:hover{
+    color: #258835 !important;
 }
 
 
@@ -427,7 +443,6 @@ code {
     line-height: 1.5;
     transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
     border-radius: .25rem;
-
     height: 38px;
     margin: 0;
     margin-left: 1rem;

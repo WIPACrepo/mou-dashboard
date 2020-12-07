@@ -49,6 +49,7 @@ def layout() -> None:
                             html.Label("MoU", className="logo-mou"),
                             html.Label("Dash", className="logo-dashboard logo-dash"),
                             html.Label("board", className="logo-dashboard logo-board"),
+                            html.Label(id="mou-title", className="logo-mou-current",),
                         ],
                     ),
                     #
@@ -177,6 +178,17 @@ def show_tab_content(_: str) -> bool:
     assert not du.triggered_id()
 
     return not current_user.is_authenticated
+
+
+@app.callback(
+    Output("mou-title", "children"),  # update to call view_live_table()
+    Input("mou-title", "hidden"),
+    [State("wbs-current-l1", "value")],  # user-only
+)  # type: ignore
+def load_mou_title(_: bool, wbs_l1: str) -> str:
+    """Load the title for the current mou/wbs-l1."""
+    titles = {"mo": "IceCube M&O", "upgrade": "IceCube Upgrade"}
+    return f"– {titles.get(wbs_l1, '')}"  # that's an en-dash
 
 
 @app.callback(
