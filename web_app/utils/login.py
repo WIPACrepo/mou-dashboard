@@ -6,7 +6,7 @@ from typing import cast, Dict, Final
 import ldap3  # type: ignore[import]
 from flask_login import UserMixin  # type: ignore[import]
 
-from ..config import ADMINS, login_manager, user_lookup_cache
+from ..config import ADMINS, login_manager, cache
 from . import types
 
 _LDAP_BASE: Final[str] = "ou=People,dc=icecube,dc=wisc,dc=edu"
@@ -89,7 +89,7 @@ class User(UserMixin):  # type: ignore[misc]
         return str(self.__dict__)
 
     @staticmethod
-    @user_lookup_cache.memoize(timeout=60 * 60 * 24)  # type: ignore[misc]
+    @cache.memoize(timeout=60 * 60 * 24)  # type: ignore[misc]
     def lookup_user(uid: str) -> "User":
         """Look-up user by their uid.
 
@@ -150,7 +150,7 @@ class User(UserMixin):  # type: ignore[misc]
                 raise InvalidPasswordException()
 
         # User info
-        user_lookup_cache.delete_memoized(User.lookup_user, uid)  # clear cache
+        cache.delete_memoized(User.lookup_user, uid)  # clear cache
         user = User.lookup_user(uid)
 
         logging.info(f"User verified: {user=}")

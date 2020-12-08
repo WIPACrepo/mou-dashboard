@@ -37,7 +37,7 @@ server.config.update(SECRET_KEY=os.urandom(12))
 
 # Setup the LoginManager for the server
 # NOTE: https://github.com/RafaelMiquelino/dash-flask-login
-user_lookup_cache = Cache(app.server, config={"CACHE_TYPE": "simple"})
+cache = Cache(app.server, config={"CACHE_TYPE": "simple"})
 login_manager = LoginManager()
 login_manager.init_app(server)
 ADMINS = ["eevans", "desiati", "dschultz", "cvakhnina"]
