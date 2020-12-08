@@ -119,20 +119,21 @@ class User(UserMixin):  # type: ignore[misc]
         """
         logging.debug(f"Verifying login via LDAP ({uid=})...")
 
-        # users must have an institution
-        inst = inst if isinstance(inst, str) else ""
-        if not inst:
-            logging.warning(f"User does not have an institution: {uid=}")
-            raise NoUserInstitutionException()
-
         # TODO: remove when keycloak
-        logging.debug(
-            f"Using workaround BEFORE: {uid=} {inst=} {User.INSTITUTION_WORKAROUND=}"
-        )
-        User.INSTITUTION_WORKAROUND[uid] = inst
-        logging.debug(
-            f"Using workaround AFTER: {uid=} {inst=} {User.INSTITUTION_WORKAROUND=}"
-        )
+        # regular users must have an institution
+        if uid not in ADMINS:
+            inst = inst if isinstance(inst, str) else ""
+            if not inst:
+                logging.warning(f"User does not have an institution: {uid=}")
+                raise NoUserInstitutionException()
+
+            logging.debug(
+                f"Using workaround BEFORE: {uid=} {inst=} {User.INSTITUTION_WORKAROUND=}"
+            )
+            User.INSTITUTION_WORKAROUND[uid] = inst
+            logging.debug(
+                f"Using workaround AFTER: {uid=} {inst=} {User.INSTITUTION_WORKAROUND=}"
+            )
 
         # Log In
         try:
@@ -149,6 +150,7 @@ class User(UserMixin):  # type: ignore[misc]
                 raise InvalidPasswordException()
 
         # User info
+        user_lookup_cache.delete_memoized(User.lookup_user, uid)  # clear cache
         user = User.lookup_user(uid)
 
         logging.info(f"User verified: {user=}")
