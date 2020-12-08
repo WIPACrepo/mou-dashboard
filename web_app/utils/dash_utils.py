@@ -78,9 +78,7 @@ def get_snpapshot_placeholder(
     else:
         most_recent = utils.get_human_now()
 
-    return (
-        f"— Statement{'' if state_institution else 's'} of Work as of {most_recent} —"
-    )
+    return f"Statement{'' if state_institution else 's'} of Work as of {most_recent}"
 
 
 # --------------------------------------------------------------------------------------
