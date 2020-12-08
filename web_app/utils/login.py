@@ -7,6 +7,7 @@ import ldap3  # type: ignore[import]
 from flask_login import UserMixin  # type: ignore[import]
 
 from ..config import ADMINS, login_manager, user_lookup_cache
+from . import types
 
 _LDAP_BASE: Final[str] = "ou=People,dc=icecube,dc=wisc,dc=edu"
 _LDAP_URI: Final[str] = "ldaps://ldap-1.icecube.wisc.edu"
@@ -21,8 +22,16 @@ def _ldap_uid(uid: str) -> str:
     return uid.strip("~")
 
 
-class InvalidLoginException(Exception):
-    """Exception for an invalid login attempt."""
+class InvalidUsernameException(Exception):
+    """Exception for an invalid login/username."""
+
+
+class InvalidPasswordException(Exception):
+    """Exception for an invalid login/password."""
+
+
+class NoUserInstitutionException(Exception):
+    """Exception for login when user does not have an institution."""
 
 
 def _ldap_lookup_user(uid: str) -> "User":
@@ -33,7 +42,6 @@ def _ldap_lookup_user(uid: str) -> "User":
     conn = ldap3.Connection(_ldap_server(), auto_bind=True)
     conn.search(_LDAP_BASE, f"(uid={_ldap_uid(user.id)})", attributes=["*"])
     info = conn.entries[0]
-    # logging.warning(f"{info=}")
 
     # name
     user.name = cast(str, info.cn.value)
@@ -58,15 +66,10 @@ def _ldap_try_login(uid: str, pwd: str) -> None:
     https://github.com/WIPACrepo/iceprod/blob/master/iceprod/server/rest/auth.py#L454
     https://www.programcreek.com/python/example/107948/ldap3.Connection
     """
-    try:
-        _ = ldap3.Connection(
-            _ldap_server(), f"uid={_ldap_uid(uid)},{_LDAP_BASE}", pwd, auto_bind=True
-        )
-        logging.debug(f"LDAP Successful! ({uid=})")
-
-    except ldap3.core.exceptions.LDAPException:
-        logging.warning(f"Bad user login: {uid=}", exc_info=True)
-        raise InvalidLoginException()
+    ldap3.Connection(
+        _ldap_server(), f"uid={_ldap_uid(uid)},{_LDAP_BASE}", pwd, auto_bind=True
+    )
+    logging.debug(f"LDAP Successful! ({uid=})")
 
 
 # Create User class with UserMixin
@@ -94,7 +97,10 @@ class User(UserMixin):  # type: ignore[misc]
         """
         logging.debug(f"Looking up user info via LDAP ({uid=})...")
 
-        user = _ldap_lookup_user(uid)
+        try:
+            user = _ldap_lookup_user(uid)
+        except (IndexError, ldap3.core.exceptions.LDAPException):
+            raise InvalidUsernameException()
 
         # TODO: remove when keycloak
         if not user.is_admin:
@@ -104,16 +110,45 @@ class User(UserMixin):  # type: ignore[misc]
         return user
 
     @staticmethod
-    def try_login(uid: str, pwd: str) -> "User":
+    def try_login(uid: str, pwd: str, inst: types.DashVal) -> "User":
         """Login user, return User object.
 
         Raise InvalidLoginException if unsuccessful.
 
-        # TODO: refactor when keycloak? -- hopefully not much refactoring here
+        # TODO: remove inst when keycloak
         """
         logging.debug(f"Verifying login via LDAP ({uid=})...")
 
-        _ldap_try_login(uid, pwd)
+        # users must have an institution
+        inst = inst if isinstance(inst, str) else ""
+        if not inst:
+            logging.warning(f"User does not have an institution: {uid=}")
+            raise NoUserInstitutionException()
+
+        # TODO: remove when keycloak
+        logging.debug(
+            f"Using workaround BEFORE: {uid=} {inst=} {User.INSTITUTION_WORKAROUND=}"
+        )
+        User.INSTITUTION_WORKAROUND[uid] = inst
+        logging.debug(
+            f"Using workaround AFTER: {uid=} {inst=} {User.INSTITUTION_WORKAROUND=}"
+        )
+
+        # Log In
+        try:
+            _ldap_try_login(uid, pwd)
+        except ldap3.core.exceptions.LDAPException:
+            # was this a bad username or a bad password?
+            try:
+                User.lookup_user(uid)
+            except InvalidUsernameException:
+                logging.warning(f"Bad login (username): {uid=}")
+                raise
+            else:
+                logging.warning(f"Bad login (password): {uid=}")
+                raise InvalidPasswordException()
+
+        # User info
         user = User.lookup_user(uid)
 
         logging.info(f"User verified: {user=}")
