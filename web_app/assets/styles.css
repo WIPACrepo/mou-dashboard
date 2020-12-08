@@ -118,15 +118,14 @@ code {
 }
 
 .logo-container {
-    flex-basis: 65%;
-    padding-right: 3.5rem;
-    justify-content: flex-end;
+    flex-basis: 70%;
     margin: 0;
+    padding-left: 9rem;
     user-select: none;
 }
 
 .login-container {
-    flex-basis: 35%;
+    flex-basis: 30%;
     justify-content: flex-end;
     text-transform: uppercase;
     letter-spacing: .075em;
@@ -136,9 +135,9 @@ code {
 
 .btn-link, .btn-link:hover {
     color: #258835;
-    font-weight: bold !important;
     border: 0;
     outline: 0;
+    font: bold 13px Arial;
 }
 
 .btn-link:hover{
@@ -150,7 +149,7 @@ code {
     letter-spacing: .075em;
     font: 14px Arial;
     color: silver !important;
-    padding-top: 1rem;
+    padding-top: 1.15rem;
     line-height: 1.2;
     font-style: italic;
 }
@@ -201,6 +200,20 @@ code {
     padding-right: 0.05rem;
 }
 
+.logo-mou-current {
+    color: #17a2b8;
+    font-family: serif;
+    font-family: Kanit, sans-serif;
+    font-size: 28px;
+    letter-spacing: 0.3rem;
+    line-height: 1.35;
+    align-self: flex-end;
+    margin-bottom: 1rem;
+    margin-left: 1.5rem;
+    display: flex;
+    height: 3.75rem;
+}
+
 
 /*------------------------------------------------------------------------------------*/
 /* Tabs */
@@ -209,35 +222,44 @@ code {
     height: 2.5rem !important;
     text-transform: uppercase !important;
     letter-spacing: .075rem !important;
-    font: 13px Arial !important;
+    font: 12px Arial !important;
     line-height: 2 !important;
     padding-left: 25rem;
     padding-right: 25rem;
     background-color: black !important;
-    border-top: 0.5px solid silver !important;
+    border-top: 2px solid silver !important;
 }
 
 .tab {
     padding: 0 !important;
     background-color: black !important;
-    color: silver !important;
+    color: #aaaaaa !important;
     border: 0 !important;
 }
 
 .tab:hover {
-    color: #258835 !important;
+    color: #17a2b8 !important;
     font-weight: bold;
 }
 
 .tab--disabled {
-    color: #5a5a5a !important;
+    color: #2a2a2a !important;
 }
 
 .tab--selected {
-    color: #17a2b8 !important;
     font-weight: bold;
-    font-size: 125%;
-    line-height: 1.6 !important;
+}
+
+.tab--selected:before {
+    content: "–";
+}
+
+.tab--selected:after {
+    content: "–";
+}
+
+.tab--selected:hover{
+    color: #aaaaaa !important;
 }
 
 
@@ -427,7 +449,6 @@ code {
     line-height: 1.5;
     transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
     border-radius: .25rem;
-
     height: 38px;
     margin: 0;
     margin-left: 1rem;
