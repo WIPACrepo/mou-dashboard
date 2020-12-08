@@ -117,7 +117,8 @@ def layout() -> None:
                             # username
                             dcc.Input(
                                 id="login-username",
-                                placeholder="username",
+                                placeholder="IceCube Username",
+                                pattern=r"[~!]?[a-zA-Z0-9]*",
                                 persistence=True,
                                 persistence_type="memory",
                                 type="text",
@@ -126,7 +127,7 @@ def layout() -> None:
                             # Password
                             dcc.Input(
                                 id="login-password",
-                                placeholder="password",
+                                placeholder="Password",
                                 type="password",
                                 style={"width": "50%"},
                             ),
