@@ -204,12 +204,12 @@ code {
     color: #17a2b8;
     font-family: serif;
     font-family: Kanit, sans-serif;
-    font-size: 40px;
+    font-size: 28px;
     letter-spacing: 0.3rem;
     line-height: 1.35;
     align-self: flex-end;
-    margin-bottom: 2.15rem;
-    margin-left: 3rem;
+    margin-bottom: 1rem;
+    margin-left: 1.5rem;
     display: flex;
     height: 3.75rem;
 }
@@ -233,7 +233,7 @@ code {
 .tab {
     padding: 0 !important;
     background-color: black !important;
-    color: silver !important;
+    color: #aaaaaa !important;
     border: 0 !important;
 }
 
@@ -243,17 +243,23 @@ code {
 }
 
 .tab--disabled {
-    color: #5a5a5a !important;
+    color: #2a2a2a !important;
 }
 
 .tab--selected {
-    color: #258835 !important;
     font-weight: bold;
-    font-style: italic;
+}
+
+.tab--selected:before {
+    content: "–";
+}
+
+.tab--selected:after {
+    content: "–";
 }
 
 .tab--selected:hover{
-    color: #258835 !important;
+    color: #aaaaaa !important;
 }
 
 

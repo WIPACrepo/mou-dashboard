@@ -49,7 +49,7 @@ def layout() -> None:
                             html.Label("Dash", className="logo-dashboard logo-dash"),
                             html.Label("board", className="logo-dashboard logo-board"),
                             html.Label(
-                                "– IceCube",
+                                "– IceCube MoUs",
                                 id="mou-title",
                                 className="logo-mou-current",
                             ),
