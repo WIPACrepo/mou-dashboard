@@ -259,7 +259,7 @@ def table_data_exterior_controls(
         tot_outline,
         all_cols,
         not s_flag_extctrl,  # toggle flag to send a message to table_interior_controls
-        int(not do_paginate),  # n_clicks: even=paginate, odd=show_all
+        int(not do_paginate),  # n_clicks: 0/even -> paginate; 1/odd -> don't paginate
         style_paginate_button,
     )
 
