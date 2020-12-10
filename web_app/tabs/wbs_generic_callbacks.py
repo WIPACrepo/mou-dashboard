@@ -137,6 +137,8 @@ def handle_add_new_data(
         Output("wbs-show-totals-button", "outline"),
         Output("wbs-show-all-columns-button", "n_clicks"),
         Output("wbs-table-update-flag-exterior-control", "data"),
+        Output("wbs-show-all-rows-button", "n_clicks"),
+        Output("wbs-show-all-rows-button", "style"),
     ],
     [
         Input("wbs-data-table", "columns"),  # setup_table()-only
@@ -174,7 +176,7 @@ def table_data_exterior_controls(
     s_new_task: str,
     s_institution: types.DashVal,
     s_flag_extctrl: bool,
-) -> Tuple[types.Table, int, dbc.Toast, str, str, bool, int, bool]:
+) -> Tuple[types.Table, int, dbc.Toast, str, str, bool, int, bool, int, Dict[str, str]]:
     """Exterior control signaled that the table should be updated.
 
     This is either a filter, "add new", refresh, or "show totals". Only
@@ -192,7 +194,7 @@ def table_data_exterior_controls(
     toast: dbc.Toast = None
     tconfig = tc.TableConfigParser(s_wbs_l1, cache=s_tconfig_cache)
 
-    # format "Show Totals" button
+    # Format "Show Totals" button
     show_totals, tot_label, tot_color, tot_outline, all_cols = _totals_button_logic(
         tot_n_clicks, s_all_cols
     )
@@ -242,6 +244,12 @@ def table_data_exterior_controls(
         except DataSourceException:
             table = []
 
+    # Figure pagination, AKA "Show All Rows"/"Collapse Rows to Pages"
+    do_paginate = len(table) / tconfig.get_page_size() > 2  # paginate if 3+ pages
+    style_paginate_button = {}
+    if len(table) <= tconfig.get_page_size():
+        style_paginate_button = {"visibility": "hidden"}  # hide if wouldn't do anything
+
     return (
         table,
         0,
@@ -251,6 +259,8 @@ def table_data_exterior_controls(
         tot_outline,
         all_cols,
         not s_flag_extctrl,  # toggle flag to send a message to table_interior_controls
+        int(not do_paginate),  # n_clicks: even=paginate, odd=show_all
+        style_paginate_button,
     )
 
 
@@ -952,8 +962,12 @@ def setup_user_dependent_components(
         Output("wbs-data-table", "page_size"),
         Output("wbs-data-table", "page_action"),
     ],
-    [Input("wbs-show-all-rows-button", "n_clicks")],  # user-only
+    [
+        # user/table_data_exterior_controls
+        Input("wbs-show-all-rows-button", "n_clicks")
+    ],
     [State("wbs-table-config-cache", "data"), State("wbs-current-l1", "value")],
+    prevent_initial_call=True,
 )
 def toggle_pagination(
     n_clicks: int,
@@ -962,7 +976,7 @@ def toggle_pagination(
     s_wbs_l1: str,
 ) -> Tuple[str, str, bool, int, str]:
     """Toggle whether the table is paginated."""
-    logging.warning(f"'{du.triggered_id()}' -> toggle_pagination()")
+    logging.warning(f"'{du.triggered_id()}' -> toggle_pagination({n_clicks=})")
 
     if n_clicks % 2 == 0:
         tconfig = tc.TableConfigParser(s_wbs_l1, cache=s_tconfig_cache)
