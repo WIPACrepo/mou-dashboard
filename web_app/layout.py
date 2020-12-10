@@ -27,6 +27,7 @@ def layout() -> None:
     # Layout
     app.layout = html.Div(
         children=[
+            dcc.Location(id="url"),  # , pathname="mo", refresh=False),
             #
             # JS calls for refreshing page
             visdcc.Run_js("refresh-for-login-logout"),  # pylint: disable=E1101
@@ -183,29 +184,35 @@ def show_tab_content(_: str) -> bool:
 
 
 @app.callback(
-    Output("mou-title", "children"),  # update to call view_live_table()
+    Output("mou-title", "children"),
     Input("mou-title", "hidden"),
-    [State("wbs-current-l1", "value")],  # user-only
+    [State("url", "pathname")],  # user-only
 )  # type: ignore
-def load_mou_title(_: bool, wbs_l1: str) -> str:
+def load_mou(_: bool, s_urlpath: str) -> str:
     """Load the title for the current mou/wbs-l1."""
     titles = {"mo": "IceCube M&O", "upgrade": "IceCube Upgrade"}
-    return f"– {titles.get(wbs_l1, '')}"  # that's an en-dash
+    title = f"– {titles.get(du.get_wbs_l1(s_urlpath), '')}"  # that's an en-dash
+
+    # tab = du.get_wbs_l1(s_urlpath)
+    # if tab == s_tab:
+    #     tab = no_update
+
+    return title
 
 
-@app.callback(
-    Output("wbs-view-live-btn", "n_clicks"),  # update to call view_live_table()
-    [Input("wbs-current-l1", "value")],  # user-only
-    prevent_initial_call=True,
-)  # type: ignore
-def pick_tab(wbs_l1: str) -> int:
-    """Prepare for a new tab: view the live table.
+# @app.callback(
+#     Output("url", "pathname"),  # update to call view_live_table() TODO
+#     [Input("wbs-current-l1-tab", "value")],  # user-only
+#     prevent_initial_call=True,
+# )  # type: ignore
+# def pick_tab(wbs_l1: str) -> str:
+#     """Prepare for a new tab: view the live table.
 
-    Tab value is persisted in 'Tabs' between refreshes.
-    """
-    logging.warning(f"'{du.triggered_id()}' -> pick_tab()")
-    logging.warning(f"tab clicked: {wbs_l1=}")
-    return 0
+#     Tab value is persisted in 'Tabs' between refreshes.
+#     """
+#     logging.warning(f"'{du.triggered_id()}' -> pick_tab()")
+#     logging.warning(f"tab clicked: {wbs_l1=}")
+#     return wbs_l1
 
 
 def _logged_in_return(

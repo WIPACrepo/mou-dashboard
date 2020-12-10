@@ -85,7 +85,7 @@ def refresh_for_override_success(_: int) -> str:
         Input("wbs-upload-xlsx-cancel", "n_clicks"),  # user-only
         Input("wbs-upload-xlsx-override-table", "n_clicks"),  # user-only
     ],
-    [State("wbs-current-l1", "value"), State("wbs-upload-xlsx", "filename")],
+    [State("url", "pathname"), State("wbs-upload-xlsx", "filename")],
     prevent_initial_call=True,
 )
 def handle_xlsx(  # pylint: disable=R0911
@@ -95,7 +95,7 @@ def handle_xlsx(  # pylint: disable=R0911
     __: int,
     ___: int,
     # state(s)
-    s_wbs_l1: str,
+    s_urlpath: str,
     s_filename: str,
 ) -> Tuple[bool, str, str, bool, dbc.Toast, bool, List[dcc.Markdown]]:
     """Manage uploading a new xlsx document as the new live table."""
@@ -128,7 +128,7 @@ def handle_xlsx(  # pylint: disable=R0911
         base64_file = contents.split(",")[1]
         try:
             n_records, prev_snap_info, curr_snap_info = src.override_table(
-                s_wbs_l1, base64_file, s_filename
+                du.get_wbs_l1(s_urlpath), base64_file, s_filename
             )
             msg = _get_upload_success_modal_body(
                 s_filename, n_records, prev_snap_info, curr_snap_info
@@ -145,7 +145,7 @@ def handle_xlsx(  # pylint: disable=R0911
     [Output("wbs-summary-table", "data"), Output("wbs-summary-table", "columns")],
     [Input("wbs-summary-table-recalculate", "n_clicks")],  # user-only
     [
-        State("wbs-current-l1", "value"),
+        State("url", "pathname"),
         State("wbs-table-config-cache", "data"),
         State("wbs-current-snapshot-ts", "value"),
     ],
@@ -155,7 +155,7 @@ def summarize(
     # input(s)
     _: int,
     # state(s)
-    s_wbs_l1: str,
+    s_urlpath: str,
     s_tconfig_cache: tc.TableConfigParser.CacheType,
     s_snap_ts: types.DashVal,
 ) -> Tuple[types.Table, List[Dict[str, str]]]:
@@ -164,10 +164,10 @@ def summarize(
 
     assert not s_snap_ts
 
-    tconfig = tc.TableConfigParser(s_wbs_l1, cache=s_tconfig_cache)
+    tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath), cache=s_tconfig_cache)
 
     try:
-        data_table = src.pull_data_table(s_wbs_l1, tconfig)
+        data_table = src.pull_data_table(du.get_wbs_l1(s_urlpath), tconfig)
     except DataSourceException:
         return [], []
 
@@ -198,7 +198,7 @@ def summarize(
     summary_table: types.Table = []
     for inst_full, abbrev in tconfig.get_institutions_w_abbrevs():
         phds, faculty, sci, grad, __ = src.pull_institution_values(
-            s_wbs_l1, s_snap_ts, abbrev
+            du.get_wbs_l1(s_urlpath), s_snap_ts, abbrev
         )
 
         row: Dict[str, types.StrNum] = {
@@ -312,7 +312,7 @@ def _blame_style_cell_conditional(column_names: List[str]) -> types.TSCCond:
     ],
     [Input("wbs-blame-table-button", "n_clicks")],  # user-only
     [
-        State("wbs-current-l1", "value"),
+        State("url", "pathname"),
         State("wbs-table-config-cache", "data"),
         State("wbs-current-snapshot-ts", "value"),
     ],
@@ -322,7 +322,7 @@ def blame(
     # input(s)
     _: int,
     # state(s)
-    s_wbs_l1: str,
+    s_urlpath: str,
     s_tconfig_cache: tc.TableConfigParser.CacheType,
     s_snap_ts: types.DashVal,
 ) -> Tuple[types.Table, List[Dict[str, str]], types.TSCCond]:
@@ -332,10 +332,10 @@ def blame(
     assert not s_snap_ts
 
     # setup
-    tconfig = tc.TableConfigParser(s_wbs_l1, cache=s_tconfig_cache)
+    tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath), cache=s_tconfig_cache)
 
     try:
-        data_table = src.pull_data_table(s_wbs_l1, tconfig, raw=True)
+        data_table = src.pull_data_table(du.get_wbs_l1(s_urlpath), tconfig, raw=True)
         data_table.sort(
             key=lambda r: r[tconfig.const.TIMESTAMP], reverse=True,
         )
@@ -355,11 +355,14 @@ def blame(
     snap_bundles: Dict[str, _SnapshotBundle] = {
         info["timestamp"]: {
             "table": src.pull_data_table(
-                s_wbs_l1, tconfig, snapshot_ts=info["timestamp"], raw=True
+                du.get_wbs_l1(s_urlpath),
+                tconfig,
+                snapshot_ts=info["timestamp"],
+                raw=True,
             ),
             "info": info,
         }
-        for info in src.list_snapshots(s_wbs_l1)
+        for info in src.list_snapshots(du.get_wbs_l1(s_urlpath))
     }
     blame_table = [
         _blame_row(r, tconfig, column_names, snap_bundles) for r in data_table
