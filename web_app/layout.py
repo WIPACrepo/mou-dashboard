@@ -3,7 +3,7 @@
 
 import logging
 from datetime import timedelta
-from typing import Tuple
+from typing import Final, Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore
@@ -19,8 +19,8 @@ from .tabs import wbs_generic_layout
 from .utils import dash_utils as du
 from .utils import login, types
 
-LOG_IN = "Log In"
-LOG_OUT = "Log Out"
+LOG_IN: Final[str] = "Log In"
+LOG_OUT: Final[str] = "Log Out"
 
 
 def layout() -> None:
@@ -42,6 +42,7 @@ def layout() -> None:
             # Logo, Tabs, & Login
             dbc.Navbar(
                 sticky="top",
+                expand="lg",
                 children=[
                     # Logo
                     dbc.Row(
