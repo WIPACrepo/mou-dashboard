@@ -60,7 +60,6 @@ def layout() -> html.Div:
                     dcc.Dropdown(
                         id="wbs-current-snapshot-ts",
                         className="large-dropdown snapshot-dropdown",
-                        style={"width": "100rem"},
                         placeholder="...",  # set in callback
                         value="",
                         disabled=False,
@@ -88,12 +87,11 @@ def layout() -> html.Div:
                 children=[
                     dcc.Dropdown(
                         id="wbs-dropdown-institution",
-                        className="large-dropdown",
-                        style={"width": "75rem"},
+                        className="large-dropdown institution-dropdown",
                         placeholder="— Viewing Entire Collaboration —",
                         # options set in callback
                         # values set in callback
-                        disabled=False,
+                        disabled=True,
                         # persistence=True, # not working b/c "value" listed in output of initial-active callback (DASH BUG)
                     ),
                 ],
@@ -119,6 +117,7 @@ def layout() -> html.Div:
                                         className="institution-headcount-input",
                                         type="number",
                                         min=0,
+                                        disabled=True,
                                     ),
                                 ],
                             )
@@ -205,9 +204,9 @@ def layout() -> html.Div:
                 },
                 # style_data_conditional set in callback
                 # tooltip set in callback
-                # row_deletable set in callback
+                row_deletable=False,  # toggled in callback
                 # hidden_columns set in callback
-                # page_size set in callback
+                page_size=0,  # 0 -> *HUGE* performance gains # toggled in callback
                 # data set in callback
                 # columns set in callback
                 # dropdown set in callback
@@ -276,7 +275,11 @@ def layout() -> html.Div:
                         id="wbs-h2-inst-textarea",
                         children="Notes and Descriptions",
                     ),
-                    dcc.Textarea(id="wbs-textarea", className="institution-text-area"),
+                    dcc.Textarea(
+                        id="wbs-textarea",
+                        className="institution-text-area",
+                        disabled=True,
+                    ),
                     html.Div(
                         className="last-updated-label caps",
                         id="wbs-institution-textarea-last-updated-label",
@@ -287,6 +290,7 @@ def layout() -> html.Div:
             # Admin Zone
             html.Div(
                 id="wbs-admin-zone-div",
+                hidden=True,
                 children=[
                     #
                     html.H2(className="section-header", children="Admin Zone"),
@@ -362,7 +366,6 @@ def layout() -> html.Div:
                         style={"margin-bottom": "1rem"},
                     ),
                 ],
-                hidden=True,
             ),
             #
             #

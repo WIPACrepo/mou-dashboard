@@ -925,13 +925,16 @@ def setup_user_dependent_components(
             + [du.build_urlpath(du.get_wbs_l1(s_urlpath), current_user.institution)]
         )
 
+    if not current_user.is_authenticated:
+        return tuple(no_update for _ in range(12))  # type: ignore[return-value]
+
     if s_snap_ts:
         return (
             False,  # data-table NOT editable
             True,  # new-data-div-1 hidden
             True,  # new-data-div-2 hidden
             False,  # row NOT deletable
-            False,  # filter-inst NOT disabled
+            not current_user.is_admin,  # filter-inst disabled if not admin
             True,  # wbs-admin-zone-div hidden
             True,  # institution value disabled
             True,  # institution value disabled
@@ -941,33 +944,18 @@ def setup_user_dependent_components(
             no_update,
         )
 
-    if current_user.is_authenticated:
-        return (
-            True,  # data-table editable
-            False,  # new-data-div-1 NOT hidden
-            False,  # new-data-div-2 NOT hidden
-            True,  # row is deletable
-            not current_user.is_admin,  # filter-inst disabled if user is not an admin
-            not current_user.is_admin,  # wbs-admin-zone-div hidden if user is not an admin
-            False,  # institution value NOT disabled
-            False,  # institution value NOT disabled
-            False,  # institution value NOT disabled
-            False,  # institution value NOT disabled
-            False,  # institution value NOT disabled
-            no_update,
-        )
     return (
-        False,  # data-table NOT editable
-        True,  # new-data-div-1 hidden
-        True,  # new-data-div-2 hidden
-        False,  # row NOT deletable
-        False,  # filter-inst NOT disabled
-        True,  # wbs-admin-zone-div hidden
-        True,  # institution value disabled
-        True,  # institution value disabled
-        True,  # institution value disabled
-        True,  # institution value disabled
-        True,  # institution value disabled
+        True,  # data-table editable
+        False,  # new-data-div-1 NOT hidden
+        False,  # new-data-div-2 NOT hidden
+        True,  # row is deletable
+        not current_user.is_admin,  # filter-inst disabled if user is not an admin
+        not current_user.is_admin,  # wbs-admin-zone-div hidden if user is not an admin
+        False,  # institution value NOT disabled
+        False,  # institution value NOT disabled
+        False,  # institution value NOT disabled
+        False,  # institution value NOT disabled
+        False,  # institution value NOT disabled
         no_update,
     )
 
