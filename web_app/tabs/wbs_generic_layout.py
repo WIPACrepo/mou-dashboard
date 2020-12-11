@@ -254,15 +254,8 @@ def layout() -> html.Div:
             ),
             #
             # Last Refreshed
-            dcc.Loading(
-                type="default",
-                color=du.TEAL,
-                children=[
-                    html.Label(
-                        id="wbs-table-last-updated-label",
-                        className="last-updated-label caps",
-                    )
-                ],
+            html.Label(
+                id="wbs-table-last-updated-label", className="last-updated-label caps",
             ),
             #
             # Free Text
