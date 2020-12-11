@@ -9,6 +9,7 @@ import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 import dash_table  # type: ignore[import]
+from flask_login import current_user  # type: ignore[import]
 
 from ..data_source import data_source as src
 from ..data_source import table_config as tc
@@ -21,7 +22,6 @@ TEAL: Final[str] = "#17a2b8"
 GREEN: Final[str] = "#258835"
 TABLE_GRAY: Final[str] = "#23272B"
 RELOAD: Final[str] = "location.reload();"
-DEFAULT_MOU: Final[str] = "mo"
 
 
 class Color:  # pylint: disable=R0903
@@ -82,11 +82,42 @@ def get_snpapshot_placeholder(
     return f"Statement{'' if state_institution else 's'} of Work as of {most_recent}"
 
 
+# --------------------------------------------------------------------------------------
+# URL parsers
+
+
 def get_wbs_l1(urlpath: str) -> str:
     """Get the WBS L1 from the url pathname."""
-    if wbs_l1 := urlpath[1:]:  # Ex: "/mo"; falsy on "/"
+    try:
+        return urlpath.split("/")[1]
+    except IndexError:
+        return ""
+
+
+def get_inst(urlpath: str) -> str:
+    """Get the institution from the url hash."""
+    try:
+        return urlpath.split("/")[2].upper()
+    except IndexError:
+        return ""
+
+
+def build_urlpath(wbs_l1: str, inst: str = "") -> str:
+    """Return a url pathname built from it pieces."""
+    if wbs_l1:
+        if inst:
+            return f"{wbs_l1}/{inst.lower()}"
         return wbs_l1
-    return DEFAULT_MOU
+    return ""
+
+
+def need_user_redirect(urlpath: str) -> bool:
+    """Return whether the user needs to be redirected."""
+    return (
+        current_user.is_authenticated
+        and not current_user.is_admin
+        and get_inst(urlpath) != current_user.institution
+    )
 
 
 # --------------------------------------------------------------------------------------

@@ -6,7 +6,7 @@ from typing import cast, Dict, Final
 import ldap3  # type: ignore[import]
 from flask_login import UserMixin  # type: ignore[import]
 
-from ..config import ADMINS, login_manager, cache
+from ..config import ADMINS, cache, login_manager
 from . import types
 
 _LDAP_BASE: Final[str] = "ou=People,dc=icecube,dc=wisc,dc=edu"
@@ -170,5 +170,5 @@ def load_user(user_id: str) -> UserMixin:
         return User()  # aka anonymous user
 
     user = User.lookup_user(user_id)
-    logging.error(f"Loaded user: {user=}")
+    logging.info(f"Loaded user: {user=}")
     return user

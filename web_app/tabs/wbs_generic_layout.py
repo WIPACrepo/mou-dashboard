@@ -374,18 +374,12 @@ def layout() -> html.Div:
                 storage_type="memory",
                 data=tc.TableConfigParser.get_configs(),  # get all tables' configs
             ),
-            # - for fagging whether the user's institution value has been grabbed
-            dcc.Store(
-                id="pick-institution-first-call-flag", storage_type="memory", data=True,
-            ),
             # - for fagging whether the institution values were changed
             dcc.Store(
                 id="wbs-institution-values-first-time-flag",
                 storage_type="memory",
                 data=True,
             ),
-            # - for caching the institution value
-            dcc.Store(id="wbs-institution-source-of-truth", storage_type="local"),
             # - for storing the last deleted record's id
             dcc.Store(id="wbs-last-deleted-id", storage_type="memory"),
             # - for discerning whether the table update was by the user vs automated

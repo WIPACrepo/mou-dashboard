@@ -30,14 +30,15 @@ def layout() -> None:
     # Layout
     app.layout = html.Div(
         children=[
-            dcc.Location(id="url"),  # , pathname="mo", refresh=False),
+            dcc.Location(id="url"),  # duplicates will auto-sync values w/o triggering
+            dcc.Location(id="url-login"),  # use duplicates for multi-outputs
+            dcc.Location(id="url-user-inst-redirect"),
+            dcc.Location(id="url-404-redirect"),
             #
             # JS calls for refreshing page
-            visdcc.Run_js("refresh-for-login-logout"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-snapshot-make"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-override-success"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-snapshot-change"),  # pylint: disable=E1101
-            visdcc.Run_js("refresh-for-institution-change"),  # pylint: disable=E1101
             #
             # Logo, Tabs, & Login
             dbc.Navbar(
@@ -166,6 +167,19 @@ def layout() -> None:
 
 
 @app.callback(  # type: ignore[misc]
+    Output("url-404-redirect", "pathname"),
+    [Input("url-404-redirect", "refresh")],  # never triggered
+    [State("url", "pathname")],
+)
+def redirect_404(_: bool, s_urlpath: str) -> str:
+    """Redirect the url if unknown page."""
+    if du.get_wbs_l1(s_urlpath) not in ["mo", "upgrade"]:
+        logging.error(f"User viewing {s_urlpath=}. Redirecting...")
+        return "mo"
+    return no_update  # type: ignore[no-any-return]
+
+
+@app.callback(  # type: ignore[misc]
     [
         Output("navbar-collapse", "is_open"),
         Output("navbar-collapse", "className"),
@@ -215,32 +229,34 @@ def load_mou(_: bool, s_urlpath: str) -> Tuple[str, bool, bool]:
 
 
 def _logged_in_return(
-    reload: bool = True,
+    s_urlpath: str, reload: bool = True,
 ) -> Tuple[str, bool, bool, str, str, str, bool, str]:
     if current_user.is_admin:
         user_label = f"{current_user.name} (Admin)"
     else:
         user_label = f"{current_user.name}"
 
-    logging.error(f"{current_user=}")
+    logging.info(f"{current_user=}")
+
+    urlpath = du.build_urlpath(du.get_wbs_l1(s_urlpath), current_user.institution)
 
     if reload:
-        return du.RELOAD, False, False, "", LOG_OUT, user_label, False, ""
+        return urlpath, False, False, "", LOG_OUT, user_label, False, ""
     return no_update, False, False, "", LOG_OUT, user_label, False, ""
 
 
 def _logged_out_return(
-    reload: bool = True,
+    s_urlpath: str, reload: bool = True,
 ) -> Tuple[str, bool, bool, str, str, str, bool, str]:
 
     if reload:
-        return du.RELOAD, False, False, "", LOG_IN, "", True, ""
+        return du.get_wbs_l1(s_urlpath), False, False, "", LOG_IN, "", True, ""
     return no_update, False, False, "", LOG_IN, "", True, ""
 
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("refresh-for-login-logout", "run"),
+        Output("url-login", "pathname"),
         Output("login-modal", "is_open"),
         Output("login-bad-message", "is_open"),
         Output("login-bad-message", "children"),
@@ -259,6 +275,7 @@ def _logged_out_return(
         State("login-password", "value"),
         State("login-manual-institution", "value"),  # TODO: remove when keycloak
         State("log-inout-launch", "children"),
+        State("url", "pathname"),
     ],
 )  # pylint: disable=R0911
 def login_callback(
@@ -269,6 +286,7 @@ def login_callback(
     pwd: str,
     inst: types.DashVal,
     s_log_inout: str,
+    s_urlpath: str,
 ) -> Tuple[str, bool, bool, str, str, str, bool, str]:
     """Log the institution leader in/out."""
     logging.warning(f"'{du.triggered_id()}' -> login_callback()")
@@ -280,7 +298,7 @@ def login_callback(
         elif s_log_inout == LOG_OUT:
             logout_user()
             assert not current_user.is_authenticated
-            return _logged_out_return()
+            return _logged_out_return(s_urlpath)
         else:
             raise Exception(f"Undefined Log-In/Out Value: {s_log_inout=}")
 
@@ -291,7 +309,7 @@ def login_callback(
             user = login.User.try_login(username, pwd, inst)
             # all good now
             login_user(user, duration=timedelta(days=50))
-            return _logged_in_return()
+            return _logged_in_return(s_urlpath)
         # bad log-in
         except login.InvalidUsernameException:
             msg = "Username not found"
@@ -306,9 +324,9 @@ def login_callback(
     if du.triggered_id() == "":  # aka on page-load
         if current_user.is_authenticated:
             logging.warning(f"User already logged in {current_user}.")
-            return _logged_in_return(reload=False)
+            return _logged_in_return(s_urlpath, reload=False)
         # Initial Call w/o Stored Login
         logging.warning("User not already logged in.")
-        return _logged_out_return(reload=False)
+        return _logged_out_return(s_urlpath, reload=False)
 
     raise Exception(f"Unaccounted for trigger: {du.triggered_id()}")

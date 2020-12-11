@@ -112,7 +112,6 @@ code {
 
 .logo-container {
     padding-left: 2rem;
-    user-select: none;
 }
 
 .logo-mou {
@@ -184,6 +183,7 @@ code {
 .navbar {
     border-bottom: 2px solid black !important;
     padding: 0;
+    user-select: none;
 }
 
 .nav-link {
@@ -230,7 +230,6 @@ code {
     padding-left: 1rem;
     padding-right: 1rem;
     color: silver !important;
-    user-select: none;
 }
 
 .user {
