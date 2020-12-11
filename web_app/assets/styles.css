@@ -86,12 +86,6 @@ code {
 /*------------------------------------------------------------------------------------*/
 /* Backgrounds/Bodies */
 
-.background {
-    padding-left: 5%;
-    padding-right: 5%;
-    background-color: gainsboro;
-}
-
 .content {
     padding-top: 2rem;
     padding-bottom: 2rem;
@@ -278,6 +272,7 @@ code {
 .large-dropdown > .Select-control {
     height: 4rem;
     border: 0;
+    width: 40rem;
     padding: 0;
     background-color: transparent;
 }
@@ -288,17 +283,17 @@ code {
     line-height: 2 !important;
 }
 
-.large-dropdown > .Select-control > .Select-arrow-zone {
-    visibility: hidden;
-}
-
 .large-dropdown > .Select-control > .Select-multi-value-wrapper > .Select-placeholder,
 .large-dropdown > .Select-control > .Select-multi-value-wrapper > .Select-value > * {
     color: black !important;
 }
 
-.snapshot-dropdown > .Select-control > .Select-multi-value-wrapper > .Select-value > .Select-value-label {
-    color: #5a5a5a !important;
+.institution-dropdown > .Select-control {
+    width: 72rem;
+}
+
+.snapshot-dropdown > .Select-control {
+    width: 72rem;
 }
 
 .institution-headcounts-inner-container {
