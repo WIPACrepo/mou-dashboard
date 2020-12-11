@@ -192,7 +192,8 @@ def table_data_exterior_controls(
 
     table: types.Table = []
     toast: dbc.Toast = None
-    tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath), cache=s_tconfig_cache)
+    wbs_l1 = du.get_wbs_l1(s_urlpath)
+    tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
 
     # Format "Show Totals" button
     show_totals, tot_label, tot_color, tot_outline, all_cols = _totals_button_logic(
@@ -207,13 +208,7 @@ def table_data_exterior_controls(
     elif du.triggered_id() == "wbs-new-data-modal-dummy-add":
         if not s_snap_ts:  # are we looking at a snapshot?
             table, toast = _add_new_data(
-                du.get_wbs_l1(s_urlpath),
-                s_table,
-                columns,
-                labor,
-                s_institution,
-                tconfig,
-                s_new_task,
+                wbs_l1, s_table, columns, labor, s_institution, tconfig, s_new_task,
             )
 
     # OR Restore a types.Record and Pull types.Table (optionally filtered)
@@ -221,7 +216,7 @@ def table_data_exterior_controls(
         if not s_snap_ts:  # are we looking at a snapshot?
             try:
                 table = src.pull_data_table(
-                    du.get_wbs_l1(s_urlpath),
+                    wbs_l1,
                     tconfig,
                     institution=s_institution,
                     labor=labor,
@@ -240,7 +235,7 @@ def table_data_exterior_controls(
     else:
         try:
             table = src.pull_data_table(
-                du.get_wbs_l1(s_urlpath),
+                wbs_l1,
                 tconfig,
                 institution=s_institution,
                 labor=labor,
@@ -379,7 +374,8 @@ def table_data_interior_controls(
     """
     logging.warning(f"'{du.triggered_id()}' -> table_data_interior_controls()")
 
-    tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath), cache=s_tconfig_cache)
+    wbs_l1 = du.get_wbs_l1(s_urlpath)
+    tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
 
     # Make labels
     updated_message = f"Table Last Refreshed: {utils.get_human_now()}"
@@ -406,13 +402,11 @@ def table_data_interior_controls(
     assert s_previous_table  # should have previous table
 
     # Push (if any)
-    mod_ids = _push_modified_records(
-        du.get_wbs_l1(s_urlpath), current_table, s_previous_table, tconfig
-    )
+    mod_ids = _push_modified_records(wbs_l1, current_table, s_previous_table, tconfig)
 
     # Delete (if any)
     toast, last_deletion, delete_success_message = _delete_deleted_records(
-        du.get_wbs_l1(s_urlpath), current_table, s_previous_table, mod_ids, tconfig
+        wbs_l1, current_table, s_previous_table, mod_ids, tconfig
     )
 
     # Update data_previous
@@ -749,7 +743,8 @@ def setup_institution_components(
     h2_table = "Collaboration-Wide SOW Table"
     h2_textarea = ""
 
-    tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath), cache=s_tconfig_cache)
+    wbs_l1 = du.get_wbs_l1(s_urlpath)
+    tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
     inst_options = [
         {"label": f"{abbrev} ({name})", "value": abbrev}
         for name, abbrev in tconfig.get_institutions_w_abbrevs()
@@ -763,7 +758,7 @@ def setup_institution_components(
         h2_textarea = f"{institution}'s Notes and Descriptions"
         try:
             phds, faculty, sci, grad, text = src.pull_institution_values(
-                du.get_wbs_l1(s_urlpath), s_snap_ts, institution
+                wbs_l1, s_snap_ts, institution
             )
         except DataSourceException:
             phds, faculty, sci, grad, text = None, None, None, None, ""

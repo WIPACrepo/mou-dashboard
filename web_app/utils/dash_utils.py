@@ -83,7 +83,7 @@ def get_snpapshot_placeholder(
 
 def get_wbs_l1(urlpath: str) -> str:
     """Get the WBS L1 from the url pathname."""
-    return urlpath.lstrip("/")
+    return urlpath[1:]  # Ex: "/mo"
 
 
 # --------------------------------------------------------------------------------------

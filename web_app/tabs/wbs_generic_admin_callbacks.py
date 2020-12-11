@@ -164,10 +164,11 @@ def summarize(
 
     assert not s_snap_ts
 
-    tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath), cache=s_tconfig_cache)
+    wbs_l1 = du.get_wbs_l1(s_urlpath)
+    tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
 
     try:
-        data_table = src.pull_data_table(du.get_wbs_l1(s_urlpath), tconfig)
+        data_table = src.pull_data_table(wbs_l1, tconfig)
     except DataSourceException:
         return [], []
 
@@ -198,7 +199,7 @@ def summarize(
     summary_table: types.Table = []
     for inst_full, abbrev in tconfig.get_institutions_w_abbrevs():
         phds, faculty, sci, grad, __ = src.pull_institution_values(
-            du.get_wbs_l1(s_urlpath), s_snap_ts, abbrev
+            wbs_l1, s_snap_ts, abbrev
         )
 
         row: Dict[str, types.StrNum] = {
@@ -332,10 +333,11 @@ def blame(
     assert not s_snap_ts
 
     # setup
-    tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath), cache=s_tconfig_cache)
+    wbs_l1 = du.get_wbs_l1(s_urlpath)
+    tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
 
     try:
-        data_table = src.pull_data_table(du.get_wbs_l1(s_urlpath), tconfig, raw=True)
+        data_table = src.pull_data_table(wbs_l1, tconfig, raw=True)
         data_table.sort(
             key=lambda r: r[tconfig.const.TIMESTAMP], reverse=True,
         )
@@ -355,14 +357,11 @@ def blame(
     snap_bundles: Dict[str, _SnapshotBundle] = {
         info["timestamp"]: {
             "table": src.pull_data_table(
-                du.get_wbs_l1(s_urlpath),
-                tconfig,
-                snapshot_ts=info["timestamp"],
-                raw=True,
+                wbs_l1, tconfig, snapshot_ts=info["timestamp"], raw=True,
             ),
             "info": info,
         }
-        for info in src.list_snapshots(du.get_wbs_l1(s_urlpath))
+        for info in src.list_snapshots(wbs_l1)
     }
     blame_table = [
         _blame_row(r, tconfig, column_names, snap_bundles) for r in data_table
