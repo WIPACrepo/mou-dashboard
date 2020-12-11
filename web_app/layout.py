@@ -64,9 +64,17 @@ def layout() -> None:
                         className="navbar-uncollapsed",
                         navbar=True,
                         children=[
-                            dbc.NavLink("IceCube M&O", href="/mo", external_link=True),
                             dbc.NavLink(
-                                "IceCube Upgrade", href="/upgrade", external_link=True,
+                                id="nav-link-mo",
+                                children="IceCube M&O",
+                                href="/mo",
+                                external_link=True,
+                            ),
+                            dbc.NavLink(
+                                id="nav-link-upgrade",
+                                children="IceCube Upgrade",
+                                href="/upgrade",
+                                external_link=True,
                             ),
                             html.Div(
                                 id="nav-seperator",
@@ -187,14 +195,22 @@ def show_tab_content(_: str) -> bool:
 
 
 @app.callback(
-    Output("mou-title", "children"),
+    [
+        Output("mou-title", "children"),
+        Output("nav-link-mo", "active"),
+        Output("nav-link-upgrade", "active"),
+    ],
     Input("mou-title", "hidden"),  # dummy input
     [State("url", "pathname")],
 )  # type: ignore
-def load_mou(_: bool, s_urlpath: str) -> str:
+def load_mou(_: bool, s_urlpath: str) -> Tuple[str, bool, bool]:
     """Load the title for the current mou/wbs-l1."""
+    wbs_l1 = du.get_wbs_l1(s_urlpath)
+
     titles = {"mo": "IceCube M&O", "upgrade": "IceCube Upgrade"}
-    return f"– {titles.get(du.get_wbs_l1(s_urlpath), '')}"  # that's an en-dash
+    title = f"– {titles.get(wbs_l1, '')}"  # that's an en-dash
+
+    return title, wbs_l1 == "mo", wbs_l1 == "upgrade"
 
 
 def _logged_in_return(
@@ -257,11 +273,10 @@ def login_callback(
     logging.warning(f"'{du.triggered_id()}' -> login_callback()")
 
     if du.triggered_id() == "log-inout-launch":
-        if s_log_inout == LOG_IN:
+        if s_log_inout == LOG_IN:  # pylint: disable=R1705
             assert not current_user.is_authenticated
             return no_update, True, False, "", LOG_IN, "", True, ""
         elif s_log_inout == LOG_OUT:
-            # if du.triggered_id() == "logout-launch":
             logout_user()
             assert not current_user.is_authenticated
             return _logged_out_return()

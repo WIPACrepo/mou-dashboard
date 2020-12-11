@@ -21,6 +21,7 @@ TEAL: Final[str] = "#17a2b8"
 GREEN: Final[str] = "#258835"
 TABLE_GRAY: Final[str] = "#23272B"
 RELOAD: Final[str] = "location.reload();"
+DEFAULT_MOU: Final[str] = "mo"
 
 
 class Color:  # pylint: disable=R0903
@@ -83,7 +84,9 @@ def get_snpapshot_placeholder(
 
 def get_wbs_l1(urlpath: str) -> str:
     """Get the WBS L1 from the url pathname."""
-    return urlpath[1:]  # Ex: "/mo"
+    if wbs_l1 := urlpath[1:]:  # Ex: "/mo"; falsy on "/"
+        return wbs_l1
+    return DEFAULT_MOU
 
 
 # --------------------------------------------------------------------------------------

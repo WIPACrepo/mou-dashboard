@@ -192,6 +192,11 @@ code {
     letter-spacing: .05em;
 }
 
+.active {
+    color: #17a2b8 !important;
+    font-weight: bold;
+}
+
 .nav-link:hover {
     color: #17a2b8 !important;
     font-weight: bold;
