@@ -71,12 +71,14 @@ def layout() -> None:
                                 children="IceCube M&O",
                                 href="/mo",
                                 external_link=True,
+                                className="hover-bold",
                             ),
                             dbc.NavLink(
                                 id="nav-link-upgrade",
                                 children="IceCube Upgrade",
                                 href="/upgrade",
                                 external_link=True,
+                                className="hover-bold",
                             ),
                             html.Div(
                                 id="nav-seperator",
@@ -84,7 +86,9 @@ def layout() -> None:
                                 className="nav-seperator",
                             ),
                             html.Div(id="logged-in-user", className="user"),
-                            html.Div(id="log-inout-launch", className="log-inout"),
+                            html.Div(
+                                id="log-inout-launch", className="log-inout hover-bold"
+                            ),
                         ],
                     ),
                 ],

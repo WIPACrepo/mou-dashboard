@@ -186,14 +186,18 @@ code {
     letter-spacing: .05em;
 }
 
-.active {
+.hover-bold:hover {
     color: #17a2b8 !important;
-    font-weight: bold;
+    cursor: pointer;
+    /* faux-bold -- don't shift when hovered */
+    /* https://www.sitepoint.com/quick-tip-fixing-font-weight-problem-hover-states/ */
+    text-shadow: 0 0 .04em #17a2b8, 0 0 .04em #17a2b8;
 }
 
-.nav-link:hover {
+.active {
     color: #17a2b8 !important;
-    font-weight: bold;
+    /* use text shadow instead of bold, b/c .hover-bold:hover */
+    text-shadow: 0 0 .04em #17a2b8, 0 0 .04em #17a2b8;
 }
 
 .navbar-uncollapsed {
@@ -209,15 +213,11 @@ code {
 
 .log-inout {
     letter-spacing: .05em;
-    font-weight: bold;
+    /* use text shadow instead of bold, b/c .hover-bold:hover */
+    text-shadow: 0 0 .04em #258835, 0 0 .04em #258835;
     color: #258835;
     padding-left: 1rem;
     padding-right: 1rem;
-}
-
-.log-inout:hover {
-    cursor: pointer;
-    color: #17a2b8;
 }
 
 .nav-seperator {
@@ -239,11 +239,6 @@ code {
     background-color: black !important;
     color: #aaaaaa !important;
     border: 0 !important;
-}
-
-.tab-link:hover {
-    color: #17a2b8 !important;
-    font-weight: bold;
 }
 
 
