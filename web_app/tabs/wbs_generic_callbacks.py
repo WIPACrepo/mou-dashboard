@@ -1,7 +1,7 @@
 """Callbacks for a specified WBS layout."""
 
 import logging
-from typing import cast, Dict, List, Tuple
+from typing import cast, Dict, List, Optional, Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
@@ -485,10 +485,37 @@ def _table_dropdown(
 
 
 @app.callback(  # type: ignore[misc]
+    Output("wbs-data-table", "tooltip"),
+    [Input("wbs-data-table", "page_current")],  # user and show_all_rows button
+    [State("url", "pathname"), State("wbs-table-config-cache", "data")],
+    prevent_initial_call=True,
+)
+def load_table_tooltips(
+    page_current: Optional[int],
+    # state(s)
+    s_urlpath: str,
+    s_tconfig_cache: tc.TableConfigParser.CacheType,
+) -> types.TTooltips:
+    """Load the tooltips but only for the first page.
+
+    This is a workaround for a bug in Dash source code where the tooltip
+    is misplaced when on any page other than the first.
+    """
+    logging.warning(
+        f"'{du.triggered_id()}' -> load_table_tooltips()  ({page_current=})"
+    )
+
+    if page_current != 0:  # pages are 0-indexed
+        return {}
+
+    tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath), cache=s_tconfig_cache)
+    return du.get_table_tooltips(tconfig)
+
+
+@app.callback(  # type: ignore[misc]
     [
         Output("wbs-data-table", "style_cell_conditional"),
         Output("wbs-data-table", "style_data_conditional"),
-        Output("wbs-data-table", "tooltip"),
         Output("wbs-data-table", "columns"),
         Output("wbs-data-table", "dropdown"),
         Output("wbs-data-table", "dropdown_conditional"),
@@ -503,12 +530,7 @@ def setup_table(
     s_urlpath: str,
     s_tconfig_cache: tc.TableConfigParser.CacheType,
 ) -> Tuple[
-    types.TSCCond,
-    types.TSDCond,
-    types.TTooltips,
-    types.TColumns,
-    types.TDDown,
-    types.TDDownCond,
+    types.TSCCond, types.TSDCond, types.TColumns, types.TDDown, types.TDDownCond,
 ]:
     """Set up table-related components."""
     logging.warning(f"'{du.triggered_id()}' -> setup_table()  ({s_urlpath=})")
@@ -517,14 +539,12 @@ def setup_table(
 
     style_cell_conditional = du.style_cell_conditional(tconfig)
     style_data_conditional = du.get_style_data_conditional(tconfig)
-    tooltip = du.get_table_tooltips(tconfig)
     columns = _table_columns_callback(table_editable, tconfig)
     simple_dropdowns, conditional_dropdowns = _table_dropdown(tconfig)
 
     return (
         style_cell_conditional,
         style_data_conditional,
-        tooltip,
         columns,
         simple_dropdowns,
         conditional_dropdowns,
