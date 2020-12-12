@@ -105,6 +105,7 @@ def layout() -> html.Div:
                                 # values set in callback
                                 disabled=True,
                                 # persistence=True, # not working b/c "value" listed in output of initial-active callback (DASH BUG)
+                                clearable=False,
                             ),
                         ],
                     ),
