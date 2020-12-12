@@ -338,7 +338,7 @@ def _delete_deleted_records(
         Output("wbs-deletion-toast", "is_open"),
         Output("wbs-deletion-toast-message", "children"),
         Output("wbs-table-update-flag-interior-control", "data"),
-        Output("wbs-current-snapshot-ts", "placeholder"),
+        Output("wbs-sow-last-updated", "children"),
     ],
     [Input("wbs-data-table", "data")],  # user/table_data_exterior_controls()
     [
@@ -376,8 +376,8 @@ def table_data_interior_controls(
 
     # Make labels
     updated_message = f"Table Last Refreshed: {utils.get_human_now()}"
-    snap_placeholder = du.get_snpapshot_placeholder(
-        current_table, du.get_inst(s_urlpath), tconfig
+    snap_placeholder = du.get_sow_last_updated_label(
+        current_table, bool(s_snap_ts), tconfig
     )
 
     # Was table just updated via exterior controls? -- if so, toggle flag
@@ -553,6 +553,26 @@ def setup_table(
 
 
 @app.callback(  # type: ignore[misc]
+    [
+        Output("wbs-snapshot-dropdown-div", "hidden"),
+        Output("wbs-view-snapshots", "hidden"),
+        Output("wbs-view-live-btn-div", "hidden"),
+    ],
+    [Input("wbs-view-snapshots", "n_clicks")],  # user
+    [State("wbs-current-snapshot-ts", "value")],
+)
+def show_snapshot_dropdown(_: int, s_snap_ts: types.DashVal) -> Tuple[bool, bool, bool]:
+    """Unhide the snapshot dropdown."""
+    if s_snap_ts:  # show "View Live"
+        return True, True, False
+
+    if du.triggered_id() == "wbs-view-snapshots":  # show dropdown
+        return False, True, True
+
+    return True, False, True  # show "View Snapshots"
+
+
+@app.callback(  # type: ignore[misc]
     Output("wbs-current-snapshot-ts", "value"),  # update to call pick_snapshot()
     [Input("wbs-view-live-btn", "n_clicks")],  # user/pick_tab()
     prevent_initial_call=True,
@@ -611,7 +631,7 @@ def setup_snapshot_components(
         pass
     snap_options = [
         {
-            "label": f"{s['name']} — {utils.get_human_time(s['timestamp'])}",
+            "label": f"{s['name']} ({utils.get_human_time(s['timestamp'], short=True)})",
             "value": s["timestamp"],
         }
         for s in snapshots

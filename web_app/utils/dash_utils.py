@@ -64,10 +64,13 @@ def flags_agree(one: bool, two: bool) -> bool:
 # Callback Helper Functions
 
 
-def get_snpapshot_placeholder(
-    table: types.Table, state_institution: types.DashVal, tconfig: tc.TableConfigParser
+def get_sow_last_updated_label(
+    table: types.Table, looking_at_snap: bool, tconfig: tc.TableConfigParser
 ) -> str:
     """Get the placeholder for the snapshots dropdown."""
+    if looking_at_snap:
+        return ""
+
     timestamps = [
         utils.iso_to_epoch(cast(str, r[tconfig.const.TIMESTAMP]))
         for r in table
@@ -79,7 +82,7 @@ def get_snpapshot_placeholder(
     else:
         most_recent = utils.get_human_now()
 
-    return f"Statement{'' if state_institution else 's'} of Work as of {most_recent}"
+    return f"Last Updated: {most_recent}"
 
 
 # --------------------------------------------------------------------------------------

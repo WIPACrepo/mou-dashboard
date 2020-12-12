@@ -87,7 +87,9 @@ def layout() -> None:
                             ),
                             html.Div(id="logged-in-user", className="user"),
                             html.Div(
-                                id="log-inout-launch", className="log-inout hover-bold"
+                                LOG_IN,
+                                id="log-inout-launch",
+                                className="log-inout hover-bold",
                             ),
                         ],
                     ),

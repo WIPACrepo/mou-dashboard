@@ -32,12 +32,6 @@ def layout() -> html.Div:
                         id="wbs-snapshot-current-labels",
                         style={"margin-bottom": "1.5rem", "color": "#5a5a5a"},
                     ),
-                    dbc.Button(
-                        "View Today's SOW",
-                        id="wbs-view-live-btn",
-                        n_clicks=0,
-                        color=du.Color.SUCCESS,
-                    ),
                 ],
                 id="wbs-viewing-snapshot-alert",
                 style={
@@ -46,6 +40,7 @@ def layout() -> html.Div:
                     "width": "100%",
                     "text-align": "center",
                     "padding": "1.5rem",
+                    "padding-bottom": "0.5rem",
                     "margin-bottom": "2rem",
                 },
                 className="caps",
@@ -53,46 +48,74 @@ def layout() -> html.Div:
                 is_open=False,
             ),
             #
-            # Load Snapshots
-            html.Div(
-                className="large-dropdown-container",
-                children=[
-                    dcc.Dropdown(
-                        id="wbs-current-snapshot-ts",
-                        className="large-dropdown snapshot-dropdown",
-                        placeholder="...",  # set in callback
-                        value="",
-                        disabled=False,
-                        persistence=True,
-                        searchable=False,
-                    ),
-                ],
-            ),
-            html.Div(
-                "click above to select and view past statements of work",
-                style={
-                    "font-style": "italic",
-                    "text-align": "center",
-                    "height": "1.5rem",
-                    "line-height": "1.5rem",
-                    "color": "gray",
-                },
-            ),
-            #
-            html.H2(className="section-header", children="Institution"),
-            #
             # Institution filter dropdown menu
-            html.Div(
-                className="large-dropdown-container",
+            dbc.Row(
+                no_gutters=True,
                 children=[
-                    dcc.Dropdown(
-                        id="wbs-dropdown-institution",
-                        className="large-dropdown institution-dropdown",
-                        placeholder="— Viewing Entire Collaboration —",
-                        # options set in callback
-                        # values set in callback
-                        disabled=True,
-                        # persistence=True, # not working b/c "value" listed in output of initial-active callback (DASH BUG)
+                    dbc.Col(
+                        width=4,
+                        children=[
+                            html.I(
+                                id="wbs-view-snapshots",
+                                n_clicks=0,
+                                className="fa fa-history snapshot-icon top-corner",
+                                style={"font-size": "x-large"},
+                                hidden=True,
+                            ),
+                            dbc.Tooltip(
+                                "click to select and view past statements of work",
+                                target="wbs-view-snapshots",
+                                placement="right",
+                                style={"font-size": 15, "maxWidth": 600, "width": 350},
+                            ),
+                            html.Div(
+                                id="wbs-snapshot-dropdown-div",
+                                hidden=True,
+                                children=dcc.Dropdown(
+                                    id="wbs-current-snapshot-ts",
+                                    className="snapshot-dropdown",
+                                    placeholder="Select Snapshot",
+                                    value="",
+                                    disabled=False,
+                                    persistence=True,
+                                    searchable=False,
+                                ),
+                            ),
+                            html.Div(
+                                id="wbs-view-live-btn-div",
+                                hidden=True,
+                                style={"margin-top": "0.25rem"},
+                                children=dbc.Button(
+                                    "View Today's SOW",
+                                    id="wbs-view-live-btn",
+                                    n_clicks=0,
+                                    color=du.Color.SUCCESS,
+                                ),
+                            ),
+                        ],
+                    ),
+                    dbc.Col(
+                        className="large-dropdown-container",
+                        children=[
+                            dcc.Dropdown(
+                                id="wbs-dropdown-institution",
+                                className="large-dropdown institution-dropdown",
+                                placeholder="— Viewing Entire Collaboration —",
+                                # options set in callback
+                                # values set in callback
+                                disabled=True,
+                                # persistence=True, # not working b/c "value" listed in output of initial-active callback (DASH BUG)
+                            ),
+                        ],
+                    ),
+                    dbc.Col(
+                        width=4,
+                        className="top-corner",
+                        children=[
+                            html.Div(
+                                id="wbs-sow-last-updated", className="sow-last-updated",
+                            ),
+                        ],
                     ),
                 ],
             ),

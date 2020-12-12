@@ -87,11 +87,12 @@ code {
 /* Backgrounds/Bodies */
 
 .content {
-    padding-top: 2rem;
+    padding-top: 1rem;
     padding-bottom: 2rem;
     padding-left: 7rem;
     padding-right: 7rem;
     background-color: whitesmoke;
+    min-height: 100rem;
 }
 
 .footer {
@@ -250,6 +251,37 @@ code {
     justify-content: center;
 }
 
+.sow-last-updated {
+    position: absolute;
+    right: 0px;
+    color: gray;
+    font-style: italic;
+    font-size: 12px;
+}
+
+.top-corner {
+    margin-top: 0.75rem;
+}
+
+.snapshot-icon:hover {
+    cursor: pointer;
+    color: #17a2b8;
+    font-size: 20;
+}
+
+.snapshot-dropdown > .Select-control {
+    width: 35rem;
+    height: 4rem;
+}
+
+.snapshot-dropdown > .Select-menu-outer {
+    width: 35rem !important;
+}
+
+.snapshot-dropdown > .Select-control > .Select-multi-value-wrapper > * {
+    line-height: 2.6 !important;
+}
+
 
 /*------------------------------------------------------------------------------------*/
 /* Large Dropdown Styles & Institution Fields */
@@ -272,6 +304,10 @@ code {
     background-color: transparent;
 }
 
+.large-dropdown > .Select-control > .Select-arrow-zone {
+    visibility: hidden;
+}
+
 .large-dropdown > .Select-control > .Select-multi-value-wrapper > * {
     padding: 0 !important;
     padding-top: 0.25rem !important;
@@ -284,11 +320,7 @@ code {
 }
 
 .institution-dropdown > .Select-control {
-    width: 72rem;
-}
-
-.snapshot-dropdown > .Select-control {
-    width: 72rem;
+    width: 62rem;
 }
 
 .institution-headcounts-inner-container {
@@ -328,6 +360,10 @@ code {
 .is-disabled > .Select-control > .Select-arrow-zone {
     /* Remove dropdown arrow from disabled dropdowns */
     visibility: hidden;
+}
+
+.Select-menu-outer {
+    padding-left: 0em !important;
 }
 
 
