@@ -86,117 +86,74 @@ code {
 /*------------------------------------------------------------------------------------*/
 /* Backgrounds/Bodies */
 
-.background {
-    padding-left: 5%;
-    padding-right: 5%;
-    background-color: gainsboro;
-}
-
 .content {
-    min-height: 100rem;
-    padding-top: 2em;
-    padding-bottom: 2em;
-    padding-left: 6em;
-    padding-right: 6em;
+    padding-top: 1rem;
+    padding-bottom: 2rem;
+    padding-left: 7rem;
+    padding-right: 7rem;
     background-color: whitesmoke;
+    min-height: 100rem;
 }
 
 .footer {
     height: 3rem;
     background-color: black;
+    border-top: 2px solid silver !important;
 }
 
 
 /*------------------------------------------------------------------------------------*/
 /* Site Title */
 
-.top-container {
-    display: flex;
-    background-color: black;
-    padding-bottom: 0.5rem;
-    margin: 0;
-}
-
 .logo-container {
-    flex-basis: 70%;
-    margin: 0;
-    padding-left: 9rem;
-    user-select: none;
-}
-
-.login-container {
-    flex-basis: 30%;
-    justify-content: flex-end;
-    text-transform: uppercase;
-    letter-spacing: .075em;
-    font: 12px Arial;
-    margin: 0;
-}
-
-.btn-link, .btn-link:hover {
-    color: #258835;
-    border: 0;
-    outline: 0;
-    font: bold 13px Arial;
-}
-
-.btn-link:hover{
-    color: #17a2b8;
-}
-
-.user {
-    text-transform: uppercase;
-    letter-spacing: .075em;
-    font: 14px Arial;
-    color: silver !important;
-    padding-top: 1.15rem;
-    line-height: 1.2;
-    font-style: italic;
+    padding-left: 2rem;
 }
 
 .logo-mou {
     font-family: Sarpanch, sans-serif;
     font-weight: bold;
-    font-size: 70px;
+    font-size: 55px;
     letter-spacing: 0.25rem;
     line-height: 1;
-    color: silver;
+    color: #cacaca;
     align-self: flex-end;
+    margin-top: -0.25rem;
+    margin-bottom: -0.5rem;
 }
 
 .logo-dashboard {
     font-weight: bold;
     font-family: Arial;
     text-transform: uppercase;
-    font-size: 25px;
-    letter-spacing: 0.3rem;
+    font-size: 19px;
+    letter-spacing: 0.25rem;
     line-height: 1.35;
     align-self: flex-end;
-    margin-bottom: 1rem;
+    margin-bottom: 0.4rem;
     display: flex;
-    height: 3.75rem;
+    height: 2.85rem;
 }
 
 .logo-dash {
     color: black;
-    background-color: silver;
-    border-top: 2.5px solid silver;
-    border-top-left-radius: .6rem;
-    border-left: 2.5px solid silver;
-    border-bottom-left-radius: .6rem;
-    border-bottom: 2.5px solid silver;
+    background-color: #cacaca;
+    border-top: 2.5px solid #cacaca;
+    border-top-left-radius: .5rem;
+    border-left: 2.5px solid #cacaca;
+    border-bottom-left-radius: .5rem;
+    border-bottom: 2.5px solid #cacaca;
     padding-left: 0.4rem;
     margin-left: 0.5rem;
 }
 
 .logo-board {
-    color: silver;
-    border-top: 2.5px solid silver;
-    border-top-right-radius: .6rem;
-    border-right: 2.5px solid silver;
-    border-bottom-right-radius: .6rem;
-    border-bottom: 2.5px solid silver;
-    padding-left: 0.2rem;
+    color: #cacaca;
+    border-top: 2.5px solid #cacaca;
+    border-top-right-radius: .5rem;
+    border-right: 2.5px solid #cacaca;
+    border-bottom-right-radius: .5rem;
+    border-bottom: 2.5px solid #cacaca;
+    padding-left: 0.3rem;
     padding-right: 0.05rem;
 }
 
@@ -204,11 +161,11 @@ code {
     color: #17a2b8;
     font-family: serif;
     font-family: Kanit, sans-serif;
-    font-size: 28px;
+    font-size: 30px;
     letter-spacing: 0.3rem;
     line-height: 1.35;
     align-self: flex-end;
-    margin-bottom: 1rem;
+    margin-bottom: 0.25rem;
     margin-left: 1.5rem;
     display: flex;
     height: 3.75rem;
@@ -216,50 +173,73 @@ code {
 
 
 /*------------------------------------------------------------------------------------*/
-/* Tabs */
+/* Nav Bar Tabs */
 
-.tab-container {
-    height: 2.5rem !important;
-    text-transform: uppercase !important;
-    letter-spacing: .075rem !important;
-    font: 12px Arial !important;
-    line-height: 2 !important;
-    padding-left: 25rem;
-    padding-right: 25rem;
-    background-color: black !important;
-    border-top: 2px solid silver !important;
+.navbar {
+    border-bottom: 2px solid black !important;
+    padding: 0;
+    user-select: none;
 }
 
-.tab {
+.nav-link {
+    color: silver !important;
+    text-decoration: none;
+    letter-spacing: .05em;
+}
+
+.hover-bold:hover {
+    color: #17a2b8 !important;
+    cursor: pointer;
+    /* faux-bold -- don't shift when hovered */
+    /* https://www.sitepoint.com/quick-tip-fixing-font-weight-problem-hover-states/ */
+    text-shadow: 0 0 .04em #17a2b8, 0 0 .04em #17a2b8;
+}
+
+.active {
+    color: #17a2b8 !important;
+    /* use text shadow instead of bold, b/c .hover-bold:hover */
+    text-shadow: 0 0 .04em #17a2b8, 0 0 .04em #17a2b8;
+}
+
+.navbar-uncollapsed {
+    position: absolute;
+    right: 0px;
+    margin-top: 2.1rem;
+    margin-right: 1rem;
+}
+
+.navbar-toggler {
+    margin-right: 1rem;
+}
+
+.log-inout {
+    letter-spacing: .05em;
+    /* use text shadow instead of bold, b/c .hover-bold:hover */
+    text-shadow: 0 0 .04em #258835, 0 0 .04em #258835;
+    color: #258835;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.nav-seperator {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    color: silver !important;
+}
+
+.user {
+    letter-spacing: .05em;
+    color: silver !important;
+    font-style: italic;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.tab-link {
     padding: 0 !important;
     background-color: black !important;
     color: #aaaaaa !important;
     border: 0 !important;
-}
-
-.tab:hover {
-    color: #17a2b8 !important;
-    font-weight: bold;
-}
-
-.tab--disabled {
-    color: #2a2a2a !important;
-}
-
-.tab--selected {
-    font-weight: bold;
-}
-
-.tab--selected:before {
-    content: "–";
-}
-
-.tab--selected:after {
-    content: "–";
-}
-
-.tab--selected:hover{
-    color: #aaaaaa !important;
 }
 
 
@@ -269,6 +249,56 @@ code {
 .make-snapshot {
     display: flex;
     justify-content: center;
+}
+
+.sow-last-updated {
+    position: absolute;
+    right: 0px;
+    color: gray;
+    font-style: italic;
+    font-size: 12px;
+}
+
+.top-corner {
+    margin-top: 0.75rem;
+}
+
+.snapshot-icon {
+    cursor: pointer;
+    font-size: 2.15rem;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #6c757d;
+    display: inline-block;
+    line-height: 1.7;
+    border-radius: .25rem;
+    height: 38px;
+    width: 50px;
+    margin: 0;
+    text-align: center;
+    background-color: #6c757d;
+    color: whitesmoke;
+    padding-left: 0.15rem !important;
+}
+
+.snapshot-icon:hover {
+    background-color: #17a2b8;
+    border-color: #17a2b8;
+    color: whitesmoke;
+}
+
+.snapshot-dropdown > .Select-control {
+    width: 35rem;
+    height: 4rem;
+}
+
+.snapshot-dropdown > .Select-menu-outer {
+    width: 35rem !important;
+}
+
+.snapshot-dropdown > .Select-control > .Select-multi-value-wrapper > * {
+    line-height: 2.6 !important;
 }
 
 
@@ -288,8 +318,13 @@ code {
 .large-dropdown > .Select-control {
     height: 4rem;
     border: 0;
+    width: 40rem;
     padding: 0;
     background-color: transparent;
+}
+
+.large-dropdown > .Select-control > .Select-arrow-zone {
+    visibility: hidden;
 }
 
 .large-dropdown > .Select-control > .Select-multi-value-wrapper > * {
@@ -298,17 +333,13 @@ code {
     line-height: 2 !important;
 }
 
-.large-dropdown > .Select-control > .Select-arrow-zone {
-    visibility: hidden;
-}
-
 .large-dropdown > .Select-control > .Select-multi-value-wrapper > .Select-placeholder,
 .large-dropdown > .Select-control > .Select-multi-value-wrapper > .Select-value > * {
     color: black !important;
 }
 
-.snapshot-dropdown > .Select-control > .Select-multi-value-wrapper > .Select-value > .Select-value-label {
-    color: #5a5a5a !important;
+.institution-dropdown > .Select-control {
+    width: 62rem;
 }
 
 .institution-headcounts-inner-container {
@@ -348,6 +379,10 @@ code {
 .is-disabled > .Select-control > .Select-arrow-zone {
     /* Remove dropdown arrow from disabled dropdowns */
     visibility: hidden;
+}
+
+.Select-menu-outer {
+    padding-left: 0em !important;
 }
 
 

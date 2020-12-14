@@ -9,6 +9,7 @@ import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 import dash_table  # type: ignore[import]
+from flask_login import current_user  # type: ignore[import]
 
 from ..data_source import data_source as src
 from ..data_source import table_config as tc
@@ -63,10 +64,13 @@ def flags_agree(one: bool, two: bool) -> bool:
 # Callback Helper Functions
 
 
-def get_snpapshot_placeholder(
-    table: types.Table, state_institution: types.DashVal, tconfig: tc.TableConfigParser
+def get_sow_last_updated_label(
+    table: types.Table, looking_at_snap: bool, tconfig: tc.TableConfigParser
 ) -> str:
     """Get the placeholder for the snapshots dropdown."""
+    if looking_at_snap:
+        return ""
+
     timestamps = [
         utils.iso_to_epoch(cast(str, r[tconfig.const.TIMESTAMP]))
         for r in table
@@ -78,7 +82,45 @@ def get_snpapshot_placeholder(
     else:
         most_recent = utils.get_human_now()
 
-    return f"Statement{'' if state_institution else 's'} of Work as of {most_recent}"
+    return f"Last Updated: {most_recent}"
+
+
+# --------------------------------------------------------------------------------------
+# URL parsers
+
+
+def get_wbs_l1(urlpath: str) -> str:
+    """Get the WBS L1 from the url pathname."""
+    try:
+        return urlpath.split("/")[1]
+    except IndexError:
+        return ""
+
+
+def get_inst(urlpath: str) -> str:
+    """Get the institution from the url hash."""
+    try:
+        return urlpath.split("/")[2].upper()
+    except IndexError:
+        return ""
+
+
+def build_urlpath(wbs_l1: str, inst: str = "") -> str:
+    """Return a url pathname built from it pieces."""
+    if wbs_l1:
+        if inst:
+            return f"{wbs_l1}/{inst.lower()}"
+        return wbs_l1
+    return ""
+
+
+def need_user_redirect(urlpath: str) -> bool:
+    """Return whether the user needs to be redirected."""
+    return (
+        current_user.is_authenticated
+        and not current_user.is_admin
+        and get_inst(urlpath) != current_user.institution
+    )
 
 
 # --------------------------------------------------------------------------------------

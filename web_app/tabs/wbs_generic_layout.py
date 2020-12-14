@@ -32,12 +32,6 @@ def layout() -> html.Div:
                         id="wbs-snapshot-current-labels",
                         style={"margin-bottom": "1.5rem", "color": "#5a5a5a"},
                     ),
-                    dbc.Button(
-                        "View Today's SOW",
-                        id="wbs-view-live-btn",
-                        n_clicks=0,
-                        color=du.Color.SUCCESS,
-                    ),
                 ],
                 id="wbs-viewing-snapshot-alert",
                 style={
@@ -46,6 +40,7 @@ def layout() -> html.Div:
                     "width": "100%",
                     "text-align": "center",
                     "padding": "1.5rem",
+                    "padding-bottom": "0.5rem",
                     "margin-bottom": "2rem",
                 },
                 className="caps",
@@ -53,48 +48,74 @@ def layout() -> html.Div:
                 is_open=False,
             ),
             #
-            # Load Snapshots
-            html.Div(
-                className="large-dropdown-container",
-                children=[
-                    dcc.Dropdown(
-                        id="wbs-current-snapshot-ts",
-                        className="large-dropdown snapshot-dropdown",
-                        style={"width": "100rem"},
-                        placeholder="...",  # set in callback
-                        value="",
-                        disabled=False,
-                        persistence=True,
-                        searchable=False,
-                    ),
-                ],
-            ),
-            html.Div(
-                "click above to select and view past statements of work",
-                style={
-                    "font-style": "italic",
-                    "text-align": "center",
-                    "height": "1.5rem",
-                    "line-height": "1.5rem",
-                    "color": "gray",
-                },
-            ),
-            #
-            html.H2(className="section-header", children="Institution"),
-            #
             # Institution filter dropdown menu
-            html.Div(
-                className="large-dropdown-container",
+            dbc.Row(
+                no_gutters=True,
                 children=[
-                    dcc.Dropdown(
-                        id="wbs-dropdown-institution",
-                        className="large-dropdown",
-                        style={"width": "75rem"},
-                        placeholder="— Viewing Entire Collaboration —",
-                        # options set in callback
-                        # values set in callback
-                        disabled=False,
-                        # persistence=True, # not working b/c "value" listed in output of initial-active callback (DASH BUG)
+                    dbc.Col(
+                        width=4,
+                        children=[
+                            html.I(
+                                id="wbs-view-snapshots",
+                                n_clicks=0,
+                                className="fa fa-calendar-alt snapshot-icon top-corner",
+                                hidden=True,
+                            ),
+                            dbc.Tooltip(
+                                "click to select and view past statements of work",
+                                target="wbs-view-snapshots",
+                                placement="right",
+                                style={"font-size": 15, "maxWidth": 600, "width": 350},
+                            ),
+                            html.Div(
+                                id="wbs-snapshot-dropdown-div",
+                                hidden=True,
+                                children=dcc.Dropdown(
+                                    id="wbs-current-snapshot-ts",
+                                    className="snapshot-dropdown",
+                                    placeholder="Select Snapshot",
+                                    value="",
+                                    disabled=False,
+                                    persistence=True,
+                                    searchable=False,
+                                ),
+                            ),
+                            html.Div(
+                                id="wbs-view-live-btn-div",
+                                hidden=True,
+                                style={"margin-top": "0.25rem"},
+                                children=dbc.Button(
+                                    "View Today's SOW",
+                                    id="wbs-view-live-btn",
+                                    n_clicks=0,
+                                    color=du.Color.SUCCESS,
+                                ),
+                            ),
+                        ],
+                    ),
+                    dbc.Col(
+                        className="large-dropdown-container",
+                        children=[
+                            dcc.Dropdown(
+                                id="wbs-dropdown-institution",
+                                className="large-dropdown institution-dropdown",
+                                placeholder="— Viewing Entire Collaboration —",
+                                # options set in callback
+                                # values set in callback
+                                disabled=True,
+                                # persistence=True, # not working b/c "value" listed in output of initial-active callback (DASH BUG)
+                                clearable=False,
+                            ),
+                        ],
+                    ),
+                    dbc.Col(
+                        width=4,
+                        className="top-corner",
+                        children=[
+                            html.Div(
+                                id="wbs-sow-last-updated", className="sow-last-updated",
+                            ),
+                        ],
                     ),
                 ],
             ),
@@ -119,6 +140,7 @@ def layout() -> html.Div:
                                         className="institution-headcount-input",
                                         type="number",
                                         min=0,
+                                        disabled=True,
                                     ),
                                 ],
                             )
@@ -205,9 +227,9 @@ def layout() -> html.Div:
                 },
                 # style_data_conditional set in callback
                 # tooltip set in callback
-                # row_deletable set in callback
+                row_deletable=False,  # toggled in callback
                 # hidden_columns set in callback
-                # page_size set in callback
+                page_size=0,  # 0 -> *HUGE* performance gains # toggled in callback
                 # data set in callback
                 # columns set in callback
                 # dropdown set in callback
@@ -255,15 +277,8 @@ def layout() -> html.Div:
             ),
             #
             # Last Refreshed
-            dcc.Loading(
-                type="default",
-                color=du.TEAL,
-                children=[
-                    html.Label(
-                        id="wbs-table-last-updated-label",
-                        className="last-updated-label caps",
-                    )
-                ],
+            html.Label(
+                id="wbs-table-last-updated-label", className="last-updated-label caps",
             ),
             #
             # Free Text
@@ -276,7 +291,11 @@ def layout() -> html.Div:
                         id="wbs-h2-inst-textarea",
                         children="Notes and Descriptions",
                     ),
-                    dcc.Textarea(id="wbs-textarea", className="institution-text-area"),
+                    dcc.Textarea(
+                        id="wbs-textarea",
+                        className="institution-text-area",
+                        disabled=True,
+                    ),
                     html.Div(
                         className="last-updated-label caps",
                         id="wbs-institution-textarea-last-updated-label",
@@ -287,6 +306,7 @@ def layout() -> html.Div:
             # Admin Zone
             html.Div(
                 id="wbs-admin-zone-div",
+                hidden=True,
                 children=[
                     #
                     html.H2(className="section-header", children="Admin Zone"),
@@ -362,7 +382,6 @@ def layout() -> html.Div:
                         style={"margin-bottom": "1rem"},
                     ),
                 ],
-                hidden=True,
             ),
             #
             #
@@ -374,18 +393,12 @@ def layout() -> html.Div:
                 storage_type="memory",
                 data=tc.TableConfigParser.get_configs(),  # get all tables' configs
             ),
-            # - for fagging whether the user's institution value has been grabbed
-            dcc.Store(
-                id="pick-institution-first-call-flag", storage_type="memory", data=True,
-            ),
             # - for fagging whether the institution values were changed
             dcc.Store(
                 id="wbs-institution-values-first-time-flag",
                 storage_type="memory",
                 data=True,
             ),
-            # - for caching the institution value
-            dcc.Store(id="wbs-institution-source-of-truth", storage_type="local"),
             # - for storing the last deleted record's id
             dcc.Store(id="wbs-last-deleted-id", storage_type="memory"),
             # - for discerning whether the table update was by the user vs automated

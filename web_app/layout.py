@@ -3,7 +3,7 @@
 
 import logging
 from datetime import timedelta
-from typing import Tuple
+from typing import Final, Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore
@@ -19,6 +19,9 @@ from .tabs import wbs_generic_layout
 from .utils import dash_utils as du
 from .utils import login, types
 
+LOG_IN: Final[str] = "Log In"
+LOG_OUT: Final[str] = "Log Out"
+
 
 def layout() -> None:
     """Serve the layout to `app`."""
@@ -27,20 +30,21 @@ def layout() -> None:
     # Layout
     app.layout = html.Div(
         children=[
+            dcc.Location(id="url"),  # duplicates will auto-sync values w/o triggering
+            dcc.Location(id="url-login"),  # use duplicates for multi-outputs
+            dcc.Location(id="url-user-inst-redirect"),
+            dcc.Location(id="url-404-redirect"),
             #
             # JS calls for refreshing page
-            visdcc.Run_js("refresh-for-login-logout"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-snapshot-make"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-override-success"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-snapshot-change"),  # pylint: disable=E1101
-            visdcc.Run_js("refresh-for-institution-change"),  # pylint: disable=E1101
             #
-            # Logo & Login
-            dbc.Row(
-                justify="start",
-                className="top-container",
+            # Logo, Tabs, & Login
+            dbc.Navbar(
+                sticky="top",
+                expand="lg",
                 children=[
-                    #
                     # Logo
                     dbc.Row(
                         className="logo-container",
@@ -55,46 +59,43 @@ def layout() -> None:
                             ),
                         ],
                     ),
-                    #
-                    # Login
-                    dbc.Row(
-                        className="login-container",
+                    dbc.NavbarToggler(id="navbar-toggler"),
+                    # Items
+                    dbc.Collapse(
+                        id="navbar-collapse",
+                        className="navbar-uncollapsed",
+                        navbar=True,
                         children=[
-                            html.Div(id="logged-in-user", className="user"),
-                            html.Div(
-                                id="login-div",
-                                children=dbc.Button(
-                                    "log in",
-                                    id="login-launch",
-                                    color=du.Color.LINK,
-                                    size="lg",
-                                ),
-                                hidden=False,
+                            dbc.NavLink(
+                                id="nav-link-mo",
+                                children="IceCube M&O",
+                                href="/mo",
+                                external_link=True,
+                                className="hover-bold",
+                            ),
+                            dbc.NavLink(
+                                id="nav-link-upgrade",
+                                children="IceCube Upgrade",
+                                href="/upgrade",
+                                external_link=True,
+                                className="hover-bold",
                             ),
                             html.Div(
-                                id="logout-div",
-                                children=dbc.Button(
-                                    "log out",
-                                    id="logout-launch",
-                                    color=du.Color.LINK,
-                                    size="lg",
-                                ),
-                                hidden=True,
+                                id="nav-seperator",
+                                children="■",
+                                className="nav-seperator",
+                            ),
+                            html.Div(id="logged-in-user", className="user"),
+                            html.Div(
+                                LOG_IN,
+                                id="log-inout-launch",
+                                className="log-inout hover-bold",
                             ),
                         ],
                     ),
                 ],
-            ),
-            #
-            # Tabs
-            dcc.Tabs(
-                id="wbs-current-l1",
-                value="mo",
-                persistence=True,
-                children=[
-                    dcc.Tab(label="IceCube M&O", value="mo"),
-                    dcc.Tab(label="IceCube Upgrade", value="upgrade"),
-                ],
+                color="black",
+                dark=True,
             ),
             #
             # Content
@@ -171,6 +172,38 @@ def layout() -> None:
     )
 
 
+@app.callback(  # type: ignore[misc]
+    Output("url-404-redirect", "pathname"),
+    [Input("url-404-redirect", "refresh")],  # never triggered
+    [State("url", "pathname")],
+)
+def redirect_404(_: bool, s_urlpath: str) -> str:
+    """Redirect the url if unknown page."""
+    if du.get_wbs_l1(s_urlpath) not in ["mo", "upgrade"]:
+        logging.error(f"User viewing {s_urlpath=}. Redirecting...")
+        return "mo"
+    return no_update  # type: ignore[no-any-return]
+
+
+@app.callback(  # type: ignore[misc]
+    [
+        Output("navbar-collapse", "is_open"),
+        Output("navbar-collapse", "className"),
+        Output("nav-seperator", "hidden"),
+    ],
+    [Input("navbar-toggler", "n_clicks")],
+    [State("navbar-collapse", "is_open")],
+)
+def toggle_navbar_collapse(n_clicks: int, is_open: bool) -> Tuple[bool, str, bool]:
+    """Toggle the navbar collapse on small screens.
+
+    https://dash-bootstrap-components.opensource.faculty.ai/docs/components/navbar/#
+    """
+    if n_clicks:
+        return not is_open, "", not is_open
+    return is_open, "navbar-uncollapsed", is_open
+
+
 @app.callback(
     Output("tab-content", "hidden"),  # update to call view_live_table()
     [Input("tab-content", "className")],  # never triggered
@@ -183,92 +216,97 @@ def show_tab_content(_: str) -> bool:
 
 
 @app.callback(
-    Output("mou-title", "children"),  # update to call view_live_table()
-    Input("mou-title", "hidden"),
-    [State("wbs-current-l1", "value")],  # user-only
+    [
+        Output("mou-title", "children"),
+        Output("nav-link-mo", "active"),
+        Output("nav-link-upgrade", "active"),
+    ],
+    Input("mou-title", "hidden"),  # dummy input
+    [State("url", "pathname")],
 )  # type: ignore
-def load_mou_title(_: bool, wbs_l1: str) -> str:
+def load_mou(_: bool, s_urlpath: str) -> Tuple[str, bool, bool]:
     """Load the title for the current mou/wbs-l1."""
+    wbs_l1 = du.get_wbs_l1(s_urlpath)
+
     titles = {"mo": "IceCube M&O", "upgrade": "IceCube Upgrade"}
-    return f"– {titles.get(wbs_l1, '')}"  # that's an en-dash
+    title = f"– {titles.get(wbs_l1, '')}"  # that's an en-dash
 
-
-@app.callback(
-    Output("wbs-view-live-btn", "n_clicks"),  # update to call view_live_table()
-    [Input("wbs-current-l1", "value")],  # user-only
-    prevent_initial_call=True,
-)  # type: ignore
-def pick_tab(wbs_l1: str) -> int:
-    """Prepare for a new tab: view the live table.
-
-    Tab value is persisted in 'Tabs' between refreshes.
-    """
-    logging.warning(f"'{du.triggered_id()}' -> pick_tab()")
-    logging.warning(f"tab clicked: {wbs_l1=}")
-    return 0
+    return title, wbs_l1 == "mo", wbs_l1 == "upgrade"
 
 
 def _logged_in_return(
-    reload: bool = True,
-) -> Tuple[str, bool, bool, str, bool, bool, str, str]:
+    s_urlpath: str, reload: bool = True,
+) -> Tuple[str, bool, bool, str, str, str, bool, str]:
     if current_user.is_admin:
         user_label = f"{current_user.name} (Admin)"
     else:
         user_label = f"{current_user.name}"
 
-    logging.error(f"{current_user=}")
+    logging.info(f"{current_user=}")
+
+    urlpath = du.build_urlpath(du.get_wbs_l1(s_urlpath), current_user.institution)
 
     if reload:
-        return du.RELOAD, False, False, "", True, False, user_label, ""
-    return no_update, False, False, "", True, False, user_label, ""
+        return urlpath, False, False, "", LOG_OUT, user_label, False, ""
+    return no_update, False, False, "", LOG_OUT, user_label, False, ""
 
 
 def _logged_out_return(
-    reload: bool = True,
-) -> Tuple[str, bool, bool, str, bool, bool, str, str]:
+    s_urlpath: str, reload: bool = True,
+) -> Tuple[str, bool, bool, str, str, str, bool, str]:
 
     if reload:
-        return du.RELOAD, False, False, "", False, True, "", ""
-    return no_update, False, False, "", False, True, "", ""
+        return du.get_wbs_l1(s_urlpath), False, False, "", LOG_IN, "", True, ""
+    return no_update, False, False, "", LOG_IN, "", True, ""
 
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("refresh-for-login-logout", "run"),
+        Output("url-login", "pathname"),
         Output("login-modal", "is_open"),
         Output("login-bad-message", "is_open"),
         Output("login-bad-message", "children"),
-        Output("login-div", "hidden"),
-        Output("logout-div", "hidden"),
+        Output("log-inout-launch", "children"),
         Output("logged-in-user", "children"),
+        Output("logged-in-user", "hidden"),
         Output("login-password", "value"),
     ],
     [
         Input("login-button", "n_clicks"),  # user-only
-        Input("login-launch", "n_clicks"),  # user-only
-        Input("logout-launch", "n_clicks"),  # user-only
+        Input("log-inout-launch", "n_clicks"),  # user-only
         Input("login-password", "n_submit"),  # user-only
     ],
     [
         State("login-username", "value"),
         State("login-password", "value"),
         State("login-manual-institution", "value"),  # TODO: remove when keycloak
+        State("log-inout-launch", "children"),
+        State("url", "pathname"),
     ],
 )  # pylint: disable=R0911
 def login_callback(
-    _: int, __: int, ___: int, ____: int, username: str, pwd: str, inst: types.DashVal
-) -> Tuple[str, bool, bool, str, bool, bool, str, str]:
+    _: int,
+    __: int,
+    ___: int,
+    username: str,
+    pwd: str,
+    inst: types.DashVal,
+    s_log_inout: str,
+    s_urlpath: str,
+) -> Tuple[str, bool, bool, str, str, str, bool, str]:
     """Log the institution leader in/out."""
     logging.warning(f"'{du.triggered_id()}' -> login_callback()")
 
-    if du.triggered_id() == "login-launch":
-        assert not current_user.is_authenticated
-        return no_update, True, False, "", False, True, "", ""
-
-    if du.triggered_id() == "logout-launch":
-        logout_user()
-        assert not current_user.is_authenticated
-        return _logged_out_return()
+    if du.triggered_id() == "log-inout-launch":
+        if s_log_inout == LOG_IN:  # pylint: disable=R1705
+            assert not current_user.is_authenticated
+            return no_update, True, False, "", LOG_IN, "", True, ""
+        elif s_log_inout == LOG_OUT:
+            logout_user()
+            assert not current_user.is_authenticated
+            return _logged_out_return(s_urlpath)
+        else:
+            raise Exception(f"Undefined Log-In/Out Value: {s_log_inout=}")
 
     if du.triggered_id() in ["login-button", "login-password"]:
         assert not current_user.is_authenticated
@@ -277,24 +315,24 @@ def login_callback(
             user = login.User.try_login(username, pwd, inst)
             # all good now
             login_user(user, duration=timedelta(days=50))
-            return _logged_in_return()
+            return _logged_in_return(s_urlpath)
         # bad log-in
         except login.InvalidUsernameException:
             msg = "Username not found"
-            return no_update, True, True, msg, False, True, "", ""
+            return no_update, True, True, msg, LOG_IN, "", True, ""
         except login.InvalidPasswordException:
             msg = "Wrong password"
-            return no_update, True, True, msg, False, True, "", ""
+            return no_update, True, True, msg, LOG_IN, "", True, ""
         except login.NoUserInstitutionException:
             msg = "An institution must be selected"
-            return no_update, True, True, msg, False, True, "", ""
+            return no_update, True, True, msg, LOG_IN, "", True, ""
 
     if du.triggered_id() == "":  # aka on page-load
         if current_user.is_authenticated:
             logging.warning(f"User already logged in {current_user}.")
-            return _logged_in_return(reload=False)
+            return _logged_in_return(s_urlpath, reload=False)
         # Initial Call w/o Stored Login
         logging.warning("User not already logged in.")
-        return _logged_out_return(reload=False)
+        return _logged_out_return(s_urlpath, reload=False)
 
     raise Exception(f"Unaccounted for trigger: {du.triggered_id()}")
