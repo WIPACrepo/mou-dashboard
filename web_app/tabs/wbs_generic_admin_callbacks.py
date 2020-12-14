@@ -225,27 +225,33 @@ def _blame_row(
     column_names: List[str],
     snap_bundles: Dict[str, _SnapshotBundle],
 ) -> types.Record:
+    """Get the blame row for a record."""
+
+    def _get_field_value_in_snap(bundle: _SnapshotBundle, field: str) -> types.StrNum:
+        try:
+            return next(
+                r
+                for r in bundle["table"]
+                if r[tconfig.const.ID] == record[tconfig.const.ID]
+            )[field]
+        except StopIteration:
+            return "no-value"
 
     # get each field's history; Schema: { <field>: {<snap_ts>:<field_value>} }
-    field_history: Dict[str, Dict[str, types.StrNum]] = {}
-    field_history = ODict({k: ODict({"today": record[k]}) for k in record})
+    field_changes: Dict[str, Dict[str, types.StrNum]] = {}
+    field_changes = ODict({k: ODict({"today": record[k]}) for k in record})
     for snap_ts, bundle in snap_bundles.items():
-        match = next(
-            r
-            for r in bundle["table"]
-            if r[tconfig.const.ID] == record[tconfig.const.ID]
-        )
         for field in record:
-            field_history[field][snap_ts] = match[field]  # snapshot's value
+            field_changes[field][snap_ts] = _get_field_value_in_snap(bundle, field)
 
     # throw out fields that have never changed
-    for field in field_history:
-        if len(set(field_history[field].values())) < 2:
-            field_history[field] = {}
+    for field in field_changes:
+        if len(set(field_changes[field].values())) < 2:
+            field_changes[field] = {}
 
     # make markdown for cell
     markdown = ""
-    for field, changes in field_history.items():
+    for field, changes in field_changes.items():
         if not changes:
             continue
         markdown += f"\n**{field}**\n"
