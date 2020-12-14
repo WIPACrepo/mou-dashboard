@@ -226,6 +226,7 @@ def _blame_row(
     snap_bundles: Dict[str, _SnapshotBundle],
 ) -> types.Record:
     """Get the blame row for a record."""
+    logging.debug(f"Blaming {record[tconfig.const.ID]}...")
 
     def _get_field_value_in_snap(bundle: _SnapshotBundle, field: str) -> types.StrNum:
         try:
@@ -235,7 +236,7 @@ def _blame_row(
                 if r[tconfig.const.ID] == record[tconfig.const.ID]
             )[field]
         except StopIteration:
-            return "no-value"
+            return "n/a"
 
     # get each field's history; Schema: { <field>: {<snap_ts>:<field_value>} }
     field_changes: Dict[str, Dict[str, types.StrNum]] = {}
