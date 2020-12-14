@@ -263,10 +263,29 @@ code {
     margin-top: 0.75rem;
 }
 
-.snapshot-icon:hover {
+.snapshot-icon {
     cursor: pointer;
-    color: #17a2b8;
-    font-size: 20;
+    font-size: 2.15rem;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #6c757d;
+    display: inline-block;
+    line-height: 1.7;
+    border-radius: .25rem;
+    height: 38px;
+    width: 50px;
+    margin: 0;
+    text-align: center;
+    background-color: #6c757d;
+    color: #FAFAFA;
+    padding-left: 0.15rem !important;
+}
+
+.snapshot-icon:hover {
+    background-color: #17a2b8;
+    border-color: #17a2b8;
+    color: whitesmoke;
 }
 
 .snapshot-dropdown > .Select-control {

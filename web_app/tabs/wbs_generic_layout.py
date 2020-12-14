@@ -58,8 +58,7 @@ def layout() -> html.Div:
                             html.I(
                                 id="wbs-view-snapshots",
                                 n_clicks=0,
-                                className="fa fa-history snapshot-icon top-corner",
-                                style={"font-size": "x-large"},
+                                className="fa fa-calendar-alt snapshot-icon top-corner",
                                 hidden=True,
                             ),
                             dbc.Tooltip(
