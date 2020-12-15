@@ -228,50 +228,74 @@ def _blame_row(
     """Get the blame row for a record."""
     logging.debug(f"Blaming {record[tconfig.const.ID]}...")
 
-    def _get_field_value_in_snap(bundle: _SnapshotBundle, field: str) -> types.StrNum:
+    NA: Final[str] = "n/a"  # pylint: disable=C0103
+
+    def _find_record_in_snap(table: types.Table) -> Optional[types.Record]:
         try:
             return next(
-                r
-                for r in bundle["table"]
-                if r[tconfig.const.ID] == record[tconfig.const.ID]
-            )[field]
+                r for r in table if r[tconfig.const.ID] == record[tconfig.const.ID]
+            )
         except StopIteration:
-            return "n/a"
+            return None
 
     # get each field's history; Schema: { <field>: {<snap_ts>:<field_value>} }
     field_changes: Dict[str, Dict[str, types.StrNum]] = {}
     field_changes = ODict({k: ODict({"today": record[k]}) for k in record})
+    brand_new, never_changed, oldest_snap_ts = True, True, ""
     for snap_ts, bundle in snap_bundles.items():
+        if snap_record := _find_record_in_snap(bundle["table"]):
+            brand_new = False
         for field in record:
-            field_changes[field][snap_ts] = _get_field_value_in_snap(bundle, field)
+            if field in ["", tconfig.const.GRAND_TOTAL, tconfig.const.US_NON_US]:
+                continue
+            if not snap_record:
+                field_changes[field][snap_ts] = NA
+            elif snap_record[field] != record[field]:
+                field_changes[field][snap_ts] = snap_record[field]
+                never_changed = False
+            else:
+                oldest_snap_ts = snap_ts
 
     # throw out fields that have never changed
     for field in field_changes:
         if len(set(field_changes[field].values())) < 2:
             field_changes[field] = {}
+        # every old value is just NA
+        elif all(v == NA for v in list(field_changes[field].values())[1:]):
+            field_changes[field] = {}
 
-    # make markdown for cell
+    # set up markdown
     markdown = ""
-    for field, changes in field_changes.items():
-        if not changes:
-            continue
-        markdown += f"\n**{field}**\n"
-        for snap_ts, snap_val in changes.items():
-            if field == tconfig.const.TIMESTAMP:
-                snap_val = utils.get_human_time(str(snap_val))
-            snap_val = f"`{snap_val}`" if snap_val else "*none*"
-            markdown += f"- {snap_val}\n"
-            if snap_ts == "today":
-                markdown += "    + today\n"
-                markdown += f"    + {utils.get_human_now()}\n"
-            else:
-                snap_time = utils.get_human_time(str(snap_ts))
-                name = snap_bundles[snap_ts]["info"]["name"]
-                markdown += f"    + {name}\n"
-                markdown += f"    + {snap_time}\n"
-
-    if not markdown:
-        markdown = "*no changes*"
+    if brand_new:
+        markdown = "***row is brand new***"
+    elif never_changed:
+        markdown = "**no changes since original snapshot:**\n"
+        markdown += f"- {snap_bundles[oldest_snap_ts]['info']['name']} ({utils.get_human_time(str(oldest_snap_ts), short=True)})"
+    else:
+        for field, changes in field_changes.items():
+            if not changes:
+                continue
+            first_na = True
+            # Field
+            markdown += f"\n**{field}**\n"
+            # Values over time
+            for snap_ts, snap_val in changes.items():
+                if snap_val == NA:
+                    if first_na:
+                        markdown += "    + **original snapshot value**\n"
+                        first_na = False
+                    continue
+                # convert timestamps to be human-readable
+                if field == tconfig.const.TIMESTAMP:
+                    snap_val = utils.get_human_time(str(snap_val))
+                # value
+                markdown += f"- `{snap_val}`\n" if snap_val else "- *none*\n"
+                # a current value
+                if snap_ts == "today":
+                    markdown += f"    + today ({utils.get_human_now(short=True)})\n"
+                # a historical value
+                else:
+                    markdown += f"    + {snap_bundles[snap_ts]['info']['name']} ({utils.get_human_time(str(snap_ts), short=True)})\n"
 
     blame_row = {k: v for k, v in record.items() if k in column_names}
     blame_row[_CHANGES_COL] = markdown
