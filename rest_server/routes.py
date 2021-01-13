@@ -15,7 +15,7 @@ from . import wbs
 from .config import AUTH_PREFIX
 from .utils import db_utils, types, utils
 
-_WBS_L1_REGEX_VALUES = "|".join(wbs.WBS_L1_VALUES)
+_WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
 
 
 # -----------------------------------------------------------------------------
@@ -279,7 +279,7 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
                     "border_left_columns": tc.get_border_left_columns(),
                     "page_size": tc.get_page_size(),
                 }
-                for l1 in wbs.WBS_L1_VALUES
+                for l1 in wbs.WORK_BREAKDOWN_STRUCTURES.keys()
             }
         )
 

@@ -187,12 +187,12 @@ def get_labor_cats() -> List[str]:
 
 def get_l2_categories(l1: str) -> List[str]:  # pylint: disable=C0103
     """Get the L2 categories."""
-    return wbs.WBS[l1]["L2_values"]
+    return list(wbs.WORK_BREAKDOWN_STRUCTURES[l1].keys())
 
 
 def get_l3_categories_by_l2(l1: str, l2: str) -> List[str]:  # pylint: disable=C0103
     """Get the L3 categories for an L2 value."""
-    return wbs.WBS[l1]["L3_values_by_L2"][l2]
+    return wbs.WORK_BREAKDOWN_STRUCTURES[l1][l2]
 
 
 def get_simple_dropdown_menus(l1: str) -> Dict[str, List[str]]:  # pylint: disable=C0103
@@ -219,7 +219,7 @@ def get_conditional_dropdown_menus(  # pylint: disable=C0103
         for col, config in _COLUMN_CONFIGS.items()
         if ("conditional_parent" in config) and ("conditional_options" in config)
     }
-    ret[WBS_L3] = (WBS_L2, wbs.WBS[l1]["L3_values_by_L2"])
+    ret[WBS_L3] = (WBS_L2, wbs.WORK_BREAKDOWN_STRUCTURES[l1])
     return ret
 
 
