@@ -34,7 +34,7 @@ A REST server that interfaces with a local MongoDB server *(future: also Smartsh
     pip install -r rest_server/requirements.txt
 
 #### 2. Start the Server
-    python -m rest_server [-x PATH_TO_XLSX_FILE]
+    python -m rest_server
 
 
 ### Web App
