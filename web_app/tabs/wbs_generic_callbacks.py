@@ -244,11 +244,16 @@ def table_data_exterior_controls(
         except DataSourceException:
             table = []
 
-    # Figure pagination, AKA "Show All Rows"/"Collapse Rows to Pages"
-    do_paginate = len(table) / tconfig.get_page_size() > 2  # paginate if 3+ pages
+    # Figure pagination
+    do_paginate = (
+        len(table) / tconfig.get_page_size() > 2  # paginate if 3+ pages
+        and not inst  # paginate if viewing entire collaboration
+        and current_user.is_admin  # paginate if admin
+    )
+    # hide "Show All Rows"/"Collapse Rows to Pages" if paginating wouldn't do anything
     style_paginate_button = {}
     if len(table) <= tconfig.get_page_size():
-        style_paginate_button = {"visibility": "hidden"}  # hide if wouldn't do anything
+        style_paginate_button = {"visibility": "hidden"}
 
     return (
         table,
