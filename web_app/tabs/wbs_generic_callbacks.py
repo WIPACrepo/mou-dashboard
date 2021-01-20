@@ -111,7 +111,7 @@ def handle_add_new_data(
     s_labor: str,
 ) -> Tuple[bool, str, int, str]:
     """Handle the modal for adding a new row."""
-    logging.warning(f"'{du.triggered_id()}' -> handle_add_new_data()")
+    logging.warning(f"'{du.triggered()}' -> handle_add_new_data()")
 
     if du.triggered_id() == "wbs-new-data-modal-add-button":
         if not s_task:
@@ -181,7 +181,7 @@ def table_data_exterior_controls(
     "add new" changes MoU DS data. The others simply change what's
     visible to the user.
     """
-    logging.warning(f"'{du.triggered_id()}' -> table_data_exterior_controls()")
+    logging.warning(f"'{du.triggered()}' -> table_data_exterior_controls()")
     logging.warning(
         f"Snapshot: {s_snap_ts=} {'' if s_snap_ts else '(Live Collection)'}"
     )
@@ -374,7 +374,7 @@ def table_data_interior_controls(
     NOTE: This function is also called following table_data_exterior_controls().
     So the flags are XOR'd to see whether to proceed.
     """
-    logging.warning(f"'{du.triggered_id()}' -> table_data_interior_controls()")
+    logging.warning(f"'{du.triggered()}' -> table_data_interior_controls()")
 
     wbs_l1 = du.get_wbs_l1(s_urlpath)
     tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
@@ -503,9 +503,7 @@ def load_table_tooltips(
     This is a workaround for a bug in Dash source code where the tooltip
     is misplaced when on any page other than the first.
     """
-    logging.warning(
-        f"'{du.triggered_id()}' -> load_table_tooltips()  ({page_current=})"
-    )
+    logging.warning(f"'{du.triggered()}' -> load_table_tooltips()  ({page_current=})")
 
     if page_current != 0:  # pages are 0-indexed
         return {}
@@ -535,7 +533,7 @@ def setup_table(
     types.TSCCond, types.TSDCond, types.TColumns, types.TDDown, types.TDDownCond,
 ]:
     """Set up table-related components."""
-    logging.warning(f"'{du.triggered_id()}' -> setup_table()  ({s_urlpath=})")
+    logging.warning(f"'{du.triggered()}' -> setup_table()  ({s_urlpath=})")
 
     tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath), cache=s_tconfig_cache)
 
@@ -584,7 +582,7 @@ def show_snapshot_dropdown(_: int, s_snap_ts: types.DashVal) -> Tuple[bool, bool
 )
 def view_live_table(_: int) -> types.DashVal:
     """Clear the snapshot selection."""
-    logging.warning(f"'{du.triggered_id()}' -> view_live_table()")
+    logging.warning(f"'{du.triggered()}' -> view_live_table()")
     return ""
 
 
@@ -595,7 +593,7 @@ def view_live_table(_: int) -> types.DashVal:
 )
 def pick_snapshot(snap_ts: types.DashVal) -> str:
     """Refresh the page on snapshot select/de-select."""
-    logging.warning(f"'{du.triggered_id()}' -> pick_snapshot() {snap_ts=}")
+    logging.warning(f"'{du.triggered()}' -> pick_snapshot() {snap_ts=}")
     return du.RELOAD
 
 
@@ -616,7 +614,7 @@ def setup_snapshot_components(
 ) -> Tuple[List[Dict[str, str]], List[html.Label], bool]:
     """Set up snapshot-related components."""
     logging.warning(
-        f"'{du.triggered_id()}' -> setup_snapshot_components()  ({s_urlpath=} {s_snap_ts=})"
+        f"'{du.triggered()}' -> setup_snapshot_components()  ({s_urlpath=} {s_snap_ts=})"
     )
 
     assert not du.triggered_id()  # Guarantee this is the initial call
@@ -693,7 +691,7 @@ def handle_make_snapshot(
     s_snap_ts: str,
 ) -> Tuple[bool, dbc.Toast, str, str]:
     """Handle the naming and creating of a snapshot."""
-    logging.warning(f"'{du.triggered_id()}' -> handle_make_snapshot()")
+    logging.warning(f"'{du.triggered()}' -> handle_make_snapshot()")
 
     if s_snap_ts:  # are we looking at a snapshot?
         return False, None, "", ""
@@ -711,7 +709,7 @@ def handle_make_snapshot(
             )
             return False, fail_toast, du.Color.SUCCESS, ""
 
-    raise Exception(f"Unaccounted trigger {du.triggered_id()}")
+    raise Exception(f"Unaccounted trigger {du.triggered()}")
 
 
 # --------------------------------------------------------------------------------------
@@ -762,7 +760,7 @@ def setup_institution_components(
 ]:
     """Set up institution-related components."""
     logging.warning(
-        f"'{du.triggered_id()}' -> setup_institution_components() ({s_urlpath=} {s_snap_ts=} {current_user=})"
+        f"'{du.triggered()}' -> setup_institution_components() ({s_urlpath=} {s_snap_ts=} {current_user=})"
     )
 
     assert not du.triggered_id()  # Guarantee this is the initial call
@@ -824,7 +822,7 @@ def setup_institution_components(
 def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
     """Refresh if the user selected an institution."""
     logging.warning(
-        f"'{du.triggered_id()}' -> select_dropdown_institution() {inst=} {current_user.institution=})"
+        f"'{du.triggered()}' -> select_dropdown_institution() {inst=} {current_user.institution=})"
     )
     inst = "" if not inst else inst
 
@@ -870,7 +868,7 @@ def push_institution_values(  # pylint: disable=R0913
 ) -> Tuple[bool, html.Label, html.Label]:
     """Push the institution's values."""
     logging.warning(
-        f"'{du.triggered_id()}' -> push_institution_values() ({s_first_time=})"
+        f"'{du.triggered()}' -> push_institution_values() ({s_first_time=})"
     )
 
     # Is there an institution selected?
@@ -938,7 +936,7 @@ def setup_user_dependent_components(
 ) -> Tuple[bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, str]:
     """Logged-in callback."""
     logging.warning(
-        f"'{du.triggered_id()}' -> setup_user_dependent_components({s_snap_ts=}, {s_urlpath=}, {current_user=})"
+        f"'{du.triggered()}' -> setup_user_dependent_components({s_snap_ts=}, {s_urlpath=}, {current_user=})"
     )
 
     assert not du.triggered_id()  # Guarantee this is the initial call
@@ -1007,7 +1005,7 @@ def toggle_pagination(
     s_urlpath: str,
 ) -> Tuple[str, str, bool, int, str]:
     """Toggle whether the table is paginated."""
-    logging.warning(f"'{du.triggered_id()}' -> toggle_pagination({n_clicks=})")
+    logging.warning(f"'{du.triggered()}' -> toggle_pagination({n_clicks=})")
 
     if n_clicks % 2 == 0:
         tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath), cache=s_tconfig_cache)
@@ -1040,7 +1038,7 @@ def toggle_hidden_columns(
     s_urlpath: str,
 ) -> Tuple[str, str, bool, List[str]]:
     """Toggle hiding/showing the default hidden columns."""
-    logging.warning(f"'{du.triggered_id()}' -> toggle_hidden_columns()")
+    logging.warning(f"'{du.triggered()}' -> toggle_hidden_columns()")
 
     tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath), cache=s_tconfig_cache)
 

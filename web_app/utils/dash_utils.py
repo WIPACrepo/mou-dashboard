@@ -42,13 +42,23 @@ class Color:  # pylint: disable=R0903
 # Function(s) that really should be in a dash library
 
 
-def triggered_id() -> str:
-    """Return the id of the property that triggered the callback.
+def triggered() -> str:
+    """Return the component that triggered the callback.
 
     https://dash.plotly.com/advanced-callbacks
     """
-    trig = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
+    trig = dash.callback_context.triggered[0]["prop_id"]
     return cast(str, trig)
+
+
+def triggered_id() -> str:
+    """Return the component id that triggered the callback."""
+    return triggered().split(".")[0]
+
+
+def triggered_property() -> str:
+    """Return the component property that triggered the callback."""
+    return triggered().split(".")[1]
 
 
 def flags_agree(one: bool, two: bool) -> bool:

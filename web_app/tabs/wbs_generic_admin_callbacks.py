@@ -99,7 +99,7 @@ def handle_xlsx(  # pylint: disable=R0911
     s_filename: str,
 ) -> Tuple[bool, str, str, bool, dbc.Toast, bool, List[dcc.Markdown]]:
     """Manage uploading a new xlsx document as the new live table."""
-    logging.warning(f"'{du.triggered_id()}' -> handle_xlsx()")
+    logging.warning(f"'{du.triggered()}' -> handle_xlsx()")
 
     if not current_user.is_authenticated or not current_user.is_admin:
         logging.error("Cannot handle xlsx since user is not admin.")
@@ -138,7 +138,7 @@ def handle_xlsx(  # pylint: disable=R0911
             error_message = f'Error overriding "{s_filename}" ({e})'
             return True, error_message, du.Color.DANGER, True, None, False, []
 
-    raise Exception(f"Unaccounted for trigger {du.triggered_id()}")
+    raise Exception(f"Unaccounted for trigger {du.triggered()}")
 
 
 @app.callback(  # type: ignore[misc]
@@ -160,7 +160,7 @@ def summarize(
     s_snap_ts: types.DashVal,
 ) -> Tuple[types.Table, List[Dict[str, str]]]:
     """Manage uploading a new xlsx document as the new live table."""
-    logging.warning(f"'{du.triggered_id()}' -> summarize()")
+    logging.warning(f"'{du.triggered()}' -> summarize()")
 
     assert not s_snap_ts
 
@@ -359,7 +359,7 @@ def blame(
     s_snap_ts: types.DashVal,
 ) -> Tuple[types.Table, List[Dict[str, str]], types.TSCCond]:
     """Manage uploading a new xlsx document as the new live table."""
-    logging.warning(f"'{du.triggered_id()}' -> summarize()")
+    logging.warning(f"'{du.triggered()}' -> summarize()")
 
     assert not s_snap_ts
 
