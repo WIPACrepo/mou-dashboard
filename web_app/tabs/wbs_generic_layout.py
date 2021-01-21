@@ -286,16 +286,49 @@ def layout() -> html.Div:
             # Table Autosaved
             du.make_autosaved_container("wbs-table-autosaved-container"),
             #
-            # Computing Resources
-            #
-            # Confirm
-            du.make_confirm_container("computing", "Are these counts correct?"),
-            #
-            # Free Text
             html.Div(
-                id="institution-textarea-container",
+                id="institution-values-below-table-container",
                 hidden=True,
                 children=[
+                    #
+                    # Computing Resources
+                    html.H2(
+                        className="section-header",
+                        id="wbs-h2-inst-computing",
+                        children="Computing Contributions",
+                    ),
+                    # Inputs
+                    dbc.Row(
+                        justify="center",
+                        no_gutters=True,
+                        children=[
+                            dbc.Col(
+                                className="institution-headcount",
+                                children=[
+                                    html.Div(_label, className="caps"),
+                                    dcc.Input(
+                                        id=_id,
+                                        className="institution-headcount-input",
+                                        type="number",
+                                        min=0,
+                                        disabled=True,
+                                    ),
+                                ],
+                            )
+                            for _id, _label in [
+                                ("wbs-cpus", "CPU"),
+                                ("wbs-gpus", "GPU"),
+                            ]
+                        ],
+                    ),
+                    # Confirm
+                    du.make_confirm_container("computing", "Are these counts correct?"),
+                    # Autosaved
+                    du.make_autosaved_container(
+                        "wbs-institution-computing-autosaved-container"
+                    ),
+                    #
+                    # Free Text
                     html.H2(
                         className="section-header",
                         id="wbs-h2-inst-textarea",

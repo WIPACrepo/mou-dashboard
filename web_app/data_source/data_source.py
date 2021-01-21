@@ -415,9 +415,9 @@ def pull_institution_values(
     Optional[int],
     Optional[int],
     Optional[int],
+    Optional[int],
+    Optional[int],
     str,
-    Optional[int],
-    Optional[int],
     bool,
     bool,
 ]:
@@ -436,9 +436,9 @@ def pull_institution_values(
         cast(Optional[int], response.get("faculty")),
         cast(Optional[int], response.get("scientists_post_docs")),
         cast(Optional[int], response.get("grad_students")),
+        5,  # TODO
+        77,  # TODO
         cast(str, response.get("text", "")),
-        None,  # TODO
-        None,  # TODO
         False,  # TODO
         False,  # TODO
     )
@@ -451,6 +451,8 @@ def push_institution_values(  # pylint: disable=R0913
     faculty: types.DashVal,
     sci: types.DashVal,
     grad: types.DashVal,
+    cpus: types.DashVal,
+    gpus: types.DashVal,
     text: str,
     hc_confirmed: bool,
     comp_confirmed: bool,
@@ -462,6 +464,8 @@ def push_institution_values(  # pylint: disable=R0913
     faculty = _validate(faculty, types.DashVal_types)
     sci = _validate(sci, types.DashVal_types)
     grad = _validate(grad, types.DashVal_types)
+    cpus = _validate(cpus, types.DashVal_types)
+    gpus = _validate(gpus, types.DashVal_types)
     _validate(text, str)
     _validate(hc_confirmed, bool)
     _validate(comp_confirmed, bool)
@@ -475,6 +479,10 @@ def push_institution_values(  # pylint: disable=R0913
         body["scientists_post_docs"] = sci
     if grad or grad == 0:
         body["grad_students"] = grad
+    if cpus or cpus == 0:
+        body["cpus"] = cpus
+    if gpus or gpus == 0:
+        body["gpus"] = gpus
     body["text"] = text
     body["headcounts_confirmed"] = hc_confirmed
     body["computing_confirmed"] = comp_confirmed

@@ -768,11 +768,14 @@ def handle_make_snapshot(
         Output("wbs-faculty", "value"),
         Output("wbs-scientists-post-docs", "value"),
         Output("wbs-grad-students", "value"),
+        Output("wbs-cpus", "value"),
+        Output("wbs-gpus", "value"),
         Output("wbs-textarea", "value"),
         Output("wbs-h2-sow-table", "children"),
         Output("wbs-h2-inst-textarea", "children"),
+        Output("wbs-h2-inst-computing", "children"),
         Output("institution-headcounts-container", "hidden"),
-        Output("institution-textarea-container", "hidden"),
+        Output("institution-values-below-table-container", "hidden"),
         Output("wbs-dropdown-institution", "value"),
         Output("wbs-dropdown-institution", "options"),
         Output("wbs-filter-labor", "options"),
@@ -797,6 +800,9 @@ def setup_institution_components(
     types.DashVal,
     types.DashVal,
     types.DashVal,
+    types.DashVal,
+    types.DashVal,
+    str,
     str,
     str,
     str,
@@ -817,17 +823,20 @@ def setup_institution_components(
 
     # Check Login
     if not current_user.is_authenticated:
-        return tuple(no_update for _ in range(14))  # type: ignore[return-value]
+        return tuple(no_update for _ in range(17))  # type: ignore[return-value]
 
     phds: types.DashVal = 0
     faculty: types.DashVal = 0
     sci: types.DashVal = 0
     grad: types.DashVal = 0
+    cpus: types.DashVal = 0
+    gpus: types.DashVal = 0
     hc_conf = True
     comp_conf = True
     text = ""
     h2_table = "Collaboration-Wide SOW Table"
     h2_textarea = ""
+    h2_computing = ""
 
     wbs_l1 = du.get_wbs_l1(s_urlpath)
     tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
@@ -842,20 +851,24 @@ def setup_institution_components(
     if inst := du.get_inst(s_urlpath):
         h2_table = f"{inst}'s SOW Table"
         h2_textarea = f"{inst}'s Notes and Descriptions"
+        h2_computing = f"{inst}'s Computing Contributions"
         try:
             ret = src.pull_institution_values(wbs_l1, s_snap_ts, inst)
-            (phds, faculty, sci, grad, text, cpus, gpus, hc_conf, comp_conf) = ret
         except DataSourceException:
-            phds, faculty, sci, grad, text = None, None, None, None, ""
+            ret = (None, None, None, None, None, None, "", True, True)
+        (phds, faculty, sci, grad, cpus, gpus, text, hc_conf, comp_conf) = ret
 
     return (
         phds,
         faculty,
         sci,
         grad,
+        cpus,
+        gpus,
         text,
         h2_table,
         h2_textarea,
+        h2_computing,
         not inst,
         not inst,
         inst,
@@ -891,17 +904,19 @@ def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
         Output("wbs-institution-values-first-time-flag", "data"),
         Output("wbs-institution-values-autosaved-container", "children"),
         Output("wbs-institution-textarea-autosaved-container", "children"),
+        Output("wbs-institution-computing-autosaved-container", "children"),
+        Output("refresh-for-inst-confirms", "run"),
     ],
     [
         Input("wbs-phds-authors", "value"),  # user/setup_institution_components()
         Input("wbs-faculty", "value"),  # user/setup_institution_components()
         Input("wbs-scientists-post-docs", "value"),  # user/setup_institution_components
         Input("wbs-grad-students", "value"),  # user/setup_institution_components()
+        Input("wbs-cpus", "value"),  # user/setup_institution_components()
+        Input("wbs-gpus", "value"),  # user/setup_institution_components()
         Input("wbs-textarea", "value"),  # user/setup_institution_components()
-        # Input("wbs-gpus", "value"),  # user/setup_institution_components()
-        # Input("wbs-cpus", "value"),  # user/setup_institution_components()
         Input("wbs-headcounts-confirm-yes", "n_clicks"),  # user-only
-        # Input("wbs-computing-confirm-yes", "n_clicks")
+        Input("wbs-computing-confirm-yes", "n_clicks"),
     ],
     [
         State("url", "pathname"),
@@ -918,8 +933,11 @@ def push_institution_values(  # pylint: disable=R0913
     faculty: types.DashVal,
     sci: types.DashVal,
     grad: types.DashVal,
+    cpus: types.DashVal,
+    gpus: types.DashVal,
     text: str,
     _: int,
+    __: int,
     # state(s)
     s_urlpath: str,
     s_snap_ts: types.DashVal,
@@ -927,7 +945,7 @@ def push_institution_values(  # pylint: disable=R0913
     s_first_time: bool,
     s_hc_confirm_hidden: bool,
     s_comp_confirm_hidden: bool,
-) -> Tuple[bool, List[html.Label], List[html.Label]]:
+) -> Tuple[bool, List[html.Label], List[html.Label], List[html.Label], str]:
     """Push the institution's values."""
     logging.warning(
         f"'{du.triggered()}' -> push_institution_values() ({s_first_time=})"
@@ -935,26 +953,26 @@ def push_institution_values(  # pylint: disable=R0913
 
     # Is there an institution selected?
     if not (inst := du.get_inst(s_urlpath)):  # pylint: disable=C0325
-        return False, [], []
+        return False, [], [], [], no_update
 
     # labels
-    textarea_labels = du.get_autosaved_labels("Notes & Descriptions")
+    txt_labels = du.get_autosaved_labels("Notes & Descriptions")
     if s_hc_confirm_hidden:
-        headcounts_labels = du.get_autosaved_labels("Headcounts")
+        hc_labels = du.get_autosaved_labels("Headcounts")
     else:
-        headcounts_labels = []
+        hc_labels = []
+    if s_comp_confirm_hidden:
+        comp_labels = du.get_autosaved_labels("Computing Contributions")
+    else:
+        comp_labels = []
 
     # Are the fields editable?
     if not current_user.is_authenticated and not s_snap_ts:
-        return (
-            False,
-            headcounts_labels,
-            textarea_labels,
-        )
+        return False, hc_labels, txt_labels, comp_labels, no_update
 
     # check if headcounts are filled out
     if None in [phds, faculty, sci, grad]:
-        headcounts_labels = [
+        hc_labels = [
             html.Label(
                 "Headcounts are required. Please enter all four numbers.",
                 style={"color": "red", "font-weight": "bold"},
@@ -963,16 +981,19 @@ def push_institution_values(  # pylint: disable=R0913
 
     # Is this a redundant push? -- fields were just auto-populated for the first time
     if s_first_time:
-        return False, headcounts_labels, textarea_labels
+        return False, hc_labels, txt_labels, comp_labels, no_update
 
     # push
+    refresh = no_update
     try:
-        hc_confirmed = not s_hc_confirm_hidden
-        comp_confirmed = not s_comp_confirm_hidden
+        hc_confirmed = s_hc_confirm_hidden  # not hidden = not confirmed
+        comp_confirmed = s_comp_confirm_hidden  # not hidden = not confirmed
         if du.triggered_id() == "wbs-headcounts-confirm-yes":
             hc_confirmed = True
+            refresh = du.RELOAD
         elif du.triggered_id() == "wbs-computing-confirm-yes":
             comp_confirmed = True
+            refresh = du.RELOAD
         src.push_institution_values(
             du.get_wbs_l1(s_urlpath),
             inst,
@@ -980,6 +1001,8 @@ def push_institution_values(  # pylint: disable=R0913
             faculty,
             sci,
             grad,
+            cpus,
+            gpus,
             text,
             hc_confirmed,
             comp_confirmed,
@@ -987,7 +1010,7 @@ def push_institution_values(  # pylint: disable=R0913
     except DataSourceException:
         assert len(s_table) == 0  # there's no collection to push to
 
-    return False, headcounts_labels, textarea_labels
+    return False, hc_labels, txt_labels, comp_labels, refresh
 
 
 # --------------------------------------------------------------------------------------
@@ -1006,6 +1029,8 @@ def push_institution_values(  # pylint: disable=R0913
         Output("wbs-faculty", "disabled"),
         Output("wbs-scientists-post-docs", "disabled"),
         Output("wbs-grad-students", "disabled"),
+        Output("wbs-cpus", "disabled"),
+        Output("wbs-gpus", "disabled"),
         Output("wbs-textarea", "disabled"),
         Output("url-user-inst-redirect", "pathname"),
     ],
@@ -1017,7 +1042,9 @@ def setup_user_dependent_components(
     # state(s)
     s_snap_ts: types.DashVal,
     s_urlpath: str,
-) -> Tuple[bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, str]:
+) -> Tuple[
+    bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, str
+]:
     """Logged-in callback."""
     logging.warning(
         f"'{du.triggered()}' -> setup_user_dependent_components({s_snap_ts=}, {s_urlpath=}, {current_user=})"
@@ -1028,12 +1055,12 @@ def setup_user_dependent_components(
     if du.need_user_redirect(s_urlpath):  # redirect user to their institution's mou
         logging.error(f"User viewing wrong mou {s_urlpath=}. Redirecting...")
         return tuple(  # type: ignore[return-value]
-            [no_update for _ in range(11)]
+            [no_update for _ in range(13)]
             + [du.build_urlpath(du.get_wbs_l1(s_urlpath), current_user.institution)]
         )
 
     if not current_user.is_authenticated:
-        return tuple(no_update for _ in range(12))  # type: ignore[return-value]
+        return tuple(no_update for _ in range(14))  # type: ignore[return-value]
 
     if s_snap_ts:
         return (
@@ -1043,6 +1070,8 @@ def setup_user_dependent_components(
             False,  # row NOT deletable
             not current_user.is_admin,  # filter-inst disabled if not admin
             True,  # wbs-admin-zone-div hidden
+            True,  # institution value disabled
+            True,  # institution value disabled
             True,  # institution value disabled
             True,  # institution value disabled
             True,  # institution value disabled
@@ -1058,6 +1087,8 @@ def setup_user_dependent_components(
         True,  # row is deletable
         not current_user.is_admin,  # filter-inst disabled if user is not an admin
         not current_user.is_admin,  # wbs-admin-zone-div hidden if user is not an admin
+        False,  # institution value NOT disabled
+        False,  # institution value NOT disabled
         False,  # institution value NOT disabled
         False,  # institution value NOT disabled
         False,  # institution value NOT disabled
