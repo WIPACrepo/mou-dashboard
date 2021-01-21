@@ -400,7 +400,7 @@ def layout() -> html.Div:
                 data=True,
             ),
             # - for storing the last deleted record's id
-            dcc.Store(id="wbs-last-deleted-id", storage_type="memory"),
+            dcc.Store(id="wbs-last-deleted-record", storage_type="memory"),
             # - for discerning whether the table update was by the user vs automated
             # -- flags will agree only after table_data_exterior_controls() triggers table_data_interior_controls()
             dcc.Store(
@@ -416,16 +416,20 @@ def layout() -> html.Div:
             #
             # Container Divs -- for adding dynamic toasts, dialogs, etc.
             html.Div(id="wbs-toast-via-exterior-control-div"),
-            html.Div(id="wbs-toast-via-interior-control-div"),
+            html.Div(id="wbs-toast-via-confirm-deletion-div"),
             html.Div(id="wbs-toast-via-snapshot-div"),
             html.Div(id="wbs-toast-via-upload-div"),
             #
             # Modals & Toasts
-            du.deletion_toast(),
+            du.after_deletion_toast(),
             du.upload_modal(),
             du.upload_success_modal(),
             du.name_snapshot_modal(),
             du.add_new_data_modal(),
+            dcc.ConfirmDialog(id="wbs-confirm-deletion"),
+            dbc.Button(
+                id="wbs-undo-last-delete-hidden-button", style={"visibility": "hidden"}
+            ),
             ###
         ]
     )

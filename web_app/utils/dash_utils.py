@@ -321,10 +321,10 @@ def get_style_data_conditional(tconfig: tc.TableConfigParser) -> types.TSDCond:
     return style_data_conditional
 
 
-def deletion_toast() -> dbc.Toast:
-    """Get a toast for confirming a deletion."""
+def after_deletion_toast() -> dbc.Toast:
+    """Get a toast for after a deletion."""
     return dbc.Toast(
-        id="wbs-deletion-toast",
+        id="wbs-after-deletion-toast",
         header="Row Deleted",
         is_open=False,
         dismissable=True,
@@ -339,18 +339,7 @@ def deletion_toast() -> dbc.Toast:
             "width": 350,
             "font-size": "1.1em",
         },
-        children=[
-            html.Div(id="wbs-deletion-toast-message"),
-            html.Div(
-                dbc.Button(
-                    "Restore Row",
-                    id="wbs-undo-last-delete",
-                    color=Color.DANGER,
-                    outline=True,
-                ),
-                style={"text-align": "center", "margin-top": "2rem"},
-            ),
-        ],
+        children=[html.Div(id="wbs-after-deletion-toast-message")],
     )
 
 

@@ -246,9 +246,9 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
         record_id = self.get_argument("record_id")
         editor = self.get_argument("editor")
 
-        await self.dbms.delete_record(wbs_l1, record_id, editor)
+        record = await self.dbms.delete_record(wbs_l1, record_id, editor)
 
-        self.write({})
+        self.write({"record": record})
 
 
 # -----------------------------------------------------------------------------

@@ -129,6 +129,56 @@ def handle_add_new_data(
 
 @app.callback(  # type: ignore[misc]
     [
+        Output("wbs-toast-via-confirm-deletion-div", "children"),
+        Output("wbs-undo-last-delete-hidden-button", "n_clicks"),
+        Output("wbs-after-deletion-toast", "is_open"),
+        Output("wbs-after-deletion-toast-message", "children"),
+    ],
+    [
+        Input("wbs-confirm-deletion", "submit_n_clicks"),  # user-only
+        Input("wbs-confirm-deletion", "cancel_n_clicks"),  # user-only
+    ],
+    [
+        State("url", "pathname"),
+        State("wbs-table-config-cache", "data"),
+        State("wbs-last-deleted-record", "data"),
+    ],
+    prevent_initial_call=True,
+)
+def confirm_deletion(
+    _: int,
+    __: int,
+    # state(s)
+    s_urlpath: str,
+    s_tconfig_cache: tc.TableConfigParser.CacheType,
+    s_record: types.Record,
+) -> Tuple[dbc.Toast, int, bool, List[html.Div]]:
+    """Handle deleting the record chosen ."""
+    logging.warning(f"'{du.triggered()}' -> confirm_deletion()")
+
+    # Don't delete record
+    if du.triggered_property() == "cancel_n_clicks":
+        return None, 1, no_update, []
+
+    # Delete record
+    elif du.triggered_property() == "submit_n_clicks":
+        try:
+            wbs_l1 = du.get_wbs_l1(s_urlpath)
+            tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
+            src.delete_record(wbs_l1, cast(str, s_record[tconfig.const.ID]))
+            lines = [html.Div(s) for s in src.record_to_strings(s_record, tconfig)]
+            return None, no_update, True, lines
+        except DataSourceException:
+            msg = "Failed to Delete Row"
+            toast = du.make_toast(msg, du.REFRESH_MSG, du.Color.DANGER)
+            return toast, no_update, False, []
+
+    else:
+        raise Exception(f"Unaccounted for trigger {du.triggered()}")
+
+
+@app.callback(  # type: ignore[misc]
+    [
         Output("wbs-data-table", "data"),
         Output("wbs-data-table", "page_current"),
         Output("wbs-toast-via-exterior-control-div", "children"),
@@ -145,14 +195,14 @@ def handle_add_new_data(
         Input("wbs-filter-labor", "value"),  # user
         Input("wbs-show-totals-button", "n_clicks"),  # user-only
         Input("wbs-new-data-modal-dummy-add", "n_clicks"),  # handle_add_new_data()-only
-        Input("wbs-undo-last-delete", "n_clicks"),  # user-only
+        Input("wbs-undo-last-delete-hidden-button", "n_clicks"),  # confirm_deletion()
     ],
     [
         State("url", "pathname"),
         State("wbs-current-snapshot-ts", "value"),
         State("wbs-data-table", "data"),
         State("wbs-show-all-columns-button", "n_clicks"),
-        State("wbs-last-deleted-id", "data"),
+        State("wbs-last-deleted-record", "data"),
         State("wbs-table-config-cache", "data"),
         State("wbs-new-data-modal-task", "value"),
         State("wbs-table-update-flag-exterior-control", "data"),
@@ -170,7 +220,7 @@ def table_data_exterior_controls(
     s_snap_ts: types.DashVal,
     s_table: types.Table,
     s_all_cols: int,
-    s_deleted_id: str,
+    s_deleted_record: types.Record,
     s_tconfig_cache: tc.TableConfigParser.CacheType,
     s_new_task: str,
     s_flag_extctrl: bool,
@@ -211,7 +261,7 @@ def table_data_exterior_controls(
             )
 
     # OR Restore a types.Record and Pull types.Table (optionally filtered)
-    elif du.triggered_id() == "wbs-undo-last-delete":
+    elif du.triggered_id() == "wbs-undo-last-delete-hidden-button":
         if not s_snap_ts:  # are we looking at a snapshot?
             try:
                 table = src.pull_data_table(
@@ -220,12 +270,18 @@ def table_data_exterior_controls(
                     institution=inst,
                     labor=labor,
                     with_totals=show_totals,
-                    restore_id=s_deleted_id,
+                    restore_id=cast(str, s_deleted_record[tconfig.const.ID]),
                 )
-                record = next(r for r in table if r[tconfig.const.ID] == s_deleted_id)
-                message = [html.Div(s) for s in src.record_to_strings(record, tconfig)]
+                restored = next(
+                    r
+                    for r in table
+                    if r[tconfig.const.ID] == s_deleted_record[tconfig.const.ID]
+                )
                 toast = du.make_toast(
-                    "Row Restored", message, du.Color.SUCCESS, du.GOOD_WAIT
+                    "Row Restored",
+                    [html.Div(s) for s in src.record_to_strings(restored, tconfig)],
+                    du.Color.SUCCESS,
+                    du.GOOD_WAIT,
                 )
             except DataSourceException:
                 table = []
@@ -291,14 +347,13 @@ def _push_modified_records(
     return ids
 
 
-def _delete_deleted_records(
-    wbs_l1: str,
+def _find_deleted_record(
     current_table: types.Table,
     previous_table: types.Table,
     keeps: List[types.StrNum],
     tconfig: tc.TableConfigParser,
-) -> Tuple[dbc.Toast, str, List[str]]:
-    """For each row that was deleted by the user, delete its DS record."""
+) -> Tuple[types.Record, str]:
+    """If a row was deleted by the user, find it."""
     delete_these = [
         r
         for r in previous_table
@@ -308,40 +363,23 @@ def _delete_deleted_records(
     ]
 
     if not delete_these:
-        return None, "", []
+        return {}, ""
 
     assert len(delete_these) == 1
 
-    toast: dbc.Toast = None
-    last_deletion = ""
-    failures = []
-    record = None
-    for record in delete_these:
-        try:
-            src.delete_record(wbs_l1, cast(str, record[tconfig.const.ID]))
-            last_deletion = cast(str, record[tconfig.const.ID])
-        except DataSourceException:
-            failures.append(record)
-
-    # make toast message if any records failed to be deleted
-    if failures:
-        toast = du.make_toast("Failed to Delete Row", du.REFRESH_MSG, du.Color.DANGER)
-    else:
-        success_message = [
-            html.Div(s) for s in src.record_to_strings(delete_these[0], tconfig)
-        ]
-
-    return toast, last_deletion, success_message
+    record = delete_these[0]
+    record_fields = "\n".join(src.record_to_strings(record, tconfig))
+    message = f"Are you sure you want to DELETE THIS ROW?\n\n{record_fields}"
+    return record, message
 
 
 @app.callback(  # type: ignore[misc]
     [
         Output("wbs-data-table", "data_previous"),
-        Output("wbs-toast-via-interior-control-div", "children"),
         Output("wbs-table-last-updated-label", "children"),
-        Output("wbs-last-deleted-id", "data"),
-        Output("wbs-deletion-toast", "is_open"),
-        Output("wbs-deletion-toast-message", "children"),
+        Output("wbs-last-deleted-record", "data"),
+        Output("wbs-confirm-deletion", "displayed"),
+        Output("wbs-confirm-deletion", "message"),
         Output("wbs-table-update-flag-interior-control", "data"),
         Output("wbs-sow-last-updated", "children"),
     ],
@@ -365,7 +403,7 @@ def table_data_interior_controls(
     s_snap_ts: types.DashVal,
     s_flag_extctrl: bool,
     s_flag_intctrl: bool,
-) -> Tuple[types.Table, dbc.Toast, str, str, bool, List[html.Div], bool, str]:
+) -> Tuple[types.Table, str, types.Record, bool, str, bool, str]:
     """Interior control signaled that the table should be updated.
 
     This is either a row deletion or a field edit. The table's view has
@@ -391,11 +429,10 @@ def table_data_interior_controls(
         logging.warning("table_data_interior_controls() :: aborted callback")
         return (
             current_table,
-            None,
             updated_message,
-            "",
+            {},
             False,
-            [],
+            "",
             not s_flag_intctrl,
             snap_placeholder,
         )
@@ -407,18 +444,17 @@ def table_data_interior_controls(
     mod_ids = _push_modified_records(wbs_l1, current_table, s_previous_table, tconfig)
 
     # Delete (if any)
-    toast, last_deletion, delete_success_message = _delete_deleted_records(
-        wbs_l1, current_table, s_previous_table, mod_ids, tconfig
+    deleted_record, delete_message = _find_deleted_record(
+        current_table, s_previous_table, mod_ids, tconfig
     )
 
     # Update data_previous
     return (
         current_table,
-        toast,
         updated_message,
-        last_deletion,
-        bool(last_deletion),
-        delete_success_message,
+        deleted_record,
+        bool(deleted_record),
+        delete_message,
         s_flag_intctrl,  # preserve flag
         snap_placeholder,
     )
