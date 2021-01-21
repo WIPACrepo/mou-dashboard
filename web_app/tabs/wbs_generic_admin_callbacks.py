@@ -198,7 +198,7 @@ def summarize(
 
     summary_table: types.Table = []
     for inst_full, abbrev in tconfig.get_institutions_w_abbrevs():
-        phds, faculty, sci, grad, __ = src.pull_institution_values(
+        phds, faculty, sci, grad, __, ___ = src.pull_institution_values(
             wbs_l1, s_snap_ts, abbrev
         )
 

@@ -776,6 +776,7 @@ def handle_make_snapshot(
         Output("wbs-dropdown-institution", "value"),
         Output("wbs-dropdown-institution", "options"),
         Output("wbs-filter-labor", "options"),
+        Output("wbs-headcounts-confirm-container", "hidden"),
     ],
     [Input("dummy-input-for-setup", "hidden")],  # never triggered
     [
@@ -803,6 +804,7 @@ def setup_institution_components(
     types.DashVal,
     List[Dict[str, str]],
     List[Dict[str, str]],
+    bool,
 ]:
     """Set up institution-related components."""
     logging.warning(
@@ -813,12 +815,13 @@ def setup_institution_components(
 
     # Check Login
     if not current_user.is_authenticated:
-        return tuple(no_update for _ in range(12))  # type: ignore[return-value]
+        return tuple(no_update for _ in range(13))  # type: ignore[return-value]
 
     phds: types.DashVal = 0
     faculty: types.DashVal = 0
     sci: types.DashVal = 0
     grad: types.DashVal = 0
+    hc_confirmed = True
     text = ""
     h2_table = "Collaboration-Wide SOW Table"
     h2_textarea = ""
@@ -837,7 +840,7 @@ def setup_institution_components(
         h2_table = f"{inst}'s SOW Table"
         h2_textarea = f"{inst}'s Notes and Descriptions"
         try:
-            phds, faculty, sci, grad, text = src.pull_institution_values(
+            phds, faculty, sci, grad, text, hc_confirmed = src.pull_institution_values(
                 wbs_l1, s_snap_ts, inst
             )
         except DataSourceException:
@@ -856,6 +859,7 @@ def setup_institution_components(
         inst,
         inst_options,
         labor_options,
+        hc_confirmed,  # hide if values are confirmed
     )
 
 
@@ -880,6 +884,38 @@ def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
 
 
 @app.callback(  # type: ignore[misc]
+    Output("refresh-for-inst-confirms", "run"),
+    Input("wbs-headcounts-confirm-yes", "n_clicks"),  # user/push_institution_values()
+    [State("url", "pathname")],
+    prevent_initial_call=True,
+)
+def handle_institution_confirms(
+    _: int,
+    # state(s)
+    s_urlpath: str,
+) -> str:
+    """Confirm headcounts, and refresh page."""
+    logging.warning(f"'{du.triggered()}' -> handle_institution_confirms()")
+
+    if not (inst := du.get_inst(s_urlpath)):  # pylint: disable=C0325
+        return no_update  # type: ignore[no-any-return]
+
+    # Headcounts
+    elif du.triggered_id() == "wbs-headcounts-confirm-yes":
+        src.confirm_headcounts(du.get_wbs_l1(s_urlpath), inst)
+        return du.RELOAD
+
+    # Computing
+    elif du.triggered_id() == "wbs-computing-confirm-yes":
+        src.confirm_computing(du.get_wbs_l1(s_urlpath), inst)
+        return du.RELOAD
+
+    # Error
+    else:
+        raise Exception(f"Unaccounted for trigger: {du.triggered()}")
+
+
+@app.callback(  # type: ignore[misc]
     [
         Output("wbs-institution-values-first-time-flag", "data"),
         Output("wbs-institution-values-autosaved-container", "children"),
@@ -897,6 +933,7 @@ def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
         State("wbs-current-snapshot-ts", "value"),
         State("wbs-data-table", "data"),
         State("wbs-institution-values-first-time-flag", "data"),
+        State("wbs-headcounts-confirm-container", "hidden"),
     ],
     prevent_initial_call=True,
 )
@@ -911,6 +948,7 @@ def push_institution_values(  # pylint: disable=R0913
     s_snap_ts: types.DashVal,
     s_table: types.Table,
     s_first_time: bool,
+    s_hc_confirm_hidden: bool,
 ) -> Tuple[bool, List[html.Label], List[html.Label]]:
     """Push the institution's values."""
     logging.warning(
@@ -923,11 +961,18 @@ def push_institution_values(  # pylint: disable=R0913
 
     # labels
     textarea_labels = du.get_autosaved_labels("Notes & Descriptions")
-    headcounts_labels = du.get_autosaved_labels("Headcounts")
+    if s_hc_confirm_hidden:
+        headcounts_labels = du.get_autosaved_labels("Headcounts")
+    else:
+        headcounts_labels = []
 
     # Are the fields editable?
     if not current_user.is_authenticated and not s_snap_ts:
-        return False, headcounts_labels, textarea_labels
+        return (
+            False,
+            headcounts_labels,
+            textarea_labels,
+        )
 
     # check if headcounts are filled out
     if None in [phds, faculty, sci, grad]:

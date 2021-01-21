@@ -410,7 +410,7 @@ def override_table(
 
 def pull_institution_values(
     wbs_l1: str, snapshot_ts: types.DashVal, institution: types.DashVal
-) -> Tuple[Optional[int], Optional[int], Optional[int], Optional[int], str]:
+) -> Tuple[Optional[int], Optional[int], Optional[int], Optional[int], str, bool]:
     """Get the institution's values."""
     _validate(wbs_l1, str, falsy_okay=False)
     snapshot_ts = _validate(snapshot_ts, types.DashVal_types, out=str)
@@ -427,6 +427,7 @@ def pull_institution_values(
         cast(Optional[int], response.get("scientists_post_docs")),
         cast(Optional[int], response.get("grad_students")),
         cast(str, response.get("text", "")),
+        False,  # TODO
     )
 
 
