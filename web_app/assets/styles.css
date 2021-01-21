@@ -47,11 +47,19 @@ body {
     border-top: 0.16rem solid #5a5a5a;
 }
 
-.last-updated-label {
-    font-style: italic;
-    font-size: 14px;
+.autosaved-container {
     text-align: center;
-    margin-top: 1.5rem;
+    margin-top: 1rem;
+}
+
+.autosaved-label {
+    font-size: 14px;
+    font-style: italic;
+}
+
+.autosaved-datetime {
+    font-size: 11px;
+    font-style: italic;
 }
 
 .modal-footer {
@@ -404,6 +412,7 @@ code {
 .wbs-table-bottom-toolbar {
     height: 38px;
     margin-top: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .table-tool-large, .table-tool-large > .Select-control {

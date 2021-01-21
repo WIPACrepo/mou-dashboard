@@ -330,21 +330,23 @@ def _push_modified_records(
     current_table: types.Table,
     previous_table: types.Table,
     tconfig: tc.TableConfigParser,
-) -> List[types.StrNum]:
+) -> Tuple[List[types.StrNum], types.Record]:
     """For each row that changed, push the record to the DS."""
     modified_records = [
         r
         for r in current_table
         if (r not in previous_table) and (tconfig.const.ID in r)
     ]
+
+    last_record = {}
     for record in modified_records:
         try:
-            src.push_record(wbs_l1, record, tconfig)
+            last_record = src.push_record(wbs_l1, record, tconfig)
         except DataSourceException:
             pass
 
     ids = [c[tconfig.const.ID] for c in modified_records]
-    return ids
+    return ids, last_record
 
 
 def _find_deleted_record(
@@ -376,7 +378,7 @@ def _find_deleted_record(
 @app.callback(  # type: ignore[misc]
     [
         Output("wbs-data-table", "data_previous"),
-        Output("wbs-table-last-updated-label", "children"),
+        Output("wbs-table-autosaved-container", "children"),
         Output("wbs-last-deleted-record", "data"),
         Output("wbs-confirm-deletion", "displayed"),
         Output("wbs-confirm-deletion", "message"),
@@ -403,7 +405,7 @@ def table_data_interior_controls(
     s_snap_ts: types.DashVal,
     s_flag_extctrl: bool,
     s_flag_intctrl: bool,
-) -> Tuple[types.Table, str, types.Record, bool, str, bool, str]:
+) -> Tuple[types.Table, List[html.Label], types.Record, bool, str, bool, str]:
     """Interior control signaled that the table should be updated.
 
     This is either a row deletion or a field edit. The table's view has
@@ -418,8 +420,8 @@ def table_data_interior_controls(
     tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
 
     # Make labels
-    updated_message = f"Table Last Refreshed: {utils.get_human_now()}"
-    snap_placeholder = du.get_sow_last_updated_label(
+    autosaved_labels = du.get_autosaved_labels("Table")
+    sows_updated_label = du.get_sow_last_updated_label(
         current_table, bool(s_snap_ts), tconfig
     )
 
@@ -429,34 +431,42 @@ def table_data_interior_controls(
         logging.warning("table_data_interior_controls() :: aborted callback")
         return (
             current_table,
-            updated_message,
+            autosaved_labels,
             {},
             False,
             "",
             not s_flag_intctrl,
-            snap_placeholder,
+            sows_updated_label,
         )
 
     assert not s_snap_ts  # should not be a snapshot
     assert s_previous_table  # should have previous table
 
     # Push (if any)
-    mod_ids = _push_modified_records(wbs_l1, current_table, s_previous_table, tconfig)
+    mod_ids, pushed_record = _push_modified_records(
+        wbs_l1, current_table, s_previous_table, tconfig
+    )
 
     # Delete (if any)
     deleted_record, delete_message = _find_deleted_record(
         current_table, s_previous_table, mod_ids, tconfig
     )
 
+    # get the last updated label (make an ad hoc pseudo-table just to find the max time)
+    if pushed_record or deleted_record:
+        sows_updated_label = du.get_sow_last_updated_label(
+            [pushed_record, deleted_record], bool(s_snap_ts), tconfig
+        )
+
     # Update data_previous
     return (
         current_table,
-        updated_message,
+        autosaved_labels,
         deleted_record,
         bool(deleted_record),
         delete_message,
         s_flag_intctrl,  # preserve flag
-        snap_placeholder,
+        sows_updated_label,
     )
 
 
@@ -872,8 +882,8 @@ def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
 @app.callback(  # type: ignore[misc]
     [
         Output("wbs-institution-values-first-time-flag", "data"),
-        Output("wbs-institution-values-last-updated-label", "children"),
-        Output("wbs-institution-textarea-last-updated-label", "children"),
+        Output("wbs-institution-values-autosaved-container", "children"),
+        Output("wbs-institution-textarea-autosaved-container", "children"),
     ],
     [
         Input("wbs-phds-authors", "value"),  # user/setup_institution_components()
@@ -901,7 +911,7 @@ def push_institution_values(  # pylint: disable=R0913
     s_snap_ts: types.DashVal,
     s_table: types.Table,
     s_first_time: bool,
-) -> Tuple[bool, html.Label, html.Label]:
+) -> Tuple[bool, List[html.Label], List[html.Label]]:
     """Push the institution's values."""
     logging.warning(
         f"'{du.triggered()}' -> push_institution_values() ({s_first_time=})"
@@ -909,27 +919,28 @@ def push_institution_values(  # pylint: disable=R0913
 
     # Is there an institution selected?
     if not (inst := du.get_inst(s_urlpath)):  # pylint: disable=C0325
-        return False, None, None
+        return False, [], []
 
     # labels
-    now = utils.get_human_now()
-    textarea_label = html.Label(f"Notes & Descriptions Last Refreshed: {now}")
-    headcounts_label = html.Label(f"Headcounts Last Refreshed: {now}")
+    textarea_labels = du.get_autosaved_labels("Notes & Descriptions")
+    headcounts_labels = du.get_autosaved_labels("Headcounts")
 
     # Are the fields editable?
     if not current_user.is_authenticated and not s_snap_ts:
-        return False, headcounts_label, textarea_label
+        return False, headcounts_labels, textarea_labels
 
     # check if headcounts are filled out
     if None in [phds, faculty, sci, grad]:
-        headcounts_label = html.Label(
-            "Headcounts are required. Please enter all four numbers.",
-            style={"color": "red", "font-weight": "bold"},
-        )
+        headcounts_labels = [
+            html.Label(
+                "Headcounts are required. Please enter all four numbers.",
+                style={"color": "red", "font-weight": "bold"},
+            )
+        ]
 
     # Is this a redundant push? -- fields were just auto-populated for the first time
     if s_first_time:
-        return False, headcounts_label, textarea_label
+        return False, headcounts_labels, textarea_labels
 
     # push
     try:
@@ -939,7 +950,7 @@ def push_institution_values(  # pylint: disable=R0913
     except DataSourceException:
         assert len(s_table) == 0  # there's no collection to push to
 
-    return False, headcounts_label, textarea_label
+    return False, headcounts_labels, textarea_labels
 
 
 # --------------------------------------------------------------------------------------

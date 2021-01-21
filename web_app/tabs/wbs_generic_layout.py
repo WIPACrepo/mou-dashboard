@@ -112,9 +112,19 @@ def layout() -> html.Div:
                         width=4,
                         className="top-corner",
                         children=[
-                            html.Div(
-                                id="wbs-sow-last-updated", className="sow-last-updated",
-                            ),
+                            dcc.Loading(
+                                type="default",
+                                color=du.TEAL,
+                                style={
+                                    "right": "0px",
+                                    "position": "absolute",
+                                    "height": "4rem",
+                                },
+                                children=html.Div(
+                                    id="wbs-sow-last-updated",
+                                    className="sow-last-updated",
+                                ),
+                            )
                         ],
                     ),
                 ],
@@ -126,7 +136,7 @@ def layout() -> html.Div:
                 id="institution-headcounts-container",
                 hidden=True,
                 children=[
-                    #
+                    # Inputs
                     dbc.Row(
                         justify="center",
                         no_gutters=True,
@@ -152,16 +162,9 @@ def layout() -> html.Div:
                             ]
                         ],
                     ),
-                    #
-                    dcc.Loading(
-                        type="default",
-                        color=du.TEAL,
-                        children=[
-                            html.Div(
-                                className="last-updated-label caps",
-                                id="wbs-institution-values-last-updated-label",
-                            ),
-                        ],
+                    # Autosaved
+                    du.make_autosaved_container(
+                        "wbs-institution-values-autosaved-container"
                     ),
                 ],
             ),
@@ -276,10 +279,8 @@ def layout() -> html.Div:
                 ]
             ),
             #
-            # Last Refreshed
-            html.Label(
-                id="wbs-table-last-updated-label", className="last-updated-label caps",
-            ),
+            # Table Autosaved
+            du.make_autosaved_container("wbs-table-autosaved-container"),
             #
             # Free Text
             html.Div(
@@ -296,9 +297,9 @@ def layout() -> html.Div:
                         className="institution-text-area",
                         disabled=True,
                     ),
-                    html.Div(
-                        className="last-updated-label caps",
-                        id="wbs-institution-textarea-last-updated-label",
+                    # Autosaved
+                    du.make_autosaved_container(
+                        "wbs-institution-textarea-autosaved-container"
                     ),
                 ],
             ),

@@ -92,7 +92,15 @@ def get_sow_last_updated_label(
     else:
         most_recent = utils.get_human_now()
 
-    return f"Last Updated: {most_recent}"
+    return f"SOWs Last Updated: {most_recent}"
+
+
+def get_autosaved_labels(subject: str) -> List[html.Label]:
+    """Return formatted labels for autosaving with datetime."""
+    return [
+        html.Label(f"{subject} Autosaved ✔", className="autosaved-label"),
+        html.Label(utils.get_human_now(), className="autosaved-datetime"),
+    ]
 
 
 # --------------------------------------------------------------------------------------
@@ -135,6 +143,18 @@ def need_user_redirect(urlpath: str) -> bool:
 
 # --------------------------------------------------------------------------------------
 # Component/Attribute-Constructor Functions
+
+
+def make_autosaved_container(id_: str) -> dcc.Loading:
+    """Create a container for the autosaved container.
+
+    Wrapped in a `dcc.Loading`.
+    """
+    return dcc.Loading(
+        type="default",
+        color=TEAL,
+        children=html.Div(className="autosaved-container", id=id_),
+    )
 
 
 def new_data_button(id_num: int) -> html.Div:
