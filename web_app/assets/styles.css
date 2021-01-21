@@ -370,6 +370,7 @@ code {
 
 .Select-control {
     border-radius: .25rem;
+    word-break: normal !important;
 }
 
 .Select.is-disabled > .Select-control {
@@ -388,6 +389,12 @@ code {
 
 /*------------------------------------------------------------------------------------*/
 /* Table Tools */
+
+.dash-delete-header, .dash-delete-cell {
+    max-width: 12px !important;
+    width: 12px !important;
+    min-width: 12px !important;
+}
 
 .wbs-table-top-toolbar {
     height: 38px;
@@ -436,9 +443,9 @@ code {
 }
 
 .dash-table-tooltip {
-    max-width: 20rem !important;
+    max-width: 17rem !important;
     min-width: 10rem !important;
-    font-size: 1.3rem !important;
+    font-size: 11px !important;
     color: whitesmoke !important;
     letter-spacing: .05em;
 }
@@ -446,6 +453,34 @@ code {
 
 /*------------------------------------------------------------------------------------*/
 /* DataTable */
+
+/* dash cell & dropdown cell */
+.dash-cell,
+.dash-dropdown-cell-value-container > .Select > .Select-control > .Select-multi-value-wrapper > .Select-value {
+    font-size: 11px !important;
+    padding: 0 !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    word-break: normal !important;
+    white-space: break-spaces; /* enable word-breaking/wrapping */
+}
+
+.dash-dropdown-cell-value-container > .Select > .Select-control > .Select-multi-value-wrapper > .Select-value {
+    max-width: calc(100% - 25px);
+}
+
+/* dropdown cell "X" */
+.dash-dropdown-cell-value-container > .Select > .Select-control > .Select-clear-zone,
+.dash-dropdown-cell-value-container > .Select > .Select-control > .Select-clear-zone > * {
+    visibility: hidden;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+/* get rid of needless x-scroll */
+.dash-spreadsheet-inner {
+    min-width: calc(100% - 15px) !important;
+}
 
 .dash-header, .dash-delete-header {
     border-right-width: 1px !important;

@@ -1079,11 +1079,14 @@ def toggle_hidden_columns(
     tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath), cache=s_tconfig_cache)
 
     if n_clicks % 2 == 0:
+        hiddens = tconfig.get_hidden_columns()
+        if du.get_inst(s_urlpath) and not current_user.is_admin:
+            hiddens.append(tconfig.const.INSTITUTION)
         return (
             "Show Hidden Columns",
             du.Color.SECONDARY,
             True,
-            tconfig.get_hidden_columns(),
+            hiddens,
         )
 
     always_hidden_columns = tconfig.get_always_hidden_columns()

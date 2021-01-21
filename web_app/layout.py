@@ -321,7 +321,7 @@ def login_callback(
             msg = "Username not found"
             return no_update, True, True, msg, LOG_IN, "", True, ""
         except login.InvalidPasswordException:
-            msg = "Wrong password"
+            msg = "Incorrect password"
             return no_update, True, True, msg, LOG_IN, "", True, ""
         except login.NoUserInstitutionException:
             msg = "An institution must be selected"

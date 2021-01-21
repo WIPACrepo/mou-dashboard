@@ -206,11 +206,11 @@ def layout() -> html.Div:
                     "whiteSpace": "normal",
                     "fontWeight": "normal",
                     "height": "auto",
-                    "lineHeight": "15px",
+                    "lineHeight": "11px",
                 },
                 style_cell={
                     "textAlign": "left",
-                    "fontSize": 14,
+                    "fontSize": 11,
                     "font-family": "sans-serif",
                     "padding-left": "0.5em",
                     # these widths will make it obvious if there's a new/extra column
@@ -222,7 +222,7 @@ def layout() -> html.Div:
                 style_data={
                     "whiteSpace": "normal",
                     "height": "auto",
-                    "lineHeight": "20px",
+                    "lineHeight": "12px",
                     "wordBreak": "normal",
                 },
                 # style_data_conditional set in callback
