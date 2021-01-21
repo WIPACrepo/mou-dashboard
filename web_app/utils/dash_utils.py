@@ -157,6 +157,22 @@ def make_autosaved_container(id_: str) -> dcc.Loading:
     )
 
 
+def make_confirm_container(id_subject: str, message: str) -> html.Div:
+    """Create a container for confirming `subject`."""
+    return html.Div(
+        id=f"wbs-{id_subject}-confirm-container",
+        hidden=True,
+        className="autosaved-container",
+        children=[
+            html.Label(
+                message,
+                style={"color": TEAL, "font-weight": "bold", "font-style": "italic"},
+            ),
+            dbc.Button("Yes", id=f"wbs-{id_subject}-confirm-yes"),
+        ],
+    )
+
+
 def new_data_button(id_num: int) -> html.Div:
     """Get a button for triggering adding of new data."""
     return html.Div(

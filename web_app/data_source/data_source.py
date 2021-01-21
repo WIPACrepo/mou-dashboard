@@ -410,7 +410,17 @@ def override_table(
 
 def pull_institution_values(
     wbs_l1: str, snapshot_ts: types.DashVal, institution: types.DashVal
-) -> Tuple[Optional[int], Optional[int], Optional[int], Optional[int], str, bool]:
+) -> Tuple[
+    Optional[int],
+    Optional[int],
+    Optional[int],
+    Optional[int],
+    str,
+    Optional[int],
+    Optional[int],
+    bool,
+    bool,
+]:
     """Get the institution's values."""
     _validate(wbs_l1, str, falsy_okay=False)
     snapshot_ts = _validate(snapshot_ts, types.DashVal_types, out=str)
@@ -427,6 +437,9 @@ def pull_institution_values(
         cast(Optional[int], response.get("scientists_post_docs")),
         cast(Optional[int], response.get("grad_students")),
         cast(str, response.get("text", "")),
+        None,  # TODO
+        None,  # TODO
+        False,  # TODO
         False,  # TODO
     )
 
@@ -439,6 +452,8 @@ def push_institution_values(  # pylint: disable=R0913
     sci: types.DashVal,
     grad: types.DashVal,
     text: str,
+    hc_confirmed: bool,
+    comp_confirmed: bool,
 ) -> None:
     """Push the institution's values."""
     _validate(wbs_l1, str, falsy_okay=False)
@@ -448,6 +463,8 @@ def push_institution_values(  # pylint: disable=R0913
     sci = _validate(sci, types.DashVal_types)
     grad = _validate(grad, types.DashVal_types)
     _validate(text, str)
+    _validate(hc_confirmed, bool)
+    _validate(comp_confirmed, bool)
 
     body = {"institution": institution}
     if phds or phds == 0:
@@ -459,5 +476,7 @@ def push_institution_values(  # pylint: disable=R0913
     if grad or grad == 0:
         body["grad_students"] = grad
     body["text"] = text
+    body["headcounts_confirmed"] = hc_confirmed
+    body["computing_confirmed"] = comp_confirmed
 
     _ = mou_request("POST", f"/institution/values/{wbs_l1}", body=body)

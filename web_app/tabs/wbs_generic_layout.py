@@ -167,21 +167,8 @@ def layout() -> html.Div:
                         "wbs-institution-values-autosaved-container"
                     ),
                     # Confirm
-                    html.Div(
-                        id="wbs-headcounts-confirm-container",
-                        hidden=True,
-                        className="autosaved-container",
-                        children=[
-                            html.Label(
-                                "Are these headcounts correct?",
-                                style={
-                                    "color": du.TEAL,
-                                    "font-weight": "bold",
-                                    "font-style": "italic",
-                                },
-                            ),
-                            dbc.Button("Yes", id="wbs-headcounts-confirm-yes"),
-                        ],
+                    du.make_confirm_container(
+                        "headcounts", "Are these headcounts correct?"
                     ),
                 ],
             ),
@@ -298,6 +285,11 @@ def layout() -> html.Div:
             #
             # Table Autosaved
             du.make_autosaved_container("wbs-table-autosaved-container"),
+            #
+            # Computing Resources
+            #
+            # Confirm
+            du.make_confirm_container("computing", "Are these counts correct?"),
             #
             # Free Text
             html.Div(
