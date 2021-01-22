@@ -471,7 +471,7 @@ def layout() -> html.Div:
             du.upload_modal(),
             du.upload_success_modal(),
             du.name_snapshot_modal(),
-            du.add_new_data_modal(),
+            # du.add_new_data_modal(),
             dcc.ConfirmDialog(id="wbs-confirm-deletion"),
             dbc.Button(
                 id="wbs-undo-last-delete-hidden-button", style={"visibility": "hidden"}

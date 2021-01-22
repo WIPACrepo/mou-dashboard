@@ -52,7 +52,7 @@ def _add_new_data(  # pylint: disable=R0913
     labor: types.DashVal,
     institution: types.DashVal,
     tconfig: tc.TableConfigParser,
-    new_task: str,
+    # new_task: str,
 ) -> Tuple[types.Table, dbc.Toast]:
     """Push new record to data source; add to table.
 
@@ -69,7 +69,7 @@ def _add_new_data(  # pylint: disable=R0913
             wbs_l1,
             new_record,
             tconfig,
-            task=new_task,
+            # task=new_task,
             labor=labor,
             institution=institution,
             novel=True,
@@ -82,49 +82,49 @@ def _add_new_data(  # pylint: disable=R0913
     return table, toast
 
 
-@app.callback(  # type: ignore[misc]
-    [
-        Output("wbs-new-data-modal", "is_open"),
-        Output("wbs-new-data-modal-task", "value"),
-        Output("wbs-new-data-modal-dummy-add", "n_clicks"),
-        Output("wbs-new-data-modal-header", "children"),
-    ],
-    [
-        Input("wbs-new-data-button-1", "n_clicks"),  # user-only
-        Input("wbs-new-data-button-2", "n_clicks"),  # user-only
-        Input("wbs-new-data-modal-add-button", "n_clicks"),  # user-only
-    ],
-    [
-        State("wbs-new-data-modal-task", "value"),
-        State("url", "pathname"),
-        State("wbs-filter-labor", "value"),
-    ],
-    prevent_initial_call=True,
-)
-def handle_add_new_data(
-    _: int,
-    __: int,
-    ___: int,
-    # state(s)
-    s_task: str,
-    s_urlpath: str,
-    s_labor: str,
-) -> Tuple[bool, str, int, str]:
-    """Handle the modal for adding a new row."""
-    logging.warning(f"'{du.triggered()}' -> handle_add_new_data()")
+# @app.callback(  # type: ignore[misc]
+#     [
+#         Output("wbs-new-data-modal", "is_open"),
+#         Output("wbs-new-data-modal-task", "value"),
+#         Output("wbs-new-data-modal-dummy-add", "n_clicks"),
+#         Output("wbs-new-data-modal-header", "children"),
+#     ],
+#     [
+#         Input("wbs-new-data-button-1", "n_clicks"),  # user-only
+#         Input("wbs-new-data-button-2", "n_clicks"),  # user-only
+#         Input("wbs-new-data-modal-add-button", "n_clicks"),  # user-only
+#     ],
+#     [
+#         State("wbs-new-data-modal-task", "value"),
+#         State("url", "pathname"),
+#         State("wbs-filter-labor", "value"),
+#     ],
+#     prevent_initial_call=True,
+# )
+# def handle_add_new_data(
+#     _: int,
+#     __: int,
+#     ___: int,
+#     # state(s)
+#     s_task: str,
+#     s_urlpath: str,
+#     s_labor: str,
+# ) -> Tuple[bool, str, int, str]:
+#     """Handle the modal for adding a new row."""
+#     logging.warning(f"'{du.triggered()}' -> handle_add_new_data()")
 
-    if du.triggered_id() == "wbs-new-data-modal-add-button":
-        if not s_task:
-            return no_update, no_update, no_update, no_update
-        return False, s_task, 1, no_update
+#     if du.triggered_id() == "wbs-new-data-modal-add-button":
+#         if not s_task:
+#             return no_update, no_update, no_update, no_update
+#         return False, s_task, 1, no_update
 
-    header = "Add New Data"
-    if inst := du.get_inst(s_urlpath):
-        header += f" for {inst}"
-    if s_labor:
-        header += f" ({s_labor})"
+#     header = "Add New Data"
+#     if inst := du.get_inst(s_urlpath):
+#         header += f" for {inst}"
+#     if s_labor:
+#         header += f" ({s_labor})"
 
-    return True, "", no_update, header
+#     return True, "", no_update, header
 
 
 @app.callback(  # type: ignore[misc]
@@ -194,7 +194,9 @@ def confirm_deletion(
         Input("wbs-data-table", "columns"),  # setup_table()-only
         Input("wbs-filter-labor", "value"),  # user
         Input("wbs-show-totals-button", "n_clicks"),  # user-only
-        Input("wbs-new-data-modal-dummy-add", "n_clicks"),  # handle_add_new_data()-only
+        # Input("wbs-new-data-modal-dummy-add", "n_clicks"),  # handle_add_new_data()-only
+        Input("wbs-new-data-button-1", "n_clicks"),  # user-only
+        Input("wbs-new-data-button-2", "n_clicks"),  # user-only
         Input("wbs-undo-last-delete-hidden-button", "n_clicks"),  # confirm_deletion()
     ],
     [
@@ -204,7 +206,7 @@ def confirm_deletion(
         State("wbs-show-all-columns-button", "n_clicks"),
         State("wbs-last-deleted-record", "data"),
         State("wbs-table-config-cache", "data"),
-        State("wbs-new-data-modal-task", "value"),
+        # State("wbs-new-data-modal-task", "value"),
         State("wbs-table-update-flag-exterior-control", "data"),
     ],
     prevent_initial_call=True,  # must wait for columns
@@ -215,6 +217,7 @@ def table_data_exterior_controls(
     tot_n_clicks: int,
     _: int,
     __: int,
+    ___: int,
     # state(s)
     s_urlpath: str,
     s_snap_ts: types.DashVal,
@@ -222,7 +225,7 @@ def table_data_exterior_controls(
     s_all_cols: int,
     s_deleted_record: types.Record,
     s_tconfig_cache: tc.TableConfigParser.CacheType,
-    s_new_task: str,
+    # s_new_task: str,
     s_flag_extctrl: bool,
 ) -> Tuple[types.Table, int, dbc.Toast, str, str, bool, int, bool, int, Dict[str, str]]:
     """Exterior control signaled that the table should be updated.
@@ -254,10 +257,11 @@ def table_data_exterior_controls(
         pass
 
     # Add New Data
-    elif du.triggered_id() == "wbs-new-data-modal-dummy-add":
+    # elif du.triggered_id() == "wbs-new-data-modal-dummy-add":
+    elif du.triggered_id() in ["wbs-new-data-button-1", "wbs-new-data-button-2"]:
         if not s_snap_ts:  # are we looking at a snapshot?
             table, toast = _add_new_data(
-                wbs_l1, s_table, columns, labor, inst, tconfig, s_new_task
+                wbs_l1, s_table, columns, labor, inst, tconfig,  # s_new_task
             )
 
     # OR Restore a types.Record and Pull types.Table (optionally filtered)

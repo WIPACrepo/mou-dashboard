@@ -20,6 +20,9 @@ REFRESH_MSG: Final[str] = "Refresh page and try again."
 GOOD_WAIT: Final[int] = 30
 TEAL: Final[str] = "#17a2b8"
 GREEN: Final[str] = "#258835"
+RED: Final[str] = "#B22222"
+YELLOW: Final[str] = "#EED202"
+LIGHT_YELLOW: Final[str] = "#FFEC82"
 TABLE_GRAY: Final[str] = "#23272B"
 RELOAD: Final[str] = "location.reload();"
 
@@ -275,7 +278,7 @@ def get_table_tooltips(tconfig: tc.TableConfigParser) -> types.TTooltips:
         return f"{tooltip} (double-click to edit)"
 
     return {
-        c: {"type": "text", "value": _tooltip(c), "delay": 250, "duration": None}
+        c: {"type": "text", "value": _tooltip(c), "delay": 1500, "duration": 2000}
         for c in tconfig.get_table_columns()
     }
 
@@ -313,6 +316,13 @@ def get_style_data_conditional(tconfig: tc.TableConfigParser) -> types.TSDCond:
         for col in tconfig.get_table_columns()
     ]
 
+    # incomplete rows
+    style_data_conditional += [
+        {"if": {"filter_query": f'{{{col}}} = ""'}, "backgroundColor": LIGHT_YELLOW}
+        for col in tconfig.get_table_columns()
+        if col not in tconfig.get_hidden_columns()
+    ]
+
     # selected cell style
     style_data_conditional += [
         {
@@ -322,7 +332,7 @@ def get_style_data_conditional(tconfig: tc.TableConfigParser) -> types.TSDCond:
         }
     ]
 
-    # total row style
+    # total-row style
     style_data_conditional += [
         {
             "if": {"filter_query": "{Total-Row Description} contains 'GRAND TOTAL'"},
@@ -531,40 +541,40 @@ def name_snapshot_modal() -> dbc.Modal:
     )
 
 
-def add_new_data_modal() -> dbc.Modal:
-    """Get a modal for adding new data."""
-    return dbc.Modal(
-        id="wbs-new-data-modal",
-        size="md",
-        is_open=False,
-        # backdrop="static",
-        centered=True,
-        children=[
-            html.Div(
-                children=dbc.Button(id="wbs-new-data-modal-dummy-add", n_clicks=0),
-                hidden=True,
-            ),
-            html.Div(id="wbs-new-data-modal-header", className="section-header caps"),
-            dbc.ModalBody(
-                dcc.Textarea(
-                    id="wbs-new-data-modal-task",
-                    value="",
-                    minLength=5,
-                    placeholder="Enter Task Description",
-                    style={"width": "100%"},
-                ),
-            ),
-            dbc.ModalFooter(
-                dbc.Button(
-                    "+ Add",
-                    id="wbs-new-data-modal-add-button",
-                    n_clicks=0,
-                    color=Color.SUCCESS,
-                    className="table-tool-medium",
-                ),
-            ),
-        ],
-    )
+# def add_new_data_modal() -> dbc.Modal:
+#     """Get a modal for adding new data."""
+#     return dbc.Modal(
+#         id="wbs-new-data-modal",
+#         size="md",
+#         is_open=False,
+#         # backdrop="static",
+#         centered=True,
+#         children=[
+#             html.Div(
+#                 children=dbc.Button(id="wbs-new-data-modal-dummy-add", n_clicks=0),
+#                 hidden=True,
+#             ),
+#             html.Div(id="wbs-new-data-modal-header", className="section-header caps"),
+#             dbc.ModalBody(
+#                 dcc.Textarea(
+#                     id="wbs-new-data-modal-task",
+#                     value="",
+#                     minLength=5,
+#                     placeholder="Enter Task Description",
+#                     style={"width": "100%"},
+#                 ),
+#             ),
+#             dbc.ModalFooter(
+#                 dbc.Button(
+#                     "+ Add",
+#                     id="wbs-new-data-modal-add-button",
+#                     n_clicks=0,
+#                     color=Color.SUCCESS,
+#                     className="table-tool-medium",
+#                 ),
+#             ),
+#         ],
+#     )
 
 
 def simple_table(id_: str) -> dash_table.DataTable:
