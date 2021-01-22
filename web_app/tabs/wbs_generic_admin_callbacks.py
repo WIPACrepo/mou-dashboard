@@ -179,6 +179,10 @@ def summarize(
         "Faculty",
         "Scientists / Post Docs",
         "Ph.D. Students",
+        "Headcounts Confirmed?",
+        "CPU",
+        "GPU",
+        "Computing Confirmed?",
     ]
     column_names.extend(tconfig.get_l2_categories())
     column_names.append("Total")
@@ -198,9 +202,8 @@ def summarize(
 
     summary_table: types.Table = []
     for inst_full, abbrev in tconfig.get_institutions_w_abbrevs():
-        phds, faculty, sci, grad, __, ___ = src.pull_institution_values(
-            wbs_l1, s_snap_ts, abbrev
-        )
+        ret = src.pull_institution_values(wbs_l1, s_snap_ts, abbrev)
+        (phds, faculty, sci, grad, cpus, gpus, __, hc_conf, comp_conf) = ret
 
         row: Dict[str, types.StrNum] = {
             "Institution": inst_full,
@@ -208,6 +211,10 @@ def summarize(
             "Faculty": faculty if faculty else 0,
             "Scientists / Post Docs": sci if sci else 0,
             "Ph.D. Students": grad if grad else 0,
+            "Headcounts Confirmed?": "Yes" if hc_conf else "No",
+            "CPU": cpus if cpus else 0,
+            "GPU": gpus if gpus else 0,
+            "Computing Confirmed?": "Yes" if comp_conf else "No",
         }
 
         row.update({l2: _sum_it(abbrev, l2) for l2 in tconfig.get_l2_categories()})
