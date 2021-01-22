@@ -51,6 +51,8 @@ ADMINS = [
     "catherine.vakhnina",
     "khanson",
     "kael.hanson",
+    "benedikt.riedel",
+    "briedel",
 ]
 
 
