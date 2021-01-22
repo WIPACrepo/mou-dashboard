@@ -3,7 +3,7 @@
 import logging
 from collections import OrderedDict as ODict
 from decimal import Decimal
-from typing import Dict, Final, List, Optional, Tuple, TypedDict
+from typing import cast, Dict, Final, List, Optional, Tuple, TypedDict
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -180,6 +180,7 @@ def summarize(
                 "Faculty",
                 "Scientists / Post Docs",
                 "Ph.D. Students",
+                "Headcount Total",
                 "Headcounts Confirmed?",
                 "CPU",
                 "GPU",
@@ -187,7 +188,9 @@ def summarize(
             ]
         )
     column_names.extend(tconfig.get_l2_categories())
-    column_names.append("Total")
+    column_names.append("FTE Total")
+    if wbs_l1 == "mo":
+        column_names.append("FTE / Headcount")
     columns = [{"id": c, "name": c, "type": "numeric"} for c in column_names]
 
     def _sum_it(_inst: str, _l2: str = "") -> float:
@@ -223,10 +226,27 @@ def summarize(
                     "Computing Confirmed?": "Yes" if comp_conf else "No",
                 }
             )
+            row["Headcount Total"] = sum(
+                cast(float, row.get(hc))
+                for hc in [
+                    "Ph.D. Authors",
+                    "Faculty",
+                    "Scientists / Post Docs",
+                    "Ph.D. Students",
+                ]
+            )
 
         row.update({l2: _sum_it(abbrev, l2) for l2 in tconfig.get_l2_categories()})
 
-        row["Total"] = _sum_it(abbrev)
+        row["FTE Total"] = _sum_it(abbrev)
+
+        if wbs_l1 == "mo":
+            try:
+                row["FTE / Headcount"] = cast(float, row["FTE Total"]) / cast(
+                    float, row["Headcount Total"]
+                )
+            except ZeroDivisionError:
+                row["FTE / Headcount"] = ""
 
         summary_table.append(row)
 
