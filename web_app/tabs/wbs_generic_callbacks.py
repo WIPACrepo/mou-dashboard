@@ -781,6 +781,7 @@ def handle_make_snapshot(
         Output("wbs-filter-labor", "options"),
         Output("wbs-headcounts-confirm-container", "hidden"),
         Output("wbs-computing-confirm-container", "hidden"),
+        Output("wbs-headcounts-confirm-container-container", "hidden"),
     ],
     [Input("dummy-input-for-setup", "hidden")],  # never triggered
     [
@@ -813,6 +814,7 @@ def setup_institution_components(
     List[Dict[str, str]],
     bool,
     bool,
+    bool,
 ]:
     """Set up institution-related components."""
     logging.warning(
@@ -823,7 +825,7 @@ def setup_institution_components(
 
     # Check Login
     if not current_user.is_authenticated:
-        return tuple(no_update for _ in range(17))  # type: ignore[return-value]
+        return tuple(no_update for _ in range(18))  # type: ignore[return-value]
 
     phds: types.DashVal = 0
     faculty: types.DashVal = 0
@@ -876,6 +878,7 @@ def setup_institution_components(
         labor_options,
         hc_conf,  # hide if values are confirmed
         comp_conf,  # hide if values are confirmed
+        None in [phds, faculty, sci, grad],
     )
 
 
@@ -957,14 +960,8 @@ def push_institution_values(  # pylint: disable=R0913
 
     # labels
     txt_labels = du.get_autosaved_labels("Notes & Descriptions")
-    if s_hc_confirm_hidden:
-        hc_labels = du.get_autosaved_labels("Headcounts")
-    else:
-        hc_labels = []
-    if s_comp_confirm_hidden:
-        comp_labels = du.get_autosaved_labels("Computing Contributions")
-    else:
-        comp_labels = []
+    hc_labels = du.get_autosaved_labels("Headcounts")
+    comp_labels = du.get_autosaved_labels("Computing Contributions")
 
     # Are the fields editable?
     if not current_user.is_authenticated and not s_snap_ts:
@@ -984,16 +981,16 @@ def push_institution_values(  # pylint: disable=R0913
         return False, hc_labels, txt_labels, comp_labels, no_update
 
     # push
-    refresh = no_update
+    reload_page = no_update
     try:
         hc_confirmed = s_hc_confirm_hidden  # not hidden = not confirmed
         comp_confirmed = s_comp_confirm_hidden  # not hidden = not confirmed
         if du.triggered_id() == "wbs-headcounts-confirm-yes":
             hc_confirmed = True
-            refresh = du.RELOAD
+            reload_page = du.RELOAD
         elif du.triggered_id() == "wbs-computing-confirm-yes":
             comp_confirmed = True
-            refresh = du.RELOAD
+            reload_page = du.RELOAD
         src.push_institution_values(
             du.get_wbs_l1(s_urlpath),
             inst,
@@ -1010,7 +1007,7 @@ def push_institution_values(  # pylint: disable=R0913
     except DataSourceException:
         assert len(s_table) == 0  # there's no collection to push to
 
-    return False, hc_labels, txt_labels, comp_labels, refresh
+    return False, hc_labels, txt_labels, comp_labels, reload_page
 
 
 # --------------------------------------------------------------------------------------

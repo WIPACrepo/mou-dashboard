@@ -436,11 +436,11 @@ def pull_institution_values(
         cast(Optional[int], response.get("faculty")),
         cast(Optional[int], response.get("scientists_post_docs")),
         cast(Optional[int], response.get("grad_students")),
-        5,  # TODO
-        77,  # TODO
+        cast(Optional[int], response.get("cpus")),
+        cast(Optional[int], response.get("gpus")),
         cast(str, response.get("text", "")),
-        False,  # TODO
-        False,  # TODO
+        cast(bool, response.get("headcounts_confirmed", False)),
+        cast(bool, response.get("computing_confirmed", False)),
     )
 
 

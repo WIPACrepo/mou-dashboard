@@ -27,7 +27,11 @@ class InstitutionValues(TypedDict):
     faculty: Optional[int]
     scientists_post_docs: Optional[int]
     grad_students: Optional[int]
+    cpus: Optional[int]
+    gpus: Optional[int]
     text: str
+    headcounts_confirmed: bool
+    computing_confirmed: bool
 
 
 class SupplementalDoc(TypedDict):
