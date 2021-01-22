@@ -161,18 +161,9 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
 }
 
 
-def get_columns(l1: str) -> List[str]:  # pylint: disable=C0103
+def get_columns() -> List[str]:  # pylint: disable=C0103
     """Get the columns."""
-    cols = list(_COLUMN_CONFIGS.keys())
-
-    if l1 != "mo":
-        cols.remove(SOURCE_OF_FUNDS_US_ONLY)
-        cols.remove(NSF_MO_CORE)
-        cols.remove(NSF_BASE_GRANTS)
-        cols.remove(US_IN_KIND)
-        cols.remove(NON_US_IN_KIND)
-
-    return cols
+    return list(_COLUMN_CONFIGS.keys())
 
 
 def get_institutions_and_abbrevs() -> List[Tuple[str, str]]:
