@@ -178,7 +178,10 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
         if total_rows:
             table.extend(
                 utils.get_total_rows(
-                    wbs_l1, table, only_totals_w_data=labor or institution
+                    wbs_l1,
+                    table,
+                    only_totals_w_data=labor or institution,
+                    with_us_non_us=not institution,
                 )
             )
 
@@ -237,6 +240,7 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
 
         record = utils.remove_on_the_fly_fields(record)
         record = await self.dbms.upsert_record(wbs_l1, record, editor)
+        record = utils.add_on_the_fly_fields(record)
 
         self.write({"record": record})
 
@@ -246,9 +250,9 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
         record_id = self.get_argument("record_id")
         editor = self.get_argument("editor")
 
-        await self.dbms.delete_record(wbs_l1, record_id, editor)
+        record = await self.dbms.delete_record(wbs_l1, record_id, editor)
 
-        self.write({})
+        self.write({"record": record})
 
 
 # -----------------------------------------------------------------------------
@@ -356,14 +360,26 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
         faculty = self.get_argument("faculty", type_=int, default=-1)
         sci = self.get_argument("scientists_post_docs", type_=int, default=-1)
         grad = self.get_argument("grad_students", type_=int, default=-1)
+        cpus = self.get_argument("cpus", type_=int, default=-1)
+        gpus = self.get_argument("gpus", type_=int, default=-1)
         text = self.get_argument("text", default="")
+        headcounts_confirmed = self.get_argument(
+            "headcounts_confirmed", type_=bool, default=False
+        )
+        computing_confirmed = self.get_argument(
+            "computing_confirmed", type_=bool, default=False
+        )
 
         vals: types.InstitutionValues = {
-            "phds_authors": phds if phds > 0 else None,
-            "faculty": faculty if faculty > 0 else None,
-            "scientists_post_docs": sci if sci > 0 else None,
-            "grad_students": grad if grad > 0 else None,
+            "phds_authors": phds if phds >= 0 else None,
+            "faculty": faculty if faculty >= 0 else None,
+            "scientists_post_docs": sci if sci >= 0 else None,
+            "grad_students": grad if grad >= 0 else None,
+            "cpus": cpus if cpus >= 0 else None,
+            "gpus": gpus if gpus >= 0 else None,
             "text": text,
+            "headcounts_confirmed": headcounts_confirmed,
+            "computing_confirmed": computing_confirmed,
         }
 
         await self.dbms.upsert_institution_values(wbs_l1, institution, vals)

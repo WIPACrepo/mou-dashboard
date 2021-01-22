@@ -75,7 +75,23 @@ class TableConfigParser:  # pylint: disable=R0904
 
     def get_table_columns(self) -> List[str]:
         """Get table column's names."""
-        return self._configs[self._wbs_l1]["columns"]
+        cols = self._configs[self._wbs_l1]["columns"]
+
+        if self._wbs_l1 != "mo":
+            cols = [
+                c
+                for c in cols
+                if c
+                not in [
+                    self.const.SOURCE_OF_FUNDS_US_ONLY,
+                    self.const.NSF_MO_CORE,
+                    self.const.NSF_BASE_GRANTS,
+                    self.const.US_IN_KIND,
+                    self.const.NON_US_IN_KIND,
+                ]
+            ]
+
+        return cols
 
     def get_column_tooltip(self, column: str) -> str:
         """Get the tooltip for the given column."""
@@ -125,11 +141,13 @@ class TableConfigParser:  # pylint: disable=R0904
 
         AKA, columns that are marked as hidden and have width of `0`.
         """
-        return [
+        cols = [
             c
             for c in self._configs[self._wbs_l1]["hiddens"]
             if not self.get_column_width(c)
         ]
+
+        return cols
 
     def get_dropdown_columns(self) -> List[str]:
         """Get list of dropdown-type columns."""

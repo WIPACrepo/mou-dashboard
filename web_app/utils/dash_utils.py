@@ -20,6 +20,9 @@ REFRESH_MSG: Final[str] = "Refresh page and try again."
 GOOD_WAIT: Final[int] = 30
 TEAL: Final[str] = "#17a2b8"
 GREEN: Final[str] = "#258835"
+RED: Final[str] = "#B22222"
+YELLOW: Final[str] = "#EED202"
+LIGHT_YELLOW: Final[str] = "#FFEC82"
 TABLE_GRAY: Final[str] = "#23272B"
 RELOAD: Final[str] = "location.reload();"
 
@@ -42,13 +45,23 @@ class Color:  # pylint: disable=R0903
 # Function(s) that really should be in a dash library
 
 
-def triggered_id() -> str:
-    """Return the id of the property that triggered the callback.
+def triggered() -> str:
+    """Return the component that triggered the callback.
 
     https://dash.plotly.com/advanced-callbacks
     """
-    trig = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
+    trig = dash.callback_context.triggered[0]["prop_id"]
     return cast(str, trig)
+
+
+def triggered_id() -> str:
+    """Return the component id that triggered the callback."""
+    return triggered().split(".")[0]
+
+
+def triggered_property() -> str:
+    """Return the component property that triggered the callback."""
+    return triggered().split(".")[1]
 
 
 def flags_agree(one: bool, two: bool) -> bool:
@@ -82,7 +95,15 @@ def get_sow_last_updated_label(
     else:
         most_recent = utils.get_human_now()
 
-    return f"Last Updated: {most_recent}"
+    return f"SOWs Last Updated: {most_recent}"
+
+
+def get_autosaved_labels(subject: str) -> List[html.Label]:
+    """Return formatted labels for autosaving with datetime."""
+    return [
+        html.Label(f"{subject} Autosaved ✔", className="autosaved-label"),
+        html.Label(utils.get_human_now(), className="autosaved-datetime"),
+    ]
 
 
 # --------------------------------------------------------------------------------------
@@ -125,6 +146,34 @@ def need_user_redirect(urlpath: str) -> bool:
 
 # --------------------------------------------------------------------------------------
 # Component/Attribute-Constructor Functions
+
+
+def make_autosaved_container(id_: str) -> dcc.Loading:
+    """Create a container for the autosaved container.
+
+    Wrapped in a `dcc.Loading`.
+    """
+    return dcc.Loading(
+        type="default",
+        color=TEAL,
+        children=html.Div(className="autosaved-container", id=id_),
+    )
+
+
+def make_confirm_container(id_subject: str, message: str) -> html.Div:
+    """Create a container for confirming `subject`."""
+    return html.Div(
+        id=f"wbs-{id_subject}-confirm-container",
+        hidden=True,
+        className="autosaved-container",
+        children=[
+            html.Label(
+                message,
+                style={"color": TEAL, "font-weight": "bold", "font-style": "italic"},
+            ),
+            dbc.Button("Yes", id=f"wbs-{id_subject}-confirm-yes"),
+        ],
+    )
 
 
 def new_data_button(id_num: int) -> html.Div:
@@ -229,7 +278,7 @@ def get_table_tooltips(tconfig: tc.TableConfigParser) -> types.TTooltips:
         return f"{tooltip} (double-click to edit)"
 
     return {
-        c: {"type": "text", "value": _tooltip(c), "delay": 250, "duration": None}
+        c: {"type": "text", "value": _tooltip(c), "delay": 1500, "duration": 2000}
         for c in tconfig.get_table_columns()
     }
 
@@ -267,6 +316,13 @@ def get_style_data_conditional(tconfig: tc.TableConfigParser) -> types.TSDCond:
         for col in tconfig.get_table_columns()
     ]
 
+    # incomplete rows
+    style_data_conditional += [
+        {"if": {"filter_query": f'{{{col}}} = ""'}, "backgroundColor": LIGHT_YELLOW}
+        for col in tconfig.get_table_columns()
+        if col not in tconfig.get_hidden_columns()
+    ]
+
     # selected cell style
     style_data_conditional += [
         {
@@ -276,7 +332,7 @@ def get_style_data_conditional(tconfig: tc.TableConfigParser) -> types.TSDCond:
         }
     ]
 
-    # total row style
+    # total-row style
     style_data_conditional += [
         {
             "if": {"filter_query": "{Total-Row Description} contains 'GRAND TOTAL'"},
@@ -311,10 +367,10 @@ def get_style_data_conditional(tconfig: tc.TableConfigParser) -> types.TSDCond:
     return style_data_conditional
 
 
-def deletion_toast() -> dbc.Toast:
-    """Get a toast for confirming a deletion."""
+def after_deletion_toast() -> dbc.Toast:
+    """Get a toast for after a deletion."""
     return dbc.Toast(
-        id="wbs-deletion-toast",
+        id="wbs-after-deletion-toast",
         header="Row Deleted",
         is_open=False,
         dismissable=True,
@@ -329,18 +385,7 @@ def deletion_toast() -> dbc.Toast:
             "width": 350,
             "font-size": "1.1em",
         },
-        children=[
-            html.Div(id="wbs-deletion-toast-message"),
-            html.Div(
-                dbc.Button(
-                    "Restore Row",
-                    id="wbs-undo-last-delete",
-                    color=Color.DANGER,
-                    outline=True,
-                ),
-                style={"text-align": "center", "margin-top": "2rem"},
-            ),
-        ],
+        children=[html.Div(id="wbs-after-deletion-toast-message")],
     )
 
 
@@ -496,40 +541,40 @@ def name_snapshot_modal() -> dbc.Modal:
     )
 
 
-def add_new_data_modal() -> dbc.Modal:
-    """Get a modal for adding new data."""
-    return dbc.Modal(
-        id="wbs-new-data-modal",
-        size="md",
-        is_open=False,
-        # backdrop="static",
-        centered=True,
-        children=[
-            html.Div(
-                children=dbc.Button(id="wbs-new-data-modal-dummy-add", n_clicks=0),
-                hidden=True,
-            ),
-            html.Div(id="wbs-new-data-modal-header", className="section-header caps"),
-            dbc.ModalBody(
-                dcc.Textarea(
-                    id="wbs-new-data-modal-task",
-                    value="",
-                    minLength=5,
-                    placeholder="Enter Task Description",
-                    style={"width": "100%"},
-                ),
-            ),
-            dbc.ModalFooter(
-                dbc.Button(
-                    "+ Add",
-                    id="wbs-new-data-modal-add-button",
-                    n_clicks=0,
-                    color=Color.SUCCESS,
-                    className="table-tool-medium",
-                ),
-            ),
-        ],
-    )
+# def add_new_data_modal() -> dbc.Modal:
+#     """Get a modal for adding new data."""
+#     return dbc.Modal(
+#         id="wbs-new-data-modal",
+#         size="md",
+#         is_open=False,
+#         # backdrop="static",
+#         centered=True,
+#         children=[
+#             html.Div(
+#                 children=dbc.Button(id="wbs-new-data-modal-dummy-add", n_clicks=0),
+#                 hidden=True,
+#             ),
+#             html.Div(id="wbs-new-data-modal-header", className="section-header caps"),
+#             dbc.ModalBody(
+#                 dcc.Textarea(
+#                     id="wbs-new-data-modal-task",
+#                     value="",
+#                     minLength=5,
+#                     placeholder="Enter Task Description",
+#                     style={"width": "100%"},
+#                 ),
+#             ),
+#             dbc.ModalFooter(
+#                 dbc.Button(
+#                     "+ Add",
+#                     id="wbs-new-data-modal-add-button",
+#                     n_clicks=0,
+#                     color=Color.SUCCESS,
+#                     className="table-tool-medium",
+#                 ),
+#             ),
+#         ],
+#     )
 
 
 def simple_table(id_: str) -> dash_table.DataTable:

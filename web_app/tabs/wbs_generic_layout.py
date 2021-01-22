@@ -16,6 +16,24 @@ def layout() -> html.Div:
         children=[
             html.Div(id="dummy-input-for-setup", hidden=True),
             #
+            # PDF User Guide
+            dbc.Alert(
+                className="caps",
+                color=du.Color.DARK,
+                style={
+                    "fontWeight": "bold",
+                    "fontStyle": "italic",
+                    "width": "100%",
+                    "text-align": "center",
+                    "margin-bottom": "1rem",
+                },
+                children=html.A(
+                    "Download User Guide PDF",
+                    download="MoU_Dashboard_Getting_Started.pdf",
+                    href="/assets/MoU_Dashboard_Getting_Started.pdf",
+                ),
+            ),
+            #
             # "Viewing Snapshot" Alert
             dbc.Alert(
                 children=[
@@ -112,9 +130,19 @@ def layout() -> html.Div:
                         width=4,
                         className="top-corner",
                         children=[
-                            html.Div(
-                                id="wbs-sow-last-updated", className="sow-last-updated",
-                            ),
+                            dcc.Loading(
+                                type="default",
+                                color=du.TEAL,
+                                style={
+                                    "right": "0px",
+                                    "position": "absolute",
+                                    "height": "4rem",
+                                },
+                                children=html.Div(
+                                    id="wbs-sow-last-updated",
+                                    className="sow-last-updated",
+                                ),
+                            )
                         ],
                     ),
                 ],
@@ -126,7 +154,7 @@ def layout() -> html.Div:
                 id="institution-headcounts-container",
                 hidden=True,
                 children=[
-                    #
+                    # Inputs
                     dbc.Row(
                         justify="center",
                         no_gutters=True,
@@ -152,16 +180,16 @@ def layout() -> html.Div:
                             ]
                         ],
                     ),
-                    #
-                    dcc.Loading(
-                        type="default",
-                        color=du.TEAL,
-                        children=[
-                            html.Div(
-                                className="last-updated-label caps",
-                                id="wbs-institution-values-last-updated-label",
-                            ),
-                        ],
+                    # Autosaved
+                    du.make_autosaved_container(
+                        "wbs-institution-values-autosaved-container"
+                    ),
+                    # Confirm
+                    html.Div(
+                        id="wbs-headcounts-confirm-container-container",
+                        children=du.make_confirm_container(
+                            "headcounts", "Are these headcounts correct?"
+                        ),
                     ),
                 ],
             ),
@@ -206,11 +234,11 @@ def layout() -> html.Div:
                     "whiteSpace": "normal",
                     "fontWeight": "normal",
                     "height": "auto",
-                    "lineHeight": "15px",
+                    "lineHeight": "11px",
                 },
                 style_cell={
                     "textAlign": "left",
-                    "fontSize": 14,
+                    "fontSize": 11,
                     "font-family": "sans-serif",
                     "padding-left": "0.5em",
                     # these widths will make it obvious if there's a new/extra column
@@ -222,7 +250,7 @@ def layout() -> html.Div:
                 style_data={
                     "whiteSpace": "normal",
                     "height": "auto",
-                    "lineHeight": "20px",
+                    "lineHeight": "12px",
                     "wordBreak": "normal",
                 },
                 # style_data_conditional set in callback
@@ -276,29 +304,65 @@ def layout() -> html.Div:
                 ]
             ),
             #
-            # Last Refreshed
-            html.Label(
-                id="wbs-table-last-updated-label", className="last-updated-label caps",
-            ),
+            # Table Autosaved
+            du.make_autosaved_container("wbs-table-autosaved-container"),
             #
-            # Free Text
             html.Div(
-                id="institution-textarea-container",
+                id="institution-values-below-table-container",
                 hidden=True,
                 children=[
+                    #
+                    # Computing Resources
+                    html.H2(
+                        className="section-header",
+                        id="wbs-h2-inst-computing",
+                        children="Computing Contributions",
+                    ),
+                    # Inputs
+                    dbc.Row(
+                        justify="center",
+                        no_gutters=True,
+                        children=[
+                            dbc.Col(
+                                className="institution-headcount",
+                                children=[
+                                    html.Div(_label, className="caps"),
+                                    dcc.Input(
+                                        id=_id,
+                                        className="institution-headcount-input",
+                                        type="number",
+                                        min=0,
+                                        disabled=True,
+                                    ),
+                                ],
+                            )
+                            for _id, _label in [
+                                ("wbs-cpus", "CPU"),
+                                ("wbs-gpus", "GPU"),
+                            ]
+                        ],
+                    ),
+                    # Autosaved
+                    du.make_autosaved_container(
+                        "wbs-institution-computing-autosaved-container"
+                    ),
+                    # Confirm
+                    du.make_confirm_container("computing", "Are these counts correct?"),
+                    #
+                    # Free Text
                     html.H2(
                         className="section-header",
                         id="wbs-h2-inst-textarea",
-                        children="Notes and Descriptions",
+                        children="Miscellaneous Notes and Descriptions",
                     ),
                     dcc.Textarea(
                         id="wbs-textarea",
                         className="institution-text-area",
                         disabled=True,
                     ),
-                    html.Div(
-                        className="last-updated-label caps",
-                        id="wbs-institution-textarea-last-updated-label",
+                    # Autosaved
+                    du.make_autosaved_container(
+                        "wbs-institution-textarea-autosaved-container"
                     ),
                 ],
             ),
@@ -400,7 +464,7 @@ def layout() -> html.Div:
                 data=True,
             ),
             # - for storing the last deleted record's id
-            dcc.Store(id="wbs-last-deleted-id", storage_type="memory"),
+            dcc.Store(id="wbs-last-deleted-record", storage_type="memory"),
             # - for discerning whether the table update was by the user vs automated
             # -- flags will agree only after table_data_exterior_controls() triggers table_data_interior_controls()
             dcc.Store(
@@ -416,16 +480,20 @@ def layout() -> html.Div:
             #
             # Container Divs -- for adding dynamic toasts, dialogs, etc.
             html.Div(id="wbs-toast-via-exterior-control-div"),
-            html.Div(id="wbs-toast-via-interior-control-div"),
+            html.Div(id="wbs-toast-via-confirm-deletion-div"),
             html.Div(id="wbs-toast-via-snapshot-div"),
             html.Div(id="wbs-toast-via-upload-div"),
             #
             # Modals & Toasts
-            du.deletion_toast(),
+            du.after_deletion_toast(),
             du.upload_modal(),
             du.upload_success_modal(),
             du.name_snapshot_modal(),
-            du.add_new_data_modal(),
+            # du.add_new_data_modal(),
+            dcc.ConfirmDialog(id="wbs-confirm-deletion"),
+            dbc.Button(
+                id="wbs-undo-last-delete-hidden-button", style={"visibility": "hidden"}
+            ),
             ###
         ]
     )

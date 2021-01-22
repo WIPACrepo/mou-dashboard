@@ -3,7 +3,7 @@
 import logging
 from collections import OrderedDict as ODict
 from decimal import Decimal
-from typing import Dict, Final, List, Optional, Tuple, TypedDict
+from typing import cast, Dict, Final, List, Optional, Tuple, TypedDict
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -99,7 +99,7 @@ def handle_xlsx(  # pylint: disable=R0911
     s_filename: str,
 ) -> Tuple[bool, str, str, bool, dbc.Toast, bool, List[dcc.Markdown]]:
     """Manage uploading a new xlsx document as the new live table."""
-    logging.warning(f"'{du.triggered_id()}' -> handle_xlsx()")
+    logging.warning(f"'{du.triggered()}' -> handle_xlsx()")
 
     if not current_user.is_authenticated or not current_user.is_admin:
         logging.error("Cannot handle xlsx since user is not admin.")
@@ -138,7 +138,7 @@ def handle_xlsx(  # pylint: disable=R0911
             error_message = f'Error overriding "{s_filename}" ({e})'
             return True, error_message, du.Color.DANGER, True, None, False, []
 
-    raise Exception(f"Unaccounted for trigger {du.triggered_id()}")
+    raise Exception(f"Unaccounted for trigger {du.triggered()}")
 
 
 @app.callback(  # type: ignore[misc]
@@ -160,7 +160,7 @@ def summarize(
     s_snap_ts: types.DashVal,
 ) -> Tuple[types.Table, List[Dict[str, str]]]:
     """Manage uploading a new xlsx document as the new live table."""
-    logging.warning(f"'{du.triggered_id()}' -> summarize()")
+    logging.warning(f"'{du.triggered()}' -> summarize()")
 
     assert not s_snap_ts
 
@@ -172,16 +172,25 @@ def summarize(
     except DataSourceException:
         return [], []
 
-    column_names = [
-        "Institution",
-        "Institutional Lead",
-        "Ph.D. Authors",
-        "Faculty",
-        "Scientists / Post Docs",
-        "Ph.D. Students",
-    ]
+    column_names = ["Institution", "Institutional Lead"]
+    if wbs_l1 == "mo":
+        column_names.extend(
+            [
+                "Ph.D. Authors",
+                "Faculty",
+                "Scientists / Post Docs",
+                "Ph.D. Students",
+                "Headcount Total",
+                "Headcounts Confirmed?",
+                "CPU",
+                "GPU",
+                "Computing Confirmed?",
+            ]
+        )
     column_names.extend(tconfig.get_l2_categories())
-    column_names.append("Total")
+    column_names.append("FTE Total")
+    if wbs_l1 == "mo":
+        column_names.append("FTE / Headcount")
     columns = [{"id": c, "name": c, "type": "numeric"} for c in column_names]
 
     def _sum_it(_inst: str, _l2: str = "") -> float:
@@ -198,21 +207,46 @@ def summarize(
 
     summary_table: types.Table = []
     for inst_full, abbrev in tconfig.get_institutions_w_abbrevs():
-        phds, faculty, sci, grad, __ = src.pull_institution_values(
-            wbs_l1, s_snap_ts, abbrev
-        )
-
         row: Dict[str, types.StrNum] = {
             "Institution": inst_full,
-            "Ph.D. Authors": phds if phds else 0,
-            "Faculty": faculty if faculty else 0,
-            "Scientists / Post Docs": sci if sci else 0,
-            "Ph.D. Students": grad if grad else 0,
         }
+
+        if wbs_l1 == "mo":
+            ret = src.pull_institution_values(wbs_l1, s_snap_ts, abbrev)
+            (phds, faculty, sci, grad, cpus, gpus, __, hc_conf, comp_conf) = ret
+            row.update(
+                {
+                    "Ph.D. Authors": phds if phds else 0,
+                    "Faculty": faculty if faculty else 0,
+                    "Scientists / Post Docs": sci if sci else 0,
+                    "Ph.D. Students": grad if grad else 0,
+                    "Headcounts Confirmed?": "Yes" if hc_conf else "No",
+                    "CPU": cpus if cpus else 0,
+                    "GPU": gpus if gpus else 0,
+                    "Computing Confirmed?": "Yes" if comp_conf else "No",
+                }
+            )
+            row["Headcount Total"] = sum(
+                cast(float, row.get(hc))
+                for hc in [
+                    "Ph.D. Authors",
+                    "Faculty",
+                    "Scientists / Post Docs",
+                    "Ph.D. Students",
+                ]
+            )
 
         row.update({l2: _sum_it(abbrev, l2) for l2 in tconfig.get_l2_categories()})
 
-        row["Total"] = _sum_it(abbrev)
+        row["FTE Total"] = _sum_it(abbrev)
+
+        if wbs_l1 == "mo":
+            try:
+                row["FTE / Headcount"] = cast(float, row["FTE Total"]) / cast(
+                    float, row["Headcount Total"]
+                )
+            except ZeroDivisionError:
+                row["FTE / Headcount"] = ""
 
         summary_table.append(row)
 
@@ -359,7 +393,7 @@ def blame(
     s_snap_ts: types.DashVal,
 ) -> Tuple[types.Table, List[Dict[str, str]], types.TSCCond]:
     """Manage uploading a new xlsx document as the new live table."""
-    logging.warning(f"'{du.triggered_id()}' -> summarize()")
+    logging.warning(f"'{du.triggered()}' -> summarize()")
 
     assert not s_snap_ts
 

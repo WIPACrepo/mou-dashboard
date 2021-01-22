@@ -39,6 +39,7 @@ def layout() -> None:
             visdcc.Run_js("refresh-for-snapshot-make"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-override-success"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-snapshot-change"),  # pylint: disable=E1101
+            visdcc.Run_js("refresh-for-inst-confirms"),  # pylint: disable=E1101
             #
             # Logo, Tabs, & Login
             dbc.Navbar(
@@ -295,7 +296,7 @@ def login_callback(
     s_urlpath: str,
 ) -> Tuple[str, bool, bool, str, str, str, bool, str]:
     """Log the institution leader in/out."""
-    logging.warning(f"'{du.triggered_id()}' -> login_callback()")
+    logging.warning(f"'{du.triggered()}' -> login_callback()")
 
     if du.triggered_id() == "log-inout-launch":
         if s_log_inout == LOG_IN:  # pylint: disable=R1705
@@ -321,7 +322,7 @@ def login_callback(
             msg = "Username not found"
             return no_update, True, True, msg, LOG_IN, "", True, ""
         except login.InvalidPasswordException:
-            msg = "Wrong password"
+            msg = "Incorrect password"
             return no_update, True, True, msg, LOG_IN, "", True, ""
         except login.NoUserInstitutionException:
             msg = "An institution must be selected"
@@ -335,4 +336,4 @@ def login_callback(
         logging.warning("User not already logged in.")
         return _logged_out_return(s_urlpath, reload=False)
 
-    raise Exception(f"Unaccounted for trigger: {du.triggered_id()}")
+    raise Exception(f"Unaccounted for trigger: {du.triggered()}")

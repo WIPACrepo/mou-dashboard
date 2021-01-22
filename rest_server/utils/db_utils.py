@@ -300,13 +300,21 @@ class MoUMotorClient:
             "faculty": None,
             "scientists_post_docs": None,
             "grad_students": None,
+            "cpus": None,
+            "gpus": None,
             "text": "",
+            "headcounts_confirmed": False,
+            "computing_confirmed": False,
         }
 
         if not snapshot_timestamp:
             snapshot_timestamp = _LIVE_COLLECTION
 
-        doc = await self._get_supplemental_doc(wbs_db, snapshot_timestamp)
+        try:
+            doc = await self._get_supplemental_doc(wbs_db, snapshot_timestamp)
+        except DocumentNotFoundError as e:
+            logging.warning(str(e))
+            return vals
 
         try:
             vals = doc["snapshot_institution_values"][institution]
@@ -549,6 +557,12 @@ class MoUMotorClient:
             supplemental_doc["snapshot_institution_values"],
             admin_only,
         )
+
+        # set all *_confirmed values to False
+        for inst, vals in supplemental_doc["snapshot_institution_values"].items():
+            vals["headcounts_confirmed"] = False
+            vals["computing_confirmed"] = False
+            await self.upsert_institution_values(wbs_db, inst, vals)
 
         logging.info(f"Snapshotted {snap_coll} ({wbs_db=}, {creator=}).")
         return snap_coll

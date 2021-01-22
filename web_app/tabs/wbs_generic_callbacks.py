@@ -52,7 +52,7 @@ def _add_new_data(  # pylint: disable=R0913
     labor: types.DashVal,
     institution: types.DashVal,
     tconfig: tc.TableConfigParser,
-    new_task: str,
+    # new_task: str,
 ) -> Tuple[types.Table, dbc.Toast]:
     """Push new record to data source; add to table.
 
@@ -69,7 +69,7 @@ def _add_new_data(  # pylint: disable=R0913
             wbs_l1,
             new_record,
             tconfig,
-            task=new_task,
+            # task=new_task,
             labor=labor,
             institution=institution,
             novel=True,
@@ -82,49 +82,99 @@ def _add_new_data(  # pylint: disable=R0913
     return table, toast
 
 
+# @app.callback(  # type: ignore[misc]
+#     [
+#         Output("wbs-new-data-modal", "is_open"),
+#         Output("wbs-new-data-modal-task", "value"),
+#         Output("wbs-new-data-modal-dummy-add", "n_clicks"),
+#         Output("wbs-new-data-modal-header", "children"),
+#     ],
+#     [
+#         Input("wbs-new-data-button-1", "n_clicks"),  # user-only
+#         Input("wbs-new-data-button-2", "n_clicks"),  # user-only
+#         Input("wbs-new-data-modal-add-button", "n_clicks"),  # user-only
+#     ],
+#     [
+#         State("wbs-new-data-modal-task", "value"),
+#         State("url", "pathname"),
+#         State("wbs-filter-labor", "value"),
+#     ],
+#     prevent_initial_call=True,
+# )
+# def handle_add_new_data(
+#     _: int,
+#     __: int,
+#     ___: int,
+#     # state(s)
+#     s_task: str,
+#     s_urlpath: str,
+#     s_labor: str,
+# ) -> Tuple[bool, str, int, str]:
+#     """Handle the modal for adding a new row."""
+#     logging.warning(f"'{du.triggered()}' -> handle_add_new_data()")
+
+#     if du.triggered_id() == "wbs-new-data-modal-add-button":
+#         if not s_task:
+#             return no_update, no_update, no_update, no_update
+#         return False, s_task, 1, no_update
+
+#     header = "Add New Data"
+#     if inst := du.get_inst(s_urlpath):
+#         header += f" for {inst}"
+#     if s_labor:
+#         header += f" ({s_labor})"
+
+#     return True, "", no_update, header
+
+
 @app.callback(  # type: ignore[misc]
     [
-        Output("wbs-new-data-modal", "is_open"),
-        Output("wbs-new-data-modal-task", "value"),
-        Output("wbs-new-data-modal-dummy-add", "n_clicks"),
-        Output("wbs-new-data-modal-header", "children"),
+        Output("wbs-toast-via-confirm-deletion-div", "children"),
+        Output("wbs-undo-last-delete-hidden-button", "n_clicks"),
+        Output("wbs-after-deletion-toast", "is_open"),
+        Output("wbs-after-deletion-toast-message", "children"),
     ],
     [
-        Input("wbs-new-data-button-1", "n_clicks"),  # user-only
-        Input("wbs-new-data-button-2", "n_clicks"),  # user-only
-        Input("wbs-new-data-modal-add-button", "n_clicks"),  # user-only
+        Input("wbs-confirm-deletion", "submit_n_clicks"),  # user-only
+        Input("wbs-confirm-deletion", "cancel_n_clicks"),  # user-only
     ],
     [
-        State("wbs-new-data-modal-task", "value"),
         State("url", "pathname"),
-        State("wbs-filter-labor", "value"),
+        State("wbs-table-config-cache", "data"),
+        State("wbs-last-deleted-record", "data"),
     ],
     prevent_initial_call=True,
 )
-def handle_add_new_data(
+def confirm_deletion(
     _: int,
     __: int,
-    ___: int,
     # state(s)
-    s_task: str,
     s_urlpath: str,
-    s_labor: str,
-) -> Tuple[bool, str, int, str]:
-    """Handle the modal for adding a new row."""
-    logging.warning(f"'{du.triggered_id()}' -> handle_add_new_data()")
+    s_tconfig_cache: tc.TableConfigParser.CacheType,
+    s_record: types.Record,
+) -> Tuple[dbc.Toast, int, bool, List[html.Div]]:
+    """Handle deleting the record chosen ."""
+    logging.warning(f"'{du.triggered()}' -> confirm_deletion()")
 
-    if du.triggered_id() == "wbs-new-data-modal-add-button":
-        if not s_task:
-            return no_update, no_update, no_update, no_update
-        return False, s_task, 1, no_update
+    # Don't delete record
+    if du.triggered_property() == "cancel_n_clicks":
+        return None, 1, no_update, []
 
-    header = "Add New Data"
-    if inst := du.get_inst(s_urlpath):
-        header += f" for {inst}"
-    if s_labor:
-        header += f" ({s_labor})"
+    # Delete record
+    elif du.triggered_property() == "submit_n_clicks":
+        try:
+            wbs_l1 = du.get_wbs_l1(s_urlpath)
+            tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
+            src.delete_record(wbs_l1, cast(str, s_record[tconfig.const.ID]))
+            lines = [html.Div(s) for s in src.record_to_strings(s_record, tconfig)]
+            return None, no_update, True, lines
+        except DataSourceException:
+            msg = "Failed to Delete Row"
+            toast = du.make_toast(msg, du.REFRESH_MSG, du.Color.DANGER)
+            return toast, no_update, False, []
 
-    return True, "", no_update, header
+    else:
+        raise Exception(f"Unaccounted for trigger {du.triggered()}")
 
 
 @app.callback(  # type: ignore[misc]
@@ -144,17 +194,19 @@ def handle_add_new_data(
         Input("wbs-data-table", "columns"),  # setup_table()-only
         Input("wbs-filter-labor", "value"),  # user
         Input("wbs-show-totals-button", "n_clicks"),  # user-only
-        Input("wbs-new-data-modal-dummy-add", "n_clicks"),  # handle_add_new_data()-only
-        Input("wbs-undo-last-delete", "n_clicks"),  # user-only
+        # Input("wbs-new-data-modal-dummy-add", "n_clicks"),  # handle_add_new_data()-only
+        Input("wbs-new-data-button-1", "n_clicks"),  # user-only
+        Input("wbs-new-data-button-2", "n_clicks"),  # user-only
+        Input("wbs-undo-last-delete-hidden-button", "n_clicks"),  # confirm_deletion()
     ],
     [
         State("url", "pathname"),
         State("wbs-current-snapshot-ts", "value"),
         State("wbs-data-table", "data"),
         State("wbs-show-all-columns-button", "n_clicks"),
-        State("wbs-last-deleted-id", "data"),
+        State("wbs-last-deleted-record", "data"),
         State("wbs-table-config-cache", "data"),
-        State("wbs-new-data-modal-task", "value"),
+        # State("wbs-new-data-modal-task", "value"),
         State("wbs-table-update-flag-exterior-control", "data"),
     ],
     prevent_initial_call=True,  # must wait for columns
@@ -165,14 +217,15 @@ def table_data_exterior_controls(
     tot_n_clicks: int,
     _: int,
     __: int,
+    ___: int,
     # state(s)
     s_urlpath: str,
     s_snap_ts: types.DashVal,
     s_table: types.Table,
     s_all_cols: int,
-    s_deleted_id: str,
+    s_deleted_record: types.Record,
     s_tconfig_cache: tc.TableConfigParser.CacheType,
-    s_new_task: str,
+    # s_new_task: str,
     s_flag_extctrl: bool,
 ) -> Tuple[types.Table, int, dbc.Toast, str, str, bool, int, bool, int, Dict[str, str]]:
     """Exterior control signaled that the table should be updated.
@@ -181,7 +234,7 @@ def table_data_exterior_controls(
     "add new" changes MoU DS data. The others simply change what's
     visible to the user.
     """
-    logging.warning(f"'{du.triggered_id()}' -> table_data_exterior_controls()")
+    logging.warning(f"'{du.triggered()}' -> table_data_exterior_controls()")
     logging.warning(
         f"Snapshot: {s_snap_ts=} {'' if s_snap_ts else '(Live Collection)'}"
     )
@@ -204,14 +257,15 @@ def table_data_exterior_controls(
         pass
 
     # Add New Data
-    elif du.triggered_id() == "wbs-new-data-modal-dummy-add":
+    # elif du.triggered_id() == "wbs-new-data-modal-dummy-add":
+    elif du.triggered_id() in ["wbs-new-data-button-1", "wbs-new-data-button-2"]:
         if not s_snap_ts:  # are we looking at a snapshot?
             table, toast = _add_new_data(
-                wbs_l1, s_table, columns, labor, inst, tconfig, s_new_task
+                wbs_l1, s_table, columns, labor, inst, tconfig,  # s_new_task
             )
 
     # OR Restore a types.Record and Pull types.Table (optionally filtered)
-    elif du.triggered_id() == "wbs-undo-last-delete":
+    elif du.triggered_id() == "wbs-undo-last-delete-hidden-button":
         if not s_snap_ts:  # are we looking at a snapshot?
             try:
                 table = src.pull_data_table(
@@ -220,12 +274,18 @@ def table_data_exterior_controls(
                     institution=inst,
                     labor=labor,
                     with_totals=show_totals,
-                    restore_id=s_deleted_id,
+                    restore_id=cast(str, s_deleted_record[tconfig.const.ID]),
                 )
-                record = next(r for r in table if r[tconfig.const.ID] == s_deleted_id)
-                message = [html.Div(s) for s in src.record_to_strings(record, tconfig)]
+                restored = next(
+                    r
+                    for r in table
+                    if r[tconfig.const.ID] == s_deleted_record[tconfig.const.ID]
+                )
                 toast = du.make_toast(
-                    "Row Restored", message, du.Color.SUCCESS, du.GOOD_WAIT
+                    "Row Restored",
+                    [html.Div(s) for s in src.record_to_strings(restored, tconfig)],
+                    du.Color.SUCCESS,
+                    du.GOOD_WAIT,
                 )
             except DataSourceException:
                 table = []
@@ -244,11 +304,16 @@ def table_data_exterior_controls(
         except DataSourceException:
             table = []
 
-    # Figure pagination, AKA "Show All Rows"/"Collapse Rows to Pages"
-    do_paginate = len(table) / tconfig.get_page_size() > 2  # paginate if 3+ pages
+    # Figure pagination
+    do_paginate = (
+        len(table) / tconfig.get_page_size() > 2  # paginate if 3+ pages
+        and not inst  # paginate if viewing entire collaboration
+        and current_user.is_admin  # paginate if admin
+    )
+    # hide "Show All Rows"/"Collapse Rows to Pages" if paginating wouldn't do anything
     style_paginate_button = {}
     if len(table) <= tconfig.get_page_size():
-        style_paginate_button = {"visibility": "hidden"}  # hide if wouldn't do anything
+        style_paginate_button = {"visibility": "hidden"}
 
     return (
         table,
@@ -269,31 +334,32 @@ def _push_modified_records(
     current_table: types.Table,
     previous_table: types.Table,
     tconfig: tc.TableConfigParser,
-) -> List[types.StrNum]:
+) -> Tuple[List[types.StrNum], types.Record]:
     """For each row that changed, push the record to the DS."""
     modified_records = [
         r
         for r in current_table
         if (r not in previous_table) and (tconfig.const.ID in r)
     ]
+
+    last_record = {}
     for record in modified_records:
         try:
-            src.push_record(wbs_l1, record, tconfig)
+            last_record = src.push_record(wbs_l1, record, tconfig)
         except DataSourceException:
             pass
 
     ids = [c[tconfig.const.ID] for c in modified_records]
-    return ids
+    return ids, last_record
 
 
-def _delete_deleted_records(
-    wbs_l1: str,
+def _find_deleted_record(
     current_table: types.Table,
     previous_table: types.Table,
     keeps: List[types.StrNum],
     tconfig: tc.TableConfigParser,
-) -> Tuple[dbc.Toast, str, List[str]]:
-    """For each row that was deleted by the user, delete its DS record."""
+) -> Tuple[types.Record, str]:
+    """If a row was deleted by the user, find it."""
     delete_these = [
         r
         for r in previous_table
@@ -303,40 +369,23 @@ def _delete_deleted_records(
     ]
 
     if not delete_these:
-        return None, "", []
+        return {}, ""
 
     assert len(delete_these) == 1
 
-    toast: dbc.Toast = None
-    last_deletion = ""
-    failures = []
-    record = None
-    for record in delete_these:
-        try:
-            src.delete_record(wbs_l1, cast(str, record[tconfig.const.ID]))
-            last_deletion = cast(str, record[tconfig.const.ID])
-        except DataSourceException:
-            failures.append(record)
-
-    # make toast message if any records failed to be deleted
-    if failures:
-        toast = du.make_toast("Failed to Delete Row", du.REFRESH_MSG, du.Color.DANGER)
-    else:
-        success_message = [
-            html.Div(s) for s in src.record_to_strings(delete_these[0], tconfig)
-        ]
-
-    return toast, last_deletion, success_message
+    record = delete_these[0]
+    record_fields = "\n".join(src.record_to_strings(record, tconfig))
+    message = f"Are you sure you want to DELETE THIS ROW?\n\n{record_fields}"
+    return record, message
 
 
 @app.callback(  # type: ignore[misc]
     [
         Output("wbs-data-table", "data_previous"),
-        Output("wbs-toast-via-interior-control-div", "children"),
-        Output("wbs-table-last-updated-label", "children"),
-        Output("wbs-last-deleted-id", "data"),
-        Output("wbs-deletion-toast", "is_open"),
-        Output("wbs-deletion-toast-message", "children"),
+        Output("wbs-table-autosaved-container", "children"),
+        Output("wbs-last-deleted-record", "data"),
+        Output("wbs-confirm-deletion", "displayed"),
+        Output("wbs-confirm-deletion", "message"),
         Output("wbs-table-update-flag-interior-control", "data"),
         Output("wbs-sow-last-updated", "children"),
     ],
@@ -360,7 +409,7 @@ def table_data_interior_controls(
     s_snap_ts: types.DashVal,
     s_flag_extctrl: bool,
     s_flag_intctrl: bool,
-) -> Tuple[types.Table, dbc.Toast, str, str, bool, List[html.Div], bool, str]:
+) -> Tuple[types.Table, List[html.Label], types.Record, bool, str, bool, str]:
     """Interior control signaled that the table should be updated.
 
     This is either a row deletion or a field edit. The table's view has
@@ -369,14 +418,14 @@ def table_data_interior_controls(
     NOTE: This function is also called following table_data_exterior_controls().
     So the flags are XOR'd to see whether to proceed.
     """
-    logging.warning(f"'{du.triggered_id()}' -> table_data_interior_controls()")
+    logging.warning(f"'{du.triggered()}' -> table_data_interior_controls()")
 
     wbs_l1 = du.get_wbs_l1(s_urlpath)
     tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
 
     # Make labels
-    updated_message = f"Table Last Refreshed: {utils.get_human_now()}"
-    snap_placeholder = du.get_sow_last_updated_label(
+    autosaved_labels = du.get_autosaved_labels("Table")
+    sows_updated_label = du.get_sow_last_updated_label(
         current_table, bool(s_snap_ts), tconfig
     )
 
@@ -386,36 +435,42 @@ def table_data_interior_controls(
         logging.warning("table_data_interior_controls() :: aborted callback")
         return (
             current_table,
-            None,
-            updated_message,
-            "",
+            autosaved_labels,
+            {},
             False,
-            [],
+            "",
             not s_flag_intctrl,
-            snap_placeholder,
+            sows_updated_label,
         )
 
     assert not s_snap_ts  # should not be a snapshot
     assert s_previous_table  # should have previous table
 
     # Push (if any)
-    mod_ids = _push_modified_records(wbs_l1, current_table, s_previous_table, tconfig)
+    mod_ids, pushed_record = _push_modified_records(
+        wbs_l1, current_table, s_previous_table, tconfig
+    )
 
     # Delete (if any)
-    toast, last_deletion, delete_success_message = _delete_deleted_records(
-        wbs_l1, current_table, s_previous_table, mod_ids, tconfig
+    deleted_record, delete_message = _find_deleted_record(
+        current_table, s_previous_table, mod_ids, tconfig
     )
+
+    # get the last updated label (make an ad hoc pseudo-table just to find the max time)
+    if pushed_record or deleted_record:
+        sows_updated_label = du.get_sow_last_updated_label(
+            [pushed_record, deleted_record], bool(s_snap_ts), tconfig
+        )
 
     # Update data_previous
     return (
         current_table,
-        toast,
-        updated_message,
-        last_deletion,
-        bool(last_deletion),
-        delete_success_message,
+        autosaved_labels,
+        deleted_record,
+        bool(deleted_record),
+        delete_message,
         s_flag_intctrl,  # preserve flag
-        snap_placeholder,
+        sows_updated_label,
     )
 
 
@@ -498,9 +553,7 @@ def load_table_tooltips(
     This is a workaround for a bug in Dash source code where the tooltip
     is misplaced when on any page other than the first.
     """
-    logging.warning(
-        f"'{du.triggered_id()}' -> load_table_tooltips()  ({page_current=})"
-    )
+    logging.warning(f"'{du.triggered()}' -> load_table_tooltips()  ({page_current=})")
 
     if page_current != 0:  # pages are 0-indexed
         return {}
@@ -530,7 +583,7 @@ def setup_table(
     types.TSCCond, types.TSDCond, types.TColumns, types.TDDown, types.TDDownCond,
 ]:
     """Set up table-related components."""
-    logging.warning(f"'{du.triggered_id()}' -> setup_table()  ({s_urlpath=})")
+    logging.warning(f"'{du.triggered()}' -> setup_table()  ({s_urlpath=})")
 
     tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath), cache=s_tconfig_cache)
 
@@ -579,7 +632,7 @@ def show_snapshot_dropdown(_: int, s_snap_ts: types.DashVal) -> Tuple[bool, bool
 )
 def view_live_table(_: int) -> types.DashVal:
     """Clear the snapshot selection."""
-    logging.warning(f"'{du.triggered_id()}' -> view_live_table()")
+    logging.warning(f"'{du.triggered()}' -> view_live_table()")
     return ""
 
 
@@ -590,7 +643,7 @@ def view_live_table(_: int) -> types.DashVal:
 )
 def pick_snapshot(snap_ts: types.DashVal) -> str:
     """Refresh the page on snapshot select/de-select."""
-    logging.warning(f"'{du.triggered_id()}' -> pick_snapshot() {snap_ts=}")
+    logging.warning(f"'{du.triggered()}' -> pick_snapshot() {snap_ts=}")
     return du.RELOAD
 
 
@@ -611,7 +664,7 @@ def setup_snapshot_components(
 ) -> Tuple[List[Dict[str, str]], List[html.Label], bool]:
     """Set up snapshot-related components."""
     logging.warning(
-        f"'{du.triggered_id()}' -> setup_snapshot_components()  ({s_urlpath=} {s_snap_ts=})"
+        f"'{du.triggered()}' -> setup_snapshot_components()  ({s_urlpath=} {s_snap_ts=})"
     )
 
     assert not du.triggered_id()  # Guarantee this is the initial call
@@ -688,7 +741,7 @@ def handle_make_snapshot(
     s_snap_ts: str,
 ) -> Tuple[bool, dbc.Toast, str, str]:
     """Handle the naming and creating of a snapshot."""
-    logging.warning(f"'{du.triggered_id()}' -> handle_make_snapshot()")
+    logging.warning(f"'{du.triggered()}' -> handle_make_snapshot()")
 
     if s_snap_ts:  # are we looking at a snapshot?
         return False, None, "", ""
@@ -706,7 +759,7 @@ def handle_make_snapshot(
             )
             return False, fail_toast, du.Color.SUCCESS, ""
 
-    raise Exception(f"Unaccounted trigger {du.triggered_id()}")
+    raise Exception(f"Unaccounted trigger {du.triggered()}")
 
 
 # --------------------------------------------------------------------------------------
@@ -719,14 +772,20 @@ def handle_make_snapshot(
         Output("wbs-faculty", "value"),
         Output("wbs-scientists-post-docs", "value"),
         Output("wbs-grad-students", "value"),
+        Output("wbs-cpus", "value"),
+        Output("wbs-gpus", "value"),
         Output("wbs-textarea", "value"),
         Output("wbs-h2-sow-table", "children"),
         Output("wbs-h2-inst-textarea", "children"),
+        Output("wbs-h2-inst-computing", "children"),
         Output("institution-headcounts-container", "hidden"),
-        Output("institution-textarea-container", "hidden"),
+        Output("institution-values-below-table-container", "hidden"),
         Output("wbs-dropdown-institution", "value"),
         Output("wbs-dropdown-institution", "options"),
         Output("wbs-filter-labor", "options"),
+        Output("wbs-headcounts-confirm-container", "hidden"),
+        Output("wbs-computing-confirm-container", "hidden"),
+        Output("wbs-headcounts-confirm-container-container", "hidden"),
     ],
     [Input("dummy-input-for-setup", "hidden")],  # never triggered
     [
@@ -746,6 +805,9 @@ def setup_institution_components(
     types.DashVal,
     types.DashVal,
     types.DashVal,
+    types.DashVal,
+    types.DashVal,
+    str,
     str,
     str,
     str,
@@ -754,25 +816,33 @@ def setup_institution_components(
     types.DashVal,
     List[Dict[str, str]],
     List[Dict[str, str]],
+    bool,
+    bool,
+    bool,
 ]:
     """Set up institution-related components."""
     logging.warning(
-        f"'{du.triggered_id()}' -> setup_institution_components() ({s_urlpath=} {s_snap_ts=} {current_user=})"
+        f"'{du.triggered()}' -> setup_institution_components() ({s_urlpath=} {s_snap_ts=} {current_user=})"
     )
 
     assert not du.triggered_id()  # Guarantee this is the initial call
 
     # Check Login
     if not current_user.is_authenticated:
-        return tuple(no_update for _ in range(12))  # type: ignore[return-value]
+        return tuple(no_update for _ in range(18))  # type: ignore[return-value]
 
     phds: types.DashVal = 0
     faculty: types.DashVal = 0
     sci: types.DashVal = 0
     grad: types.DashVal = 0
+    cpus: types.DashVal = 0
+    gpus: types.DashVal = 0
+    hc_conf = True
+    comp_conf = True
     text = ""
     h2_table = "Collaboration-Wide SOW Table"
     h2_textarea = ""
+    h2_computing = ""
 
     wbs_l1 = du.get_wbs_l1(s_urlpath)
     tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
@@ -786,27 +856,33 @@ def setup_institution_components(
 
     if inst := du.get_inst(s_urlpath):
         h2_table = f"{inst}'s SOW Table"
-        h2_textarea = f"{inst}'s Notes and Descriptions"
+        h2_textarea = f"{inst}'s Miscellaneous Notes and Descriptions"
+        h2_computing = f"{inst}'s Computing Contributions"
         try:
-            phds, faculty, sci, grad, text = src.pull_institution_values(
-                wbs_l1, s_snap_ts, inst
-            )
+            ret = src.pull_institution_values(wbs_l1, s_snap_ts, inst)
         except DataSourceException:
-            phds, faculty, sci, grad, text = None, None, None, None, ""
+            ret = (None, None, None, None, None, None, "", True, True)
+        (phds, faculty, sci, grad, cpus, gpus, text, hc_conf, comp_conf) = ret
 
     return (
         phds,
         faculty,
         sci,
         grad,
+        cpus,
+        gpus,
         text,
         h2_table,
         h2_textarea,
-        not inst,
-        not inst,
+        h2_computing,
+        not inst if wbs_l1 == "mo" else True,  # just hide it if not M&O
+        not inst if wbs_l1 == "mo" else True,  # just hide it if not M&O
         inst,
         inst_options,
         labor_options,
+        hc_conf,  # hide if values are confirmed
+        comp_conf,  # hide if values are confirmed
+        None in [phds, faculty, sci, grad],
     )
 
 
@@ -819,7 +895,7 @@ def setup_institution_components(
 def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
     """Refresh if the user selected an institution."""
     logging.warning(
-        f"'{du.triggered_id()}' -> select_dropdown_institution() {inst=} {current_user.institution=})"
+        f"'{du.triggered()}' -> select_dropdown_institution() {inst=} {current_user.institution=})"
     )
     inst = "" if not inst else inst
 
@@ -833,21 +909,29 @@ def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
 @app.callback(  # type: ignore[misc]
     [
         Output("wbs-institution-values-first-time-flag", "data"),
-        Output("wbs-institution-values-last-updated-label", "children"),
-        Output("wbs-institution-textarea-last-updated-label", "children"),
+        Output("wbs-institution-values-autosaved-container", "children"),
+        Output("wbs-institution-textarea-autosaved-container", "children"),
+        Output("wbs-institution-computing-autosaved-container", "children"),
+        Output("refresh-for-inst-confirms", "run"),
     ],
     [
         Input("wbs-phds-authors", "value"),  # user/setup_institution_components()
         Input("wbs-faculty", "value"),  # user/setup_institution_components()
         Input("wbs-scientists-post-docs", "value"),  # user/setup_institution_components
         Input("wbs-grad-students", "value"),  # user/setup_institution_components()
+        Input("wbs-cpus", "value"),  # user/setup_institution_components()
+        Input("wbs-gpus", "value"),  # user/setup_institution_components()
         Input("wbs-textarea", "value"),  # user/setup_institution_components()
+        Input("wbs-headcounts-confirm-yes", "n_clicks"),  # user-only
+        Input("wbs-computing-confirm-yes", "n_clicks"),
     ],
     [
         State("url", "pathname"),
         State("wbs-current-snapshot-ts", "value"),
         State("wbs-data-table", "data"),
         State("wbs-institution-values-first-time-flag", "data"),
+        State("wbs-headcounts-confirm-container", "hidden"),
+        State("wbs-computing-confirm-container", "hidden"),
     ],
     prevent_initial_call=True,
 )
@@ -856,51 +940,78 @@ def push_institution_values(  # pylint: disable=R0913
     faculty: types.DashVal,
     sci: types.DashVal,
     grad: types.DashVal,
+    cpus: types.DashVal,
+    gpus: types.DashVal,
     text: str,
+    _: int,
+    __: int,
     # state(s)
     s_urlpath: str,
     s_snap_ts: types.DashVal,
     s_table: types.Table,
     s_first_time: bool,
-) -> Tuple[bool, html.Label, html.Label]:
+    s_hc_confirm_hidden: bool,
+    s_comp_confirm_hidden: bool,
+) -> Tuple[bool, List[html.Label], List[html.Label], List[html.Label], str]:
     """Push the institution's values."""
     logging.warning(
-        f"'{du.triggered_id()}' -> push_institution_values() ({s_first_time=})"
+        f"'{du.triggered()}' -> push_institution_values() ({s_first_time=})"
     )
 
     # Is there an institution selected?
     if not (inst := du.get_inst(s_urlpath)):  # pylint: disable=C0325
-        return False, None, None
+        return False, [], [], [], no_update
 
     # labels
-    now = utils.get_human_now()
-    textarea_label = html.Label(f"Notes & Descriptions Last Refreshed: {now}")
-    headcounts_label = html.Label(f"Headcounts Last Refreshed: {now}")
+    txt_labels = du.get_autosaved_labels("Notes & Descriptions")
+    hc_labels = du.get_autosaved_labels("Headcounts")
+    comp_labels = du.get_autosaved_labels("Computing Contributions")
 
     # Are the fields editable?
     if not current_user.is_authenticated and not s_snap_ts:
-        return False, headcounts_label, textarea_label
+        return False, hc_labels, txt_labels, comp_labels, no_update
 
     # check if headcounts are filled out
     if None in [phds, faculty, sci, grad]:
-        headcounts_label = html.Label(
-            "Headcounts are required. Please enter all four numbers.",
-            style={"color": "red", "font-weight": "bold"},
-        )
+        hc_labels = [
+            html.Label(
+                "Headcounts are required. Please enter all four numbers.",
+                style={"color": "red", "font-weight": "bold"},
+            )
+        ]
 
     # Is this a redundant push? -- fields were just auto-populated for the first time
     if s_first_time:
-        return False, headcounts_label, textarea_label
+        return False, hc_labels, txt_labels, comp_labels, no_update
 
     # push
+    reload_page = no_update
     try:
+        hc_confirmed = s_hc_confirm_hidden  # not hidden = not confirmed
+        comp_confirmed = s_comp_confirm_hidden  # not hidden = not confirmed
+        if du.triggered_id() == "wbs-headcounts-confirm-yes":
+            hc_confirmed = True
+            reload_page = du.RELOAD
+        elif du.triggered_id() == "wbs-computing-confirm-yes":
+            comp_confirmed = True
+            reload_page = du.RELOAD
         src.push_institution_values(
-            du.get_wbs_l1(s_urlpath), inst, phds, faculty, sci, grad, text
+            du.get_wbs_l1(s_urlpath),
+            inst,
+            phds,
+            faculty,
+            sci,
+            grad,
+            cpus,
+            gpus,
+            text,
+            hc_confirmed,
+            comp_confirmed,
         )
     except DataSourceException:
         assert len(s_table) == 0  # there's no collection to push to
 
-    return False, headcounts_label, textarea_label
+    return False, hc_labels, txt_labels, comp_labels, reload_page
 
 
 # --------------------------------------------------------------------------------------
@@ -919,6 +1030,8 @@ def push_institution_values(  # pylint: disable=R0913
         Output("wbs-faculty", "disabled"),
         Output("wbs-scientists-post-docs", "disabled"),
         Output("wbs-grad-students", "disabled"),
+        Output("wbs-cpus", "disabled"),
+        Output("wbs-gpus", "disabled"),
         Output("wbs-textarea", "disabled"),
         Output("url-user-inst-redirect", "pathname"),
     ],
@@ -930,10 +1043,12 @@ def setup_user_dependent_components(
     # state(s)
     s_snap_ts: types.DashVal,
     s_urlpath: str,
-) -> Tuple[bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, str]:
+) -> Tuple[
+    bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, str
+]:
     """Logged-in callback."""
     logging.warning(
-        f"'{du.triggered_id()}' -> setup_user_dependent_components({s_snap_ts=}, {s_urlpath=}, {current_user=})"
+        f"'{du.triggered()}' -> setup_user_dependent_components({s_snap_ts=}, {s_urlpath=}, {current_user=})"
     )
 
     assert not du.triggered_id()  # Guarantee this is the initial call
@@ -941,12 +1056,12 @@ def setup_user_dependent_components(
     if du.need_user_redirect(s_urlpath):  # redirect user to their institution's mou
         logging.error(f"User viewing wrong mou {s_urlpath=}. Redirecting...")
         return tuple(  # type: ignore[return-value]
-            [no_update for _ in range(11)]
+            [no_update for _ in range(13)]
             + [du.build_urlpath(du.get_wbs_l1(s_urlpath), current_user.institution)]
         )
 
     if not current_user.is_authenticated:
-        return tuple(no_update for _ in range(12))  # type: ignore[return-value]
+        return tuple(no_update for _ in range(14))  # type: ignore[return-value]
 
     if s_snap_ts:
         return (
@@ -956,6 +1071,8 @@ def setup_user_dependent_components(
             False,  # row NOT deletable
             not current_user.is_admin,  # filter-inst disabled if not admin
             True,  # wbs-admin-zone-div hidden
+            True,  # institution value disabled
+            True,  # institution value disabled
             True,  # institution value disabled
             True,  # institution value disabled
             True,  # institution value disabled
@@ -971,6 +1088,8 @@ def setup_user_dependent_components(
         True,  # row is deletable
         not current_user.is_admin,  # filter-inst disabled if user is not an admin
         not current_user.is_admin,  # wbs-admin-zone-div hidden if user is not an admin
+        False,  # institution value NOT disabled
+        False,  # institution value NOT disabled
         False,  # institution value NOT disabled
         False,  # institution value NOT disabled
         False,  # institution value NOT disabled
@@ -1002,7 +1121,7 @@ def toggle_pagination(
     s_urlpath: str,
 ) -> Tuple[str, str, bool, int, str]:
     """Toggle whether the table is paginated."""
-    logging.warning(f"'{du.triggered_id()}' -> toggle_pagination({n_clicks=})")
+    logging.warning(f"'{du.triggered()}' -> toggle_pagination({n_clicks=})")
 
     if n_clicks % 2 == 0:
         tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath), cache=s_tconfig_cache)
@@ -1035,16 +1154,19 @@ def toggle_hidden_columns(
     s_urlpath: str,
 ) -> Tuple[str, str, bool, List[str]]:
     """Toggle hiding/showing the default hidden columns."""
-    logging.warning(f"'{du.triggered_id()}' -> toggle_hidden_columns()")
+    logging.warning(f"'{du.triggered()}' -> toggle_hidden_columns()")
 
     tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath), cache=s_tconfig_cache)
 
     if n_clicks % 2 == 0:
+        hiddens = tconfig.get_hidden_columns()
+        if du.get_inst(s_urlpath) and not current_user.is_admin:
+            hiddens.append(tconfig.const.INSTITUTION)
         return (
             "Show Hidden Columns",
             du.Color.SECONDARY,
             True,
-            tconfig.get_hidden_columns(),
+            hiddens,
         )
 
     always_hidden_columns = tconfig.get_always_hidden_columns()

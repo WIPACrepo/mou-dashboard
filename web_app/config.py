@@ -41,7 +41,19 @@ server.config.update(SECRET_KEY=os.urandom(12))
 cache = Cache(app.server, config={"CACHE_TYPE": "simple"})
 login_manager = LoginManager()
 login_manager.init_app(server)
-ADMINS = ["eevans", "desiati", "dschultz", "cvakhnina"]
+ADMINS = [
+    "eevans",
+    "desiati",
+    "paolo.desiati",
+    "dschultz",
+    "david.schultz",
+    "cvakhnina",
+    "catherine.vakhnina",
+    "khanson",
+    "kael.hanson",
+    "benedikt.riedel",
+    "briedel",
+]
 
 
 # --------------------------------------------------------------------------------------

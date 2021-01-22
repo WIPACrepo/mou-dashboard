@@ -53,10 +53,10 @@ class _ColumnConfigTypedDict(TypedDict, total=False):
 
 
 _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
-    WBS_L2: {"width": 350, "sort_value": 70, "tooltip": "WBS Level 2 Category"},
-    WBS_L3: {"width": 300, "sort_value": 60, "tooltip": "WBS Level 3 Category"},
+    WBS_L2: {"width": 115, "sort_value": 70, "tooltip": "WBS Level 2 Category"},
+    WBS_L3: {"width": 115, "sort_value": 60, "tooltip": "WBS Level 3 Category"},
     US_NON_US: {
-        "width": 100,
+        "width": 50,
         "non_editable": True,
         "hidden": True,
         "border_left": True,
@@ -65,22 +65,22 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "tooltip": "The institution's region. This cannot be changed.",
     },
     INSTITUTION: {
-        "width": 140,
+        "width": 70,
         "options": sorted(set(inst["abbreviation"] for inst in ICECUBE_INSTS.values())),
         "border_left": True,
         "sort_value": 40,
         "tooltip": "The institution. This cannot be changed.",
     },
     LABOR_CAT: {
-        "width": 125,
+        "width": 50,
         "options": ["AD", "CS", "DS", "EN", "GR", "IT", "KE", "MA", "PO", "SC", "WO"],
         "sort_value": 30,
         "tooltip": "The labor category",
     },
-    _NAME: {"width": 150, "sort_value": 20, "tooltip": "LastName, FirstName"},
+    _NAME: {"width": 100, "sort_value": 20, "tooltip": "LastName, FirstName"},
     TASK_DESCRIPTION: {"width": 300, "tooltip": "A description of the task"},
     SOURCE_OF_FUNDS_US_ONLY: {
-        "width": 185,
+        "width": 100,
         "conditional_parent": US_NON_US,
         "conditional_options": {
             US: [NSF_MO_CORE, NSF_BASE_GRANTS, US_IN_KIND],
@@ -90,9 +90,9 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "sort_value": 10,
         "tooltip": "The funding source",
     },
-    FTE: {"width": 90, "numeric": True, "tooltip": "FTE for funding source"},
+    FTE: {"width": 50, "numeric": True, "tooltip": "FTE for funding source"},
     TOTAL_COL: {
-        "width": 400,
+        "width": 100,
         "non_editable": True,
         "hidden": True,
         "border_left": True,
@@ -100,7 +100,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "tooltip": "TOTAL-ROWS ONLY: FTE totals to the right refer to this category.",
     },
     NSF_MO_CORE: {
-        "width": 110,
+        "width": 50,
         "funding_source": True,
         "non_editable": True,
         "hidden": True,
@@ -109,7 +109,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "tooltip": _TOOLTIP_FUNDING_SOURCE_VALUE,
     },
     NSF_BASE_GRANTS: {
-        "width": 110,
+        "width": 50,
         "funding_source": True,
         "non_editable": True,
         "hidden": True,
@@ -118,7 +118,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "tooltip": _TOOLTIP_FUNDING_SOURCE_VALUE,
     },
     US_IN_KIND: {
-        "width": 110,
+        "width": 50,
         "funding_source": True,
         "non_editable": True,
         "hidden": True,
@@ -127,7 +127,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "tooltip": _TOOLTIP_FUNDING_SOURCE_VALUE,
     },
     NON_US_IN_KIND: {
-        "width": 110,
+        "width": 50,
         "funding_source": True,
         "non_editable": True,
         "hidden": True,
@@ -136,7 +136,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "tooltip": _TOOLTIP_FUNDING_SOURCE_VALUE,
     },
     GRAND_TOTAL: {
-        "width": 110,
+        "width": 50,
         "numeric": True,
         "non_editable": True,
         "hidden": True,
@@ -146,14 +146,14 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
     },
     ID: {"width": 0, "non_editable": True, "border_left": True, "hidden": True},
     TIMESTAMP: {
-        "width": 125,
+        "width": 100,
         "non_editable": True,
         "border_left": True,
         "hidden": True,
         "tooltip": f"{TIMESTAMP} (you may need to refresh to reflect a recent update)",
     },
     EDITOR: {
-        "width": 125,
+        "width": 100,
         "non_editable": True,
         "hidden": True,
         "tooltip": f"{EDITOR} (you may need to refresh to reflect a recent update)",
@@ -161,7 +161,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
 }
 
 
-def get_columns() -> List[str]:
+def get_columns() -> List[str]:  # pylint: disable=C0103
     """Get the columns."""
     return list(_COLUMN_CONFIGS.keys())
 
@@ -268,7 +268,7 @@ def get_border_left_columns() -> List[str]:
 
 def get_page_size() -> int:
     """Get page size."""
-    return 17
+    return 19
 
 
 def get_on_the_fly_fields() -> List[str]:
