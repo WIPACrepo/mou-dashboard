@@ -178,7 +178,10 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
         if total_rows:
             table.extend(
                 utils.get_total_rows(
-                    wbs_l1, table, only_totals_w_data=labor or institution
+                    wbs_l1,
+                    table,
+                    only_totals_w_data=labor or institution,
+                    with_us_non_us=not institution,
                 )
             )
 
