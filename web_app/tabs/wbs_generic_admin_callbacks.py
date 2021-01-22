@@ -172,18 +172,20 @@ def summarize(
     except DataSourceException:
         return [], []
 
-    column_names = [
-        "Institution",
-        "Institutional Lead",
-        "Ph.D. Authors",
-        "Faculty",
-        "Scientists / Post Docs",
-        "Ph.D. Students",
-        "Headcounts Confirmed?",
-        "CPU",
-        "GPU",
-        "Computing Confirmed?",
-    ]
+    column_names = ["Institution", "Institutional Lead"]
+    if wbs_l1 == "mo":
+        column_names.extend(
+            [
+                "Ph.D. Authors",
+                "Faculty",
+                "Scientists / Post Docs",
+                "Ph.D. Students",
+                "Headcounts Confirmed?",
+                "CPU",
+                "GPU",
+                "Computing Confirmed?",
+            ]
+        )
     column_names.extend(tconfig.get_l2_categories())
     column_names.append("Total")
     columns = [{"id": c, "name": c, "type": "numeric"} for c in column_names]
@@ -202,20 +204,25 @@ def summarize(
 
     summary_table: types.Table = []
     for inst_full, abbrev in tconfig.get_institutions_w_abbrevs():
-        ret = src.pull_institution_values(wbs_l1, s_snap_ts, abbrev)
-        (phds, faculty, sci, grad, cpus, gpus, __, hc_conf, comp_conf) = ret
-
         row: Dict[str, types.StrNum] = {
             "Institution": inst_full,
-            "Ph.D. Authors": phds if phds else 0,
-            "Faculty": faculty if faculty else 0,
-            "Scientists / Post Docs": sci if sci else 0,
-            "Ph.D. Students": grad if grad else 0,
-            "Headcounts Confirmed?": "Yes" if hc_conf else "No",
-            "CPU": cpus if cpus else 0,
-            "GPU": gpus if gpus else 0,
-            "Computing Confirmed?": "Yes" if comp_conf else "No",
         }
+
+        if wbs_l1 == "mo":
+            ret = src.pull_institution_values(wbs_l1, s_snap_ts, abbrev)
+            (phds, faculty, sci, grad, cpus, gpus, __, hc_conf, comp_conf) = ret
+            row.update(
+                {
+                    "Ph.D. Authors": phds if phds else 0,
+                    "Faculty": faculty if faculty else 0,
+                    "Scientists / Post Docs": sci if sci else 0,
+                    "Ph.D. Students": grad if grad else 0,
+                    "Headcounts Confirmed?": "Yes" if hc_conf else "No",
+                    "CPU": cpus if cpus else 0,
+                    "GPU": gpus if gpus else 0,
+                    "Computing Confirmed?": "Yes" if comp_conf else "No",
+                }
+            )
 
         row.update({l2: _sum_it(abbrev, l2) for l2 in tconfig.get_l2_categories()})
 

@@ -125,11 +125,13 @@ class TableConfigParser:  # pylint: disable=R0904
 
         AKA, columns that are marked as hidden and have width of `0`.
         """
-        return [
+        cols = [
             c
             for c in self._configs[self._wbs_l1]["hiddens"]
             if not self.get_column_width(c)
         ]
+
+        return cols
 
     def get_dropdown_columns(self) -> List[str]:
         """Get list of dropdown-type columns."""

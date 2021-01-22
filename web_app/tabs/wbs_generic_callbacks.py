@@ -871,8 +871,8 @@ def setup_institution_components(
         h2_table,
         h2_textarea,
         h2_computing,
-        not inst,
-        not inst,
+        not inst if wbs_l1 == "mo" else True,  # just hide it if not M&O
+        not inst if wbs_l1 == "mo" else True,  # just hide it if not M&O
         inst,
         inst_options,
         labor_options,

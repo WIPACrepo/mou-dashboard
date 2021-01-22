@@ -268,7 +268,7 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
         self.write(
             {
                 l1: {
-                    "columns": tc.get_columns(),
+                    "columns": tc.get_columns(l1),
                     "simple_dropdown_menus": tc.get_simple_dropdown_menus(l1),
                     "institutions": tc.get_institutions_and_abbrevs(),
                     "labor_categories": tc.get_labor_cats(),

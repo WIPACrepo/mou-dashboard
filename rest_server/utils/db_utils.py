@@ -310,7 +310,11 @@ class MoUMotorClient:
         if not snapshot_timestamp:
             snapshot_timestamp = _LIVE_COLLECTION
 
-        doc = await self._get_supplemental_doc(wbs_db, snapshot_timestamp)
+        try:
+            doc = await self._get_supplemental_doc(wbs_db, snapshot_timestamp)
+        except DocumentNotFoundError as e:
+            logging.warning(str(e))
+            return vals
 
         try:
             vals = doc["snapshot_institution_values"][institution]
