@@ -852,7 +852,7 @@ def setup_institution_components(
 
     if inst := du.get_inst(s_urlpath):
         h2_table = f"{inst}'s SOW Table"
-        h2_textarea = f"{inst}'s Notes and Descriptions"
+        h2_textarea = f"{inst}'s Miscellaneous Notes and Descriptions"
         h2_computing = f"{inst}'s Computing Contributions"
         try:
             ret = src.pull_institution_values(wbs_l1, s_snap_ts, inst)

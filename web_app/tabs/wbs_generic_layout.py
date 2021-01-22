@@ -335,7 +335,7 @@ def layout() -> html.Div:
                     html.H2(
                         className="section-header",
                         id="wbs-h2-inst-textarea",
-                        children="Notes and Descriptions",
+                        children="Miscellaneous Notes and Descriptions",
                     ),
                     dcc.Textarea(
                         id="wbs-textarea",
