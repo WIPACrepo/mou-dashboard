@@ -374,13 +374,15 @@ class TestUtils:
 
         # Error Case
         with pytest.raises(KeyError):
+            # require institution
             _ = utils.add_on_the_fly_fields({"foo": "bar", "FTE": 0})
-        with pytest.raises(KeyError):
-            _ = utils.add_on_the_fly_fields(
-                {"foo": "bar", "FTE": 0, "Institution": "UW"}
-            )
+        # with pytest.raises(KeyError): NOTE - removed b/c Upgrade doesn't require "Source of Funds"
+        #     _ = utils.add_on_the_fly_fields(
+        #         {"foo": "bar", "FTE": 0, "Institution": "UW"}
+        #     )
         _ = utils.add_on_the_fly_fields({"foo": "bar", "Institution": "SUNY"})
         with pytest.raises(KeyError):
+            # require institution
             _ = utils.add_on_the_fly_fields(
                 {
                     "foo": "bar",
