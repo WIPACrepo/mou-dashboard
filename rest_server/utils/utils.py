@@ -89,8 +89,8 @@ def get_total_rows(
                 and r[tc.FTE]  # skip blanks (also 0s)
                 and (not l2 or r[tc.WBS_L2] == l2)
                 and (not l3 or r[tc.WBS_L3] == l3)
-                and (not fund_src or r[tc.SOURCE_OF_FUNDS_US_ONLY] == fund_src)
-                and (not region or r[tc.US_NON_US] == region)
+                and (not fund_src or r.get(tc.SOURCE_OF_FUNDS_US_ONLY) == fund_src)
+                and (not region or r.get(tc.US_NON_US) == region)
             )
         )
 
