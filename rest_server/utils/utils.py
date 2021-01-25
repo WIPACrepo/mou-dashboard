@@ -43,7 +43,10 @@ def add_on_the_fly_fields(record: types.Record) -> types.Record:
 
     # FTE fields
     if tc.FTE in record.keys():
-        record[_get_fte_subcolumn(record)] = record[tc.FTE]
+        try:
+            record[_get_fte_subcolumn(record)] = record[tc.FTE]
+        except KeyError:
+            pass
         record[tc.GRAND_TOTAL] = record[tc.FTE]
 
     # US-only fields
