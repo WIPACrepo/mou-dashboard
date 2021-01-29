@@ -12,7 +12,7 @@ class _WBSTableCache(TypedDict):  # pylint: disable=R0903
     columns: List[str]
     simple_dropdown_menus: Dict[str, List[str]]
     institutions: List[Tuple[str, str]]
-    labor_categories: List[str]
+    labor_categories: List[Tuple[str, str]]
     conditional_dropdown_menus: Dict[str, Tuple[str, Dict[str, List[str]]]]
     dropdowns: List[str]
     numerics: List[str]
@@ -112,9 +112,11 @@ class TableConfigParser:  # pylint: disable=R0904
         """Get list of institutions and their abbreviations."""
         return sorted(self._configs[self._wbs_l1]["institutions"], key=lambda k: k[1])
 
-    def get_labor_categories(self) -> List[str]:
-        """Get list of labors."""
-        return sorted(self._configs[self._wbs_l1]["labor_categories"])
+    def get_labor_categories_w_abbrevs(self) -> List[Tuple[str, str]]:
+        """Get list of labors  and their abbreviations.."""
+        return sorted(
+            self._configs[self._wbs_l1]["labor_categories"], key=lambda k: k[1]
+        )
 
     def is_column_dropdown(self, column: str) -> bool:
         """Get whether column is a dropdown-type."""

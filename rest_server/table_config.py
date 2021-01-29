@@ -31,6 +31,22 @@ EDITOR = "Name of Last Editor"
 US = "US"
 NON_US = "Non-US"
 
+_LABOR_CATEGORY_DICTIONARY = {
+    # Science
+    "KE": "Key Personnel (Faculty Members)",
+    "SC": "Scientist",
+    "PO": "Postdoctoral Associates",
+    "GR": "Graduate Students (PhD Students)",
+    # Technical
+    "AD": "Administration",
+    "CS": "Computer Science",
+    "DS": "Data Science",
+    "EN": "Engineering",
+    "IT": "Information Technology",
+    "MA": "Manager",
+    "WO": "Winterover",
+}
+
 
 _TOOLTIP_FUNDING_SOURCE_VALUE = "This number is dependent on the Funding Source and FTE. Changing those values will affect this number."
 
@@ -73,7 +89,7 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
     },
     LABOR_CAT: {
         "width": 50,
-        "options": ["AD", "CS", "DS", "EN", "GR", "IT", "KE", "MA", "PO", "SC", "WO"],
+        "options": sorted(_LABOR_CATEGORY_DICTIONARY.keys()),
         "sort_value": 30,
         "tooltip": "The labor category",
     },
@@ -168,21 +184,23 @@ def get_columns() -> List[str]:  # pylint: disable=C0103
 
 def get_institutions_and_abbrevs() -> List[Tuple[str, str]]:
     """Get the institutions and their abbreviations."""
-    abbrevs: Dict[str, str] = {}
+    abbrev_name: Dict[str, str] = {}
     for inst, val in ICECUBE_INSTS.items():
         # for institutions with the same abbreviation (aka different departments)
         # append their name
-        if val["abbreviation"] in abbrevs:
-            abbrevs[val["abbreviation"]] = f"{abbrevs[val['abbreviation']]} / {inst}"
+        if val["abbreviation"] in abbrev_name:
+            abbrev_name[
+                val["abbreviation"]
+            ] = f"{abbrev_name[val['abbreviation']]} / {inst}"
         else:
-            abbrevs[val["abbreviation"]] = inst
+            abbrev_name[val["abbreviation"]] = inst
 
-    return [(name, abbrev) for abbrev, name in abbrevs.items()]
+    return [(name, abbrev) for abbrev, name in abbrev_name.items()]
 
 
-def get_labor_cats() -> List[str]:
-    """Get the labor categories."""
-    return _COLUMN_CONFIGS[LABOR_CAT]["options"]
+def get_labor_categories_and_abbrevs() -> List[Tuple[str, str]]:
+    """Get the labor categories and their abbreviations."""
+    return [(name, abbrev) for abbrev, name in _LABOR_CATEGORY_DICTIONARY.items()]
 
 
 def get_l2_categories(l1: str) -> List[str]:  # pylint: disable=C0103
