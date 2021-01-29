@@ -272,7 +272,7 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
                     "columns": tc.get_columns(),
                     "simple_dropdown_menus": tc.get_simple_dropdown_menus(l1),
                     "institutions": tc.get_institutions_and_abbrevs(),
-                    "labor_categories": tc.get_labor_cats(),
+                    "labor_categories": tc.get_labor_categories_and_abbrevs(),
                     "conditional_dropdown_menus": tc.get_conditional_dropdown_menus(l1),
                     "dropdowns": tc.get_dropdowns(l1),
                     "numerics": tc.get_numerics(),

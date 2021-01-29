@@ -210,6 +210,7 @@ def layout() -> html.Div:
                         className="table-tool-large",
                         # options set in callback
                         # vale set in callback
+                        optionHeight=30,
                     ),
                 ],
             ),

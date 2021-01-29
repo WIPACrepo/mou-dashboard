@@ -851,7 +851,8 @@ def setup_institution_components(
         for name, abbrev in tconfig.get_institutions_w_abbrevs()
     ]
     labor_options = [
-        {"label": st, "value": st} for st in tconfig.get_labor_categories()
+        {"label": f"{abbrev} – {name}", "value": abbrev}
+        for name, abbrev in tconfig.get_labor_categories_w_abbrevs()
     ]
 
     if inst := du.get_inst(s_urlpath):

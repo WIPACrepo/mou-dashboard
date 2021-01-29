@@ -410,7 +410,7 @@ class TestTableConfig:
                     "c": ["4", "44", "444"],
                 },
                 "institutions": sorted([("foo", "F"), ("bar", "B")]),
-                "labor_categories": sorted(["foobar", "baz"]),
+                "labor_categories": sorted([("foobar", "FB"), ("baz", "BZ")]),
                 "conditional_dropdown_menus": {
                     "column1": (
                         "parent_of_1",
@@ -451,7 +451,10 @@ class TestTableConfig:
         # no-argument methods
         assert table_config.get_table_columns() == resp[WBS]["columns"]
         assert table_config.get_institutions_w_abbrevs() == resp[WBS]["institutions"]
-        assert table_config.get_labor_categories() == resp[WBS]["labor_categories"]
+        assert (
+            table_config.get_labor_categories_w_abbrevs()
+            == resp[WBS]["labor_categories"]
+        )
         assert table_config.get_hidden_columns() == resp[WBS]["hiddens"]
         assert table_config.get_dropdown_columns() == resp[WBS]["dropdowns"]
         assert table_config.get_page_size() == resp[WBS]["page_size"]
