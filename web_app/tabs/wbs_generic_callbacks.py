@@ -923,16 +923,16 @@ def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
         Input("wbs-cpus", "value"),  # user/setup_institution_components()
         Input("wbs-gpus", "value"),  # user/setup_institution_components()
         Input("wbs-textarea", "value"),  # user/setup_institution_components()
-        # Input("wbs-headcounts-confirm-yes", "n_clicks"),  # user-only
-        # Input("wbs-computing-confirm-yes", "n_clicks"),
+        Input("wbs-headcounts-confirm-yes", "n_clicks"),  # user-only
+        Input("wbs-computing-confirm-yes", "n_clicks"),  # user-only
     ],
     [
         State("url", "pathname"),
         State("wbs-current-snapshot-ts", "value"),
         State("wbs-data-table", "data"),
         State("wbs-institution-values-first-time-flag", "data"),
-        # State("wbs-headcounts-confirm-container", "hidden"),
-        # State("wbs-computing-confirm-container", "hidden"),
+        State("wbs-headcounts-confirm-container", "hidden"),
+        State("wbs-computing-confirm-container", "hidden"),
     ],
     prevent_initial_call=True,
 )
@@ -944,15 +944,15 @@ def push_institution_values(  # pylint: disable=R0913
     cpus: types.DashVal,
     gpus: types.DashVal,
     text: str,
-    # _: int,
-    # __: int,
+    _: int,
+    __: int,
     # state(s)
     s_urlpath: str,
     s_snap_ts: types.DashVal,
     s_table: types.Table,
     s_first_time: bool,
-    # s_hc_confirm_hidden: bool,
-    # s_comp_confirm_hidden: bool,
+    s_hc_confirm_hidden: bool,
+    s_comp_confirm_hidden: bool,
 ) -> Tuple[bool, List[html.Label], List[html.Label], List[html.Label], str]:
     """Push the institution's values."""
     logging.warning(
@@ -988,14 +988,16 @@ def push_institution_values(  # pylint: disable=R0913
     # push
     reload_page = no_update
     try:
-        # hc_confirmed = s_hc_confirm_hidden  # not hidden = not confirmed
-        # comp_confirmed = s_comp_confirm_hidden  # not hidden = not confirmed
-        # if du.triggered_id() == "wbs-headcounts-confirm-yes":
-        #     hc_confirmed = True
-        #     reload_page = du.RELOAD
-        # elif du.triggered_id() == "wbs-computing-confirm-yes":
-        #     comp_confirmed = True
-        #     reload_page = du.RELOAD
+        hc_confirmed = (  # not hidden === not confirmed
+            True
+            if du.triggered_id() == "wbs-headcounts-confirm-yes"
+            else s_hc_confirm_hidden
+        )
+        comp_confirmed = (  # not hidden === not confirmed
+            True
+            if du.triggered_id() == "wbs-computing-confirm-yes"
+            else s_comp_confirm_hidden
+        )
         src.push_institution_values(
             du.get_wbs_l1(s_urlpath),
             inst,
@@ -1006,8 +1008,8 @@ def push_institution_values(  # pylint: disable=R0913
             cpus,
             gpus,
             text,
-            False,  # hc_confirmed,
-            False,  # comp_confirmed,
+            hc_confirmed,
+            comp_confirmed,
         )
     except DataSourceException:
         assert len(s_table) == 0  # there's no collection to push to
