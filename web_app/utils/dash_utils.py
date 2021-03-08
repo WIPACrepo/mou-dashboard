@@ -164,14 +164,14 @@ def make_confirm_container(id_subject: str, message: str) -> html.Div:
     """Create a container for confirming `subject`."""
     return html.Div(
         id=f"wbs-{id_subject}-confirm-container",
-        hidden=True,
+        # hidden=True,
         className="autosaved-container",
         children=[
-            html.Label(
-                message,
-                style={"color": TEAL, "font-weight": "bold", "font-style": "italic"},
-            ),
-            dbc.Button("Yes", id=f"wbs-{id_subject}-confirm-yes"),
+            # html.Label(
+            #     message,
+            #     style={"color": TEAL, "font-weight": "bold", "font-style": "italic"},
+            # ),
+            dbc.Button("Submit Counts", id=f"wbs-{id_subject}-confirm-yes"),
         ],
     )
 
