@@ -208,16 +208,19 @@ def need_user_redirect(urlpath: str) -> bool:
 # Component/Attribute-Constructor Functions
 
 
-def make_timecheck_container(id_: str) -> dcc.Loading:
+def make_timecheck_container(id_: str, loading: bool = False) -> html.Div:
     """Create a container for the timecheck container.
 
-    Wrapped in a `dcc.Loading`.
+    Optionally, wrapped in a `dcc.Loading`.
     """
-    return dcc.Loading(
-        type="default",
-        color=TEAL,
-        children=html.Div(className="timecheck-container", id=id_),
-    )
+    if loading:
+        return dcc.Loading(
+            type="default",
+            color=TEAL,
+            children=html.Div(className="timecheck-container", id=id_),
+        )
+    else:
+        return html.Div(className="timecheck-container", id=id_)
 
 
 def make_confirm_container(id_subject: str, button_label: str) -> html.Div:

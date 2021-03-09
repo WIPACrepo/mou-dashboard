@@ -304,7 +304,7 @@ def layout() -> html.Div:
             ),
             #
             # Table Autosaved
-            du.make_timecheck_container("wbs-table-timecheck-container"),
+            du.make_timecheck_container("wbs-table-timecheck-container", loading=True),
             #
             html.Div(
                 id="institution-values-below-table-container",
@@ -359,7 +359,7 @@ def layout() -> html.Div:
                     ),
                     # Autosaved
                     du.make_timecheck_container(
-                        "wbs-institution-textarea-timecheck-container"
+                        "wbs-institution-textarea-timecheck-container", loading=True
                     ),
                 ],
             ),
