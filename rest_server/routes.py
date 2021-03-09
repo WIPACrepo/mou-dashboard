@@ -5,10 +5,8 @@ import json
 from typing import Any, List, Optional
 
 import tornado.web
-
-# local imports
-from rest_tools.client.json_util import json_decode  # type: ignore
 from rest_tools.server import handler, RestHandler  # type: ignore
+from rest_tools.utils.json_util import json_decode  # type: ignore
 
 from . import table_config as tc
 from . import wbs
