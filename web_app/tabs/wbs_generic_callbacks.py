@@ -424,7 +424,7 @@ def table_data_interior_controls(
     tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
 
     # Make labels
-    autosaved_labels = du.get_autosaved_labels("Table")
+    autosaved_labels = du.get_saved_label("Table", s_snap_ts, auto=True)
     sows_updated_label = du.get_sow_last_updated_label(
         current_table, bool(s_snap_ts), tconfig
     )
@@ -868,8 +868,8 @@ def setup_institution_components(
         faculty,
         sci,
         grad,
-        cpus,
-        gpus,
+        cpus if cpus else 0,  # None (blank) -> 0
+        gpus if gpus else 0,  # None (blank) -> 0
         text,
         h2_table,
         h2_textarea,
@@ -879,8 +879,8 @@ def setup_institution_components(
         inst,
         inst_options,
         labor_options,
-        hc_conf,  # hide if values are confirmed
-        comp_conf,  # hide if values are confirmed
+        True if s_snap_ts else hc_conf,
+        True if s_snap_ts else comp_conf,
     )
 
 
@@ -907,10 +907,9 @@ def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
 @app.callback(  # type: ignore[misc]
     [
         Output("wbs-institution-values-first-time-flag", "data"),
-        Output("wbs-institution-values-autosaved-container", "children"),
+        Output("wbs-headcounts-autosaved-container", "children"),
         Output("wbs-institution-textarea-autosaved-container", "children"),
-        Output("wbs-institution-computing-autosaved-container", "children"),
-        # Output("refresh-for-inst-confirms", "run"),
+        Output("wbs-computing-autosaved-container", "children"),
         Output("wbs-headcounts-confirm-container", "hidden"),
         Output("wbs-computing-confirm-container", "hidden"),
         Output("wbs-headcounts-confirm-container-container", "hidden"),
@@ -969,27 +968,28 @@ def push_institution_values(  # pylint: disable=R0913
     if not (inst := du.get_inst(s_urlpath)):  # pylint: disable=C0325
         return False, [], [], [], no_update, no_update, no_update
 
-    # labels
-    txt_lab = du.get_autosaved_labels("Notes & Descriptions")
-    hc_lab = du.get_autosaved_labels("Headcounts")
-    comp_lab = du.get_autosaved_labels("Computing Contributions")
-
     # Are the fields editable?
-    if not current_user.is_authenticated and not s_snap_ts:
-        return False, hc_lab, txt_lab, comp_lab, no_update, no_update, no_update
+    if not current_user.is_authenticated:
+        return False, [], [], [], no_update, no_update, True
+
+    # Is this a snapshot?
+    if s_snap_ts:
+        return False, [], [], [], no_update, no_update, True
 
     # check if headcounts are filled out
-    if hide_hc_btn := (None in [phds, faculty, sci, grad]):
-        hc_lab = [
-            html.Label(
-                "Headcounts are required. Please enter all four numbers.",
-                style={"color": "red", "font-weight": "bold"},
-            )
-        ]
+    hide_hc_btn = None in [phds, faculty, sci, grad]
 
     # Were the fields just auto-populated for the first time? No need to push data
     if s_first_time:
-        return False, hc_lab, txt_lab, comp_lab, s_hc_init, s_comp_init, hide_hc_btn
+        return (
+            False,
+            du.get_headcounts_label(hide_hc_btn, s_hc_init),
+            du.get_saved_label("Notes & Descriptions", auto=True),
+            du.get_saved_label("Computing Contributions") if s_comp_init else [],
+            s_hc_init,
+            s_comp_init,
+            hide_hc_btn,
+        )
 
     # what're the confirmation states of the counts?
     hc_confirmed = du.figure_headcounts_confirmation_state(s_hc_confirm_hidden)
@@ -1012,7 +1012,15 @@ def push_institution_values(  # pylint: disable=R0913
     except DataSourceException:
         assert len(s_table) == 0  # there's no collection to push to
 
-    return False, hc_lab, txt_lab, comp_lab, hc_confirmed, comp_confirmed, hide_hc_btn
+    return (
+        False,
+        du.get_headcounts_label(hide_hc_btn, hc_confirmed),
+        du.get_saved_label("Notes & Descriptions", auto=True),
+        du.get_saved_label("Computing Contributions") if comp_confirmed else [],
+        hc_confirmed,
+        comp_confirmed,
+        hide_hc_btn,
+    )
 
 
 # --------------------------------------------------------------------------------------

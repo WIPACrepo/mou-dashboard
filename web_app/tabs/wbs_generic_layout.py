@@ -181,14 +181,12 @@ def layout() -> html.Div:
                         ],
                     ),
                     # Autosaved
-                    du.make_autosaved_container(
-                        "wbs-institution-values-autosaved-container"
-                    ),
+                    du.make_autosaved_container("wbs-headcounts-autosaved-container"),
                     # Confirm
                     html.Div(
                         id="wbs-headcounts-confirm-container-container",
                         children=du.make_confirm_container(
-                            "headcounts", "Are these headcounts correct?"
+                            "headcounts", "Submit Headcounts"
                         ),
                     ),
                 ],
@@ -344,11 +342,9 @@ def layout() -> html.Div:
                         ],
                     ),
                     # Autosaved
-                    du.make_autosaved_container(
-                        "wbs-institution-computing-autosaved-container"
-                    ),
+                    du.make_autosaved_container("wbs-computing-autosaved-container"),
                     # Confirm
-                    du.make_confirm_container("computing", "Are these counts correct?"),
+                    du.make_confirm_container("computing", "Submit Counts"),
                     #
                     # Free Text
                     html.H2(

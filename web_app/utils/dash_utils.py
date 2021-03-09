@@ -98,12 +98,32 @@ def get_sow_last_updated_label(
     return f"SOWs Last Updated: {most_recent}"
 
 
-def get_autosaved_labels(subject: str) -> List[html.Label]:
-    """Return formatted labels for autosaving with datetime."""
+def get_saved_label(
+    subject: str, snap_ts: types.DashVal = None, auto: bool = False
+) -> List[html.Label]:
+    """Return formatted labels for saving/autosaving with datetime."""
+    if snap_ts:
+        return []
+    saved = "Autosaved" if auto else "Saved"
     return [
-        html.Label(f"{subject} Autosaved ✔", className="autosaved-label"),
+        html.Label(f"{subject} {saved} ✔", className="autosaved-label"),
         html.Label(utils.get_human_now(), className="autosaved-datetime"),
     ]
+
+
+def get_headcounts_label(missing_counts: bool, confirmed: bool) -> List[html.Label]:
+    """Get the headcounts-autosaved/alert label."""
+    if missing_counts:
+        return [
+            html.Label(
+                "Headcounts are required. Please enter all four numbers.",
+                style={"color": "red", "font-weight": "bold"},
+            )
+        ]
+    elif not confirmed:  # hide the label if the counts aren't confirmed
+        return []
+    else:
+        return get_saved_label("Headcounts")
 
 
 def _figure_counts_confirmation_state(
@@ -195,19 +215,13 @@ def make_autosaved_container(id_: str) -> dcc.Loading:
     )
 
 
-def make_confirm_container(id_subject: str, message: str) -> html.Div:
+def make_confirm_container(id_subject: str, button_label: str) -> html.Div:
     """Create a container for confirming `subject`."""
     return html.Div(
         id=f"wbs-{id_subject}-confirm-container",
         hidden=True,
         className="autosaved-container",
-        children=[
-            # html.Label(
-            #     message,
-            #     style={"color": TEAL, "font-weight": "bold", "font-style": "italic"},
-            # ),
-            dbc.Button("Submit Counts", id=f"wbs-{id_subject}-confirm-yes"),
-        ],
+        children=dbc.Button(button_label, id=f"wbs-{id_subject}-confirm-yes"),
     )
 
 
