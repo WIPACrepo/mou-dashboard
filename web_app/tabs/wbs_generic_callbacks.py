@@ -786,6 +786,8 @@ def handle_make_snapshot(
         # Output("wbs-headcounts-confirm-container", "hidden"),
         # Output("wbs-computing-confirm-container", "hidden"),
         # Output("wbs-headcounts-confirm-container-container", "hidden"),
+        Output("wbs-headcounts-confirm-initial-state", "data"),
+        Output("wbs-computing-confirm-initial-state", "data"),
     ],
     [Input("dummy-input-for-setup", "hidden")],  # never triggered
     [
@@ -817,8 +819,8 @@ def setup_institution_components(
     List[Dict[str, str]],
     List[Dict[str, str]],
     # bool,
-    # bool,
-    # bool,
+    bool,
+    bool,
 ]:
     """Set up institution-related components."""
     logging.warning(
@@ -829,7 +831,7 @@ def setup_institution_components(
 
     # Check Login
     if not current_user.is_authenticated:
-        return tuple(no_update for _ in range(15))  # type: ignore[return-value]
+        return tuple(no_update for _ in range(17))  # type: ignore[return-value]
 
     phds: types.DashVal = 0
     faculty: types.DashVal = 0
@@ -881,8 +883,8 @@ def setup_institution_components(
         inst,
         inst_options,
         labor_options,
-        # hc_conf,  # hide if values are confirmed
-        # comp_conf,  # hide if values are confirmed
+        hc_conf,  # hide if values are confirmed
+        comp_conf,  # hide if values are confirmed
         # None in [phds, faculty, sci, grad],
     )
 
@@ -913,15 +915,20 @@ def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
         Output("wbs-institution-values-autosaved-container", "children"),
         Output("wbs-institution-textarea-autosaved-container", "children"),
         Output("wbs-institution-computing-autosaved-container", "children"),
-        Output("refresh-for-inst-confirms", "run"),
+        # Output("refresh-for-inst-confirms", "run"),
+        Output("wbs-headcounts-confirm-container", "hidden"),
+        Output("wbs-computing-confirm-container", "hidden"),
+        Output("wbs-headcounts-confirm-container-container", "hidden"),
     ],
     [
         Input("wbs-phds-authors", "value"),  # user/setup_institution_components()
         Input("wbs-faculty", "value"),  # user/setup_institution_components()
         Input("wbs-scientists-post-docs", "value"),  # user/setup_institution_components
         Input("wbs-grad-students", "value"),  # user/setup_institution_components()
+        #
         Input("wbs-cpus", "value"),  # user/setup_institution_components()
         Input("wbs-gpus", "value"),  # user/setup_institution_components()
+        #
         Input("wbs-textarea", "value"),  # user/setup_institution_components()
         Input("wbs-headcounts-confirm-yes", "n_clicks"),  # user-only
         Input("wbs-computing-confirm-yes", "n_clicks"),  # user-only
@@ -933,6 +940,8 @@ def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
         State("wbs-institution-values-first-time-flag", "data"),
         State("wbs-headcounts-confirm-container", "hidden"),
         State("wbs-computing-confirm-container", "hidden"),
+        State("wbs-headcounts-confirm-initial-state", "data"),
+        State("wbs-computing-confirm-initial-state", "data"),
     ],
     prevent_initial_call=True,
 )
@@ -953,7 +962,11 @@ def push_institution_values(  # pylint: disable=R0913
     s_first_time: bool,
     s_hc_confirm_hidden: bool,
     s_comp_confirm_hidden: bool,
-) -> Tuple[bool, List[html.Label], List[html.Label], List[html.Label], str]:
+    s_hc_init: bool,
+    s_comp_init: bool,
+) -> Tuple[
+    bool, List[html.Label], List[html.Label], List[html.Label], bool, bool, bool
+]:
     """Push the institution's values."""
     logging.warning(
         f"'{du.triggered()}' -> push_institution_values() ({s_first_time=})"
@@ -961,43 +974,35 @@ def push_institution_values(  # pylint: disable=R0913
 
     # Is there an institution selected?
     if not (inst := du.get_inst(s_urlpath)):  # pylint: disable=C0325
-        return False, [], [], [], no_update
+        return False, [], [], [], no_update, no_update, no_update
 
     # labels
-    txt_labels = du.get_autosaved_labels("Notes & Descriptions")
-    hc_labels = du.get_autosaved_labels("Headcounts")
-    comp_labels = du.get_autosaved_labels("Computing Contributions")
+    txt_lab = du.get_autosaved_labels("Notes & Descriptions")
+    hc_lab = du.get_autosaved_labels("Headcounts")
+    comp_lab = du.get_autosaved_labels("Computing Contributions")
 
     # Are the fields editable?
     if not current_user.is_authenticated and not s_snap_ts:
-        return False, hc_labels, txt_labels, comp_labels, no_update
+        return False, hc_lab, txt_lab, comp_lab, no_update, no_update, no_update
 
     # check if headcounts are filled out
-    if None in [phds, faculty, sci, grad]:
-        hc_labels = [
+    if hide_hc_btn := (None in [phds, faculty, sci, grad]):
+        hc_lab = [
             html.Label(
                 "Headcounts are required. Please enter all four numbers.",
                 style={"color": "red", "font-weight": "bold"},
             )
         ]
 
-    # Is this a redundant push? -- fields were just auto-populated for the first time
+    # Were the fields just auto-populated for the first time? No need to push data
     if s_first_time:
-        return False, hc_labels, txt_labels, comp_labels, no_update
+        return False, hc_lab, txt_lab, comp_lab, s_hc_init, s_comp_init, hide_hc_btn
 
+    # what're the confirmation states of the counts?
+    hc_confirmed = du.figure_headcounts_confirmation_state(s_hc_confirm_hidden)
+    comp_confirmed = du.figure_computing_confirmation_state(s_comp_confirm_hidden)
     # push
-    reload_page = no_update
     try:
-        hc_confirmed = (  # not hidden === not confirmed
-            True
-            if du.triggered_id() == "wbs-headcounts-confirm-yes"
-            else s_hc_confirm_hidden
-        )
-        comp_confirmed = (  # not hidden === not confirmed
-            True
-            if du.triggered_id() == "wbs-computing-confirm-yes"
-            else s_comp_confirm_hidden
-        )
         src.push_institution_values(
             du.get_wbs_l1(s_urlpath),
             inst,
@@ -1014,7 +1019,7 @@ def push_institution_values(  # pylint: disable=R0913
     except DataSourceException:
         assert len(s_table) == 0  # there's no collection to push to
 
-    return False, hc_labels, txt_labels, comp_labels, reload_page
+    return False, hc_lab, txt_lab, comp_lab, hc_confirmed, comp_confirmed, hide_hc_btn
 
 
 # --------------------------------------------------------------------------------------

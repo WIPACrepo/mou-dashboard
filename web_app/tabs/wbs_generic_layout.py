@@ -464,6 +464,9 @@ def layout() -> html.Div:
                 storage_type="memory",
                 data=True,
             ),
+            # - for fagging the initial count-confirmation states
+            dcc.Store(id="wbs-headcounts-confirm-initial-state", storage_type="memory"),
+            dcc.Store(id="wbs-computing-confirm-initial-state", storage_type="memory"),
             # - for storing the last deleted record's id
             dcc.Store(id="wbs-last-deleted-record", storage_type="memory"),
             # - for discerning whether the table update was by the user vs automated

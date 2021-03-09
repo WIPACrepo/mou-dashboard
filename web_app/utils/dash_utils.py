@@ -106,6 +106,41 @@ def get_autosaved_labels(subject: str) -> List[html.Label]:
     ]
 
 
+def _figure_counts_confirmation_state(
+    confirm_trigger_id: str, prev_state: bool, causal_fields: List[str]
+) -> bool:
+    if triggered_id() == confirm_trigger_id:
+        # the user is confirming the count
+        return True
+    elif triggered_id() in causal_fields:
+        # if a casual-field value changed, then the count is no longer confirmed
+        return False
+    else:
+        # an unrelated value changed, so maintain previous state
+        return prev_state
+
+
+def figure_headcounts_confirmation_state(prev_state: bool) -> bool:
+    """Figure the confirmation states for the headcounts."""
+    return _figure_counts_confirmation_state(
+        "wbs-headcounts-confirm-yes",
+        prev_state,
+        [
+            "wbs-phds-authors",
+            "wbs-faculty",
+            "wbs-scientists-post-docs",
+            "wbs-grad-students",
+        ],
+    )
+
+
+def figure_computing_confirmation_state(prev_state: bool) -> bool:
+    """Figure the confirmation states for the computing counts."""
+    return _figure_counts_confirmation_state(
+        "wbs-computing-confirm-yes", prev_state, ["wbs-cpus", "wbs-gpus"]
+    )
+
+
 # --------------------------------------------------------------------------------------
 # URL parsers
 
@@ -164,7 +199,7 @@ def make_confirm_container(id_subject: str, message: str) -> html.Div:
     """Create a container for confirming `subject`."""
     return html.Div(
         id=f"wbs-{id_subject}-confirm-container",
-        # hidden=True,
+        hidden=True,
         className="autosaved-container",
         children=[
             # html.Label(
