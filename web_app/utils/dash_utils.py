@@ -9,6 +9,7 @@ import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 import dash_table  # type: ignore[import]
+from dash import no_update  # type: ignore[import]
 from flask_login import current_user  # type: ignore[import]
 
 from ..data_source import data_source as src
@@ -111,19 +112,24 @@ def get_saved_label(
     ]
 
 
-def get_headcounts_label(missing_counts: bool, confirmed: bool) -> List[html.Label]:
-    """Get the headcounts-autosaved/alert label."""
-    if missing_counts:
-        return [
-            html.Label(
-                "Headcounts are required. Please enter all four numbers.",
-                style={"color": "red", "font-weight": "bold"},
-            )
-        ]
-    elif not confirmed:  # hide the label if the counts aren't confirmed
+HEADCOUNTS_REQUIRED = [
+    html.Label(
+        "Headcounts are required. Please enter all four numbers.",
+        style={"color": "red", "font-weight": "bold"},
+    )
+]
+
+
+def counts_saved_label(
+    confirmed: bool, just_now_confirmed: bool, label: str
+) -> List[html.Label]:
+    """Get a counts saved-label."""
+    if just_now_confirmed:  # show saved label if count was just now confirmed
+        return get_saved_label(label)
+    elif not confirmed:  # if it's not confirmed, then don't show anything
         return []
-    else:
-        return get_saved_label("Headcounts")
+    else:  # it's confirmed but this isn't new, so don't change anything
+        return no_update  # type: ignore[no-any-return]
 
 
 def _figure_counts_confirmation_state(

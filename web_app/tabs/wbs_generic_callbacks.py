@@ -954,8 +954,8 @@ def push_institution_values(  # pylint: disable=R0913
     s_first_time: bool,
     s_hc_confirm_hidden: bool,
     s_comp_confirm_hidden: bool,
-    s_hc_init: bool,
-    s_comp_init: bool,
+    s_hc_orig_conf: bool,
+    s_comp_orig_conf: bool,
 ) -> Tuple[
     bool, List[html.Label], List[html.Label], List[html.Label], bool, bool, bool
 ]:
@@ -983,17 +983,20 @@ def push_institution_values(  # pylint: disable=R0913
     if s_first_time:
         return (
             False,
-            du.get_headcounts_label(hide_hc_btn, s_hc_init),
+            du.HEADCOUNTS_REQUIRED if hide_hc_btn else [],  # don't show saved at first
             du.get_saved_label("Notes & Descriptions", auto=True),
-            du.get_saved_label("Computing Contributions") if s_comp_init else [],
-            s_hc_init,
-            s_comp_init,
+            [],  # don't show saved at first
+            s_hc_orig_conf,
+            s_comp_orig_conf,
             hide_hc_btn,
         )
 
     # what're the confirmation states of the counts?
-    hc_confirmed = du.figure_headcounts_confirmation_state(s_hc_confirm_hidden)
-    comp_confirmed = du.figure_computing_confirmation_state(s_comp_confirm_hidden)
+    hc_new_conf, comp_new_conf = False, False
+    if hc_confirmed := du.figure_headcounts_confirmation_state(s_hc_confirm_hidden):
+        hc_new_conf = du.triggered_id() == "wbs-headcounts-confirm-yes"
+    if comp_confirmed := du.figure_computing_confirmation_state(s_comp_confirm_hidden):
+        comp_new_conf = du.triggered_id() == "wbs-computing-confirm-yes"
     # push
     try:
         src.push_institution_values(
@@ -1012,11 +1015,16 @@ def push_institution_values(  # pylint: disable=R0913
     except DataSourceException:
         assert len(s_table) == 0  # there's no collection to push to
 
+    hc_label = (
+        du.HEADCOUNTS_REQUIRED
+        if hide_hc_btn
+        else du.counts_saved_label(hc_confirmed, hc_new_conf, "Headcounts")
+    )
     return (
         False,
-        du.get_headcounts_label(hide_hc_btn, hc_confirmed),
+        hc_label,
         du.get_saved_label("Notes & Descriptions", auto=True),
-        du.get_saved_label("Computing Contributions") if comp_confirmed else [],
+        du.counts_saved_label(comp_confirmed, comp_new_conf, "Computing Contributions"),
         hc_confirmed,
         comp_confirmed,
         hide_hc_btn,
