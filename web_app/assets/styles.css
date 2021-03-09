@@ -104,9 +104,23 @@ code {
 }
 
 .footer {
-    height: 3rem;
+    /*height: 3rem;*/
     background-color: black;
     border-top: 2px solid silver !important;
+}
+
+.footer-version {
+    color: silver;
+    font-family: monospace;
+    color: black;
+    user-select: none;
+    padding-left: 1rem;
+    font-size: large;
+    width: 55rem;
+}
+.footer-version:hover {
+    transition: 3s;
+    color: silver;
 }
 
 
