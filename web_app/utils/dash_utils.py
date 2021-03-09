@@ -9,7 +9,7 @@ import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 import dash_table  # type: ignore[import]
-from dash import no_update  # type: ignore[import]
+from dash import no_update
 from flask_login import current_user  # type: ignore[import]
 
 from ..data_source import data_source as src
@@ -99,16 +99,15 @@ def get_sow_last_updated_label(
     return f"SOWs Last Updated: {most_recent}"
 
 
-def get_saved_label(
-    subject: str, snap_ts: types.DashVal = None, auto: bool = False
+def timecheck_labels(
+    subject: str, verbage: str, snap_ts: types.DashVal = None,
 ) -> List[html.Label]:
-    """Return formatted labels for saving/autosaving with datetime."""
+    """Return labels with datetime and a checkmark for saved/submitted/etc."""
     if snap_ts:
         return []
-    saved = "Autosaved" if auto else "Saved"
     return [
-        html.Label(f"{subject} {saved} ✔", className="autosaved-label"),
-        html.Label(utils.get_human_now(), className="autosaved-datetime"),
+        html.Label(f"{subject} {verbage} ✔", className="timecheck-label"),
+        html.Label(utils.get_human_now(), className="timecheck-datetime"),
     ]
 
 
@@ -125,7 +124,7 @@ def counts_saved_label(
 ) -> List[html.Label]:
     """Get a counts saved-label."""
     if just_now_confirmed:  # show saved label if count was just now confirmed
-        return get_saved_label(label)
+        return timecheck_labels(label, "Submitted")
     elif not confirmed:  # if it's not confirmed, then don't show anything
         return []
     else:  # it's confirmed but this isn't new, so don't change anything
@@ -209,15 +208,15 @@ def need_user_redirect(urlpath: str) -> bool:
 # Component/Attribute-Constructor Functions
 
 
-def make_autosaved_container(id_: str) -> dcc.Loading:
-    """Create a container for the autosaved container.
+def make_timecheck_container(id_: str) -> dcc.Loading:
+    """Create a container for the timecheck container.
 
     Wrapped in a `dcc.Loading`.
     """
     return dcc.Loading(
         type="default",
         color=TEAL,
-        children=html.Div(className="autosaved-container", id=id_),
+        children=html.Div(className="timecheck-container", id=id_),
     )
 
 
@@ -226,7 +225,7 @@ def make_confirm_container(id_subject: str, button_label: str) -> html.Div:
     return html.Div(
         id=f"wbs-{id_subject}-confirm-container",
         hidden=True,
-        className="autosaved-container",
+        className="timecheck-container",
         children=dbc.Button(button_label, id=f"wbs-{id_subject}-confirm-yes"),
     )
 

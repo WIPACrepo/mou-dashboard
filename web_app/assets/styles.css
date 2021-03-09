@@ -47,17 +47,17 @@ body {
     border-top: 0.16rem solid #5a5a5a;
 }
 
-.autosaved-container {
+.timecheck-container {
     text-align: center;
     margin-top: 1rem;
 }
 
-.autosaved-label {
+.timecheck-label {
     font-size: 14px;
     font-style: italic;
 }
 
-.autosaved-datetime {
+.timecheck-datetime {
     font-size: 11px;
     font-style: italic;
 }

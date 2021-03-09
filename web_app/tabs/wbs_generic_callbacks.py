@@ -382,7 +382,7 @@ def _find_deleted_record(
 @app.callback(  # type: ignore[misc]
     [
         Output("wbs-data-table", "data_previous"),
-        Output("wbs-table-autosaved-container", "children"),
+        Output("wbs-table-timecheck-container", "children"),
         Output("wbs-last-deleted-record", "data"),
         Output("wbs-confirm-deletion", "displayed"),
         Output("wbs-confirm-deletion", "message"),
@@ -424,7 +424,7 @@ def table_data_interior_controls(
     tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
 
     # Make labels
-    autosaved_labels = du.get_saved_label("Table", s_snap_ts, auto=True)
+    timecheck_labels = du.timecheck_labels("Table", "Autosaved", s_snap_ts)
     sows_updated_label = du.get_sow_last_updated_label(
         current_table, bool(s_snap_ts), tconfig
     )
@@ -435,7 +435,7 @@ def table_data_interior_controls(
         logging.warning("table_data_interior_controls() :: aborted callback")
         return (
             current_table,
-            autosaved_labels,
+            timecheck_labels,
             {},
             False,
             "",
@@ -465,7 +465,7 @@ def table_data_interior_controls(
     # Update data_previous
     return (
         current_table,
-        autosaved_labels,
+        timecheck_labels,
         deleted_record,
         bool(deleted_record),
         delete_message,
@@ -907,9 +907,9 @@ def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
 @app.callback(  # type: ignore[misc]
     [
         Output("wbs-institution-values-first-time-flag", "data"),
-        Output("wbs-headcounts-autosaved-container", "children"),
-        Output("wbs-institution-textarea-autosaved-container", "children"),
-        Output("wbs-computing-autosaved-container", "children"),
+        Output("wbs-headcounts-timecheck-container", "children"),
+        Output("wbs-institution-textarea-timecheck-container", "children"),
+        Output("wbs-computing-timecheck-container", "children"),
         Output("wbs-headcounts-confirm-container", "hidden"),
         Output("wbs-computing-confirm-container", "hidden"),
         Output("wbs-headcounts-confirm-container-container", "hidden"),
@@ -984,7 +984,7 @@ def push_institution_values(  # pylint: disable=R0913
         return (
             False,
             du.HEADCOUNTS_REQUIRED if hide_hc_btn else [],  # don't show saved at first
-            du.get_saved_label("Notes & Descriptions", auto=True),
+            du.timecheck_labels("Notes & Descriptions", "Autosaved"),
             [],  # don't show saved at first
             s_hc_orig_conf,
             s_comp_orig_conf,
@@ -1023,7 +1023,7 @@ def push_institution_values(  # pylint: disable=R0913
     return (
         False,
         hc_label,
-        du.get_saved_label("Notes & Descriptions", auto=True),
+        du.timecheck_labels("Notes & Descriptions", "Autosaved"),
         du.counts_saved_label(comp_confirmed, comp_new_conf, "Computing Contributions"),
         hc_confirmed,
         comp_confirmed,

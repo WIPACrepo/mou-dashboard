@@ -181,7 +181,7 @@ def layout() -> html.Div:
                         ],
                     ),
                     # Autosaved
-                    du.make_autosaved_container("wbs-headcounts-autosaved-container"),
+                    du.make_timecheck_container("wbs-headcounts-timecheck-container"),
                     # Confirm
                     html.Div(
                         id="wbs-headcounts-confirm-container-container",
@@ -304,7 +304,7 @@ def layout() -> html.Div:
             ),
             #
             # Table Autosaved
-            du.make_autosaved_container("wbs-table-autosaved-container"),
+            du.make_timecheck_container("wbs-table-timecheck-container"),
             #
             html.Div(
                 id="institution-values-below-table-container",
@@ -342,7 +342,7 @@ def layout() -> html.Div:
                         ],
                     ),
                     # Autosaved
-                    du.make_autosaved_container("wbs-computing-autosaved-container"),
+                    du.make_timecheck_container("wbs-computing-timecheck-container"),
                     # Confirm
                     du.make_confirm_container("computing", "Submit Counts"),
                     #
@@ -358,8 +358,8 @@ def layout() -> html.Div:
                         disabled=True,
                     ),
                     # Autosaved
-                    du.make_autosaved_container(
-                        "wbs-institution-textarea-autosaved-container"
+                    du.make_timecheck_container(
+                        "wbs-institution-textarea-timecheck-container"
                     ),
                 ],
             ),
