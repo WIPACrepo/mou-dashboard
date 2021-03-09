@@ -783,9 +783,6 @@ def handle_make_snapshot(
         Output("wbs-dropdown-institution", "value"),
         Output("wbs-dropdown-institution", "options"),
         Output("wbs-filter-labor", "options"),
-        # Output("wbs-headcounts-confirm-container", "hidden"),
-        # Output("wbs-computing-confirm-container", "hidden"),
-        # Output("wbs-headcounts-confirm-container-container", "hidden"),
         Output("wbs-headcounts-confirm-initial-state", "data"),
         Output("wbs-computing-confirm-initial-state", "data"),
     ],
@@ -818,7 +815,6 @@ def setup_institution_components(
     types.DashVal,
     List[Dict[str, str]],
     List[Dict[str, str]],
-    # bool,
     bool,
     bool,
 ]:
@@ -885,7 +881,6 @@ def setup_institution_components(
         labor_options,
         hc_conf,  # hide if values are confirmed
         comp_conf,  # hide if values are confirmed
-        # None in [phds, faculty, sci, grad],
     )
 
 
@@ -925,10 +920,8 @@ def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
         Input("wbs-faculty", "value"),  # user/setup_institution_components()
         Input("wbs-scientists-post-docs", "value"),  # user/setup_institution_components
         Input("wbs-grad-students", "value"),  # user/setup_institution_components()
-        #
         Input("wbs-cpus", "value"),  # user/setup_institution_components()
         Input("wbs-gpus", "value"),  # user/setup_institution_components()
-        #
         Input("wbs-textarea", "value"),  # user/setup_institution_components()
         Input("wbs-headcounts-confirm-yes", "n_clicks"),  # user-only
         Input("wbs-computing-confirm-yes", "n_clicks"),  # user-only
