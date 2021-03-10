@@ -844,10 +844,23 @@ def setup_institution_components(
 
     wbs_l1 = du.get_wbs_l1(s_urlpath)
     tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
-    inst_options = [
-        {"label": f"{abbrev} ({name})", "value": abbrev}
-        for name, abbrev in tconfig.get_institutions_w_abbrevs()
-    ]
+
+    if current_user.is_authenticated and current_user.is_admin:
+        inst_options = [  # always include the abbreviations for admins
+            {"label": f"{abbrev} ({name})", "value": abbrev}
+            for name, abbrev in tconfig.get_institutions_w_abbrevs()
+        ]
+    else:
+        inst_options = [
+            {
+                "label": name  # only incl. the abbrev if it adds info
+                if name.upper() == abbrev.upper()
+                else f"{name} ({abbrev})",
+                "value": abbrev,
+            }
+            for name, abbrev in sorted(tconfig.get_institutions_w_abbrevs())
+        ]
+
     labor_options = [
         {"label": f"{abbrev} – {name}", "value": abbrev}
         for name, abbrev in tconfig.get_labor_categories_w_abbrevs()
