@@ -223,8 +223,8 @@ def layout() -> html.Div:
                 sort_action="native",
                 # Styles
                 style_table={
-                    "overflowX": "auto",
-                    "overflowY": "auto",
+                    # "overflowX": "auto",  # setting to auto causes the dropdown-cell overlap bug
+                    # "overflowY": "auto",  # setting to auto causes the dropdown-cell overlap bug
                     "padding-left": "1em",
                 },
                 style_header={

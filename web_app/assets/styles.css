@@ -97,8 +97,8 @@ code {
 .content {
     padding-top: 1rem;
     padding-bottom: 2rem;
-    padding-left: 7rem;
-    padding-right: 7rem;
+    padding-left: 2rem;
+    padding-right: 2rem;
     background-color: whitesmoke;
     min-height: 100rem;
 }
