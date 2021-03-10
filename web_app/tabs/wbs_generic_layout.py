@@ -181,14 +181,12 @@ def layout() -> html.Div:
                         ],
                     ),
                     # Autosaved
-                    du.make_autosaved_container(
-                        "wbs-institution-values-autosaved-container"
-                    ),
+                    du.make_timecheck_container("wbs-headcounts-timecheck-container"),
                     # Confirm
                     html.Div(
                         id="wbs-headcounts-confirm-container-container",
                         children=du.make_confirm_container(
-                            "headcounts", "Are these headcounts correct?"
+                            "headcounts", "Submit Headcounts"
                         ),
                     ),
                 ],
@@ -225,8 +223,8 @@ def layout() -> html.Div:
                 sort_action="native",
                 # Styles
                 style_table={
-                    "overflowX": "auto",
-                    "overflowY": "auto",
+                    # "overflowX": "auto",  # setting to auto causes the dropdown-cell overlap bug
+                    # "overflowY": "auto",  # setting to auto causes the dropdown-cell overlap bug
                     "padding-left": "1em",
                 },
                 style_header={
@@ -306,7 +304,7 @@ def layout() -> html.Div:
             ),
             #
             # Table Autosaved
-            du.make_autosaved_container("wbs-table-autosaved-container"),
+            du.make_timecheck_container("wbs-table-timecheck-container", loading=True),
             #
             html.Div(
                 id="institution-values-below-table-container",
@@ -344,11 +342,9 @@ def layout() -> html.Div:
                         ],
                     ),
                     # Autosaved
-                    du.make_autosaved_container(
-                        "wbs-institution-computing-autosaved-container"
-                    ),
+                    du.make_timecheck_container("wbs-computing-timecheck-container"),
                     # Confirm
-                    du.make_confirm_container("computing", "Are these counts correct?"),
+                    du.make_confirm_container("computing", "Submit Counts"),
                     #
                     # Free Text
                     html.H2(
@@ -362,8 +358,8 @@ def layout() -> html.Div:
                         disabled=True,
                     ),
                     # Autosaved
-                    du.make_autosaved_container(
-                        "wbs-institution-textarea-autosaved-container"
+                    du.make_timecheck_container(
+                        "wbs-institution-textarea-timecheck-container", loading=True
                     ),
                 ],
             ),
@@ -464,6 +460,9 @@ def layout() -> html.Div:
                 storage_type="memory",
                 data=True,
             ),
+            # - for fagging the initial count-confirmation states
+            dcc.Store(id="wbs-headcounts-confirm-initial-state", storage_type="memory"),
+            dcc.Store(id="wbs-computing-confirm-initial-state", storage_type="memory"),
             # - for storing the last deleted record's id
             dcc.Store(id="wbs-last-deleted-record", storage_type="memory"),
             # - for discerning whether the table update was by the user vs automated

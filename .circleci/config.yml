@@ -6,7 +6,7 @@ jobs:
       - image: circleci/python:3.8
     steps:
       - checkout
-      - run: pip install --use-feature=2020-resolver -r rest_server/requirements.txt -r web_app/requirements.txt && pytest -vvv --mypy --flake8 tests/unit
+      - run: pip install -r rest_server/requirements.txt -r web_app/requirements.txt && pytest -vvv --mypy --flake8 tests/unit
 
   integrate:
     docker:

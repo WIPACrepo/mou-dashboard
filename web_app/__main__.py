@@ -21,20 +21,29 @@ def main(debug: bool) -> None:
 
     # Run Server
     app.run_server(
-        debug=debug, host="localhost", port=get_config_vars()["WEB_SERVER_PORT"]
+        debug=debug,
+        host="localhost",
+        port=get_config_vars()["WEB_SERVER_PORT"],
+        # useful dev settings (these are enabled automatically when debug=True)
+        dev_tools_silence_routes_logging=True,
+        use_reloader=True,
+        dev_tools_hot_reload=True,
     )
 
 
 if __name__ == "__main__":
     # Parse Args
     parser = argparse.ArgumentParser()
-    parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
-    parser.add_argument(
-        "--no-debug", dest="no_debug", default=False, action="store_true"
-    )
+    parser.add_argument("-l", "--log", default="INFO", help="the output logging level")
+    parser.add_argument("--debug", default=False, action="store_true")
     args = parser.parse_args()
 
     # Log
-    coloredlogs.install(level=getattr(logging, args.log.upper()))
+    if args.debug:
+        coloredlogs.install(level="DEBUG")
+    else:
+        coloredlogs.install(level=args.log.upper())
     logging.warning(args)
-    main(not args.no_debug)
+
+    # Go
+    main(args.debug)

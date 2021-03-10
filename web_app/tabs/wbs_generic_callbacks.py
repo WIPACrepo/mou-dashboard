@@ -382,7 +382,7 @@ def _find_deleted_record(
 @app.callback(  # type: ignore[misc]
     [
         Output("wbs-data-table", "data_previous"),
-        Output("wbs-table-autosaved-container", "children"),
+        Output("wbs-table-timecheck-container", "children"),
         Output("wbs-last-deleted-record", "data"),
         Output("wbs-confirm-deletion", "displayed"),
         Output("wbs-confirm-deletion", "message"),
@@ -424,7 +424,7 @@ def table_data_interior_controls(
     tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
 
     # Make labels
-    autosaved_labels = du.get_autosaved_labels("Table")
+    timecheck_labels = du.timecheck_labels("Table", "Autosaved", s_snap_ts)
     sows_updated_label = du.get_sow_last_updated_label(
         current_table, bool(s_snap_ts), tconfig
     )
@@ -435,7 +435,7 @@ def table_data_interior_controls(
         logging.warning("table_data_interior_controls() :: aborted callback")
         return (
             current_table,
-            autosaved_labels,
+            timecheck_labels,
             {},
             False,
             "",
@@ -465,7 +465,7 @@ def table_data_interior_controls(
     # Update data_previous
     return (
         current_table,
-        autosaved_labels,
+        timecheck_labels,
         deleted_record,
         bool(deleted_record),
         delete_message,
@@ -783,9 +783,8 @@ def handle_make_snapshot(
         Output("wbs-dropdown-institution", "value"),
         Output("wbs-dropdown-institution", "options"),
         Output("wbs-filter-labor", "options"),
-        Output("wbs-headcounts-confirm-container", "hidden"),
-        Output("wbs-computing-confirm-container", "hidden"),
-        Output("wbs-headcounts-confirm-container-container", "hidden"),
+        Output("wbs-headcounts-confirm-initial-state", "data"),
+        Output("wbs-computing-confirm-initial-state", "data"),
     ],
     [Input("dummy-input-for-setup", "hidden")],  # never triggered
     [
@@ -818,7 +817,6 @@ def setup_institution_components(
     List[Dict[str, str]],
     bool,
     bool,
-    bool,
 ]:
     """Set up institution-related components."""
     logging.warning(
@@ -829,7 +827,7 @@ def setup_institution_components(
 
     # Check Login
     if not current_user.is_authenticated:
-        return tuple(no_update for _ in range(18))  # type: ignore[return-value]
+        return tuple(no_update for _ in range(17))  # type: ignore[return-value]
 
     phds: types.DashVal = 0
     faculty: types.DashVal = 0
@@ -846,10 +844,23 @@ def setup_institution_components(
 
     wbs_l1 = du.get_wbs_l1(s_urlpath)
     tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
-    inst_options = [
-        {"label": f"{abbrev} ({name})", "value": abbrev}
-        for name, abbrev in tconfig.get_institutions_w_abbrevs()
-    ]
+
+    if current_user.is_authenticated and current_user.is_admin:
+        inst_options = [  # always include the abbreviations for admins
+            {"label": f"{abbrev} ({name})", "value": abbrev}
+            for name, abbrev in tconfig.get_institutions_w_abbrevs()
+        ]
+    else:
+        inst_options = [
+            {
+                "label": name  # only incl. the abbrev if it adds info
+                if name.upper() == abbrev.upper()
+                else f"{name} ({abbrev})",
+                "value": abbrev,
+            }
+            for name, abbrev in sorted(tconfig.get_institutions_w_abbrevs())
+        ]
+
     labor_options = [
         {"label": f"{abbrev} – {name}", "value": abbrev}
         for name, abbrev in tconfig.get_labor_categories_w_abbrevs()
@@ -870,8 +881,8 @@ def setup_institution_components(
         faculty,
         sci,
         grad,
-        cpus,
-        gpus,
+        cpus if cpus else 0,  # None (blank) -> 0
+        gpus if gpus else 0,  # None (blank) -> 0
         text,
         h2_table,
         h2_textarea,
@@ -881,9 +892,8 @@ def setup_institution_components(
         inst,
         inst_options,
         labor_options,
-        hc_conf,  # hide if values are confirmed
-        comp_conf,  # hide if values are confirmed
-        None in [phds, faculty, sci, grad],
+        True if s_snap_ts else hc_conf,
+        True if s_snap_ts else comp_conf,
     )
 
 
@@ -910,10 +920,12 @@ def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
 @app.callback(  # type: ignore[misc]
     [
         Output("wbs-institution-values-first-time-flag", "data"),
-        Output("wbs-institution-values-autosaved-container", "children"),
-        Output("wbs-institution-textarea-autosaved-container", "children"),
-        Output("wbs-institution-computing-autosaved-container", "children"),
-        Output("refresh-for-inst-confirms", "run"),
+        Output("wbs-headcounts-timecheck-container", "children"),
+        Output("wbs-institution-textarea-timecheck-container", "children"),
+        Output("wbs-computing-timecheck-container", "children"),
+        Output("wbs-headcounts-confirm-container", "hidden"),
+        Output("wbs-computing-confirm-container", "hidden"),
+        Output("wbs-headcounts-confirm-container-container", "hidden"),
     ],
     [
         Input("wbs-phds-authors", "value"),  # user/setup_institution_components()
@@ -924,7 +936,7 @@ def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
         Input("wbs-gpus", "value"),  # user/setup_institution_components()
         Input("wbs-textarea", "value"),  # user/setup_institution_components()
         Input("wbs-headcounts-confirm-yes", "n_clicks"),  # user-only
-        Input("wbs-computing-confirm-yes", "n_clicks"),
+        Input("wbs-computing-confirm-yes", "n_clicks"),  # user-only
     ],
     [
         State("url", "pathname"),
@@ -933,6 +945,8 @@ def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
         State("wbs-institution-values-first-time-flag", "data"),
         State("wbs-headcounts-confirm-container", "hidden"),
         State("wbs-computing-confirm-container", "hidden"),
+        State("wbs-headcounts-confirm-initial-state", "data"),
+        State("wbs-computing-confirm-initial-state", "data"),
     ],
     prevent_initial_call=True,
 )
@@ -953,7 +967,11 @@ def push_institution_values(  # pylint: disable=R0913
     s_first_time: bool,
     s_hc_confirm_hidden: bool,
     s_comp_confirm_hidden: bool,
-) -> Tuple[bool, List[html.Label], List[html.Label], List[html.Label], str]:
+    s_hc_orig_conf: bool,
+    s_comp_orig_conf: bool,
+) -> Tuple[
+    bool, List[html.Label], List[html.Label], List[html.Label], bool, bool, bool
+]:
     """Push the institution's values."""
     logging.warning(
         f"'{du.triggered()}' -> push_institution_values() ({s_first_time=})"
@@ -961,41 +979,39 @@ def push_institution_values(  # pylint: disable=R0913
 
     # Is there an institution selected?
     if not (inst := du.get_inst(s_urlpath)):  # pylint: disable=C0325
-        return False, [], [], [], no_update
-
-    # labels
-    txt_labels = du.get_autosaved_labels("Notes & Descriptions")
-    hc_labels = du.get_autosaved_labels("Headcounts")
-    comp_labels = du.get_autosaved_labels("Computing Contributions")
+        return False, [], [], [], no_update, no_update, no_update
 
     # Are the fields editable?
-    if not current_user.is_authenticated and not s_snap_ts:
-        return False, hc_labels, txt_labels, comp_labels, no_update
+    if not current_user.is_authenticated:
+        return False, [], [], [], no_update, no_update, True
+
+    # Is this a snapshot?
+    if s_snap_ts:
+        return False, [], [], [], no_update, no_update, True
 
     # check if headcounts are filled out
-    if None in [phds, faculty, sci, grad]:
-        hc_labels = [
-            html.Label(
-                "Headcounts are required. Please enter all four numbers.",
-                style={"color": "red", "font-weight": "bold"},
-            )
-        ]
+    hide_hc_btn = None in [phds, faculty, sci, grad]
 
-    # Is this a redundant push? -- fields were just auto-populated for the first time
+    # Were the fields just auto-populated for the first time? No need to push data
     if s_first_time:
-        return False, hc_labels, txt_labels, comp_labels, no_update
+        return (
+            False,
+            du.HEADCOUNTS_REQUIRED if hide_hc_btn else [],  # don't show saved at first
+            du.timecheck_labels("Notes & Descriptions", "Autosaved"),
+            [],  # don't show saved at first
+            s_hc_orig_conf,
+            s_comp_orig_conf,
+            hide_hc_btn,
+        )
 
+    # what're the confirmation states of the counts?
+    hc_new_conf, comp_new_conf = False, False
+    if hc_confirmed := du.figure_headcounts_confirmation_state(s_hc_confirm_hidden):
+        hc_new_conf = du.triggered_id() == "wbs-headcounts-confirm-yes"
+    if comp_confirmed := du.figure_computing_confirmation_state(s_comp_confirm_hidden):
+        comp_new_conf = du.triggered_id() == "wbs-computing-confirm-yes"
     # push
-    reload_page = no_update
     try:
-        hc_confirmed = s_hc_confirm_hidden  # not hidden = not confirmed
-        comp_confirmed = s_comp_confirm_hidden  # not hidden = not confirmed
-        if du.triggered_id() == "wbs-headcounts-confirm-yes":
-            hc_confirmed = True
-            reload_page = du.RELOAD
-        elif du.triggered_id() == "wbs-computing-confirm-yes":
-            comp_confirmed = True
-            reload_page = du.RELOAD
         src.push_institution_values(
             du.get_wbs_l1(s_urlpath),
             inst,
@@ -1012,7 +1028,20 @@ def push_institution_values(  # pylint: disable=R0913
     except DataSourceException:
         assert len(s_table) == 0  # there's no collection to push to
 
-    return False, hc_labels, txt_labels, comp_labels, reload_page
+    hc_label = (
+        du.HEADCOUNTS_REQUIRED
+        if hide_hc_btn
+        else du.counts_saved_label(hc_confirmed, hc_new_conf, "Headcounts")
+    )
+    return (
+        False,
+        hc_label,
+        du.timecheck_labels("Notes & Descriptions", "Autosaved"),
+        du.counts_saved_label(comp_confirmed, comp_new_conf, "Computing Contributions"),
+        hc_confirmed,
+        comp_confirmed,
+        hide_hc_btn,
+    )
 
 
 # --------------------------------------------------------------------------------------

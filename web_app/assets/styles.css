@@ -47,17 +47,17 @@ body {
     border-top: 0.16rem solid #5a5a5a;
 }
 
-.autosaved-container {
+.timecheck-container {
     text-align: center;
     margin-top: 1rem;
 }
 
-.autosaved-label {
+.timecheck-label {
     font-size: 14px;
     font-style: italic;
 }
 
-.autosaved-datetime {
+.timecheck-datetime {
     font-size: 11px;
     font-style: italic;
 }
@@ -97,16 +97,30 @@ code {
 .content {
     padding-top: 1rem;
     padding-bottom: 2rem;
-    padding-left: 7rem;
-    padding-right: 7rem;
+    padding-left: 2rem;
+    padding-right: 2rem;
     background-color: whitesmoke;
     min-height: 100rem;
 }
 
 .footer {
-    height: 3rem;
+    /*height: 3rem;*/
     background-color: black;
     border-top: 2px solid silver !important;
+}
+
+.footer-version {
+    color: silver;
+    font-family: monospace;
+    color: black;
+    user-select: none;
+    padding-left: 1rem;
+    font-size: large;
+    width: 55rem;
+}
+.footer-version:hover {
+    transition: 3s;
+    color: silver;
 }
 
 

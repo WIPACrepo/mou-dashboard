@@ -1,13 +1,8 @@
 """Routes handlers for the MoU REST API server interface."""
 
 
-import json
-from typing import Any, List, Optional
+from typing import Any
 
-import tornado.web
-
-# local imports
-from rest_tools.client.json_util import json_decode  # type: ignore
 from rest_tools.server import handler, RestHandler  # type: ignore
 
 from . import table_config as tc
@@ -16,40 +11,6 @@ from .config import AUTH_PREFIX
 from .utils import db_utils, types, utils
 
 _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
-
-
-# -----------------------------------------------------------------------------
-
-
-class NoDefaultValue:  # pylint: disable=R0903
-    """Signal no default value, AKA argument is required."""
-
-
-_NO_DEFAULT = NoDefaultValue()
-
-
-def _qualify_argument(
-    type_: Optional[type], choices: Optional[List[Any]], val: Any
-) -> Any:
-    """Cast `val` to `type_` type, and/or check that `val` in in `choices`.
-
-    Raise 400 if either qualification fails.
-    """
-    if type_:
-        try:
-            if (type_ == bool) and (val == "False"):
-                val = False
-            else:
-                val = type_(val)
-        except ValueError as e:
-            raise tornado.web.HTTPError(400, reason=f"(ValueError) {e}")
-
-    if choices and (val not in choices):
-        raise tornado.web.HTTPError(
-            400, reason=f"(ValueError) {val} not in options ({choices})"
-        )
-
-    return val
 
 
 # -----------------------------------------------------------------------------
@@ -64,74 +25,6 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
         """Initialize a BaseMoUHandler object."""
         super().initialize(*args, **kwargs)
         self.dbms = db_client  # pylint: disable=W0201
-
-    def get_json_body_argument(  # pylint: disable=R0913
-        self,
-        name: str,
-        default: Any = _NO_DEFAULT,
-        strip: bool = True,
-        type_: Optional[type] = None,
-        choices: Optional[List[Any]] = None,
-    ) -> Any:
-        """Return the argument by JSON-decoding the request body."""
-        try:
-            val = json_decode(self.request.body)[name]  # type: ignore[no-untyped-call]
-            if strip and isinstance(val, tornado.util.unicode_type):
-                val = val.strip()
-            return _qualify_argument(type_, choices, val)
-        except (KeyError, json.decoder.JSONDecodeError):
-            # Required -> raise 400
-            if isinstance(default, NoDefaultValue):
-                raise tornado.web.MissingArgumentError(name)
-
-        # Else:
-        # Optional / Default
-        if type_:
-            assert isinstance(default, type_) or (default is None)
-        return _qualify_argument(type_, choices, default)
-
-    def get_argument(  # pylint: disable=W0221,R0913
-        self,
-        name: str,
-        default: Any = _NO_DEFAULT,
-        strip: bool = True,
-        type_: Optional[type] = None,
-        choices: Optional[List[Any]] = None,
-    ) -> Any:
-        """Return argument. If no default provided raise 400 if not present.
-
-        Try from `self.get_json_body_argument()` first, then from
-        `super().get_argument()`.
-        """
-        # If:
-        # Required -> raise 400
-        if isinstance(default, NoDefaultValue):
-            # check JSON'd body arguments
-            try:
-                json_arg = self.get_json_body_argument(name, strip=strip)
-                return _qualify_argument(type_, choices, json_arg)
-            except tornado.web.MissingArgumentError:
-                pass
-            # check query and body arguments
-            try:
-                arg = super().get_argument(name, strip=strip)
-                return _qualify_argument(type_, choices, arg)
-            except tornado.web.MissingArgumentError as e:
-                raise tornado.web.HTTPError(400, reason=e.log_message)
-
-        # Else:
-        # Optional / Default
-        if type_:  # assert the default's type (None is okay too)
-            assert isinstance(default, type_) or (default is None)
-        # check JSON'd body arguments  # pylint: disable=C0103
-        json_arg = self.get_json_body_argument(
-            name, default=default, strip=strip, type_=type_, choices=choices
-        )
-        if json_arg != default:
-            return json_arg
-        # check query and body arguments
-        arg = super().get_argument(name, default=default, strip=strip)
-        return _qualify_argument(type_, choices, arg)
 
 
 # -----------------------------------------------------------------------------
@@ -163,7 +56,7 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
         institution = self.get_argument("institution", default=None)
         restore_id = self.get_argument("restore_id", default=None)
         labor = self.get_argument("labor", default=None)
-        total_rows = self.get_argument("total_rows", default=False, type_=bool)
+        total_rows = self.get_argument("total_rows", default=False, type=bool)
 
         if restore_id:
             await self.dbms.restore_record(wbs_l1, restore_id)
@@ -299,7 +192,7 @@ class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
-        is_admin = self.get_argument("is_admin", type_=bool, default=False)
+        is_admin = self.get_argument("is_admin", type=bool, default=False)
 
         timestamps = await self.dbms.list_snapshot_timestamps(
             wbs_l1, exclude_admin_snaps=not is_admin
@@ -356,18 +249,18 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
         """Handle POST."""
         institution = self.get_argument("institution")
 
-        phds = self.get_argument("phds_authors", type_=int, default=-1)
-        faculty = self.get_argument("faculty", type_=int, default=-1)
-        sci = self.get_argument("scientists_post_docs", type_=int, default=-1)
-        grad = self.get_argument("grad_students", type_=int, default=-1)
-        cpus = self.get_argument("cpus", type_=int, default=-1)
-        gpus = self.get_argument("gpus", type_=int, default=-1)
+        phds = self.get_argument("phds_authors", type=int, default=-1)
+        faculty = self.get_argument("faculty", type=int, default=-1)
+        sci = self.get_argument("scientists_post_docs", type=int, default=-1)
+        grad = self.get_argument("grad_students", type=int, default=-1)
+        cpus = self.get_argument("cpus", type=int, default=-1)
+        gpus = self.get_argument("gpus", type=int, default=-1)
         text = self.get_argument("text", default="")
         headcounts_confirmed = self.get_argument(
-            "headcounts_confirmed", type_=bool, default=False
+            "headcounts_confirmed", type=bool, default=False
         )
         computing_confirmed = self.get_argument(
-            "computing_confirmed", type_=bool, default=False
+            "computing_confirmed", type=bool, default=False
         )
 
         vals: types.InstitutionValues = {

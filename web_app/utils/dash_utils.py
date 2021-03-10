@@ -9,6 +9,7 @@ import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 import dash_table  # type: ignore[import]
+from dash import no_update
 from flask_login import current_user  # type: ignore[import]
 
 from ..data_source import data_source as src
@@ -98,12 +99,71 @@ def get_sow_last_updated_label(
     return f"SOWs Last Updated: {most_recent}"
 
 
-def get_autosaved_labels(subject: str) -> List[html.Label]:
-    """Return formatted labels for autosaving with datetime."""
+def timecheck_labels(
+    subject: str, verbage: str, snap_ts: types.DashVal = None,
+) -> List[html.Label]:
+    """Return labels with datetime and a checkmark for saved/submitted/etc."""
+    if snap_ts:
+        return []
     return [
-        html.Label(f"{subject} Autosaved ✔", className="autosaved-label"),
-        html.Label(utils.get_human_now(), className="autosaved-datetime"),
+        html.Label(f"{subject} {verbage} ✔", className="timecheck-label"),
+        html.Label(utils.get_human_now(), className="timecheck-datetime"),
     ]
+
+
+HEADCOUNTS_REQUIRED = [
+    html.Label(
+        "Headcounts are required. Please enter all four numbers.",
+        style={"color": "red", "font-weight": "bold"},
+    )
+]
+
+
+def counts_saved_label(
+    confirmed: bool, just_now_confirmed: bool, label: str
+) -> List[html.Label]:
+    """Get a counts saved-label."""
+    if just_now_confirmed:  # show saved label if count was just now confirmed
+        return timecheck_labels(label, "Submitted")
+    elif not confirmed:  # if it's not confirmed, then don't show anything
+        return []
+    else:  # it's confirmed but this isn't new, so don't change anything
+        return no_update  # type: ignore[no-any-return]
+
+
+def _figure_counts_confirmation_state(
+    confirm_trigger_id: str, prev_state: bool, causal_fields: List[str]
+) -> bool:
+    if triggered_id() == confirm_trigger_id:
+        # the user is confirming the count
+        return True
+    elif triggered_id() in causal_fields:
+        # if a casual-field value changed, then the count is no longer confirmed
+        return False
+    else:
+        # an unrelated value changed, so maintain previous state
+        return prev_state
+
+
+def figure_headcounts_confirmation_state(prev_state: bool) -> bool:
+    """Figure the confirmation states for the headcounts."""
+    return _figure_counts_confirmation_state(
+        "wbs-headcounts-confirm-yes",
+        prev_state,
+        [
+            "wbs-phds-authors",
+            "wbs-faculty",
+            "wbs-scientists-post-docs",
+            "wbs-grad-students",
+        ],
+    )
+
+
+def figure_computing_confirmation_state(prev_state: bool) -> bool:
+    """Figure the confirmation states for the computing counts."""
+    return _figure_counts_confirmation_state(
+        "wbs-computing-confirm-yes", prev_state, ["wbs-cpus", "wbs-gpus"]
+    )
 
 
 # --------------------------------------------------------------------------------------
@@ -148,31 +208,28 @@ def need_user_redirect(urlpath: str) -> bool:
 # Component/Attribute-Constructor Functions
 
 
-def make_autosaved_container(id_: str) -> dcc.Loading:
-    """Create a container for the autosaved container.
+def make_timecheck_container(id_: str, loading: bool = False) -> html.Div:
+    """Create a container for the timecheck container.
 
-    Wrapped in a `dcc.Loading`.
+    Optionally, wrapped in a `dcc.Loading`.
     """
-    return dcc.Loading(
-        type="default",
-        color=TEAL,
-        children=html.Div(className="autosaved-container", id=id_),
-    )
+    if loading:
+        return dcc.Loading(
+            type="default",
+            color=TEAL,
+            children=html.Div(className="timecheck-container", id=id_),
+        )
+    else:
+        return html.Div(className="timecheck-container", id=id_)
 
 
-def make_confirm_container(id_subject: str, message: str) -> html.Div:
+def make_confirm_container(id_subject: str, button_label: str) -> html.Div:
     """Create a container for confirming `subject`."""
     return html.Div(
         id=f"wbs-{id_subject}-confirm-container",
         hidden=True,
-        className="autosaved-container",
-        children=[
-            html.Label(
-                message,
-                style={"color": TEAL, "font-weight": "bold", "font-style": "italic"},
-            ),
-            dbc.Button("Yes", id=f"wbs-{id_subject}-confirm-yes"),
-        ],
+        className="timecheck-container",
+        children=dbc.Button(button_label, id=f"wbs-{id_subject}-confirm-yes"),
     )
 
 

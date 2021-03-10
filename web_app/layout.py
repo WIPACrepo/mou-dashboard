@@ -17,7 +17,7 @@ from .config import app
 from .data_source import table_config as tc
 from .tabs import wbs_generic_layout
 from .utils import dash_utils as du
-from .utils import login, types
+from .utils import login, types, utils
 
 LOG_IN: Final[str] = "Log In"
 LOG_OUT: Final[str] = "Log Out"
@@ -39,7 +39,6 @@ def layout() -> None:
             visdcc.Run_js("refresh-for-snapshot-make"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-override-success"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-snapshot-change"),  # pylint: disable=E1101
-            visdcc.Run_js("refresh-for-inst-confirms"),  # pylint: disable=E1101
             #
             # Logo, Tabs, & Login
             dbc.Navbar(
@@ -108,7 +107,13 @@ def layout() -> None:
             ),
             #
             # Footer
-            html.Div(className="footer"),
+            html.Div(
+                className="footer",
+                children=html.Div(
+                    f"Web Server Started: {utils.get_human_now()}",
+                    className="footer-version",
+                ),
+            ),
             #
             # Log In Modal
             dbc.Modal(
