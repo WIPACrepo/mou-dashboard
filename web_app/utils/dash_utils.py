@@ -2,7 +2,8 @@
 
 
 import logging
-from typing import Any, cast, Collection, Dict, Final, List, Union
+import urllib
+from typing import Any, Collection, Dict, Final, List, Union, cast
 
 import dash  # type: ignore[import]
 import dash_bootstrap_components as dbc  # type: ignore[import]
@@ -173,7 +174,7 @@ def figure_computing_confirmation_state(prev_state: bool) -> bool:
 def get_wbs_l1(urlpath: str) -> str:
     """Get the WBS L1 from the url pathname."""
     try:
-        return urlpath.split("/")[1]
+        return urllib.parse.unquote(urlpath).split("/")[1]
     except IndexError:
         return ""
 
@@ -181,7 +182,8 @@ def get_wbs_l1(urlpath: str) -> str:
 def get_inst(urlpath: str) -> str:
     """Get the institution from the url hash."""
     try:
-        return urlpath.split("/")[2].upper()
+        # "/mo/m%C3%BCnster" -> "MÜNSTER"
+        return urllib.parse.unquote(urlpath).split("/")[2].upper()
     except IndexError:
         return ""
 
