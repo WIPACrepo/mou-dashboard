@@ -180,6 +180,8 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
     },
 }
 
+logging.debug("_COLUMN_CONFIGS:\n%s", json.dumps(_COLUMN_CONFIGS, indent=4))
+
 
 def get_columns() -> List[str]:  # pylint: disable=C0103
     """Get the columns."""
