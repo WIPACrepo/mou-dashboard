@@ -1,12 +1,17 @@
 """Values for the table config."""
 
 
+import logging
 from typing import Any, Dict, Final, List, Tuple, TypedDict, Union
 
 # local imports
 from keycloak_setup.icecube_setup import ICECUBE_INSTS  # type: ignore[import]
 
 from . import wbs
+
+logging.debug("Institutions:")
+for name, info in ICECUBE_INSTS.items():
+    logging.debug(f"{name} - {info['abbreviation']}")
 
 ID = "_id"
 WBS_L2 = "WBS L2"
