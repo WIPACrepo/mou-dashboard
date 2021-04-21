@@ -1,9 +1,11 @@
 """Routes handlers for the MoU REST API server interface."""
 
 
+import json
+import logging
 from typing import Any
 
-from rest_tools.server import handler, RestHandler  # type: ignore
+from rest_tools.server import RestHandler, handler  # type: ignore
 
 from . import table_config as tc
 from . import wbs
@@ -159,26 +161,28 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
-        self.write(
-            {
-                l1: {
-                    "columns": tc.get_columns(),
-                    "simple_dropdown_menus": tc.get_simple_dropdown_menus(l1),
-                    "institutions": tc.get_institutions_and_abbrevs(),
-                    "labor_categories": tc.get_labor_categories_and_abbrevs(),
-                    "conditional_dropdown_menus": tc.get_conditional_dropdown_menus(l1),
-                    "dropdowns": tc.get_dropdowns(l1),
-                    "numerics": tc.get_numerics(),
-                    "non_editables": tc.get_non_editables(),
-                    "hiddens": tc.get_hiddens(),
-                    "tooltips": tc.get_tooltips(),
-                    "widths": tc.get_widths(),
-                    "border_left_columns": tc.get_border_left_columns(),
-                    "page_size": tc.get_page_size(),
-                }
-                for l1 in wbs.WORK_BREAKDOWN_STRUCTURES.keys()
+        table_config = {
+            l1: {
+                "columns": tc.get_columns(),
+                "simple_dropdown_menus": tc.get_simple_dropdown_menus(l1),
+                "institutions": tc.get_institutions_and_abbrevs(),
+                "labor_categories": tc.get_labor_categories_and_abbrevs(),
+                "conditional_dropdown_menus": tc.get_conditional_dropdown_menus(l1),
+                "dropdowns": tc.get_dropdowns(l1),
+                "numerics": tc.get_numerics(),
+                "non_editables": tc.get_non_editables(),
+                "hiddens": tc.get_hiddens(),
+                "tooltips": tc.get_tooltips(),
+                "widths": tc.get_widths(),
+                "border_left_columns": tc.get_border_left_columns(),
+                "page_size": tc.get_page_size(),
             }
-        )
+            for l1 in wbs.WORK_BREAKDOWN_STRUCTURES.keys()
+        }
+
+        logging.debug("Table Config:\n%s", json.dumps(table_config, indent=4))
+
+        self.write(table_config)
 
 
 # -----------------------------------------------------------------------------

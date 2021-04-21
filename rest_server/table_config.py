@@ -1,8 +1,6 @@
 """Values for the table config."""
 
 
-import json
-import logging
 from typing import Any, Dict, Final, List, Tuple, TypedDict, Union
 
 # local imports
@@ -10,7 +8,6 @@ from keycloak_setup.icecube_setup import ICECUBE_INSTS  # type: ignore[import]
 
 from . import wbs
 
-logging.debug("Institutions:\n%s", json.dumps(ICECUBE_INSTS, indent=4))
 
 ID = "_id"
 WBS_L2 = "WBS L2"
@@ -179,8 +176,6 @@ _COLUMN_CONFIGS: Final[Dict[str, _ColumnConfigTypedDict]] = {
         "tooltip": f"{EDITOR} (you may need to refresh to reflect a recent update)",
     },
 }
-
-logging.debug("_COLUMN_CONFIGS:\n%s", json.dumps(_COLUMN_CONFIGS, indent=4))
 
 
 def get_columns() -> List[str]:  # pylint: disable=C0103
