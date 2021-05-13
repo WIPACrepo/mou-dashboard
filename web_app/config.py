@@ -78,6 +78,7 @@ def get_config_vars() -> ConfigVarsTypedDict:
         {
             "REST_SERVER_URL": "http://localhost:8080",
             "TOKEN_SERVER_URL": "http://localhost:8888",
+            "WEB_SERVER_HOST": "localhost",
             "WEB_SERVER_PORT": 8050,
             "AUTH_PREFIX": "mou",
             "TOKEN": "",
