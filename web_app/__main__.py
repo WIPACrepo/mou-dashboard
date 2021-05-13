@@ -20,10 +20,11 @@ def main(debug: bool) -> None:
     layout.layout()
 
     # Run Server
+    conf = get_config_vars()
     app.run_server(
         debug=debug,
-        host="localhost",
-        port=get_config_vars()["WEB_SERVER_PORT"],
+        host=conf["WEB_SERVER_HOST"],
+        port=conf["WEB_SERVER_PORT"],
         # useful dev settings (these are enabled automatically when debug=True)
         dev_tools_silence_routes_logging=True,
         use_reloader=True,
