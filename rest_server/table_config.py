@@ -30,6 +30,15 @@ US = "US"
 NON_US = "Non-US"
 
 
+class InstitutionMeta(TypedDict):  # NOTE: from krs
+    """Metadata schema for an institution."""
+
+    cite: str
+    abbreviation: str
+    is_US: bool
+    region: str
+
+
 class _ColumnConfigTypedDict(TypedDict, total=False):
     """TypedDict for column configs."""
 
@@ -186,7 +195,7 @@ class TableConfigs:
         }
 
     @property
-    def icecube_institutions(self) -> Dict[str, Dict[str, Union[str, bool]]]:
+    def icecube_institutions(self) -> Dict[str, InstitutionMeta]:
         """Grab the master list of institutions along with their details.
 
         NOTE: `requests.get()` + `eval()` is a stopgap measure until
@@ -225,11 +234,13 @@ class TableConfigs:
             (name, abbrev) for abbrev, name in self.labor_category_dictionary.items()
         ]
 
-    def get_l2_categories(self, l1: str) -> List[str]:
+    @staticmethod
+    def get_l2_categories(l1: str) -> List[str]:
         """Get the L2 categories."""
         return list(wbs.WORK_BREAKDOWN_STRUCTURES[l1].keys())
 
-    def get_l3_categories_by_l2(self, l1: str, l2: str) -> List[str]:
+    @staticmethod
+    def get_l3_categories_by_l2(l1: str, l2: str) -> List[str]:
         """Get the L3 categories for an L2 value."""
         return wbs.WORK_BREAKDOWN_STRUCTURES[l1][l2]
 
