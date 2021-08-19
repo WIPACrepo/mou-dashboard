@@ -187,7 +187,18 @@ class TableConfigs:
 
     @property
     def icecube_institutions(self) -> Dict[str, Dict[str, Union[str, bool]]]:
-        return {}
+        """Grab the master list of institutions along with their details.
+
+        NOTE: `requests.get()` + `eval()` is a stopgap measure until
+        the Keycloak REST Service is operational.
+        """
+        file_url = "https://raw.githubusercontent.com/WIPACrepo/keycloak-rest-services/master/keycloak_setup/institution_list.py"
+        resp = requests.get(file_url)
+
+        glo: Dict[str, Any] = {}
+        eval(compile(resp.text, "<string>", "exec"), {}, glo)  # pylint:disable=W0123
+
+        return glo["ICECUBE_INSTS"]  # type: ignore
 
     def get_columns(self) -> List[str]:
         """Get the columns."""
