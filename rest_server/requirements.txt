@@ -11,7 +11,6 @@ humanfriendly==8.2
 idna==2.10
 imagesize==1.2.0
 Jinja2==2.11.2
--e git+https://github.com/WIPACrepo/keycloak-rest-services#egg=keycloak_rest_services
 MarkupSafe==1.1.1
 motor==2.2.0
 nest-asyncio==1.4.1
