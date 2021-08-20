@@ -3,9 +3,12 @@
 
 from typing import Any, Dict, Final, List, Tuple, TypedDict, Union
 
-import requests
-
 from . import wbs
+
+# TODO: remove when krs is up and running
+from .institution_list import (  # type: ignore[import]  # pylint:disable=import-error
+    ICECUBE_INSTS,
+)
 
 ID = "_id"
 WBS_L2 = "WBS L2"
@@ -198,16 +201,10 @@ class TableConfigs:
     def icecube_institutions(self) -> Dict[str, InstitutionMeta]:
         """Grab the master list of institutions along with their details.
 
-        NOTE: `requests.get()` + `eval()` is a stopgap measure until
+        NOTE: locally importing is a stopgap measure until
         the Keycloak REST Service is operational.
         """
-        file_url = "https://raw.githubusercontent.com/WIPACrepo/keycloak-rest-services/master/keycloak_setup/institution_list.py"
-        resp = requests.get(file_url)
-
-        glo: Dict[str, Any] = {}
-        eval(compile(resp.text, "<string>", "exec"), {}, glo)  # pylint:disable=W0123
-
-        return glo["ICECUBE_INSTS"]  # type: ignore
+        return ICECUBE_INSTS  # type: ignore
 
     def get_columns(self) -> List[str]:
         """Get the columns."""
