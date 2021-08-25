@@ -361,22 +361,19 @@ FTE_ROWS: Final[types.Table] = [
 
 
 def _make_fte_rows() -> None:
-    # pylint: disable=C0103
+    tc_reader = tc.TableConfigReader()
+
     rows: types.Table = []
     for l2 in [
         "2.1 Program Coordination",
         "2.2 Detector Operations & Maintenance (Online)",
     ]:
-        for l3 in tc.get_l3_categories_by_l2(WBS, l2):
+        for l3 in tc_reader.get_l3_categories_by_l2(WBS, l2):
             if ".3" in l3:
                 break
             # append 2 US for each funding source
             for _ in range(2):
-                for fund in [
-                    tc.NSF_MO_CORE,
-                    tc.NSF_BASE_GRANTS,
-                    tc.US_IN_KIND,
-                ]:
+                for fund in [tc.NSF_MO_CORE, tc.NSF_BASE_GRANTS, tc.US_IN_KIND]:
                     row = {tc.WBS_L2: l2, tc.WBS_L3: l3, tc.US_NON_US: tc.US}
                     row[tc.SOURCE_OF_FUNDS_US_ONLY] = fund
                     row[tc.FTE] = random.random() * 1  # type: ignore[assignment]
@@ -390,5 +387,5 @@ def _make_fte_rows() -> None:
                 row[tc.FTE] = random.random() * 1  # type: ignore[assignment]
                 rows.append(row)  # type: ignore[arg-type]
 
-    rows.sort(key=tc.sort_key)
+    rows.sort(key=tc_reader.sort_key)
     pprint.pprint(rows)
