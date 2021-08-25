@@ -82,7 +82,7 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
             )
 
         # sort
-        table.sort(key=tc.TableConfigReader().sort_key)
+        table.sort(key=tc.TableConfigDatabaseClient().sort_key)
 
         self.write({"table": table})
 
@@ -162,7 +162,7 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
-        tc_reader = tc.TableConfigReader()
+        tc_reader = tc.TableConfigDatabaseClient()
         table_config = {
             l1: {
                 "columns": tc_reader.get_columns(),

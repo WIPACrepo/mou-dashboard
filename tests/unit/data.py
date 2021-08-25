@@ -361,7 +361,7 @@ FTE_ROWS: Final[types.Table] = [
 
 
 def _make_fte_rows() -> None:
-    tc_reader = tc.TableConfigReader()
+    tc_reader = tc.TableConfigDatabaseClient()
 
     rows: types.Table = []
     for l2 in [

@@ -9,7 +9,7 @@ from . import types
 
 def remove_on_the_fly_fields(record: types.Record) -> types.Record:
     """Remove (del) any fields that are only to be calculated on-the-fly."""
-    tc_reader = tc.TableConfigReader()
+    tc_reader = tc.TableConfigDatabaseClient()
 
     for field in record.copy().keys():
         if field in tc_reader.get_on_the_fly_fields():
@@ -41,7 +41,7 @@ def add_on_the_fly_fields(record: types.Record) -> types.Record:
 
     # US-only fields
     inst = cast(str, record[tc.INSTITUTION])
-    record[tc.US_NON_US] = tc.TableConfigReader().us_or_non_us(inst)
+    record[tc.US_NON_US] = tc.TableConfigDatabaseClient().us_or_non_us(inst)
     if record[tc.US_NON_US] == tc.NON_US:
         record[tc.SOURCE_OF_FUNDS_US_ONLY] = tc.NON_US_IN_KIND
 
@@ -84,7 +84,7 @@ def get_total_rows(
             )
         )
 
-    tc_reader = tc.TableConfigReader()
+    tc_reader = tc.TableConfigDatabaseClient()
 
     for l2_cat in tc_reader.get_l2_categories(wbs_l1):
 

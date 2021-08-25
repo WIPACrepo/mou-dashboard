@@ -1,4 +1,4 @@
-"""Database utilities."""
+"""Database interface for MoU data."""
 
 import asyncio
 import base64
@@ -43,7 +43,7 @@ class MoUDatabaseClient:
 
         If not, raise Exception.
         """
-        tc_reader = tc.TableConfigReader()
+        tc_reader = tc.TableConfigDatabaseClient()
 
         for col_raw, value in record.items():
             col = MoUDatabaseClient._demongofy_key_name(col_raw)
@@ -148,7 +148,7 @@ class MoUDatabaseClient:
         """
         logging.info(f"Ingesting xlsx {filename} ({wbs_db=})...")
 
-        tc_reader = tc.TableConfigReader()
+        tc_reader = tc.TableConfigDatabaseClient()
 
         def _is_a_total_row(row: types.Record) -> bool:
             # check L2, L3, Inst., & US/Non-US  columns for "total" substring

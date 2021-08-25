@@ -54,7 +54,7 @@ class _ColumnConfigTypedDict(TypedDict, total=False):
     numeric: bool
 
 
-class TableConfigReader:
+class TableConfigDatabaseClient:
     """Manage the collection and parsing of the table config(s)."""
 
     def __init__(self) -> None:

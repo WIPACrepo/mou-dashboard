@@ -33,7 +33,7 @@ nest_asyncio.apply()  # allows nested event loops
 
 MOU_MOTOR_CLIENT: Final[str] = "rest_server.databases.mou_db.MoUDatabaseClient"
 MOTOR_CLIENT: Final[str] = "motor.motor_tornado.MotorClient"
-TC_READER: Final[str] = "rest_server.databases.table_config.TableConfigReader"
+TC_READER: Final[str] = "rest_server.databases.table_config.TableConfigDatabaseClient"
 WBS: Final[str] = "mo"
 
 
@@ -382,7 +382,7 @@ class TestUtils:
 
         No need to integration test this.
         """
-        tc_reader = tc.TableConfigReader()
+        tc_reader = tc.TableConfigDatabaseClient()
 
         def _assert_funds_totals(_rows: types.Table, _total_row: types.Record) -> None:
             print("\n-----------------------------------------------------\n")
@@ -476,7 +476,7 @@ class TestTableConfig:
 
         Function is very simple, so also test institution-dict's format.
         """
-        tc_reader = tc.TableConfigReader()
+        tc_reader = tc.TableConfigDatabaseClient()
 
         for inst in tc_reader.icecube_institutions.values():
             assert "abbreviation" in inst
