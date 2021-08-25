@@ -7,10 +7,11 @@ from typing import Any
 
 from rest_tools.server import RestHandler, handler  # type: ignore
 
-from . import table_config as tc
 from . import wbs
 from .config import AUTH_PREFIX
-from .utils import db_utils, types, utils
+from .databases import db_utils
+from .databases import table_config as tc
+from .utils import types, utils
 
 _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
 

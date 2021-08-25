@@ -8,7 +8,7 @@ from typing import Final
 
 sys.path.append(".")
 from rest_server.utils import types  # isort:skip  # noqa # pylint: disable=E0401,C0413
-from rest_server import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
+from rest_server.databases import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
     table_config as tc,
 )
 

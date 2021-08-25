@@ -14,6 +14,7 @@ from rest_tools.server import RestHandlerSetup, RestServer  # type: ignore
 from rest_tools.server.config import from_environment  # type: ignore[import]
 
 from . import config
+from .databases import db_utils
 from .routes import (
     InstitutionValuesHandler,
     MainHandler,
@@ -23,7 +24,6 @@ from .routes import (
     TableConfigHandler,
     TableHandler,
 )
-from .utils import db_utils
 
 
 def start(debug: bool = False) -> RestServer:

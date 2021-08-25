@@ -13,9 +13,9 @@ from bson.objectid import ObjectId  # type: ignore[import]
 from motor.motor_tornado import MotorClient  # type: ignore
 from tornado import web
 
-from .. import table_config as tc
 from ..config import EXCLUDE_COLLECTIONS, EXCLUDE_DBS
-from . import types
+from ..utils import types
+from . import table_config as tc
 
 IS_DELETED = "deleted"
 _LIVE_COLLECTION = "LIVE_COLLECTION"
@@ -173,7 +173,7 @@ class MoUMotorClient:
         # decode & read data from excel file
         # remove blanks and rows with "total" in them (case-insensitive)
         # format as if this was done via POST @ '/record'
-        from . import utils  # pylint: disable=C0415
+        from ..utils import utils  # pylint: disable=C0415
 
         # decode base64-excel
         try:

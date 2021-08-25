@@ -3,7 +3,7 @@
 
 from typing import Any, Dict, Final, List, Tuple, TypedDict, Union
 
-from . import wbs
+from .. import wbs
 
 # TODO: remove when krs is up and running
 from .institution_list import (  # type: ignore[import]  # pylint:disable=import-error

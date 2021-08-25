@@ -18,22 +18,22 @@ from . import data
 
 sys.path.append(".")
 from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
-    db_utils,
     utils,
     types,
 )
-from rest_server import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
-    config,
+from rest_server.databases import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
+    db_utils,
     table_config as tc,
 )
+from rest_server import config  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
 
 
 nest_asyncio.apply()  # allows nested event loops
 
 
-MOU_MOTOR_CLIENT: Final[str] = "rest_server.utils.db_utils.MoUMotorClient"
+MOU_MOTOR_CLIENT: Final[str] = "rest_server.databases.db_utils.MoUMotorClient"
 MOTOR_CLIENT: Final[str] = "motor.motor_tornado.MotorClient"
-TC_READER: Final[str] = "rest_server.table_config.TableConfigReader"
+TC_READER: Final[str] = "rest_server.databases.table_config.TableConfigReader"
 WBS: Final[str] = "mo"
 
 
@@ -47,7 +47,7 @@ class TestDBUtils:  # pylint: disable=R0904
     """Test private methods in db_utils.py."""
 
     @staticmethod
-    @pytest.fixture  # type: ignore
+    @pytest.fixture
     def mock_mongo(mocker: Any) -> Any:
         """Patch mock_mongo."""
         mock_mongo = mocker.patch(MOTOR_CLIENT)

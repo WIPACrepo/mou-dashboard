@@ -3,7 +3,7 @@
 from decimal import Decimal
 from typing import cast
 
-from .. import table_config as tc
+from ..databases import table_config as tc
 from . import types
 
 
