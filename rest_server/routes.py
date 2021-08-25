@@ -9,7 +9,7 @@ from rest_tools.server import RestHandler, handler  # type: ignore
 
 from . import wbs
 from .config import AUTH_PREFIX
-from .databases import db_utils
+from .databases import mou_db
 from .databases import table_config as tc
 from .utils import types, utils
 
@@ -23,7 +23,7 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
     """BaseMoUHandler is a RestHandler for all MoU routes."""
 
     def initialize(  # pylint: disable=W0221
-        self, db_client: db_utils.MoUMotorClient, *args: Any, **kwargs: Any
+        self, db_client: mou_db.MoUMotorClient, *args: Any, **kwargs: Any
     ) -> None:
         """Initialize a BaseMoUHandler object."""
         super().initialize(*args, **kwargs)

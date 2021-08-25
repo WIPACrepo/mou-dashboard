@@ -14,7 +14,7 @@ from rest_tools.server import RestHandlerSetup, RestServer  # type: ignore
 from rest_tools.server.config import from_environment  # type: ignore[import]
 
 from . import config
-from .databases import db_utils
+from .databases import mou_db
 from .routes import (
     InstitutionValuesHandler,
     MainHandler,
@@ -51,7 +51,7 @@ def start(debug: bool = False) -> RestServer:
     mongodb_url = f"mongodb://{mongodb_host}:{mongodb_port}"
     if mongodb_auth_user and mongodb_auth_pass:
         mongodb_url = f"mongodb://{mongodb_auth_user}:{mongodb_auth_pass}@{mongodb_host}:{mongodb_port}"
-    args["db_client"] = db_utils.MoUMotorClient(MotorClient(mongodb_url))
+    args["db_client"] = mou_db.MoUMotorClient(MotorClient(mongodb_url))
 
     # Configure REST Routes
     server = RestServer(debug=debug)

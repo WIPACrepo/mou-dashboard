@@ -22,7 +22,7 @@ from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0
     types,
 )
 from rest_server.databases import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
-    db_utils,
+    mou_db,
     table_config as tc,
 )
 from rest_server import config  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
@@ -31,7 +31,7 @@ from rest_server import config  # isort:skip  # noqa # pylint: disable=E0401,C04
 nest_asyncio.apply()  # allows nested event loops
 
 
-MOU_MOTOR_CLIENT: Final[str] = "rest_server.databases.db_utils.MoUMotorClient"
+MOU_MOTOR_CLIENT: Final[str] = "rest_server.databases.mou_db.MoUMotorClient"
 MOTOR_CLIENT: Final[str] = "motor.motor_tornado.MotorClient"
 TC_READER: Final[str] = "rest_server.databases.table_config.TableConfigReader"
 WBS: Final[str] = "mo"
@@ -44,7 +44,7 @@ def reset_mock(*args: Mock) -> None:
 
 
 class TestDBUtils:  # pylint: disable=R0904
-    """Test private methods in db_utils.py."""
+    """Test private methods in mou_db.py."""
 
     @staticmethod
     @pytest.fixture
@@ -59,7 +59,7 @@ class TestDBUtils:  # pylint: disable=R0904
     def test_init(mock_eadi: Any) -> None:
         """Test MoUMotorClient.__init__()."""
         # Call
-        moumc = db_utils.MoUMotorClient(sentinel._client)
+        moumc = mou_db.MoUMotorClient(sentinel._client)
 
         # Assert
         assert moumc._client == sentinel._client
@@ -70,7 +70,7 @@ class TestDBUtils:  # pylint: disable=R0904
         reset_mock(mock_eadi)
 
         # Call
-        moumc = db_utils.MoUMotorClient(sentinel._client)
+        moumc = mou_db.MoUMotorClient(sentinel._client)
 
         # Assert
         assert moumc._client == sentinel._client
@@ -145,7 +145,7 @@ class TestDBUtils:  # pylint: disable=R0904
         ]
 
         for record in good_records:
-            db_utils.MoUMotorClient._validate_record_data(WBS, record)
+            mou_db.MoUMotorClient._validate_record_data(WBS, record)
 
         # Test bad records
         bad_records: List[types.Record] = [
@@ -166,7 +166,7 @@ class TestDBUtils:  # pylint: disable=R0904
 
         for record in bad_records:
             with pytest.raises(Exception):
-                db_utils.MoUMotorClient._validate_record_data(WBS, record)
+                mou_db.MoUMotorClient._validate_record_data(WBS, record)
 
     @staticmethod
     def test_mongofy_key_name() -> None:
@@ -177,7 +177,7 @@ class TestDBUtils:  # pylint: disable=R0904
 
         # Call & Assert
         for key, mkey in zip(keys, mongofied_keys):
-            assert db_utils.MoUMotorClient._mongofy_key_name(key) == mkey
+            assert mou_db.MoUMotorClient._mongofy_key_name(key) == mkey
 
     @staticmethod
     def test_demongofy_key_name() -> None:
@@ -188,7 +188,7 @@ class TestDBUtils:  # pylint: disable=R0904
 
         # Call & Assert
         for key, dkey in zip(keys, demongofied_keys):
-            assert db_utils.MoUMotorClient._demongofy_key_name(key) == dkey
+            assert mou_db.MoUMotorClient._demongofy_key_name(key) == dkey
 
     @staticmethod
     @patch(MOU_MOTOR_CLIENT + "._validate_record_data")
@@ -210,7 +210,7 @@ class TestDBUtils:  # pylint: disable=R0904
 
         # Call & Assert
         for record, mrecord in zip(records, mongofied_records):
-            assert db_utils.MoUMotorClient._mongofy_record(WBS, record) == mrecord
+            assert mou_db.MoUMotorClient._mongofy_record(WBS, record) == mrecord
 
     @staticmethod
     def test_demongofy_record() -> None:
@@ -218,8 +218,8 @@ class TestDBUtils:  # pylint: disable=R0904
         # Set-Up
         records: List[types.Record] = [
             {"_id": ANY},
-            {"_id": ANY, db_utils.IS_DELETED: True},
-            {"_id": ANY, db_utils.IS_DELETED: False},
+            {"_id": ANY, mou_db.IS_DELETED: True},
+            {"_id": ANY, mou_db.IS_DELETED: False},
             {"_id": ANY, "a;b": 5, "Foo;Bar": "Baz"},
             {"_id": ObjectId("5f725c6af0803660075769ab"), "FOO": "bar"},
         ]
@@ -234,11 +234,11 @@ class TestDBUtils:  # pylint: disable=R0904
 
         # Call & Assert
         for record, drecord in zip(records, demongofied_records):
-            assert db_utils.MoUMotorClient._demongofy_record(record) == drecord
+            assert mou_db.MoUMotorClient._demongofy_record(record) == drecord
 
         # Error Case
         with pytest.raises(KeyError):
-            db_utils.MoUMotorClient._demongofy_record({"a;b": 5, "Foo;Bar": "Baz"})
+            mou_db.MoUMotorClient._demongofy_record({"a;b": 5, "Foo;Bar": "Baz"})
 
     @staticmethod
     @pytest.mark.asyncio  # type: ignore[misc]
@@ -246,7 +246,7 @@ class TestDBUtils:  # pylint: disable=R0904
         """Test _list_database_names()."""
         # Mock
         dbs = ["foo", "bar", "baz"] + config.EXCLUDE_DBS[:3]
-        moumc = db_utils.MoUMotorClient(mock_mongo)
+        moumc = mou_db.MoUMotorClient(mock_mongo)
         mock_mongo.list_database_names.side_effect = AsyncMock(return_value=dbs)
 
         # Call
