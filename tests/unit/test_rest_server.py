@@ -33,7 +33,7 @@ nest_asyncio.apply()  # allows nested event loops
 
 MOU_MOTOR_CLIENT: Final[str] = "rest_server.utils.db_utils.MoUMotorClient"
 MOTOR_CLIENT: Final[str] = "motor.motor_tornado.MotorClient"
-TABLE_CONFIG: Final[str] = "rest_server.table_config"
+TC_READER: Final[str] = "rest_server.table_config.TableConfigReader"
 WBS: Final[str] = "mo"
 
 
@@ -77,8 +77,8 @@ class TestDBUtils:  # pylint: disable=R0904
         mock_eadi.assert_called()
 
     @staticmethod
-    @patch(TABLE_CONFIG + ".get_conditional_dropdown_menus")
-    @patch(TABLE_CONFIG + ".get_simple_dropdown_menus")
+    @patch(TC_READER + ".get_conditional_dropdown_menus")
+    @patch(TC_READER + ".get_simple_dropdown_menus")
     def test_validate_record_data(mock_gsdm: Any, mock_gcdm: Any) -> None:
         """Test _validate_record_data()."""
         mock_gsdm.return_value = {
