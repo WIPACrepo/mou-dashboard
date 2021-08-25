@@ -66,7 +66,7 @@ class MoUDatabaseClient:
                 if parent_col in record:
                     parent_value = record[parent_col]
                 # Check mongofied version  # pylint: disable=C0325
-                elif (mpc := MoUMotorClient._mongofy_key_name(parent_col)) in record:
+                elif (mpc := MoUDatabaseClient._mongofy_key_name(parent_col)) in record:
                     parent_value = record[mpc]
                 # Parent column is missing (*NOT* '' value)
                 else:  # validate with any/all parents
