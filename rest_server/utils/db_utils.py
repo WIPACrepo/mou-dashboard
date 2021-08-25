@@ -189,7 +189,8 @@ class MoUMotorClient:
             if not all(k in tc_reader.get_columns() for k in row.keys()):
                 raise web.HTTPError(
                     422,
-                    reason=f"Table not in correct format: XLSX's KEYS={row.keys()} vs ALLOWABLE KEYS={tc.get_columns()})",
+                    reason=f"Table not in correct format: "
+                    f"XLSX's KEYS={row.keys()} vs ALLOWABLE KEYS={tc_reader.get_columns()})",
                 )
 
         # mongofy table -- and verify data
