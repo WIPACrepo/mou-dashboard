@@ -475,7 +475,7 @@ class TestTableConfig:
 
         Function is very simple, so also test institution-dict's format.
         """
-        tc_reader = TableConfigReader()
+        tc_reader = tc.TableConfigReader()
 
         for inst in tc_reader.icecube_institutions.values():
             assert "abbreviation" in inst
