@@ -9,10 +9,10 @@ from . import types
 
 def remove_on_the_fly_fields(record: types.Record) -> types.Record:
     """Remove (del) any fields that are only to be calculated on-the-fly."""
-    tc_reader = tc_db.TableConfigDatabaseClient()
+    tc_db_client = tc_db.TableConfigDatabaseClient()
 
     for field in record.copy().keys():
-        if field in tc_reader.get_on_the_fly_fields():
+        if field in tc_db_client.get_on_the_fly_fields():
             # copy over grand total to FTE
             if (field == tc_db.GRAND_TOTAL) and (tc_db.FTE not in record.keys()):
                 record[tc_db.FTE] = record[field]
@@ -84,11 +84,11 @@ def get_total_rows(
             )
         )
 
-    tc_reader = tc_db.TableConfigDatabaseClient()
+    tc_db_client = tc_db.TableConfigDatabaseClient()
 
-    for l2_cat in tc_reader.get_l2_categories(wbs_l1):
+    for l2_cat in tc_db_client.get_l2_categories(wbs_l1):
 
-        for l3_cat in tc_reader.get_l3_categories_by_l2(wbs_l1, l2_cat):
+        for l3_cat in tc_db_client.get_l3_categories_by_l2(wbs_l1, l2_cat):
 
             # add US/Non-US
             if with_us_non_us:
@@ -161,7 +161,9 @@ def get_total_rows(
                     l2=l2_cat, fund_src=tc_db.NSF_BASE_GRANTS
                 ),
                 tc_db.US_IN_KIND: grab_a_total(l2=l2_cat, fund_src=tc_db.US_IN_KIND),
-                tc_db.NON_US_IN_KIND: grab_a_total(l2=l2_cat, fund_src=tc_db.NON_US_IN_KIND),
+                tc_db.NON_US_IN_KIND: grab_a_total(
+                    l2=l2_cat, fund_src=tc_db.NON_US_IN_KIND
+                ),
                 tc_db.GRAND_TOTAL: grab_a_total(l2=l2_cat),
             }
         )
