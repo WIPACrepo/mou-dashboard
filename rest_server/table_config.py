@@ -59,7 +59,7 @@ class _ColumnConfigTypedDict(TypedDict, total=False):
     numeric: bool
 
 
-class TableConfigs:
+class TableConfigReader:
     """Manage the collection and parsing of the table config(s)."""
 
     def __init__(self) -> None:
@@ -205,6 +205,16 @@ class TableConfigs:
         the Keycloak REST Service is operational.
         """
         return ICECUBE_INSTS  # type: ignore
+
+    @staticmethod
+    def us_or_non_us(institution: str) -> str:
+        """Return "US" or "Non-US" per institution name."""
+        for inst in ICECUBE_INSTS.values():
+            if inst["abbreviation"] == institution:
+                if inst["is_US"]:
+                    return US
+                return NON_US
+        return ""
 
     def get_columns(self) -> List[str]:
         """Get the columns."""
