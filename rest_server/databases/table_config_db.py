@@ -1,7 +1,8 @@
 """Database interface for retrieving values for the table config."""
 
 
-from typing import Any, Dict, Final, List, Tuple, TypedDict, Union
+import time
+from typing import Any, Dict, Final, List, Optional, Tuple, TypedDict, Union
 
 from .. import wbs
 
@@ -54,32 +55,102 @@ class _ColumnConfigTypedDict(TypedDict, total=False):
     numeric: bool
 
 
+_LABOR_CATEGORY_DICTIONARY: Dict[str, str] = {
+    # Science
+    "KE": "Key Personnel (Faculty Members)",
+    "SC": "Scientist",
+    "PO": "Postdoctoral Associates",
+    "GR": "Graduate Students (PhD Students)",
+    # Technical
+    "AD": "Administration",
+    "CS": "Computer Science",
+    "DS": "Data Science",
+    "EN": "Engineering",
+    "IT": "Information Technology",
+    "MA": "Manager",
+    "WO": "Winterover",
+}
+
+MAX_CACHE_AGE = 60  # seconds # TODO: adjust after testing
+
+
+def krs_institution_dicts() -> Dict[str, InstitutionMeta]:
+    """Grab the master list of institutions along with their details.
+
+    NOTE: locally importing is a stopgap measure until
+    the Keycloak REST Service is operational.
+    """
+    # TODO: remove when krs is up and running
+    from .institution_list import (  # type: ignore[import]  # pylint:disable=C0415,E0401
+        ICECUBE_INSTS,
+    )
+
+    return ICECUBE_INSTS  # type: ignore
+
+
+class _TableConfigDocument(TypedDict):
+    column_configs: Dict[str, _ColumnConfigTypedDict]
+    institution_dicts: Dict[str, InstitutionMeta]
+    timestamp: int
+
+
 class TableConfigDatabaseClient:
     """Manage the collection and parsing of the table config(s)."""
 
     def __init__(self) -> None:
-        self.labor_category_dictionary = {
-            # Science
-            "KE": "Key Personnel (Faculty Members)",
-            "SC": "Scientist",
-            "PO": "Postdoctoral Associates",
-            "GR": "Graduate Students (PhD Students)",
-            # Technical
-            "AD": "Administration",
-            "CS": "Computer Science",
-            "DS": "Data Science",
-            "EN": "Engineering",
-            "IT": "Information Technology",
-            "MA": "Manager",
-            "WO": "Winterover",
-        }
+        self._doc = self.get_refreshed_doc()
 
+    @property
+    def column_configs(self):
+        return self.get_refreshed_doc()["column_configs"]
+
+    @property
+    def institution_dicts(self):
+
+        return self.get_refreshed_doc()["institution_dicts"]
+
+    def get_refreshed_doc(self) -> _TableConfigDocument:
+        """Get the most recent table-config doc."""
+        if int(time.time()) - self._doc["timestamp"] < MAX_CACHE_AGE:
+            return self._doc
+
+        # NOTE: assume that `self.doc` is the most recent doc in the DB
+
+        from_db: _TableConfigDocument = {}  # TODO: query
+        if from_db:
+            newest = self.build_table_config_doc(from_db["institution_dicts"])
+        else:
+            newest = self.build_table_config_doc({})
+
+        # TODO: ingest newest
+        # TODO: delete previous
+        self._doc = newest
+
+        return self._doc
+
+    @staticmethod
+    def build_table_config_doc(
+        prev_insts: Dict[str, InstitutionMeta]
+    ) -> _TableConfigDocument:
+        """Build the table config doc.
+
+        If an actual `prev_insts` is passed, then incorporate
+        those institutions to the table. This is needed to
+        preserve institutions that are no longer in krs, but
+        are in previous MoUs.
+
+        NOTE: future development can add more args (like
+        `col_widths`) and process similarly.
+        """
         tooltip_funding_source_value: Final[str] = (
             "This number is dependent on the Funding Source and FTE. "
             "Changing those values will affect this number."
         )
 
-        self.column_configs: Final[Dict[str, _ColumnConfigTypedDict]] = {
+        institution_dicts = prev_insts
+        institution_dicts.update(krs_institution_dicts())
+
+        column_configs: Final[Dict[str, _ColumnConfigTypedDict]] = {
             WBS_L2: {"width": 115, "sort_value": 70, "tooltip": "WBS Level 2 Category"},
             WBS_L3: {"width": 115, "sort_value": 60, "tooltip": "WBS Level 3 Category"},
             US_NON_US: {
@@ -94,10 +165,7 @@ class TableConfigDatabaseClient:
             INSTITUTION: {
                 "width": 70,
                 "options": sorted(
-                    set(
-                        inst["abbreviation"]
-                        for inst in self.icecube_institutions.values()
-                    )
+                    set(inst["abbreviation"] for inst in institution_dicts.values())
                 ),
                 "border_left": True,
                 "sort_value": 40,
@@ -105,7 +173,7 @@ class TableConfigDatabaseClient:
             },
             LABOR_CAT: {
                 "width": 50,
-                "options": sorted(self.labor_category_dictionary.keys()),
+                "options": sorted(_LABOR_CATEGORY_DICTIONARY.keys()),
                 "sort_value": 30,
                 "tooltip": "The labor category",
             },
@@ -192,23 +260,15 @@ class TableConfigDatabaseClient:
             },
         }
 
-    @property
-    def icecube_institutions(self) -> Dict[str, InstitutionMeta]:
-        """Grab the master list of institutions along with their details.
-
-        NOTE: locally importing is a stopgap measure until
-        the Keycloak REST Service is operational.
-        """
-        # TODO: remove when krs is up and running
-        from .institution_list import (  # type: ignore[import]  # pylint:disable=C0415,E0401
-            ICECUBE_INSTS,
-        )
-
-        return ICECUBE_INSTS  # type: ignore
+        return {
+            "column_configs": column_configs,
+            "institution_dicts": institution_dicts,
+            "timestamp": int(time.time()),
+        }
 
     def us_or_non_us(self, institution: str) -> str:
         """Return "US" or "Non-US" per institution name."""
-        for inst in self.icecube_institutions.values():
+        for inst in self.institution_dicts.values():
             if inst["abbreviation"] == institution:
                 if inst["is_US"]:
                     return US
@@ -222,7 +282,7 @@ class TableConfigDatabaseClient:
     def get_institutions_and_abbrevs(self) -> List[Tuple[str, str]]:
         """Get the institutions and their abbreviations."""
         abbrev_name: Dict[str, str] = {}
-        for inst, val in self.icecube_institutions.items():
+        for inst, val in self.institution_dicts.items():
             # for institutions with the same abbreviation (aka different departments)
             # append their name
             if val["abbreviation"] in abbrev_name:
@@ -236,9 +296,7 @@ class TableConfigDatabaseClient:
 
     def get_labor_categories_and_abbrevs(self) -> List[Tuple[str, str]]:
         """Get the labor categories and their abbreviations."""
-        return [
-            (name, abbrev) for abbrev, name in self.labor_category_dictionary.items()
-        ]
+        return [(name, abbrev) for abbrev, name in _LABOR_CATEGORY_DICTIONARY.items()]
 
     @staticmethod
     def get_l2_categories(l1: str) -> List[str]:
