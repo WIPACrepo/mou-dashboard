@@ -458,8 +458,9 @@ class TestUtils:
 
                 # Grand Total
                 elif (
-                    "GRAND TOTAL" in total_row[tc_db.TOTAL_COL]
-                ):  # type: ignore[operator]
+                    "GRAND TOTAL"
+                    in total_row[tc_db.TOTAL_COL]  # type: ignore[operator]
+                ):
                     _assert_funds_totals(table, total_row)
 
                 # Other Kind?
