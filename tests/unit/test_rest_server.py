@@ -31,10 +31,10 @@ from rest_server import config  # isort:skip  # noqa # pylint: disable=E0401,C04
 nest_asyncio.apply()  # allows nested event loops
 
 
-MOU_MOTOR_CLIENT: Final[str] = "rest_server.databases.mou_db.MoUDatabaseClient"
-MOTOR_CLIENT: Final[str] = "motor.motor_tornado.MotorClient"
-TC_READER: Final[str] = "rest_server.databases.table_config.TableConfigDatabaseClient"
-WBS: Final[str] = "mo"
+MOU_DB_CLIENT: Final = "rest_server.databases.mou_db.MoUDatabaseClient"
+MOTOR_CLIENT: Final = "motor.motor_tornado.MotorClient"
+TC_DB_CLIENT: Final = "rest_server.databases.table_config_db.TableConfigDatabaseClient"
+WBS: Final = "mo"
 
 
 def reset_mock(*args: Mock) -> None:
@@ -55,7 +55,7 @@ class TestDBUtils:  # pylint: disable=R0904
         return mock_mongo
 
     @staticmethod
-    @patch(MOU_MOTOR_CLIENT + "._ensure_all_db_indexes")
+    @patch(MOU_DB_CLIENT + "._ensure_all_db_indexes")
     def test_init(mock_eadi: Any) -> None:
         """Test MoUDatabaseClient.__init__()."""
         # Call
@@ -77,8 +77,8 @@ class TestDBUtils:  # pylint: disable=R0904
         mock_eadi.assert_called()
 
     @staticmethod
-    @patch(TC_READER + ".get_conditional_dropdown_menus")
-    @patch(TC_READER + ".get_simple_dropdown_menus")
+    @patch(TC_DB_CLIENT + ".get_conditional_dropdown_menus")
+    @patch(TC_DB_CLIENT + ".get_simple_dropdown_menus")
     def test_validate_record_data(mock_gsdm: Any, mock_gcdm: Any) -> None:
         """Test _validate_record_data()."""
         mock_gsdm.return_value = {
@@ -191,7 +191,7 @@ class TestDBUtils:  # pylint: disable=R0904
             assert mou_db.MoUDatabaseClient._demongofy_key_name(key) == dkey
 
     @staticmethod
-    @patch(MOU_MOTOR_CLIENT + "._validate_record_data")
+    @patch(MOU_DB_CLIENT + "._validate_record_data")
     def test_mongofy_record(mock_vrd: Any) -> None:
         """Test _mongofy_record()."""
         # Set-Up
