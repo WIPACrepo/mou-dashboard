@@ -33,7 +33,7 @@ nest_asyncio.apply()  # allows nested event loops
 
 MOU_MOTOR_CLIENT: Final[str] = "rest_server.utils.db_utils.MoUMotorClient"
 MOTOR_CLIENT: Final[str] = "motor.motor_tornado.MotorClient"
-TABLE_CONFIG: Final[str] = "rest_server.table_config"
+TC_READER: Final[str] = "rest_server.table_config.TableConfigReader"
 WBS: Final[str] = "mo"
 
 
@@ -77,8 +77,8 @@ class TestDBUtils:  # pylint: disable=R0904
         mock_eadi.assert_called()
 
     @staticmethod
-    @patch(TABLE_CONFIG + ".get_conditional_dropdown_menus")
-    @patch(TABLE_CONFIG + ".get_simple_dropdown_menus")
+    @patch(TC_READER + ".get_conditional_dropdown_menus")
+    @patch(TC_READER + ".get_simple_dropdown_menus")
     def test_validate_record_data(mock_gsdm: Any, mock_gcdm: Any) -> None:
         """Test _validate_record_data()."""
         mock_gsdm.return_value = {
@@ -285,21 +285,6 @@ class TestUtils:
             assert utils.remove_on_the_fly_fields(after) == after
 
     @staticmethod
-    def test_us_or_non_us() -> None:
-        """Test _us_or_non_us().
-
-        Function is very simple, so also test ICECUBE_INSTS's format.
-        """
-        for inst in utils.ICECUBE_INSTS.values():
-            assert "abbreviation" in inst
-            assert "is_US" in inst
-            assert inst["is_US"] is True or inst["is_US"] is False
-            if inst["is_US"]:
-                assert utils._us_or_non_us(inst["abbreviation"]) == "US"
-            else:
-                assert utils._us_or_non_us(inst["abbreviation"]) == "Non-US"
-
-    @staticmethod
     def test_add_on_the_fly_fields() -> None:
         """Test add_on_the_fly_fields()."""
         # Set-Up
@@ -397,7 +382,8 @@ class TestUtils:
 
         No need to integration test this.
         """
-        #
+        tc_reader = tc.TableConfigReader()
+
         def _assert_funds_totals(_rows: types.Table, _total_row: types.Record) -> None:
             print("\n-----------------------------------------------------\n")
             pprint.pprint(_rows)
@@ -431,8 +417,10 @@ class TestUtils:
 
                 # L3 US/Non-US Level
                 if (
-                    "L3 NON-US TOTAL" in total_row[tc.TOTAL_COL]  # type: ignore[operator]
-                    or "L3 US TOTAL" in total_row[tc.TOTAL_COL]  # type: ignore[operator]
+                    "L3 NON-US TOTAL"
+                    in total_row[tc.TOTAL_COL]  # type: ignore[operator]
+                    or "L3 US TOTAL"
+                    in total_row[tc.TOTAL_COL]  # type: ignore[operator]
                 ):
                     _assert_funds_totals(
                         [
@@ -473,7 +461,28 @@ class TestUtils:
                     raise Exception(f"Unaccounted total row ({total_row}).")
 
             # Assert that every possible total is there (including rows with only 0s)
-            for l2_cat in tc.get_l2_categories(WBS):
+            for l2_cat in tc_reader.get_l2_categories(WBS):
                 assert l2_cat in set(r.get(tc.WBS_L2) for r in totals)
-                for l3_cat in tc.get_l3_categories_by_l2(WBS, l2_cat):
+                for l3_cat in tc_reader.get_l3_categories_by_l2(WBS, l2_cat):
                     assert l3_cat in set(r.get(tc.WBS_L3) for r in totals)
+
+
+class TestTableConfig:
+    """Test table_config.py."""
+
+    @staticmethod
+    def test_us_or_non_us() -> None:
+        """Test _us_or_non_us().
+
+        Function is very simple, so also test institution-dict's format.
+        """
+        tc_reader = tc.TableConfigReader()
+
+        for inst in tc_reader.icecube_institutions.values():
+            assert "abbreviation" in inst
+            assert "is_US" in inst
+            assert inst["is_US"] is True or inst["is_US"] is False
+            if inst["is_US"]:
+                assert tc_reader.us_or_non_us(inst["abbreviation"]) == "US"
+            else:
+                assert tc_reader.us_or_non_us(inst["abbreviation"]) == "Non-US"

@@ -3,17 +3,16 @@
 from decimal import Decimal
 from typing import cast
 
-# local imports
-from keycloak_setup.icecube_setup import ICECUBE_INSTS  # type: ignore[import]
-
 from .. import table_config as tc
 from . import types
 
 
 def remove_on_the_fly_fields(record: types.Record) -> types.Record:
     """Remove (del) any fields that are only to be calculated on-the-fly."""
+    tc_reader = tc.TableConfigReader()
+
     for field in record.copy().keys():
-        if field in tc.get_on_the_fly_fields():
+        if field in tc_reader.get_on_the_fly_fields():
             # copy over grand total to FTE
             if (field == tc.GRAND_TOTAL) and (tc.FTE not in record.keys()):
                 record[tc.FTE] = record[field]
@@ -26,15 +25,6 @@ def remove_on_the_fly_fields(record: types.Record) -> types.Record:
 def _get_fte_subcolumn(record: types.Record) -> str:
     source = record[tc.SOURCE_OF_FUNDS_US_ONLY]
     return cast(str, source)
-
-
-def _us_or_non_us(institution: str) -> str:
-    for inst in ICECUBE_INSTS.values():
-        if inst["abbreviation"] == institution:
-            if inst["is_US"]:
-                return tc.US
-            return tc.NON_US
-    return ""
 
 
 def add_on_the_fly_fields(record: types.Record) -> types.Record:
@@ -51,7 +41,7 @@ def add_on_the_fly_fields(record: types.Record) -> types.Record:
 
     # US-only fields
     inst = cast(str, record[tc.INSTITUTION])
-    record[tc.US_NON_US] = _us_or_non_us(inst)
+    record[tc.US_NON_US] = tc.TableConfigReader().us_or_non_us(inst)
     if record[tc.US_NON_US] == tc.NON_US:
         record[tc.SOURCE_OF_FUNDS_US_ONLY] = tc.NON_US_IN_KIND
 
@@ -94,9 +84,11 @@ def get_total_rows(
             )
         )
 
-    for l2_cat in tc.get_l2_categories(wbs_l1):
+    tc_reader = tc.TableConfigReader()
 
-        for l3_cat in tc.get_l3_categories_by_l2(wbs_l1, l2_cat):
+    for l2_cat in tc_reader.get_l2_categories(wbs_l1):
+
+        for l3_cat in tc_reader.get_l3_categories_by_l2(wbs_l1, l2_cat):
 
             # add US/Non-US
             if with_us_non_us:
