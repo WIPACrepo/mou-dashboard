@@ -25,7 +25,7 @@ class DocumentNotFoundError(Exception):
     """Raised when a document is not found."""
 
 
-class MoUMotorClient:
+class MoUDatabaseClient:
     """MotorClient with additional guardrails for MoU things."""
 
     def __init__(self, motor_client: MotorClient) -> None:
@@ -46,7 +46,7 @@ class MoUMotorClient:
         tc_reader = tc.TableConfigReader()
 
         for col_raw, value in record.items():
-            col = MoUMotorClient._demongofy_key_name(col_raw)
+            col = MoUDatabaseClient._demongofy_key_name(col_raw)
 
             # Blanks are okay
             if not value:
@@ -95,10 +95,10 @@ class MoUMotorClient:
     ) -> types.Record:
         # assert data is valid
         if assert_data:
-            MoUMotorClient._validate_record_data(wbs_db, record)
+            MoUDatabaseClient._validate_record_data(wbs_db, record)
         # mongofy key names
         for key in list(record.keys()):
-            record[MoUMotorClient._mongofy_key_name(key)] = record.pop(key)
+            record[MoUDatabaseClient._mongofy_key_name(key)] = record.pop(key)
         # cast ID
         if record.get(tc.ID):
             record[tc.ID] = ObjectId(record[tc.ID])
@@ -113,7 +113,7 @@ class MoUMotorClient:
                 record[key] = ""
         # demongofy key names
         for key in list(record.keys()):
-            record[MoUMotorClient._demongofy_key_name(key)] = record.pop(key)
+            record[MoUDatabaseClient._demongofy_key_name(key)] = record.pop(key)
         record[tc.ID] = str(record[tc.ID])  # cast ID
         if IS_DELETED in record.keys():
             record.pop(IS_DELETED)

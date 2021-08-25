@@ -23,11 +23,11 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
     """BaseMoUHandler is a RestHandler for all MoU routes."""
 
     def initialize(  # pylint: disable=W0221
-        self, db_client: mou_db.MoUMotorClient, *args: Any, **kwargs: Any
+        self, mou_db_client: mou_db.MoUDatabaseClient, *args: Any, **kwargs: Any
     ) -> None:
         """Initialize a BaseMoUHandler object."""
         super().initialize(*args, **kwargs)
-        self.dbms = db_client  # pylint: disable=W0201
+        self.mou_db_client = mou_db_client  # pylint: disable=W0201
 
 
 # -----------------------------------------------------------------------------
@@ -62,9 +62,9 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
         total_rows = self.get_argument("total_rows", default=False, type=bool)
 
         if restore_id:
-            await self.dbms.restore_record(wbs_l1, restore_id)
+            await self.mou_db_client.restore_record(wbs_l1, restore_id)
 
-        table = await self.dbms.get_table(
+        table = await self.mou_db_client.get_table(
             wbs_l1, collection, labor=labor, institution=institution
         )
 
@@ -94,19 +94,19 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
         creator = self.get_argument("creator")
 
         # ingest
-        prev_snap, curr_snap = await self.dbms.ingest_xlsx(
+        prev_snap, curr_snap = await self.mou_db_client.ingest_xlsx(
             wbs_l1, base64_file, filename, creator
         )
 
         # get info for snapshot(s)
-        curr_snap_info = await self.dbms.get_snapshot_info(wbs_l1, curr_snap)
+        curr_snap_info = await self.mou_db_client.get_snapshot_info(wbs_l1, curr_snap)
         prev_snap_info = None
         if prev_snap:
-            prev_snap_info = await self.dbms.get_snapshot_info(wbs_l1, prev_snap)
+            prev_snap_info = await self.mou_db_client.get_snapshot_info(wbs_l1, prev_snap)
 
         self.write(
             {
-                "n_records": len(await self.dbms.get_table(wbs_l1)),
+                "n_records": len(await self.mou_db_client.get_table(wbs_l1)),
                 "previous_snapshot": prev_snap_info,
                 "current_snapshot": curr_snap_info,
             }
@@ -135,7 +135,7 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
             record[tc.TASK_DESCRIPTION] = task  # insert
 
         record = utils.remove_on_the_fly_fields(record)
-        record = await self.dbms.upsert_record(wbs_l1, record, editor)
+        record = await self.mou_db_client.upsert_record(wbs_l1, record, editor)
         record = utils.add_on_the_fly_fields(record)
 
         self.write({"record": record})
@@ -146,7 +146,7 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
         record_id = self.get_argument("record_id")
         editor = self.get_argument("editor")
 
-        record = await self.dbms.delete_record(wbs_l1, record_id, editor)
+        record = await self.mou_db_client.delete_record(wbs_l1, record_id, editor)
 
         self.write({"record": record})
 
@@ -200,12 +200,12 @@ class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
         """Handle GET."""
         is_admin = self.get_argument("is_admin", type=bool, default=False)
 
-        timestamps = await self.dbms.list_snapshot_timestamps(
+        timestamps = await self.mou_db_client.list_snapshot_timestamps(
             wbs_l1, exclude_admin_snaps=not is_admin
         )
         timestamps.sort(reverse=True)
 
-        snapshots = [await self.dbms.get_snapshot_info(wbs_l1, ts) for ts in timestamps]
+        snapshots = [await self.mou_db_client.get_snapshot_info(wbs_l1, ts) for ts in timestamps]
 
         self.write({"snapshots": snapshots})
 
@@ -224,8 +224,8 @@ class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
         name = self.get_argument("name")
         creator = self.get_argument("creator")
 
-        snap_ts = await self.dbms.snapshot_live_collection(wbs_l1, name, creator, False)
-        snap_info = await self.dbms.get_snapshot_info(wbs_l1, snap_ts)
+        snap_ts = await self.mou_db_client.snapshot_live_collection(wbs_l1, name, creator, False)
+        snap_info = await self.mou_db_client.get_snapshot_info(wbs_l1, snap_ts)
 
         self.write(snap_info)
 
@@ -244,7 +244,7 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
         institution = self.get_argument("institution")
         snapshot_timestamp = self.get_argument("snapshot_timestamp", "")
 
-        vals = await self.dbms.get_institution_values(
+        vals = await self.mou_db_client.get_institution_values(
             wbs_l1, snapshot_timestamp, institution
         )
 
@@ -281,6 +281,6 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
             "computing_confirmed": computing_confirmed,
         }
 
-        await self.dbms.upsert_institution_values(wbs_l1, institution, vals)
+        await self.mou_db_client.upsert_institution_values(wbs_l1, institution, vals)
 
         self.write({})
