@@ -382,7 +382,8 @@ class TestUtils:
 
         No need to integration test this.
         """
-        #
+        tc_reader = tc.TableConfigReader()
+
         def _assert_funds_totals(_rows: types.Table, _total_row: types.Record) -> None:
             print("\n-----------------------------------------------------\n")
             pprint.pprint(_rows)
@@ -460,9 +461,9 @@ class TestUtils:
                     raise Exception(f"Unaccounted total row ({total_row}).")
 
             # Assert that every possible total is there (including rows with only 0s)
-            for l2_cat in tc.get_l2_categories(WBS):
+            for l2_cat in tc_reader.get_l2_categories(WBS):
                 assert l2_cat in set(r.get(tc.WBS_L2) for r in totals)
-                for l3_cat in tc.get_l3_categories_by_l2(WBS, l2_cat):
+                for l3_cat in tc_reader.get_l3_categories_by_l2(WBS, l2_cat):
                     assert l3_cat in set(r.get(tc.WBS_L3) for r in totals)
 
 
