@@ -5,7 +5,7 @@ import base64
 import io
 import logging
 import time
-from typing import Any, cast, Coroutine, Dict, List, Tuple
+from typing import Any, Coroutine, Dict, List, Tuple, cast
 
 import pandas as pd  # type: ignore[import]
 import pymongo.errors  # type: ignore[import]
@@ -43,6 +43,8 @@ class MoUMotorClient:
 
         If not, raise Exception.
         """
+        tc_reader = tc.TableConfigReader()
+
         for col_raw, value in record.items():
             col = MoUMotorClient._demongofy_key_name(col_raw)
 
@@ -51,14 +53,14 @@ class MoUMotorClient:
                 continue
 
             # Validate a simple dropdown column
-            if col in tc.get_simple_dropdown_menus(wbs_db):
-                if value in tc.get_simple_dropdown_menus(wbs_db)[col]:
+            if col in tc_reader.get_simple_dropdown_menus(wbs_db):
+                if value in tc_reader.get_simple_dropdown_menus(wbs_db)[col]:
                     continue
                 raise Exception(f"Invalid Simple-Dropdown Data: {col=} {record=}")
 
             # Validate a conditional dropdown column
-            if col in tc.get_conditional_dropdown_menus(wbs_db):
-                parent_col, menus = tc.get_conditional_dropdown_menus(wbs_db)[col]
+            if col in tc_reader.get_conditional_dropdown_menus(wbs_db):
+                parent_col, menus = tc_reader.get_conditional_dropdown_menus(wbs_db)[col]
 
                 # Get parent value
                 if parent_col in record:
@@ -146,6 +148,8 @@ class MoUMotorClient:
         """
         logging.info(f"Ingesting xlsx {filename} ({wbs_db=})...")
 
+        tc_reader = tc.TableConfigReader()
+
         def _is_a_total_row(row: types.Record) -> bool:
             # check L2, L3, Inst., & US/Non-US  columns for "total" substring
             for key in [tc.WBS_L2, tc.WBS_L3, tc.INSTITUTION, tc.US_NON_US]:
@@ -182,7 +186,7 @@ class MoUMotorClient:
         # check schema -- aka verify column names
         for row in raw_table:
             # check for extra keys
-            if not all(k in tc.get_columns() for k in row.keys()):
+            if not all(k in tc_reader.get_columns() for k in row.keys()):
                 raise web.HTTPError(
                     422,
                     reason=f"Table not in correct format: XLSX's KEYS={row.keys()} vs ALLOWABLE KEYS={tc.get_columns()})",
