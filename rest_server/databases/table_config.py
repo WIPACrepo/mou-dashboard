@@ -5,11 +5,6 @@ from typing import Any, Dict, Final, List, Tuple, TypedDict, Union
 
 from .. import wbs
 
-# TODO: remove when krs is up and running
-from .institution_list import (  # type: ignore[import]  # pylint:disable=import-error
-    ICECUBE_INSTS,
-)
-
 ID = "_id"
 WBS_L2 = "WBS L2"
 WBS_L3 = "WBS L3"
@@ -204,6 +199,11 @@ class TableConfigReader:
         NOTE: locally importing is a stopgap measure until
         the Keycloak REST Service is operational.
         """
+        # TODO: remove when krs is up and running
+        from .institution_list import (  # type: ignore[import]  # pylint:disable=C0415,E0401
+            ICECUBE_INSTS,
+        )
+
         return ICECUBE_INSTS  # type: ignore
 
     def us_or_non_us(self, institution: str) -> str:
