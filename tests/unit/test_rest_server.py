@@ -285,21 +285,6 @@ class TestUtils:
             assert utils.remove_on_the_fly_fields(after) == after
 
     @staticmethod
-    def test_us_or_non_us() -> None:
-        """Test _us_or_non_us().
-
-        Function is very simple, so also test ICECUBE_INSTS's format.
-        """
-        for inst in utils.ICECUBE_INSTS.values():
-            assert "abbreviation" in inst
-            assert "is_US" in inst
-            assert inst["is_US"] is True or inst["is_US"] is False
-            if inst["is_US"]:
-                assert utils._us_or_non_us(inst["abbreviation"]) == "US"
-            else:
-                assert utils._us_or_non_us(inst["abbreviation"]) == "Non-US"
-
-    @staticmethod
     def test_add_on_the_fly_fields() -> None:
         """Test add_on_the_fly_fields()."""
         # Set-Up
@@ -431,8 +416,10 @@ class TestUtils:
 
                 # L3 US/Non-US Level
                 if (
-                    "L3 NON-US TOTAL" in total_row[tc.TOTAL_COL]  # type: ignore[operator]
-                    or "L3 US TOTAL" in total_row[tc.TOTAL_COL]  # type: ignore[operator]
+                    "L3 NON-US TOTAL"
+                    in total_row[tc.TOTAL_COL]  # type: ignore[operator]
+                    or "L3 US TOTAL"
+                    in total_row[tc.TOTAL_COL]  # type: ignore[operator]
                 ):
                     _assert_funds_totals(
                         [
@@ -477,3 +464,24 @@ class TestUtils:
                 assert l2_cat in set(r.get(tc.WBS_L2) for r in totals)
                 for l3_cat in tc.get_l3_categories_by_l2(WBS, l2_cat):
                     assert l3_cat in set(r.get(tc.WBS_L3) for r in totals)
+
+
+class TestTableConfig:
+    """Test table_config.py."""
+
+    @staticmethod
+    def test_us_or_non_us() -> None:
+        """Test _us_or_non_us().
+
+        Function is very simple, so also test institution-dict's format.
+        """
+        tc_reader = TableConfigReader()
+
+        for inst in tc_reader.icecube_institutions.values():
+            assert "abbreviation" in inst
+            assert "is_US" in inst
+            assert inst["is_US"] is True or inst["is_US"] is False
+            if inst["is_US"]:
+                assert tc_reader.us_or_non_us(inst["abbreviation"]) == "US"
+            else:
+                assert tc_reader.us_or_non_us(inst["abbreviation"]) == "Non-US"

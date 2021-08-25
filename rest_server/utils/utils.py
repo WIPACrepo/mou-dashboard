@@ -9,8 +9,10 @@ from . import types
 
 def remove_on_the_fly_fields(record: types.Record) -> types.Record:
     """Remove (del) any fields that are only to be calculated on-the-fly."""
+    tc_reader = tc.TableConfigReader()
+
     for field in record.copy().keys():
-        if field in tc.get_on_the_fly_fields():
+        if field in tc_reader.get_on_the_fly_fields():
             # copy over grand total to FTE
             if (field == tc.GRAND_TOTAL) and (tc.FTE not in record.keys()):
                 record[tc.FTE] = record[field]
@@ -39,7 +41,7 @@ def add_on_the_fly_fields(record: types.Record) -> types.Record:
 
     # US-only fields
     inst = cast(str, record[tc.INSTITUTION])
-    record[tc.US_NON_US] = tc.TableConfigReader.us_or_non_us(inst)
+    record[tc.US_NON_US] = tc.TableConfigReader().us_or_non_us(inst)
     if record[tc.US_NON_US] == tc.NON_US:
         record[tc.SOURCE_OF_FUNDS_US_ONLY] = tc.NON_US_IN_KIND
 

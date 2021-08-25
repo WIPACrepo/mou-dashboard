@@ -206,10 +206,9 @@ class TableConfigReader:
         """
         return ICECUBE_INSTS  # type: ignore
 
-    @staticmethod
-    def us_or_non_us(institution: str) -> str:
+    def us_or_non_us(self, institution: str) -> str:
         """Return "US" or "Non-US" per institution name."""
-        for inst in ICECUBE_INSTS.values():
+        for inst in self.icecube_institutions.values():
             if inst["abbreviation"] == institution:
                 if inst["is_US"]:
                     return US
