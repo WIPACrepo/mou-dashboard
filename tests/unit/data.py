@@ -9,7 +9,7 @@ from typing import Final
 sys.path.append(".")
 from rest_server.utils import types  # isort:skip  # noqa # pylint: disable=E0401,C0413
 from rest_server.databases import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
-    table_config as tc,
+    table_config_db as tc_db,
 )
 
 WBS: Final[str] = "mo"
@@ -361,31 +361,39 @@ FTE_ROWS: Final[types.Table] = [
 
 
 def _make_fte_rows() -> None:
-    tc_reader = tc.TableConfigDatabaseClient()
+    tc_db_client = tc_db.TableConfigDatabaseClient()
 
     rows: types.Table = []
     for l2 in [
         "2.1 Program Coordination",
         "2.2 Detector Operations & Maintenance (Online)",
     ]:
-        for l3 in tc_reader.get_l3_categories_by_l2(WBS, l2):
+        for l3 in tc_db_client.get_l3_categories_by_l2(WBS, l2):
             if ".3" in l3:
                 break
             # append 2 US for each funding source
             for _ in range(2):
-                for fund in [tc.NSF_MO_CORE, tc.NSF_BASE_GRANTS, tc.US_IN_KIND]:
-                    row = {tc.WBS_L2: l2, tc.WBS_L3: l3, tc.US_NON_US: tc.US}
-                    row[tc.SOURCE_OF_FUNDS_US_ONLY] = fund
-                    row[tc.FTE] = random.random() * 1  # type: ignore[assignment]
+                for fund in [
+                    tc_db.NSF_MO_CORE,
+                    tc_db.NSF_BASE_GRANTS,
+                    tc_db.US_IN_KIND,
+                ]:
+                    row = {
+                        tc_db.WBS_L2: l2,
+                        tc_db.WBS_L3: l3,
+                        tc_db.US_NON_US: tc_db.US,
+                    }
+                    row[tc_db.SOURCE_OF_FUNDS_US_ONLY] = fund
+                    row[tc_db.FTE] = random.random() * 1  # type: ignore[assignment]
                     rows.append(row)  # type: ignore[arg-type]
 
             # append 2 Non-US
             for _ in range(2):
-                row = {tc.WBS_L2: l2, tc.WBS_L3: l3}
-                row[tc.US_NON_US] = tc.NON_US
-                row[tc.SOURCE_OF_FUNDS_US_ONLY] = tc.NON_US_IN_KIND
-                row[tc.FTE] = random.random() * 1  # type: ignore[assignment]
+                row = {tc_db.WBS_L2: l2, tc_db.WBS_L3: l3}
+                row[tc_db.US_NON_US] = tc_db.NON_US
+                row[tc_db.SOURCE_OF_FUNDS_US_ONLY] = tc_db.NON_US_IN_KIND
+                row[tc_db.FTE] = random.random() * 1  # type: ignore[assignment]
                 rows.append(row)  # type: ignore[arg-type]
 
-    rows.sort(key=tc_reader.sort_key)
+    rows.sort(key=tc_db_client.sort_key)
     pprint.pprint(rows)

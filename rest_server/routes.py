@@ -10,7 +10,7 @@ from rest_tools.server import RestHandler, handler  # type: ignore
 from . import wbs
 from .config import AUTH_PREFIX
 from .databases import mou_db
-from .databases import table_config as tc
+from .databases import table_config_db as tc_db
 from .utils import types, utils
 
 _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
@@ -82,7 +82,7 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
             )
 
         # sort
-        table.sort(key=tc.TableConfigDatabaseClient().sort_key)
+        table.sort(key=tc_db.TableConfigDatabaseClient().sort_key)
 
         self.write({"table": table})
 
@@ -128,11 +128,11 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
         editor = self.get_argument("editor")
 
         if inst := self.get_argument("institution", default=None):
-            record[tc.INSTITUTION] = inst  # insert
+            record[tc_db.INSTITUTION] = inst  # insert
         if labor := self.get_argument("labor", default=None):
-            record[tc.LABOR_CAT] = labor  # insert
+            record[tc_db.LABOR_CAT] = labor  # insert
         if task := self.get_argument("task", default=None):
-            record[tc.TASK_DESCRIPTION] = task  # insert
+            record[tc_db.TASK_DESCRIPTION] = task  # insert
 
         record = utils.remove_on_the_fly_fields(record)
         record = await self.mou_db_client.upsert_record(wbs_l1, record, editor)
@@ -162,22 +162,23 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
-        tc_reader = tc.TableConfigDatabaseClient()
+        tc_db_client = tc_db.TableConfigDatabaseClient()
+
         table_config = {
             l1: {
-                "columns": tc_reader.get_columns(),
-                "simple_dropdown_menus": tc_reader.get_simple_dropdown_menus(l1),
-                "institutions": tc_reader.get_institutions_and_abbrevs(),
-                "labor_categories": tc_reader.get_labor_categories_and_abbrevs(),
-                "conditional_dropdown_menus": tc_reader.get_conditional_dropdown_menus(l1),
-                "dropdowns": tc_reader.get_dropdowns(l1),
-                "numerics": tc_reader.get_numerics(),
-                "non_editables": tc_reader.get_non_editables(),
-                "hiddens": tc_reader.get_hiddens(),
-                "tooltips": tc_reader.get_tooltips(),
-                "widths": tc_reader.get_widths(),
-                "border_left_columns": tc_reader.get_border_left_columns(),
-                "page_size": tc_reader.get_page_size(),
+                "columns": tc_db_client.get_columns(),
+                "simple_dropdown_menus": tc_db_client.get_simple_dropdown_menus(l1),
+                "institutions": tc_db_client.get_institutions_and_abbrevs(),
+                "labor_categories": tc_db_client.get_labor_categories_and_abbrevs(),
+                "conditional_dropdown_menus": tc_db_client.get_conditional_dropdown_menus(l1),
+                "dropdowns": tc_db_client.get_dropdowns(l1),
+                "numerics": tc_db_client.get_numerics(),
+                "non_editables": tc_db_client.get_non_editables(),
+                "hiddens": tc_db_client.get_hiddens(),
+                "tooltips": tc_db_client.get_tooltips(),
+                "widths": tc_db_client.get_widths(),
+                "border_left_columns": tc_db_client.get_border_left_columns(),
+                "page_size": tc_db_client.get_page_size(),
             }
             for l1 in wbs.WORK_BREAKDOWN_STRUCTURES.keys()
         }

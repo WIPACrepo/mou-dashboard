@@ -23,7 +23,7 @@ from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0
 )
 from rest_server.databases import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
     mou_db,
-    table_config as tc,
+    table_config_db as tc_db,
 )
 from rest_server import config  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
 
@@ -382,26 +382,26 @@ class TestUtils:
 
         No need to integration test this.
         """
-        tc_reader = tc.TableConfigDatabaseClient()
+        tc_db_client = tc_db.TableConfigDatabaseClient()
 
         def _assert_funds_totals(_rows: types.Table, _total_row: types.Record) -> None:
             print("\n-----------------------------------------------------\n")
             pprint.pprint(_rows)
             pprint.pprint(_total_row)
-            assert _total_row[tc.GRAND_TOTAL] == float(
-                sum(Decimal(str(r[tc.FTE])) for r in _rows)
+            assert _total_row[tc_db.GRAND_TOTAL] == float(
+                sum(Decimal(str(r[tc_db.FTE])) for r in _rows)
             )
             for fund in [
-                tc.NSF_MO_CORE,
-                tc.NSF_BASE_GRANTS,
-                tc.US_IN_KIND,
-                tc.NON_US_IN_KIND,
+                tc_db.NSF_MO_CORE,
+                tc_db.NSF_BASE_GRANTS,
+                tc_db.US_IN_KIND,
+                tc_db.NON_US_IN_KIND,
             ]:
                 assert _total_row[fund] == float(
                     sum(
-                        Decimal(str(r[tc.FTE]))
+                        Decimal(str(r[tc_db.FTE]))
                         for r in _rows
-                        if r[tc.SOURCE_OF_FUNDS_US_ONLY] == fund
+                        if r[tc_db.SOURCE_OF_FUNDS_US_ONLY] == fund
                     )
                 )
 
@@ -418,42 +418,48 @@ class TestUtils:
                 # L3 US/Non-US Level
                 if (
                     "L3 NON-US TOTAL"
-                    in total_row[tc.TOTAL_COL]  # type: ignore[operator]
+                    in total_row[tc_db.TOTAL_COL]  # type: ignore[operator]
                     or "L3 US TOTAL"
-                    in total_row[tc.TOTAL_COL]  # type: ignore[operator]
+                    in total_row[tc_db.TOTAL_COL]  # type: ignore[operator]
                 ):
                     _assert_funds_totals(
                         [
                             r
                             for r in table
-                            if total_row[tc.WBS_L2] == r[tc.WBS_L2]
-                            and total_row[tc.WBS_L3] == r[tc.WBS_L3]
-                            and total_row[tc.US_NON_US] == r[tc.US_NON_US]
+                            if total_row[tc_db.WBS_L2] == r[tc_db.WBS_L2]
+                            and total_row[tc_db.WBS_L3] == r[tc_db.WBS_L3]
+                            and total_row[tc_db.US_NON_US] == r[tc_db.US_NON_US]
                         ],
                         total_row,
                     )
 
                 # L3 Level
-                elif "L3 TOTAL" in total_row[tc.TOTAL_COL]:  # type: ignore[operator]
+                elif "L3 TOTAL" in total_row[tc_db.TOTAL_COL]:  # type: ignore[operator]
                     _assert_funds_totals(
                         [
                             r
                             for r in table
-                            if total_row[tc.WBS_L2] == r[tc.WBS_L2]
-                            and total_row[tc.WBS_L3] == r[tc.WBS_L3]
+                            if total_row[tc_db.WBS_L2] == r[tc_db.WBS_L2]
+                            and total_row[tc_db.WBS_L3] == r[tc_db.WBS_L3]
                         ],
                         total_row,
                     )
 
                 # L2 Level
-                elif "L2 TOTAL" in total_row[tc.TOTAL_COL]:  # type: ignore[operator]
+                elif "L2 TOTAL" in total_row[tc_db.TOTAL_COL]:  # type: ignore[operator]
                     _assert_funds_totals(
-                        [r for r in table if total_row[tc.WBS_L2] == r[tc.WBS_L2]],
+                        [
+                            r
+                            for r in table
+                            if total_row[tc_db.WBS_L2] == r[tc_db.WBS_L2]
+                        ],
                         total_row,
                     )
 
                 # Grand Total
-                elif "GRAND TOTAL" in total_row[tc.TOTAL_COL]:  # type: ignore[operator]
+                elif (
+                    "GRAND TOTAL" in total_row[tc_db.TOTAL_COL]
+                ):  # type: ignore[operator]
                     _assert_funds_totals(table, total_row)
 
                 # Other Kind?
@@ -461,10 +467,10 @@ class TestUtils:
                     raise Exception(f"Unaccounted total row ({total_row}).")
 
             # Assert that every possible total is there (including rows with only 0s)
-            for l2_cat in tc_reader.get_l2_categories(WBS):
-                assert l2_cat in set(r.get(tc.WBS_L2) for r in totals)
-                for l3_cat in tc_reader.get_l3_categories_by_l2(WBS, l2_cat):
-                    assert l3_cat in set(r.get(tc.WBS_L3) for r in totals)
+            for l2_cat in tc_db_client.get_l2_categories(WBS):
+                assert l2_cat in set(r.get(tc_db.WBS_L2) for r in totals)
+                for l3_cat in tc_db_client.get_l3_categories_by_l2(WBS, l2_cat):
+                    assert l3_cat in set(r.get(tc_db.WBS_L3) for r in totals)
 
 
 class TestTableConfig:
@@ -476,13 +482,13 @@ class TestTableConfig:
 
         Function is very simple, so also test institution-dict's format.
         """
-        tc_reader = tc.TableConfigDatabaseClient()
+        tc_db_client = tc_db.TableConfigDatabaseClient()
 
-        for inst in tc_reader.icecube_institutions.values():
+        for inst in tc_db_client.icecube_institutions.values():
             assert "abbreviation" in inst
             assert "is_US" in inst
             assert inst["is_US"] is True or inst["is_US"] is False
             if inst["is_US"]:
-                assert tc_reader.us_or_non_us(inst["abbreviation"]) == "US"
+                assert tc_db_client.us_or_non_us(inst["abbreviation"]) == "US"
             else:
-                assert tc_reader.us_or_non_us(inst["abbreviation"]) == "Non-US"
+                assert tc_db_client.us_or_non_us(inst["abbreviation"]) == "Non-US"
