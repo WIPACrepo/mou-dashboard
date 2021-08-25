@@ -1,4 +1,4 @@
-tc_db_db_db"Values for the table config."""
+"""Database interface for retrieving values for the table config."""
 
 
 from typing import Any, Dict, Final, List, Tuple, TypedDict, Union
