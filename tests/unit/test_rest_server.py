@@ -43,23 +43,23 @@ def reset_mock(*args: Mock) -> None:
         a.reset_mock()
 
 
+@pytest.fixture
+def mock_mongo(mocker: Any) -> Any:
+    """Patch mock_mongo."""
+    mock_mongo = mocker.patch(MOTOR_CLIENT)  # pylint:disable=redefined-outer-name
+    mock_mongo.list_database_names.side_effect = AsyncMock()
+    return mock_mongo
+
+
 class TestDBUtils:  # pylint: disable=R0904
     """Test private methods in mou_db.py."""
-
-    @staticmethod
-    @pytest.fixture
-    def mock_mongo(mocker: Any) -> Any:
-        """Patch mock_mongo."""
-        mock_mongo = mocker.patch(MOTOR_CLIENT)
-        mock_mongo.list_database_names.side_effect = AsyncMock()
-        return mock_mongo
 
     @staticmethod
     @patch(MOU_DB_CLIENT + "._ensure_all_db_indexes")
     def test_init(mock_eadi: Any) -> None:
         """Test MoUDatabaseClient.__init__()."""
         # Call
-        moumc = mou_db.MoUDatabaseClient(sentinel._client, sentinel._tc_db)
+        moumc = mou_db.MoUDatabaseClient(sentinel._client)
 
         # Assert
         assert moumc._client == sentinel._client
@@ -70,7 +70,7 @@ class TestDBUtils:  # pylint: disable=R0904
         reset_mock(mock_eadi)
 
         # Call
-        moumc = mou_db.MoUDatabaseClient(sentinel._client, sentinel._tc_db)
+        moumc = mou_db.MoUDatabaseClient(sentinel._client)
 
         # Assert
         assert moumc._client == sentinel._client
@@ -377,12 +377,12 @@ class TestUtils:
             )
 
     @staticmethod
-    def test_insert_total_rows() -> None:
+    def test_insert_total_rows(mock_mongo: Any) -> None:
         """Test insert_total_rows().
 
         No need to integration test this.
         """
-        tc_db_client = tc_db.TableConfigDatabaseClient()
+        tc_db_client = tc_db.TableConfigDatabaseClient(mock_mongo)
 
         def _assert_funds_totals(_rows: types.Table, _total_row: types.Record) -> None:
             print("\n-----------------------------------------------------\n")
@@ -478,12 +478,12 @@ class TestTableConfig:
     """Test table_config.py."""
 
     @staticmethod
-    def test_us_or_non_us() -> None:
+    def test_us_or_non_us(mock_mongo: Any) -> None:
         """Test _us_or_non_us().
 
         Function is very simple, so also test institution-dict's format.
         """
-        tc_db_client = tc_db.TableConfigDatabaseClient()
+        tc_db_client = tc_db.TableConfigDatabaseClient(mock_mongo)
 
         for inst in tc_db_client.institution_dicts.values():
             assert "abbreviation" in inst
