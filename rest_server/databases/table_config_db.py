@@ -1,9 +1,13 @@
 """Database interface for retrieving values for the table config."""
 
 
+import asyncio
 import copy
 import time
 from typing import Any, Dict, Final, List, Optional, Tuple, TypedDict, Union, cast
+
+from bson.objectid import ObjectId  # type: ignore[import]
+from motor.motor_tornado import MotorClient  # type: ignore
 
 from .. import wbs
 
@@ -73,6 +77,8 @@ _LABOR_CATEGORY_DICTIONARY: Dict[str, str] = {
 }
 
 MAX_CACHE_AGE = 60  # seconds # TODO: adjust after testing
+DB_NAME = "table_config"
+COLLECTION_NAME = "cache"
 
 
 def krs_institution_dicts() -> Dict[str, InstitutionMeta]:
@@ -98,26 +104,37 @@ class _TableConfigDoc(TypedDict):
 class TableConfigDatabaseClient:
     """Manage the collection and parsing of the table config(s)."""
 
-    def __init__(self) -> None:
+    def __init__(self, motor_client: MotorClient) -> None:
+        self._db = motor_client
         self._doc = None
-        self._doc = self.refresh_doc()
+        self._doc = asyncio.get_event_loop().run_until_complete(self.refresh_doc())
 
-    @property
     def column_configs(self) -> Dict[str, _ColumnConfigTypedDict]:
         """The column-config dicts."""
-        return self.refresh_doc()["column_configs"]
+        doc = asyncio.get_event_loop().run_until_complete(self.refresh_doc())
+        return doc["column_configs"]
 
-    @property
     def institution_dicts(self) -> Dict[str, InstitutionMeta]:
         """The institution dicts."""
-        return self.refresh_doc()["institution_dicts"]
+        doc = asyncio.get_event_loop().run_until_complete(self.refresh_doc())
+        return doc["institution_dicts"]
 
-    def refresh_doc(self) -> _TableConfigDoc:
+    async def get_most_recent_doc(self) -> Tuple[_TableConfigDoc, ObjectId]:
+        """Get doc w/ largest timestamp value, also its mongo id."""
+        ret = (
+            await self._db[DB_NAME][COLLECTION_NAME]
+            .find()
+            .sort({"timestamp": -1})
+            .limit(1)
+        )
+        return cast(_TableConfigDoc, ret), ret.pop(ID)
+
+    async def refresh_doc(self) -> _TableConfigDoc:
         """Get the most recent table-config doc."""
         if self._doc and int(time.time()) - self._doc["timestamp"] < MAX_CACHE_AGE:
             return self._doc
 
-        def doc_changed(from_db: _TableConfigDoc, newest: _TableConfigDoc) -> bool:
+        def doc_has_changed(from_db: _TableConfigDoc, newest: _TableConfigDoc) -> bool:
             for field in newest.keys():
                 if field in ["timestamp"]:
                     continue
@@ -125,16 +142,22 @@ class TableConfigDatabaseClient:
                     return True
             return False
 
-        if from_db := cast(_TableConfigDoc, {}):  # TODO: query
+        # Handle inserting/updating
+        from_db, from_db_id = await self.get_most_recent_doc()
+        if from_db:
             newest = self.build_table_config_doc(from_db)
-            if doc_changed(from_db, newest):
-                pass  # insert!
-            else:  # no need to put in duplicate data
-                pass  # update with new timestamp
+            # Insert, if data has changed
+            if doc_has_changed(from_db, newest):
+                await self._db[DB_NAME][COLLECTION_NAME].insert_one(newest)
+            # Otherwise, just update what's already in there
+            else:
+                await self._db[DB_NAME][COLLECTION_NAME].replace_one(
+                    {"_id": from_db_id}, newest
+                )
         # Otherwise, the db is empty!
         else:
             newest = self.build_table_config_doc(None)
-            pass  # insert!
+            await self._db[DB_NAME][COLLECTION_NAME].insert_one(newest)
 
         self._doc = newest
         return self._doc
@@ -281,7 +304,7 @@ class TableConfigDatabaseClient:
 
     def us_or_non_us(self, institution: str) -> str:
         """Return "US" or "Non-US" per institution name."""
-        for inst in self.institution_dicts.values():
+        for inst in self.institution_dicts().values():
             if inst["abbreviation"] == institution:
                 if inst["is_US"]:
                     return US
@@ -290,12 +313,12 @@ class TableConfigDatabaseClient:
 
     def get_columns(self) -> List[str]:
         """Get the columns."""
-        return list(self.column_configs.keys())
+        return list(self.column_configs().keys())
 
     def get_institutions_and_abbrevs(self) -> List[Tuple[str, str]]:
         """Get the institutions and their abbreviations."""
         abbrev_name: Dict[str, str] = {}
-        for inst, val in self.institution_dicts.items():
+        for inst, val in self.institution_dicts().items():
             # for institutions with the same abbreviation (aka different departments)
             # append their name
             if val["abbreviation"] in abbrev_name:
@@ -325,7 +348,7 @@ class TableConfigDatabaseClient:
         """Get the columns that are simple dropdowns, with their options."""
         ret = {
             col: config["options"]
-            for col, config in self.column_configs.items()
+            for col, config in self.column_configs().items()
             if "options" in config
         }
         ret[WBS_L2] = self.get_l2_categories(l1)
@@ -341,7 +364,7 @@ class TableConfigDatabaseClient:
         """
         ret = {
             col: (config["conditional_parent"], config["conditional_options"])
-            for col, config in self.column_configs.items()
+            for col, config in self.column_configs().items()
             if ("conditional_parent" in config) and ("conditional_options" in config)
         }
         ret[WBS_L3] = (WBS_L2, wbs.WORK_BREAKDOWN_STRUCTURES[l1])
@@ -356,32 +379,34 @@ class TableConfigDatabaseClient:
     def get_numerics(self) -> List[str]:
         """Get the columns that have numeric data."""
         return [
-            col for col, config in self.column_configs.items() if config.get("numeric")
+            col
+            for col, config in self.column_configs().items()
+            if config.get("numeric")
         ]
 
     def get_non_editables(self) -> List[str]:
         """Get the columns that are not editable."""
         return [
             col
-            for col, config in self.column_configs.items()
+            for col, config in self.column_configs().items()
             if config.get("non_editable")
         ]
 
     def get_hiddens(self) -> List[str]:
         """Get the columns that are hidden."""
         return [
-            col for col, config in self.column_configs.items() if config.get("hidden")
+            col for col, config in self.column_configs().items() if config.get("hidden")
         ]
 
     def get_widths(self) -> Dict[str, int]:
         """Get the widths of each column."""
-        return {col: config["width"] for col, config in self.column_configs.items()}
+        return {col: config["width"] for col, config in self.column_configs().items()}
 
     def get_tooltips(self) -> Dict[str, str]:
         """Get the widths of each column."""
         return {
             col: config["tooltip"]
-            for col, config in self.column_configs.items()
+            for col, config in self.column_configs().items()
             if config.get("tooltip")
         }
 
@@ -389,7 +414,7 @@ class TableConfigDatabaseClient:
         """Get the columns that have a left border."""
         return [
             col
-            for col, config in self.column_configs.items()
+            for col, config in self.column_configs().items()
             if config.get("border_left")
         ]
 
@@ -401,7 +426,7 @@ class TableConfigDatabaseClient:
         """Get names of fields created on-the-fly, data not stored."""
         return [
             col
-            for col, config in self.column_configs.items()
+            for col, config in self.column_configs().items()
             if config.get("on_the_fly")
         ]
 
@@ -411,7 +436,7 @@ class TableConfigDatabaseClient:
 
         column_orders = {
             col: config["sort_value"]
-            for col, config in self.column_configs.items()
+            for col, config in self.column_configs().items()
             if "sort_value" in config
         }
         columns_by_precedence = sorted(

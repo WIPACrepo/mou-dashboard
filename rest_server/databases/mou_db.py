@@ -28,8 +28,11 @@ class DocumentNotFoundError(Exception):
 class MoUDatabaseClient:
     """MotorClient with additional guardrails for MoU things."""
 
-    def __init__(self, motor_client: MotorClient) -> None:
+    def __init__(
+        self, motor_client: MotorClient, tc_db_client: tc_db.TableConfigDatabaseClient
+    ) -> None:
         self._client = motor_client
+        self.tc_db_client = tc_db_client
 
         def _run(f: Coroutine[Any, Any, Any]) -> Any:
             return asyncio.get_event_loop().run_until_complete(f)
@@ -38,13 +41,13 @@ class MoUDatabaseClient:
         _run(self._ensure_all_db_indexes())
 
     @staticmethod
-    def _validate_record_data(wbs_db: str, record: types.Record) -> None:
+    def _validate_record_data(
+        wbs_db: str, record: types.Record, tc_db_client: tc_db.TableConfigDatabaseClient
+    ) -> None:
         """Check that each value in a dropdown-type column is valid.
 
         If not, raise Exception.
         """
-        tc_db_client = tc_db.TableConfigDatabaseClient()
-
         for col_raw, value in record.items():
             col = MoUDatabaseClient._demongofy_key_name(col_raw)
 
@@ -60,7 +63,9 @@ class MoUDatabaseClient:
 
             # Validate a conditional dropdown column
             if col in tc_db_client.get_conditional_dropdown_menus(wbs_db):
-                parent_col, menus = tc_db_client.get_conditional_dropdown_menus(wbs_db)[col]
+                parent_col, menus = tc_db_client.get_conditional_dropdown_menus(wbs_db)[
+                    col
+                ]
 
                 # Get parent value
                 if parent_col in record:
@@ -91,11 +96,14 @@ class MoUDatabaseClient:
 
     @staticmethod
     def _mongofy_record(
-        wbs_db: str, record: types.Record, assert_data: bool = True
+        wbs_db: str,
+        record: types.Record,
+        tc_db_client: tc_db.TableConfigDatabaseClient,
+        assert_data: bool = True,
     ) -> types.Record:
         # assert data is valid
         if assert_data:
-            MoUDatabaseClient._validate_record_data(wbs_db, record)
+            MoUDatabaseClient._validate_record_data(wbs_db, record, tc_db_client)
         # mongofy key names
         for key in list(record.keys()):
             record[MoUDatabaseClient._mongofy_key_name(key)] = record.pop(key)
@@ -148,8 +156,6 @@ class MoUDatabaseClient:
         """
         logging.info(f"Ingesting xlsx {filename} ({wbs_db=})...")
 
-        tc_db_client = tc_db.TableConfigDatabaseClient()
-
         def _is_a_total_row(row: types.Record) -> bool:
             # check L2, L3, Inst., & US/Non-US  columns for "total" substring
             for key in [tc_db.WBS_L2, tc_db.WBS_L3, tc_db.INSTITUTION, tc_db.US_NON_US]:
@@ -178,7 +184,7 @@ class MoUDatabaseClient:
         # decode base64-excel
         try:
             decoded = base64.b64decode(base64_xlsx)
-            df = pd.read_excel(io.BytesIO(decoded))
+            df = pd.read_excel(io.BytesIO(decoded))  # pylint:disable=invalid-name
             raw_table = df.fillna("").to_dict("records")
         except Exception as e:
             raise web.HTTPError(400, reason=str(e))
@@ -186,17 +192,20 @@ class MoUDatabaseClient:
         # check schema -- aka verify column names
         for row in raw_table:
             # check for extra keys
-            if not all(k in tc_db_client.get_columns() for k in row.keys()):
+            if not all(k in self.tc_db_client.get_columns() for k in row.keys()):
                 raise web.HTTPError(
                     422,
                     reason=f"Table not in correct format: "
-                    f"XLSX's KEYS={row.keys()} vs ALLOWABLE KEYS={tc_db_client.get_columns()})",
+                    f"XLSX's KEYS={row.keys()} vs "
+                    f"ALLOWABLE KEYS={self.tc_db_client.get_columns()})",
                 )
 
         # mongofy table -- and verify data
         try:
             table: types.Table = [
-                self._mongofy_record(wbs_db, utils.remove_on_the_fly_fields(row))
+                self._mongofy_record(
+                    wbs_db, utils.remove_on_the_fly_fields(row), self.tc_db_client
+                )
                 for row in raw_table
                 if _row_has_data(row) and not _is_a_total_row(row)
             ]
@@ -289,11 +298,15 @@ class MoUDatabaseClient:
 
         logging.error(f"Snapshot Database has no collections ({wbs_db=}).")
         raise web.HTTPError(
-            422, reason=f"Snapshot Database has no collections ({wbs_db=}).",
+            422,
+            reason=f"Snapshot Database has no collections ({wbs_db=}).",
         )
 
     async def get_institution_values(
-        self, wbs_db: str, snapshot_timestamp: str, institution: str,
+        self,
+        wbs_db: str,
+        snapshot_timestamp: str,
+        institution: str,
     ) -> types.InstitutionValues:
         """Get the values for an institution."""
         logging.debug(f"Getting Institution's Values ({wbs_db=}, {institution=})...")
@@ -384,7 +397,8 @@ class MoUDatabaseClient:
         await self._set_supplemental_doc(wbs_db, snap_coll, doc)
 
         logging.debug(
-            f"Created Supplemental Document ({wbs_db=}, {snap_coll=}): {await self._get_supplemental_doc(wbs_db, snap_coll)}."
+            f"Created Supplemental Document ({wbs_db=}, {snap_coll=}): "
+            f"{await self._get_supplemental_doc(wbs_db, snap_coll)}."
         )
 
     async def _ingest_new_collection(  # pylint: disable=R0913
@@ -418,7 +432,9 @@ class MoUDatabaseClient:
         await self._ensure_collection_indexes(wbs_db, snap_coll)
 
         # Ingest
-        await coll_obj.insert_many([self._mongofy_record(wbs_db, r) for r in table])
+        await coll_obj.insert_many(
+            [self._mongofy_record(wbs_db, r, self.tc_db_client) for r in table]
+        )
 
         # create supplemental document
         await self._create_supplemental_db_document(
@@ -476,7 +492,8 @@ class MoUDatabaseClient:
             i += 1
 
         logging.info(
-            f"Table [{wbs_db=} {snap_coll=}] ({institution=}, {labor=}) has {i} records (and {dels} deleted records)."
+            f"Table [{wbs_db=} {snap_coll=}] ({institution=}, {labor=}) "
+            f"has {i} records (and {dels} deleted records)."
         )
 
         return table
@@ -498,7 +515,7 @@ class MoUDatabaseClient:
             record[tc_db.EDITOR] = editor
 
         # prep
-        record = self._mongofy_record(wbs_db, record)
+        record = self._mongofy_record(wbs_db, record, self.tc_db_client)
         coll_obj = self._client[wbs_db][_LIVE_COLLECTION]
 
         # if record has an ID -- replace it
@@ -518,7 +535,7 @@ class MoUDatabaseClient:
         self, wbs_db: str, record_id: str, is_deleted: bool, editor: str = ""
     ) -> types.Record:
         """Mark the record as deleted/not-deleted."""
-        query = self._mongofy_record(wbs_db, {tc_db.ID: record_id})
+        query = self._mongofy_record(wbs_db, {tc_db.ID: record_id}, self.tc_db_client)
         record: types.Record = await self._client[wbs_db][_LIVE_COLLECTION].find_one(
             query
         )

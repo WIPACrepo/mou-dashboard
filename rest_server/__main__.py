@@ -15,6 +15,7 @@ from rest_tools.server.config import from_environment  # type: ignore[import]
 
 from . import config
 from .databases import mou_db
+from .databases import table_config_db as tc_db
 from .routes import (
     InstitutionValuesHandler,
     MainHandler,
@@ -51,7 +52,10 @@ def start(debug: bool = False) -> RestServer:
     mongodb_url = f"mongodb://{mongodb_host}:{mongodb_port}"
     if mongodb_auth_user and mongodb_auth_pass:
         mongodb_url = f"mongodb://{mongodb_auth_user}:{mongodb_auth_pass}@{mongodb_host}:{mongodb_port}"
-    args["mou_db_client"] = mou_db.MoUDatabaseClient(MotorClient(mongodb_url))
+    args["tc_db_client"] = tc_db.TableConfigDatabaseClient(MotorClient(mongodb_url))
+    args["mou_db_client"] = mou_db.MoUDatabaseClient(
+        MotorClient(mongodb_url), args["tc_db_client"]
+    )
 
     # Configure REST Routes
     server = RestServer(debug=debug)

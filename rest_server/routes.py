@@ -23,11 +23,16 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
     """BaseMoUHandler is a RestHandler for all MoU routes."""
 
     def initialize(  # pylint: disable=W0221
-        self, mou_db_client: mou_db.MoUDatabaseClient, *args: Any, **kwargs: Any
+        self,
+        mou_db_client: mou_db.MoUDatabaseClient,
+        tc_db_client: tc_db.TableConfigDatabaseClient,
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
         """Initialize a BaseMoUHandler object."""
         super().initialize(*args, **kwargs)
         self.mou_db_client = mou_db_client  # pylint: disable=W0201
+        self.tc_db_client = tc_db_client  # pylint: disable=W0201
 
 
 # -----------------------------------------------------------------------------
@@ -82,7 +87,7 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
             )
 
         # sort
-        table.sort(key=tc_db.TableConfigDatabaseClient().sort_key)
+        table.sort(key=self.tc_db_client.sort_key)
 
         self.write({"table": table})
 
@@ -102,7 +107,9 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
         curr_snap_info = await self.mou_db_client.get_snapshot_info(wbs_l1, curr_snap)
         prev_snap_info = None
         if prev_snap:
-            prev_snap_info = await self.mou_db_client.get_snapshot_info(wbs_l1, prev_snap)
+            prev_snap_info = await self.mou_db_client.get_snapshot_info(
+                wbs_l1, prev_snap
+            )
 
         self.write(
             {
@@ -162,7 +169,7 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
-        tc_db_client = tc_db.TableConfigDatabaseClient()
+        tc_db_client = self.tc_db_client
 
         table_config = {
             l1: {
@@ -170,7 +177,9 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
                 "simple_dropdown_menus": tc_db_client.get_simple_dropdown_menus(l1),
                 "institutions": tc_db_client.get_institutions_and_abbrevs(),
                 "labor_categories": tc_db_client.get_labor_categories_and_abbrevs(),
-                "conditional_dropdown_menus": tc_db_client.get_conditional_dropdown_menus(l1),
+                "conditional_dropdown_menus": tc_db_client.get_conditional_dropdown_menus(
+                    l1
+                ),
                 "dropdowns": tc_db_client.get_dropdowns(l1),
                 "numerics": tc_db_client.get_numerics(),
                 "non_editables": tc_db_client.get_non_editables(),
@@ -206,7 +215,9 @@ class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
         )
         timestamps.sort(reverse=True)
 
-        snapshots = [await self.mou_db_client.get_snapshot_info(wbs_l1, ts) for ts in timestamps]
+        snapshots = [
+            await self.mou_db_client.get_snapshot_info(wbs_l1, ts) for ts in timestamps
+        ]
 
         self.write({"snapshots": snapshots})
 
@@ -225,7 +236,9 @@ class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
         name = self.get_argument("name")
         creator = self.get_argument("creator")
 
-        snap_ts = await self.mou_db_client.snapshot_live_collection(wbs_l1, name, creator, False)
+        snap_ts = await self.mou_db_client.snapshot_live_collection(
+            wbs_l1, name, creator, False
+        )
         snap_info = await self.mou_db_client.get_snapshot_info(wbs_l1, snap_ts)
 
         self.write(snap_info)
