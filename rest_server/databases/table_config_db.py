@@ -1,8 +1,9 @@
 """Database interface for retrieving values for the table config."""
 
 
+import copy
 import time
-from typing import Any, Dict, Final, List, Optional, Tuple, TypedDict, Union
+from typing import Any, Dict, Final, List, Tuple, TypedDict, Union
 
 from .. import wbs
 
@@ -98,56 +99,56 @@ class TableConfigDatabaseClient:
     """Manage the collection and parsing of the table config(s)."""
 
     def __init__(self) -> None:
+        self._doc = None
         self._doc = self.get_refreshed_doc()
 
     @property
-    def column_configs(self):
+    def column_configs(self) -> Dict[str, _ColumnConfigTypedDict]:
+        """The column-config dicts."""
         return self.get_refreshed_doc()["column_configs"]
 
     @property
-    def institution_dicts(self):
-
+    def institution_dicts(self) -> Dict[str, InstitutionMeta]:
+        """The institution dicts."""
         return self.get_refreshed_doc()["institution_dicts"]
 
     def get_refreshed_doc(self) -> _TableConfigDocument:
         """Get the most recent table-config doc."""
-        if int(time.time()) - self._doc["timestamp"] < MAX_CACHE_AGE:
+        if self._doc and int(time.time()) - self._doc["timestamp"] < MAX_CACHE_AGE:
             return self._doc
 
         # NOTE: assume that `self.doc` is the most recent doc in the DB
 
         from_db: _TableConfigDocument = {}  # TODO: query
         if from_db:
-            newest = self.build_table_config_doc(from_db["institution_dicts"])
+            newest = self.build_table_config_doc(from_db)
         else:
             newest = self.build_table_config_doc({})
 
         # TODO: ingest newest
-        # TODO: delete previous
+        # TODO: delete previous?
         self._doc = newest
 
         return self._doc
 
     @staticmethod
-    def build_table_config_doc(
-        prev_insts: Dict[str, InstitutionMeta]
-    ) -> _TableConfigDocument:
+    def build_table_config_doc(prev_doc: _TableConfigDocument) -> _TableConfigDocument:
         """Build the table config doc.
 
-        If an actual `prev_insts` is passed, then incorporate
-        those institutions to the table. This is needed to
+        If an actual `prev_doc` is passed, then incorporate
+        the institutions into the out doc. This is needed to
         preserve institutions that are no longer in krs, but
         are in previous MoUs.
 
-        NOTE: future development can add more args (like
-        `col_widths`) and process similarly.
+        NOTE: future development can incorporate more from
+        `prev_doc` (like `col_widths`) and process similarly.
         """
         tooltip_funding_source_value: Final[str] = (
             "This number is dependent on the Funding Source and FTE. "
             "Changing those values will affect this number."
         )
 
-        institution_dicts = prev_insts
+        institution_dicts = copy.deepcopy(prev_doc["institution_dicts"])
         institution_dicts.update(krs_institution_dicts())
 
         column_configs: Final[Dict[str, _ColumnConfigTypedDict]] = {
