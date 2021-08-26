@@ -59,7 +59,7 @@ class TestDBUtils:  # pylint: disable=R0904
     def test_init(mock_eadi: Any) -> None:
         """Test MoUDatabaseClient.__init__()."""
         # Call
-        moumc = mou_db.MoUDatabaseClient(sentinel._client)
+        moumc = mou_db.MoUDatabaseClient(sentinel._client, sentinel._tc_db)
 
         # Assert
         assert moumc._client == sentinel._client
@@ -70,7 +70,7 @@ class TestDBUtils:  # pylint: disable=R0904
         reset_mock(mock_eadi)
 
         # Call
-        moumc = mou_db.MoUDatabaseClient(sentinel._client)
+        moumc = mou_db.MoUDatabaseClient(sentinel._client, sentinel._tc_db)
 
         # Assert
         assert moumc._client == sentinel._client

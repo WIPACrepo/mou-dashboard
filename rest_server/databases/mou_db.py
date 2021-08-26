@@ -28,11 +28,9 @@ class DocumentNotFoundError(Exception):
 class MoUDatabaseClient:
     """MotorClient with additional guardrails for MoU things."""
 
-    def __init__(
-        self, motor_client: MotorClient, tc_db_client: tc_db.TableConfigDatabaseClient
-    ) -> None:
+    def __init__(self, motor_client: MotorClient) -> None:
+        self.tc_db_client = tc_db.TableConfigDatabaseClient(motor_client)
         self._client = motor_client
-        self.tc_db_client = tc_db_client
 
         def _run(f: Coroutine[Any, Any, Any]) -> Any:
             return asyncio.get_event_loop().run_until_complete(f)

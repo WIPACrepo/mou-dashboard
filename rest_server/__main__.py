@@ -53,9 +53,7 @@ def start(debug: bool = False) -> RestServer:
     if mongodb_auth_user and mongodb_auth_pass:
         mongodb_url = f"mongodb://{mongodb_auth_user}:{mongodb_auth_pass}@{mongodb_host}:{mongodb_port}"
     args["tc_db_client"] = tc_db.TableConfigDatabaseClient(MotorClient(mongodb_url))
-    args["mou_db_client"] = mou_db.MoUDatabaseClient(
-        MotorClient(mongodb_url), args["tc_db_client"]
-    )
+    args["mou_db_client"] = mou_db.MoUDatabaseClient(MotorClient(mongodb_url))
 
     # Configure REST Routes
     server = RestServer(debug=debug)
