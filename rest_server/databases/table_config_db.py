@@ -89,7 +89,7 @@ def krs_institution_dicts() -> Dict[str, InstitutionMeta]:
     return ICECUBE_INSTS  # type: ignore
 
 
-class _TableConfigDocument(TypedDict):
+class _TableConfigDoc(TypedDict):
     column_configs: Dict[str, _ColumnConfigTypedDict]
     institution_dicts: Dict[str, InstitutionMeta]
     timestamp: int
@@ -112,28 +112,35 @@ class TableConfigDatabaseClient:
         """The institution dicts."""
         return self.refresh_doc()["institution_dicts"]
 
-    def refresh_doc(self) -> _TableConfigDocument:
+    def refresh_doc(self) -> _TableConfigDoc:
         """Get the most recent table-config doc."""
         if self._doc and int(time.time()) - self._doc["timestamp"] < MAX_CACHE_AGE:
             return self._doc
 
-        # NOTE: assume that `self._doc` is the most recent doc in the DB
+        def doc_changed(from_db: _TableConfigDoc, newest: _TableConfigDoc) -> bool:
+            for field in newest.keys():
+                if field in ["timestamp"]:
+                    continue
+                if newest[field] != from_db[field]:  # type: ignore[misc]
+                    return True
+            return False
 
-        if from_db := cast(_TableConfigDocument, {}):  # TODO: query
+        if from_db := cast(_TableConfigDoc, {}):  # TODO: query
             newest = self.build_table_config_doc(from_db)
+            if doc_changed(from_db, newest):
+                pass  # insert!
+            else:  # no need to put in duplicate data
+                pass  # update with new timestamp
+        # Otherwise, the db is empty!
         else:
             newest = self.build_table_config_doc(None)
+            pass  # insert!
 
-        # if {k:v for k,v in from_db.items() if k != 'timestamp'} == {k:v for k,v in newest.items() if k != 'timestamp'}:
-        #     pass
-        # TODO: ingest newest
-        # TODO: delete previous?
         self._doc = newest
-
         return self._doc
 
     @staticmethod
-    def build_table_config_doc(prev_doc: Optional[_TableConfigDocument]) -> _TableConfigDocument:
+    def build_table_config_doc(prev_doc: Optional[_TableConfigDoc]) -> _TableConfigDoc:
         """Build the table config doc.
 
         If an actual `prev_doc` is passed, then incorporate
