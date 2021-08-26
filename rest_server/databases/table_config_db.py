@@ -100,30 +100,32 @@ class TableConfigDatabaseClient:
 
     def __init__(self) -> None:
         self._doc = None
-        self._doc = self.get_refreshed_doc()
+        self._doc = self.refresh_doc()
 
     @property
     def column_configs(self) -> Dict[str, _ColumnConfigTypedDict]:
         """The column-config dicts."""
-        return self.get_refreshed_doc()["column_configs"]
+        return self.refresh_doc()["column_configs"]
 
     @property
     def institution_dicts(self) -> Dict[str, InstitutionMeta]:
         """The institution dicts."""
-        return self.get_refreshed_doc()["institution_dicts"]
+        return self.refresh_doc()["institution_dicts"]
 
-    def get_refreshed_doc(self) -> _TableConfigDocument:
+    def refresh_doc(self) -> _TableConfigDocument:
         """Get the most recent table-config doc."""
         if self._doc and int(time.time()) - self._doc["timestamp"] < MAX_CACHE_AGE:
             return self._doc
 
-        # NOTE: assume that `self.doc` is the most recent doc in the DB
+        # NOTE: assume that `self._doc` is the most recent doc in the DB
 
         if from_db := cast(_TableConfigDocument, {}):  # TODO: query
             newest = self.build_table_config_doc(from_db)
         else:
             newest = self.build_table_config_doc(None)
 
+        # if {k:v for k,v in from_db.items() if k != 'timestamp'} == {k:v for k,v in newest.items() if k != 'timestamp'}:
+        #     pass
         # TODO: ingest newest
         # TODO: delete previous?
         self._doc = newest
