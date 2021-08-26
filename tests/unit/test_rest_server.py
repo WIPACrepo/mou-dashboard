@@ -485,7 +485,7 @@ class TestTableConfig:
         """
         tc_db_client = tc_db.TableConfigDatabaseClient()
 
-        for inst in tc_db_client.icecube_institutions.values():
+        for inst in tc_db_client.institution_dicts.values():
             assert "abbreviation" in inst
             assert "is_US" in inst
             assert inst["is_US"] is True or inst["is_US"] is False
