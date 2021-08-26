@@ -148,9 +148,13 @@ class TableConfigDatabaseClient:
             "Changing those values will affect this number."
         )
 
-        institution_dicts = copy.deepcopy(prev_doc["institution_dicts"])
+        # aggregate institution dicts
+        institution_dicts = {}
+        if prev_doc:
+            institution_dicts = copy.deepcopy(prev_doc["institution_dicts"])
         institution_dicts.update(krs_institution_dicts())
 
+        # build column-configs
         column_configs: Final[Dict[str, _ColumnConfigTypedDict]] = {
             WBS_L2: {"width": 115, "sort_value": 70, "tooltip": "WBS Level 2 Category"},
             WBS_L3: {"width": 115, "sort_value": 60, "tooltip": "WBS Level 3 Category"},
