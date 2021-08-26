@@ -3,7 +3,7 @@
 
 import copy
 import time
-from typing import Any, Dict, Final, List, Tuple, TypedDict, Union
+from typing import Any, Dict, Final, List, Optional, Tuple, TypedDict, Union, cast
 
 from .. import wbs
 
@@ -119,11 +119,10 @@ class TableConfigDatabaseClient:
 
         # NOTE: assume that `self.doc` is the most recent doc in the DB
 
-        from_db: _TableConfigDocument = {}  # TODO: query
-        if from_db:
+        if from_db := cast(_TableConfigDocument, {}):  # TODO: query
             newest = self.build_table_config_doc(from_db)
         else:
-            newest = self.build_table_config_doc({})
+            newest = self.build_table_config_doc(None)
 
         # TODO: ingest newest
         # TODO: delete previous?
@@ -132,7 +131,7 @@ class TableConfigDatabaseClient:
         return self._doc
 
     @staticmethod
-    def build_table_config_doc(prev_doc: _TableConfigDocument) -> _TableConfigDocument:
+    def build_table_config_doc(prev_doc: Optional[_TableConfigDocument]) -> _TableConfigDocument:
         """Build the table config doc.
 
         If an actual `prev_doc` is passed, then incorporate
