@@ -76,7 +76,7 @@ _LABOR_CATEGORY_DICTIONARY: Dict[str, str] = {
     "WO": "Winterover",
 }
 
-MAX_CACHE_AGE = 60  # seconds # TODO: adjust after testing
+MAX_CACHE_AGE = 60 * 60  # seconds
 DB_NAME = "table_config"
 COLLECTION_NAME = "cache"
 
