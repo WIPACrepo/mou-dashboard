@@ -105,7 +105,7 @@ class TableConfigDatabaseClient:
     """Manage the collection and parsing of the table config(s)."""
 
     def __init__(self, motor_client: MotorClient) -> None:
-        self._db = motor_client
+        self._mongo = motor_client
         self._doc = None
         self._doc = asyncio.get_event_loop().run_until_complete(self.refresh_doc())
 
@@ -122,7 +122,7 @@ class TableConfigDatabaseClient:
     async def get_most_recent_doc(self) -> Tuple[_TableConfigDoc, ObjectId]:
         """Get doc w/ largest timestamp value, also its mongo id."""
         ret = (
-            await self._db[DB_NAME][COLLECTION_NAME]
+            await self._mongo[DB_NAME][COLLECTION_NAME]
             .find()
             .sort({"timestamp": -1})
             .limit(1)
@@ -148,16 +148,16 @@ class TableConfigDatabaseClient:
             newest = self.build_table_config_doc(from_db)
             # Insert, if data has changed
             if doc_has_changed(from_db, newest):
-                await self._db[DB_NAME][COLLECTION_NAME].insert_one(newest)
+                await self._mongo[DB_NAME][COLLECTION_NAME].insert_one(newest)
             # Otherwise, just update what's already in there
             else:
-                await self._db[DB_NAME][COLLECTION_NAME].replace_one(
+                await self._mongo[DB_NAME][COLLECTION_NAME].replace_one(
                     {"_id": from_db_id}, newest
                 )
         # Otherwise, the db is empty!
         else:
             newest = self.build_table_config_doc(None)
-            await self._db[DB_NAME][COLLECTION_NAME].insert_one(newest)
+            await self._mongo[DB_NAME][COLLECTION_NAME].insert_one(newest)
 
         self._doc = newest
         return self._doc

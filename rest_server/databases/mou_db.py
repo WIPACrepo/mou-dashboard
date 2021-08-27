@@ -30,7 +30,7 @@ class MoUDatabaseClient:
 
     def __init__(self, motor_client: MotorClient) -> None:
         self.tc_db_client = tc_db.TableConfigDatabaseClient(motor_client)
-        self._client = motor_client
+        self._mongo = motor_client
 
         def _run(f: Coroutine[Any, Any, Any]) -> Any:
             return asyncio.get_event_loop().run_until_complete(f)
@@ -242,14 +242,14 @@ class MoUDatabaseClient:
     async def _list_database_names(self) -> List[str]:
         """Return all databases' names."""
         return [
-            n for n in await self._client.list_database_names() if n not in EXCLUDE_DBS
+            n for n in await self._mongo.list_database_names() if n not in EXCLUDE_DBS
         ]
 
     async def _list_collection_names(self, db: str) -> List[str]:
         """Return collection names in database."""
         return [
             n
-            for n in await self._client[db].list_collection_names()
+            for n in await self._mongo[db].list_collection_names()
             if n not in EXCLUDE_COLLECTIONS
         ]
 
@@ -343,7 +343,7 @@ class MoUDatabaseClient:
     async def _get_supplemental_doc(
         self, wbs_db: str, snap_coll: str
     ) -> types.SupplementalDoc:
-        doc = await self._client[f"{wbs_db}-supplemental"][snap_coll].find_one()
+        doc = await self._mongo[f"{wbs_db}-supplemental"][snap_coll].find_one()
         if not doc:
             raise DocumentNotFoundError(
                 f"No Supplemental document found for {snap_coll=}."
@@ -367,7 +367,7 @@ class MoUDatabaseClient:
                 reason=f"Tried to set erroneous supplemental document: {snap_coll=}, {doc=}",
             )
 
-        coll_obj = self._client[f"{wbs_db}-supplemental"][snap_coll]
+        coll_obj = self._mongo[f"{wbs_db}-supplemental"][snap_coll]
         await coll_obj.replace_one({"timestamp": doc["timestamp"]}, doc, upsert=True)
 
     async def _create_supplemental_db_document(  # pylint: disable=R0913
@@ -382,7 +382,7 @@ class MoUDatabaseClient:
         logging.debug(f"Creating Supplemental DB/Document ({wbs_db=}, {snap_coll=})...")
 
         # drop the collection if it already exists
-        await self._client[f"{wbs_db}-supplemental"].drop_collection(snap_coll)
+        await self._mongo[f"{wbs_db}-supplemental"].drop_collection(snap_coll)
 
         # populate the singleton document
         doc: types.SupplementalDoc = {
@@ -421,7 +421,7 @@ class MoUDatabaseClient:
         if admin_only:
             name = f"{name} (admin-only)"
 
-        db_obj = self._client[wbs_db]
+        db_obj = self._mongo[wbs_db]
 
         # drop the collection if it already exists
         await db_obj.drop_collection(snap_coll)
@@ -441,7 +441,7 @@ class MoUDatabaseClient:
 
     async def _ensure_collection_indexes(self, wbs_db: str, snap_coll: str) -> None:
         """Create indexes in collection."""
-        coll_obj = self._client[wbs_db][snap_coll]
+        coll_obj = self._mongo[wbs_db][snap_coll]
 
         _inst = self._mongofy_key_name(tc_db.INSTITUTION)
         await coll_obj.create_index(_inst, name=f"{_inst}_index", unique=False)
@@ -482,7 +482,7 @@ class MoUDatabaseClient:
         # build demongofied table
         table: types.Table = []
         i, dels = 0, 0
-        async for record in self._client[wbs_db][snap_coll].find(query):
+        async for record in self._mongo[wbs_db][snap_coll].find(query):
             if record.get(IS_DELETED):
                 dels += 1
                 continue
@@ -514,7 +514,7 @@ class MoUDatabaseClient:
 
         # prep
         record = self._mongofy_record(wbs_db, record, self.tc_db_client)
-        coll_obj = self._client[wbs_db][_LIVE_COLLECTION]
+        coll_obj = self._mongo[wbs_db][_LIVE_COLLECTION]
 
         # if record has an ID -- replace it
         if record.get(tc_db.ID):
@@ -534,7 +534,7 @@ class MoUDatabaseClient:
     ) -> types.Record:
         """Mark the record as deleted/not-deleted."""
         query = self._mongofy_record(wbs_db, {tc_db.ID: record_id}, self.tc_db_client)
-        record: types.Record = await self._client[wbs_db][_LIVE_COLLECTION].find_one(
+        record: types.Record = await self._mongo[wbs_db][_LIVE_COLLECTION].find_one(
             query
         )
 
