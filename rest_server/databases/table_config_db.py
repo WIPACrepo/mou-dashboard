@@ -124,7 +124,7 @@ class TableConfigDatabaseClient:
         ret = (
             await self._mongo[DB_NAME][COLLECTION_NAME]
             .find()
-            .sort({"timestamp": -1})
+            .sort("timestamp", -1)
             .limit(1)
         )
         return cast(_TableConfigDoc, ret), ret.pop(ID)
