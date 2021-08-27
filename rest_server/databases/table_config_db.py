@@ -119,14 +119,15 @@ class TableConfigDatabaseClient:
         doc = asyncio.get_event_loop().run_until_complete(self.refresh_doc())
         return doc["institution_dicts"]
 
-    async def get_most_recent_doc(self) -> Tuple[_TableConfigDoc, ObjectId]:
+    async def get_most_recent_doc(
+        self,
+    ) -> Tuple[Optional[_TableConfigDoc], Optional[ObjectId]]:
         """Get doc w/ largest timestamp value, also its mongo id."""
         cursor = self._mongo[DB_NAME][COLLECTION_NAME].find()
         cursor.sort("timestamp", -1).limit(1)
         async for doc in cursor:
-            ret = doc
-            break
-        return cast(_TableConfigDoc, ret), ret.pop(ID)
+            return cast(_TableConfigDoc, doc), doc.pop(ID)
+        return None, None
 
     async def _insert_replace(
         self, doc: _TableConfigDoc, _id: Optional[ObjectId] = None
