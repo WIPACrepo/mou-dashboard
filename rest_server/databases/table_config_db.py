@@ -121,12 +121,8 @@ class TableConfigDatabaseClient:
 
     async def get_most_recent_doc(self) -> Tuple[_TableConfigDoc, ObjectId]:
         """Get doc w/ largest timestamp value, also its mongo id."""
-        ret = (
-            await self._mongo[DB_NAME][COLLECTION_NAME]
-            .find()
-            .sort("timestamp", -1)
-            .limit(1)
-        )
+        coll_obj = self._mongo[DB_NAME][COLLECTION_NAME]
+        ret = await coll_obj.find().sort("timestamp", -1).limit(1)
         return cast(_TableConfigDoc, ret), ret.pop(ID)
 
     async def _insert_replace(
