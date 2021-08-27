@@ -4,7 +4,8 @@
 import pprint
 import random
 import sys
-from typing import Final
+from typing import Any, Final
+from unittest.mock import AsyncMock, patch, sentinel
 
 sys.path.append(".")
 from rest_server.utils import types  # isort:skip  # noqa # pylint: disable=E0401,C0413
@@ -360,8 +361,17 @@ FTE_ROWS: Final[types.Table] = [
 #
 
 
-def _make_fte_rows() -> None:
-    tc_db_client = tc_db.TableConfigDatabaseClient()
+@patch(
+    "rest_server.databases.table_config_db.TableConfigDatabaseClient.get_most_recent_doc"
+)
+@patch(
+    "rest_server.databases.table_config_db.TableConfigDatabaseClient._insert_replace"
+)
+def _make_fte_rows(mock_ir: Any, mock_gmrd: Any) -> None:
+    # Setup & Mock
+    mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
+    tc_db_client = tc_db.TableConfigDatabaseClient(sentinel.mongo)
+    mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
     rows: types.Table = []
     for l2 in [

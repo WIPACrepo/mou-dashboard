@@ -6,6 +6,7 @@
 import copy
 import pprint
 import sys
+import time
 from decimal import Decimal
 from typing import Any, Final, List
 from unittest.mock import ANY, AsyncMock, Mock, patch, sentinel
@@ -34,6 +35,7 @@ nest_asyncio.apply()  # allows nested event loops
 MOU_DB_CLIENT: Final = "rest_server.databases.mou_db.MoUDatabaseClient"
 MOTOR_CLIENT: Final = "motor.motor_tornado.MotorClient"
 TC_DB_CLIENT: Final = "rest_server.databases.table_config_db.TableConfigDatabaseClient"
+MOU_DATA_ADAPTOR: Final = "rest_server.utils.utils.MoUDataAdaptor"
 WBS: Final = "mo"
 
 
@@ -56,8 +58,14 @@ class TestMoUDB:  # pylint: disable=R0904
 
     @staticmethod
     @patch(MOU_DB_CLIENT + "._ensure_all_db_indexes")
-    def test_init(mock_eadi: Any) -> None:
+    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._insert_replace")
+    def test_init(mock_ir: Any, mock_gmrd: Any, mock_eadi: Any) -> None:
         """Test MoUDatabaseClient.__init__()."""
+        # Setup & Mock
+        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
+        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
+
         # Call
         mou_db_client = mou_db.MoUDatabaseClient(sentinel.mongo)
 
@@ -78,10 +86,16 @@ class TestMoUDB:  # pylint: disable=R0904
 
     @staticmethod
     @pytest.mark.asyncio  # type: ignore[misc]
-    async def test_list_database_names(mock_mongo: Any) -> None:
+    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._insert_replace")
+    async def test_list_database_names(
+        mock_ir: Any, mock_gmrd: Any, mock_mongo: Any
+    ) -> None:
         """Test _list_database_names()."""
-        # Mock
+        # Setup & Mock
         dbs = ["foo", "bar", "baz"] + config.EXCLUDE_DBS[:3]
+        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
+        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
         mou_db_client = mou_db.MoUDatabaseClient(mock_mongo)
         mock_mongo.list_database_names.side_effect = AsyncMock(return_value=dbs)
 
@@ -101,13 +115,18 @@ class TestMoUDataAdaptor:
     @staticmethod
     @patch(TC_DB_CLIENT + ".get_conditional_dropdown_menus")
     @patch(TC_DB_CLIENT + ".get_simple_dropdown_menus")
+    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._insert_replace")
     def test_validate_record_data(
-        mock_gsdm: Any, mock_gcdm: Any, mock_mongo: Any
+        mock_ir: Any, mock_gmrd: Any, mock_gsdm: Any, mock_gcdm: Any
     ) -> None:
         """Test _validate_record_data()."""
+        # Setup & Mock
+        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
         mou_data_adaptor = utils.MoUDataAdaptor(
-            tc_db.TableConfigDatabaseClient(mock_mongo)
+            tc_db.TableConfigDatabaseClient(sentinel.mongo)
         )
+        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
         mock_gsdm.return_value = {
             "F.o.o": ["foo-1", "foo-2"],
@@ -219,12 +238,17 @@ class TestMoUDataAdaptor:
             assert utils.MoUDataAdaptor._demongofy_key_name(key) == dkey
 
     @staticmethod
-    @patch(MOU_DB_CLIENT + "._validate_record_data")
-    def test_mongofy_record(mock_vrd: Any, mock_mongo: Any) -> None:
+    @patch(MOU_DATA_ADAPTOR + "._validate_record_data")
+    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._insert_replace")
+    def test_mongofy_record(mock_ir: Any, mock_gmrd: Any, mock_vrd: Any) -> None:
         """Test _mongofy_record()."""
+        # Setup & Mock
+        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
         mou_data_adaptor = utils.MoUDataAdaptor(
-            tc_db.TableConfigDatabaseClient(mock_mongo)
+            tc_db.TableConfigDatabaseClient(sentinel.mongo)
         )
+        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
         # Set-Up
         records: List[types.Record] = [
@@ -277,11 +301,16 @@ class TestTableConfigDataAdaptor:
     """Test utils.TableConfigDataAdaptor."""
 
     @staticmethod
-    def test_remove_on_the_fly_fields(mock_mongo: Any) -> None:
+    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._insert_replace")
+    def test_remove_on_the_fly_fields(mock_ir: Any, mock_gmrd: Any) -> None:
         """Test remove_on_the_fly_fields()."""
+        # Setup & Mock
+        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
         tc_data_adaptor = utils.TableConfigDataAdaptor(
-            tc_db.TableConfigDatabaseClient(mock_mongo)
+            tc_db.TableConfigDatabaseClient(sentinel.mongo)
         )
+        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
         # Set-Up
         before_records: List[types.Record] = [
@@ -303,11 +332,16 @@ class TestTableConfigDataAdaptor:
             assert tc_data_adaptor.remove_on_the_fly_fields(after) == after
 
     @staticmethod
-    def test_add_on_the_fly_fields(mock_mongo: Any) -> None:
+    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._insert_replace")
+    def test_add_on_the_fly_fields(mock_ir: Any, mock_gmrd: Any) -> None:
         """Test add_on_the_fly_fields()."""
+        # Setup & Mock
+        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
         tc_data_adaptor = utils.TableConfigDataAdaptor(
-            tc_db.TableConfigDatabaseClient(mock_mongo)
+            tc_db.TableConfigDatabaseClient(sentinel.mongo)
         )
+        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
         # Set-Up
         before_records: List[types.Record] = [
@@ -399,12 +433,17 @@ class TestTableConfigDataAdaptor:
             )
 
     @staticmethod
-    def test_insert_total_rows(mock_mongo: Any) -> None:
+    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._insert_replace")
+    def test_insert_total_rows(mock_ir: Any, mock_gmrd: Any) -> None:
         """Test insert_total_rows().
 
         No need to integration test this.
         """
-        tc_db_client = tc_db.TableConfigDatabaseClient(mock_mongo)
+        # Setup & Mock
+        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
+        tc_db_client = tc_db.TableConfigDatabaseClient(sentinel.mongo)
+        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
         tc_data_adaptor = utils.TableConfigDataAdaptor(tc_db_client)
 
         def _assert_funds_totals(_rows: types.Table, _total_row: types.Record) -> None:
@@ -498,15 +537,58 @@ class TestTableConfigDataAdaptor:
 
 
 class TestTableConfig:
-    """Test table_config.py."""
+    """Test table_config_db.py."""
 
     @staticmethod
-    def test_us_or_non_us(mock_mongo: Any) -> None:
+    @pytest.mark.asyncio  # type: ignore[misc]
+    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._insert_replace")
+    @patch("rest_server.databases.table_config_db.MAX_CACHE_AGE", 5)
+    async def test_caching(mock_ir: Any, mock_gmrd: Any) -> None:
+        """Test functionality around `MAX_CACHE_AGE`."""
+        assert tc_db.MAX_CACHE_AGE == 5
+
+        # Call #1
+        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
+        tc_db_client = tc_db.TableConfigDatabaseClient(sentinel.mongo)
+        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
+
+        # assert call to db (from __init__())
+        mock_gmrd.assert_called()
+        reset_mock(mock_ir, mock_gmrd)
+
+        # Call #2 - before cache time limit
+        time.sleep(tc_db.MAX_CACHE_AGE / 2)
+        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
+        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
+
+        # assert NO call to db
+        await tc_db_client.refresh_doc()
+        mock_gmrd.assert_not_called()
+        reset_mock(mock_ir, mock_gmrd)
+
+        # Call #3 - after cache time limit
+        time.sleep(tc_db.MAX_CACHE_AGE)
+        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
+        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
+
+        # assert call to db
+        await tc_db_client.refresh_doc()
+        mock_gmrd.assert_called()
+        reset_mock(mock_ir, mock_gmrd)
+
+    @staticmethod
+    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._insert_replace")
+    def test_us_or_non_us(mock_ir: Any, mock_gmrd: Any) -> None:
         """Test _us_or_non_us().
 
         Function is very simple, so also test institution-dict's format.
         """
-        tc_db_client = tc_db.TableConfigDatabaseClient(mock_mongo)
+        # Setup & Mock
+        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
+        tc_db_client = tc_db.TableConfigDatabaseClient(sentinel.mongo)
+        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
         for inst in tc_db_client.institution_dicts().values():
             assert "abbreviation" in inst
