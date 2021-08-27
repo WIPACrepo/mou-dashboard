@@ -101,9 +101,13 @@ class TestMoUDataAdaptor:
     @staticmethod
     @patch(TC_DB_CLIENT + ".get_conditional_dropdown_menus")
     @patch(TC_DB_CLIENT + ".get_simple_dropdown_menus")
-    def test_validate_record_data(mock_gsdm: Any, mock_gcdm: Any) -> None:
+    def test_validate_record_data(
+        mock_gsdm: Any, mock_gcdm: Any, mock_mongo: Any
+    ) -> None:
         """Test _validate_record_data()."""
-        mou_data_adaptor = utils.MoUDataAdaptor()
+        mou_data_adaptor = utils.MoUDataAdaptor(
+            tc_db.TableConfigDatabaseClient(mock_mongo)
+        )
 
         mock_gsdm.return_value = {
             "F.o.o": ["foo-1", "foo-2"],
@@ -216,9 +220,11 @@ class TestMoUDataAdaptor:
 
     @staticmethod
     @patch(MOU_DB_CLIENT + "._validate_record_data")
-    def test_mongofy_record(mock_vrd: Any) -> None:
+    def test_mongofy_record(mock_vrd: Any, mock_mongo: Any) -> None:
         """Test _mongofy_record()."""
-        mou_data_adaptor = utils.MoUDataAdaptor()
+        mou_data_adaptor = utils.MoUDataAdaptor(
+            tc_db.TableConfigDatabaseClient(mock_mongo)
+        )
 
         # Set-Up
         records: List[types.Record] = [
@@ -271,9 +277,11 @@ class TestTableConfigDataAdaptor:
     """Test utils.TableConfigDataAdaptor."""
 
     @staticmethod
-    def test_remove_on_the_fly_fields() -> None:
+    def test_remove_on_the_fly_fields(mock_mongo: Any) -> None:
         """Test remove_on_the_fly_fields()."""
-        tc_data_adaptor = utils.TableConfigDataAdaptor()
+        tc_data_adaptor = utils.TableConfigDataAdaptor(
+            tc_db.TableConfigDatabaseClient(mock_mongo)
+        )
 
         # Set-Up
         before_records: List[types.Record] = [
@@ -295,9 +303,11 @@ class TestTableConfigDataAdaptor:
             assert tc_data_adaptor.remove_on_the_fly_fields(after) == after
 
     @staticmethod
-    def test_add_on_the_fly_fields() -> None:
+    def test_add_on_the_fly_fields(mock_mongo: Any) -> None:
         """Test add_on_the_fly_fields()."""
-        tc_data_adaptor = utils.TableConfigDataAdaptor()
+        tc_data_adaptor = utils.TableConfigDataAdaptor(
+            tc_db.TableConfigDatabaseClient(mock_mongo)
+        )
 
         # Set-Up
         before_records: List[types.Record] = [
@@ -395,7 +405,7 @@ class TestTableConfigDataAdaptor:
         No need to integration test this.
         """
         tc_db_client = tc_db.TableConfigDatabaseClient(mock_mongo)
-        tc_data_adaptor = utils.TableConfigDataAdaptor()
+        tc_data_adaptor = utils.TableConfigDataAdaptor(tc_db_client)
 
         def _assert_funds_totals(_rows: types.Table, _total_row: types.Record) -> None:
             print("\n-----------------------------------------------------\n")
