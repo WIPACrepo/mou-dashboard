@@ -26,7 +26,7 @@ import web_app.config  # isort:skip  # noqa # pylint: disable=E0401,C0413
 WBS_L1 = "mo"
 
 
-@pytest.fixture  # type: ignore
+@pytest.fixture
 def ds_rc() -> RestClient:
     """Get data source REST client via web_app."""
     return web_app.data_source.utils._rest_connection()

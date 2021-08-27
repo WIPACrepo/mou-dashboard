@@ -129,6 +129,15 @@ class TableConfigDatabaseClient:
         )
         return cast(_TableConfigDoc, ret), ret.pop(ID)
 
+    async def _insert_replace(
+        self, doc: _TableConfigDoc, _id: Optional[ObjectId] = None
+    ) -> None:
+        """Insert `doc` into db. If passed `_id`, replace existing doc."""
+        if _id:
+            await self._mongo[DB_NAME][COLLECTION_NAME].replace_one({"_id": _id}, doc)
+        else:
+            await self._mongo[DB_NAME][COLLECTION_NAME].insert_one(doc)
+
     async def refresh_doc(self) -> _TableConfigDoc:
         """Get the most recent table-config doc."""
         if self._doc and int(time.time()) - self._doc["timestamp"] < MAX_CACHE_AGE:
@@ -148,16 +157,14 @@ class TableConfigDatabaseClient:
             newest = self.build_table_config_doc(from_db)
             # Insert, if data has changed
             if doc_has_changed(from_db, newest):
-                await self._mongo[DB_NAME][COLLECTION_NAME].insert_one(newest)
+                await self._insert_replace(newest)
             # Otherwise, just update what's already in there
             else:
-                await self._mongo[DB_NAME][COLLECTION_NAME].replace_one(
-                    {"_id": from_db_id}, newest
-                )
+                await self._insert_replace(newest, from_db_id)
         # Otherwise, the db is empty!
         else:
             newest = self.build_table_config_doc(None)
-            await self._mongo[DB_NAME][COLLECTION_NAME].insert_one(newest)
+            await self._insert_replace(newest)
 
         self._doc = newest
         return self._doc
