@@ -31,8 +31,10 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
     ) -> None:
         """Initialize a BaseMoUHandler object."""
         super().initialize(*args, **kwargs)
-        self.mou_db_client = mou_db_client  # pylint: disable=W0201
-        self.tc_db_client = tc_db_client  # pylint: disable=W0201
+        # pylint: disable=W0201
+        self.mou_db_client = mou_db_client
+        self.tc_db_client = tc_db_client
+        self.tc_data_adaptor = utils.TableConfigDataAdaptor(self.tc_db_client)
 
 
 # -----------------------------------------------------------------------------
@@ -75,10 +77,10 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
 
         # On-the-fly fields/rows
         for record in table:
-            utils.add_on_the_fly_fields(record)
+            self.tc_data_adaptor.add_on_the_fly_fields(record)
         if total_rows:
             table.extend(
-                utils.get_total_rows(
+                self.tc_data_adaptor.get_total_rows(
                     wbs_l1,
                     table,
                     only_totals_w_data=labor or institution,
@@ -141,9 +143,9 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
         if task := self.get_argument("task", default=None):
             record[tc_db.TASK_DESCRIPTION] = task  # insert
 
-        record = utils.remove_on_the_fly_fields(record)
+        record = self.tc_data_adaptor.remove_on_the_fly_fields(record)
         record = await self.mou_db_client.upsert_record(wbs_l1, record, editor)
-        record = utils.add_on_the_fly_fields(record)
+        record = self.tc_data_adaptor.add_on_the_fly_fields(record)
 
         self.write({"record": record})
 
@@ -169,27 +171,27 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
-        tc_db_client = self.tc_db_client
-
         table_config = {
             l1: {
-                "columns": tc_db_client.get_columns(),
-                "simple_dropdown_menus": tc_db_client.get_simple_dropdown_menus(l1),
-                "institutions": tc_db_client.get_institutions_and_abbrevs(),
-                "labor_categories": tc_db_client.get_labor_categories_and_abbrevs(),
-                "conditional_dropdown_menus": tc_db_client.get_conditional_dropdown_menus(
+                "columns": self.tc_db_client.get_columns(),
+                "simple_dropdown_menus": self.tc_db_client.get_simple_dropdown_menus(
                     l1
                 ),
-                "dropdowns": tc_db_client.get_dropdowns(l1),
-                "numerics": tc_db_client.get_numerics(),
-                "non_editables": tc_db_client.get_non_editables(),
-                "hiddens": tc_db_client.get_hiddens(),
-                "tooltips": tc_db_client.get_tooltips(),
-                "widths": tc_db_client.get_widths(),
-                "border_left_columns": tc_db_client.get_border_left_columns(),
-                "page_size": tc_db_client.get_page_size(),
+                "institutions": self.tc_db_client.get_institutions_and_abbrevs(),
+                "labor_categories": self.tc_db_client.get_labor_categories_and_abbrevs(),
+                "conditional_dropdown_menus": self.tc_db_client.get_conditional_dropdown_menus(
+                    l1
+                ),
+                "dropdowns": self.tc_db_client.get_dropdowns(l1),
+                "numerics": self.tc_db_client.get_numerics(),
+                "non_editables": self.tc_db_client.get_non_editables(),
+                "hiddens": self.tc_db_client.get_hiddens(),
+                "tooltips": self.tc_db_client.get_tooltips(),
+                "widths": self.tc_db_client.get_widths(),
+                "border_left_columns": self.tc_db_client.get_border_left_columns(),
+                "page_size": self.tc_db_client.get_page_size(),
             }
-            for l1 in wbs.WORK_BREAKDOWN_STRUCTURES.keys()
+            for l1 in wbs.WORK_BREAKDOWN_STRUCTURES.keys()  # pylint:disable=C0201
         }
 
         logging.debug("Table Config:\n%s", json.dumps(table_config, indent=4))

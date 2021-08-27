@@ -9,15 +9,13 @@ from typing import Any, Coroutine, Dict, List, Tuple, cast
 
 import pandas as pd  # type: ignore[import]
 import pymongo.errors  # type: ignore[import]
-from bson.objectid import ObjectId  # type: ignore[import]
 from motor.motor_tornado import MotorClient  # type: ignore
 from tornado import web
 
 from ..config import EXCLUDE_COLLECTIONS, EXCLUDE_DBS
-from ..utils import types
+from ..utils import types, utils
 from . import table_config_db as tc_db
 
-IS_DELETED = "deleted"
 _LIVE_COLLECTION = "LIVE_COLLECTION"
 
 
@@ -29,7 +27,9 @@ class MoUDatabaseClient:
     """MotorClient with additional guardrails for MoU things."""
 
     def __init__(self, motor_client: MotorClient) -> None:
-        self.tc_db_client = tc_db.TableConfigDatabaseClient(motor_client)
+        tc_db_client = tc_db.TableConfigDatabaseClient(motor_client)
+        self.data_adaptor = utils.MoUDataAdaptor(tc_db_client)
+
         self._mongo = motor_client
 
         def _run(f: Coroutine[Any, Any, Any]) -> Any:
@@ -37,94 +37,6 @@ class MoUDatabaseClient:
 
         # check indexes
         _run(self._ensure_all_db_indexes())
-
-    @staticmethod
-    def _validate_record_data(
-        wbs_db: str, record: types.Record, tc_db_client: tc_db.TableConfigDatabaseClient
-    ) -> None:
-        """Check that each value in a dropdown-type column is valid.
-
-        If not, raise Exception.
-        """
-        for col_raw, value in record.items():
-            col = MoUDatabaseClient._demongofy_key_name(col_raw)
-
-            # Blanks are okay
-            if not value:
-                continue
-
-            # Validate a simple dropdown column
-            if col in tc_db_client.get_simple_dropdown_menus(wbs_db):
-                if value in tc_db_client.get_simple_dropdown_menus(wbs_db)[col]:
-                    continue
-                raise Exception(f"Invalid Simple-Dropdown Data: {col=} {record=}")
-
-            # Validate a conditional dropdown column
-            if col in tc_db_client.get_conditional_dropdown_menus(wbs_db):
-                parent_col, menus = tc_db_client.get_conditional_dropdown_menus(wbs_db)[
-                    col
-                ]
-
-                # Get parent value
-                if parent_col in record:
-                    parent_value = record[parent_col]
-                # Check mongofied version  # pylint: disable=C0325
-                elif (mpc := MoUDatabaseClient._mongofy_key_name(parent_col)) in record:
-                    parent_value = record[mpc]
-                # Parent column is missing (*NOT* '' value)
-                else:  # validate with any/all parents
-                    if value in [v for _, vals in menus.items() for v in vals]:
-                        continue
-                    raise Exception(
-                        f"{menus} Invalid Conditional-Dropdown (Orphan) Data: {col=} {record=}"
-                    )
-
-                # validate with parent value
-                if parent_value and (value in menus[parent_value]):  # type: ignore[index]
-                    continue
-                raise Exception(f"Invalid Conditional-Dropdown Data: {col=} {record=}")
-
-    @staticmethod
-    def _mongofy_key_name(key: str) -> str:
-        return key.replace(".", ";")
-
-    @staticmethod
-    def _demongofy_key_name(key: str) -> str:
-        return key.replace(";", ".")
-
-    @staticmethod
-    def _mongofy_record(
-        wbs_db: str,
-        record: types.Record,
-        tc_db_client: tc_db.TableConfigDatabaseClient,
-        assert_data: bool = True,
-    ) -> types.Record:
-        # assert data is valid
-        if assert_data:
-            MoUDatabaseClient._validate_record_data(wbs_db, record, tc_db_client)
-        # mongofy key names
-        for key in list(record.keys()):
-            record[MoUDatabaseClient._mongofy_key_name(key)] = record.pop(key)
-        # cast ID
-        if record.get(tc_db.ID):
-            record[tc_db.ID] = ObjectId(record[tc_db.ID])
-
-        return record
-
-    @staticmethod
-    def _demongofy_record(record: types.Record) -> types.Record:
-        # replace Nones with ""
-        for key in record.keys():
-            if record[key] is None:
-                record[key] = ""
-        # demongofy key names
-        for key in list(record.keys()):
-            record[MoUDatabaseClient._demongofy_key_name(key)] = record.pop(key)
-        record[tc_db.ID] = str(record[tc_db.ID])  # cast ID
-        if IS_DELETED in record.keys():
-            record.pop(IS_DELETED)
-
-        return record
 
     async def _create_live_collection(  # pylint: disable=R0913
         self,
@@ -145,7 +57,7 @@ class MoUDatabaseClient:
 
         logging.debug(f"Created Live Collection: ({wbs_db=}) {len(table)} records.")
 
-    async def ingest_xlsx(
+    async def ingest_xlsx(  # pylint:disable=too-many-locals
         self, wbs_db: str, base64_xlsx: str, filename: str, creator: str
     ) -> Tuple[str, str]:
         """Ingest the xlsx's data as the new Live Collection.
@@ -177,7 +89,7 @@ class MoUDatabaseClient:
         # decode & read data from excel file
         # remove blanks and rows with "total" in them (case-insensitive)
         # format as if this was done via POST @ '/record'
-        from ..utils import utils  # pylint: disable=C0415
+        from ..utils.utils import TableConfigDataAdaptor  # pylint: disable=C0415
 
         # decode base64-excel
         try:
@@ -190,19 +102,23 @@ class MoUDatabaseClient:
         # check schema -- aka verify column names
         for row in raw_table:
             # check for extra keys
-            if not all(k in self.tc_db_client.get_columns() for k in row.keys()):
+            if not all(
+                k in self.data_adaptor.tc_db_client.get_columns() for k in row.keys()
+            ):
                 raise web.HTTPError(
                     422,
                     reason=f"Table not in correct format: "
                     f"XLSX's KEYS={row.keys()} vs "
-                    f"ALLOWABLE KEYS={self.tc_db_client.get_columns()})",
+                    f"ALLOWABLE KEYS={self.data_adaptor.tc_db_client.get_columns()})",
                 )
 
         # mongofy table -- and verify data
         try:
+            tc_adaptor = TableConfigDataAdaptor(self.data_adaptor.tc_db_client)
             table: types.Table = [
-                self._mongofy_record(
-                    wbs_db, utils.remove_on_the_fly_fields(row), self.tc_db_client
+                self.data_adaptor.mongofy_record(
+                    wbs_db,
+                    tc_adaptor.remove_on_the_fly_fields(row),
                 )
                 for row in raw_table
                 if _row_has_data(row) and not _is_a_total_row(row)
@@ -431,7 +347,7 @@ class MoUDatabaseClient:
 
         # Ingest
         await coll_obj.insert_many(
-            [self._mongofy_record(wbs_db, r, self.tc_db_client) for r in table]
+            [self.data_adaptor.mongofy_record(wbs_db, r) for r in table]
         )
 
         # create supplemental document
@@ -443,10 +359,10 @@ class MoUDatabaseClient:
         """Create indexes in collection."""
         coll_obj = self._mongo[wbs_db][snap_coll]
 
-        _inst = self._mongofy_key_name(tc_db.INSTITUTION)
+        _inst = self.data_adaptor.mongofy_key_name(tc_db.INSTITUTION)
         await coll_obj.create_index(_inst, name=f"{_inst}_index", unique=False)
 
-        _labor = self._mongofy_key_name(tc_db.LABOR_CAT)
+        _labor = self.data_adaptor.mongofy_key_name(tc_db.LABOR_CAT)
         await coll_obj.create_index(_labor, name=f"{_labor}_index", unique=False)
 
         async for index in coll_obj.list_indexes():
@@ -475,18 +391,18 @@ class MoUDatabaseClient:
 
         query = {}
         if labor:
-            query[self._mongofy_key_name(tc_db.LABOR_CAT)] = labor
+            query[self.data_adaptor.mongofy_key_name(tc_db.LABOR_CAT)] = labor
         if institution:
-            query[self._mongofy_key_name(tc_db.INSTITUTION)] = institution
+            query[self.data_adaptor.mongofy_key_name(tc_db.INSTITUTION)] = institution
 
         # build demongofied table
         table: types.Table = []
         i, dels = 0, 0
         async for record in self._mongo[wbs_db][snap_coll].find(query):
-            if record.get(IS_DELETED):
+            if record.get(self.data_adaptor.IS_DELETED):
                 dels += 1
                 continue
-            table.append(self._demongofy_record(record))
+            table.append(self.data_adaptor.demongofy_record(record))
             i += 1
 
         logging.info(
@@ -513,7 +429,7 @@ class MoUDatabaseClient:
             record[tc_db.EDITOR] = editor
 
         # prep
-        record = self._mongofy_record(wbs_db, record, self.tc_db_client)
+        record = self.data_adaptor.mongofy_record(wbs_db, record)
         coll_obj = self._mongo[wbs_db][_LIVE_COLLECTION]
 
         # if record has an ID -- replace it
@@ -527,18 +443,21 @@ class MoUDatabaseClient:
             record[tc_db.ID] = res.inserted_id
             logging.info(f"Inserted {record} ({wbs_db=}).")
 
-        return self._demongofy_record(record)
+        return self.data_adaptor.demongofy_record(record)
 
     async def _set_is_deleted_status(
         self, wbs_db: str, record_id: str, is_deleted: bool, editor: str = ""
     ) -> types.Record:
         """Mark the record as deleted/not-deleted."""
-        query = self._mongofy_record(wbs_db, {tc_db.ID: record_id}, self.tc_db_client)
+        query = self.data_adaptor.mongofy_record(
+            wbs_db,
+            {tc_db.ID: record_id},
+        )
         record: types.Record = await self._mongo[wbs_db][_LIVE_COLLECTION].find_one(
             query
         )
 
-        record.update({IS_DELETED: is_deleted})
+        record.update({self.data_adaptor.IS_DELETED: is_deleted})
         record = await self.upsert_record(wbs_db, record, editor)
 
         return record
