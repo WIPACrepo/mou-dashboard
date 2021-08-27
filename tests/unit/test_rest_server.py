@@ -1,6 +1,6 @@
 """Unit test rest_server module."""
 
-# pylint: disable=W0212
+# pylint: disable=W0212,redefined-outer-name
 
 
 import copy
@@ -51,7 +51,7 @@ def mock_mongo(mocker: Any) -> Any:
     return mock_mongo
 
 
-class TestDBUtils:  # pylint: disable=R0904
+class TestMoUDB:  # pylint: disable=R0904
     """Test private methods in mou_db.py."""
 
     @staticmethod
@@ -59,10 +59,10 @@ class TestDBUtils:  # pylint: disable=R0904
     def test_init(mock_eadi: Any) -> None:
         """Test MoUDatabaseClient.__init__()."""
         # Call
-        moumc = mou_db.MoUDatabaseClient(sentinel._client)
+        mou_db_client = mou_db.MoUDatabaseClient(sentinel.mongo)
 
         # Assert
-        assert moumc._client == sentinel._client
+        assert mou_db_client._mongo == sentinel.mongo
         mock_eadi.assert_called()
 
         # --- test w/ xlsx
@@ -70,17 +70,41 @@ class TestDBUtils:  # pylint: disable=R0904
         reset_mock(mock_eadi)
 
         # Call
-        moumc = mou_db.MoUDatabaseClient(sentinel._client)
+        mou_db_client = mou_db.MoUDatabaseClient(sentinel.mongo)
 
         # Assert
-        assert moumc._client == sentinel._client
+        assert mou_db_client._mongo == sentinel.mongo
         mock_eadi.assert_called()
+
+    @staticmethod
+    @pytest.mark.asyncio  # type: ignore[misc]
+    async def test_list_database_names(mock_mongo: Any) -> None:
+        """Test _list_database_names()."""
+        # Mock
+        dbs = ["foo", "bar", "baz"] + config.EXCLUDE_DBS[:3]
+        mou_db_client = mou_db.MoUDatabaseClient(mock_mongo)
+        mock_mongo.list_database_names.side_effect = AsyncMock(return_value=dbs)
+
+        # Call
+        ret = await mou_db_client._list_database_names()
+
+        # Assert
+        assert ret == dbs[:3]
+        assert mock_mongo.list_database_names.side_effect.await_count == 1
+
+    # NOTE: public methods are tested in integration tests
+
+
+class TestMoUDataAdaptor:
+    """Test utils.MoUDataAdaptor."""
 
     @staticmethod
     @patch(TC_DB_CLIENT + ".get_conditional_dropdown_menus")
     @patch(TC_DB_CLIENT + ".get_simple_dropdown_menus")
     def test_validate_record_data(mock_gsdm: Any, mock_gcdm: Any) -> None:
         """Test _validate_record_data()."""
+        mou_data_adaptor = utils.MoUDataAdaptor()
+
         mock_gsdm.return_value = {
             "F.o.o": ["foo-1", "foo-2"],
             "B.a.r": ["bar-1", "bar-2", "bar-3"],
@@ -145,7 +169,7 @@ class TestDBUtils:  # pylint: disable=R0904
         ]
 
         for record in good_records:
-            mou_db.MoUDatabaseClient._validate_record_data(WBS, record)
+            mou_data_adaptor._validate_record_data(WBS, record)
 
         # Test bad records
         bad_records: List[types.Record] = [
@@ -166,7 +190,7 @@ class TestDBUtils:  # pylint: disable=R0904
 
         for record in bad_records:
             with pytest.raises(Exception):
-                mou_db.MoUDatabaseClient._validate_record_data(WBS, record)
+                mou_data_adaptor._validate_record_data(WBS, record)
 
     @staticmethod
     def test_mongofy_key_name() -> None:
@@ -177,7 +201,7 @@ class TestDBUtils:  # pylint: disable=R0904
 
         # Call & Assert
         for key, mkey in zip(keys, mongofied_keys):
-            assert mou_db.MoUDatabaseClient._mongofy_key_name(key) == mkey
+            assert utils.MoUDataAdaptor.mongofy_key_name(key) == mkey
 
     @staticmethod
     def test_demongofy_key_name() -> None:
@@ -188,12 +212,14 @@ class TestDBUtils:  # pylint: disable=R0904
 
         # Call & Assert
         for key, dkey in zip(keys, demongofied_keys):
-            assert mou_db.MoUDatabaseClient._demongofy_key_name(key) == dkey
+            assert utils.MoUDataAdaptor._demongofy_key_name(key) == dkey
 
     @staticmethod
     @patch(MOU_DB_CLIENT + "._validate_record_data")
     def test_mongofy_record(mock_vrd: Any) -> None:
         """Test _mongofy_record()."""
+        mou_data_adaptor = utils.MoUDataAdaptor()
+
         # Set-Up
         records: List[types.Record] = [
             {},
@@ -210,7 +236,7 @@ class TestDBUtils:  # pylint: disable=R0904
 
         # Call & Assert
         for record, mrecord in zip(records, mongofied_records):
-            assert mou_db.MoUDatabaseClient._mongofy_record(WBS, record) == mrecord
+            assert mou_data_adaptor.mongofy_record(WBS, record) == mrecord
 
     @staticmethod
     def test_demongofy_record() -> None:
@@ -218,8 +244,8 @@ class TestDBUtils:  # pylint: disable=R0904
         # Set-Up
         records: List[types.Record] = [
             {"_id": ANY},
-            {"_id": ANY, mou_db.IS_DELETED: True},
-            {"_id": ANY, mou_db.IS_DELETED: False},
+            {"_id": ANY, utils.MoUDataAdaptor.IS_DELETED: True},
+            {"_id": ANY, utils.MoUDataAdaptor.IS_DELETED: False},
             {"_id": ANY, "a;b": 5, "Foo;Bar": "Baz"},
             {"_id": ObjectId("5f725c6af0803660075769ab"), "FOO": "bar"},
         ]
@@ -234,37 +260,21 @@ class TestDBUtils:  # pylint: disable=R0904
 
         # Call & Assert
         for record, drecord in zip(records, demongofied_records):
-            assert mou_db.MoUDatabaseClient._demongofy_record(record) == drecord
+            assert utils.MoUDataAdaptor.demongofy_record(record) == drecord
 
         # Error Case
         with pytest.raises(KeyError):
-            mou_db.MoUDatabaseClient._demongofy_record({"a;b": 5, "Foo;Bar": "Baz"})
-
-    @staticmethod
-    @pytest.mark.asyncio  # type: ignore[misc]
-    async def test_list_database_names(mock_mongo: Any) -> None:
-        """Test _list_database_names()."""
-        # Mock
-        dbs = ["foo", "bar", "baz"] + config.EXCLUDE_DBS[:3]
-        moumc = mou_db.MoUDatabaseClient(mock_mongo)
-        mock_mongo.list_database_names.side_effect = AsyncMock(return_value=dbs)
-
-        # Call
-        ret = await moumc._list_database_names()
-
-        # Assert
-        assert ret == dbs[:3]
-        assert mock_mongo.list_database_names.side_effect.await_count == 1
-
-    # NOTE: public methods are tested in integration tests
+            utils.MoUDataAdaptor.demongofy_record({"a;b": 5, "Foo;Bar": "Baz"})
 
 
-class TestUtils:
-    """Test utils.py."""
+class TestTableConfigDataAdaptor:
+    """Test utils.TableConfigDataAdaptor."""
 
     @staticmethod
     def test_remove_on_the_fly_fields() -> None:
         """Test remove_on_the_fly_fields()."""
+        tc_data_adaptor = utils.TableConfigDataAdaptor()
+
         # Set-Up
         before_records: List[types.Record] = [
             {"_id": ANY},
@@ -281,12 +291,14 @@ class TestUtils:
 
         # Call & Assert
         for before, after in zip(before_records, after_records):
-            assert utils.remove_on_the_fly_fields(before) == after
-            assert utils.remove_on_the_fly_fields(after) == after
+            assert tc_data_adaptor.remove_on_the_fly_fields(before) == after
+            assert tc_data_adaptor.remove_on_the_fly_fields(after) == after
 
     @staticmethod
     def test_add_on_the_fly_fields() -> None:
         """Test add_on_the_fly_fields()."""
+        tc_data_adaptor = utils.TableConfigDataAdaptor()
+
         # Set-Up
         before_records: List[types.Record] = [
             {
@@ -354,21 +366,21 @@ class TestUtils:
 
         # Call & Assert
         for before, after in zip(before_records, after_records):
-            assert utils.add_on_the_fly_fields(before) == after
-            assert utils.add_on_the_fly_fields(after) == after
+            assert tc_data_adaptor.add_on_the_fly_fields(before) == after
+            assert tc_data_adaptor.add_on_the_fly_fields(after) == after
 
         # Error Case
         with pytest.raises(KeyError):
             # require institution
-            _ = utils.add_on_the_fly_fields({"foo": "bar", "FTE": 0})
+            _ = tc_data_adaptor.add_on_the_fly_fields({"foo": "bar", "FTE": 0})
         # with pytest.raises(KeyError): NOTE - removed b/c Upgrade doesn't require "Source of Funds"
         #     _ = utils.add_on_the_fly_fields(
         #         {"foo": "bar", "FTE": 0, "Institution": "UW"}
         #     )
-        _ = utils.add_on_the_fly_fields({"foo": "bar", "Institution": "SUNY"})
+        _ = tc_data_adaptor.add_on_the_fly_fields({"foo": "bar", "Institution": "SUNY"})
         with pytest.raises(KeyError):
             # require institution
-            _ = utils.add_on_the_fly_fields(
+            _ = tc_data_adaptor.add_on_the_fly_fields(
                 {
                     "foo": "bar",
                     "FTE": 0,
@@ -383,6 +395,7 @@ class TestUtils:
         No need to integration test this.
         """
         tc_db_client = tc_db.TableConfigDatabaseClient(mock_mongo)
+        tc_data_adaptor = utils.TableConfigDataAdaptor()
 
         def _assert_funds_totals(_rows: types.Table, _total_row: types.Record) -> None:
             print("\n-----------------------------------------------------\n")
@@ -409,7 +422,7 @@ class TestUtils:
         test_tables: Final[List[types.Table]] = [copy.deepcopy(data.FTE_ROWS), []]
         for table in test_tables:
             # Call
-            totals = utils.get_total_rows(WBS, table)
+            totals = tc_data_adaptor.get_total_rows(WBS, table)
             # pprint.pprint(totals)
 
             # Assert total sums
@@ -485,7 +498,7 @@ class TestTableConfig:
         """
         tc_db_client = tc_db.TableConfigDatabaseClient(mock_mongo)
 
-        for inst in tc_db_client.institution_dicts.values():
+        for inst in tc_db_client.institution_dicts().values():
             assert "abbreviation" in inst
             assert "is_US" in inst
             assert inst["is_US"] is True or inst["is_US"] is False
