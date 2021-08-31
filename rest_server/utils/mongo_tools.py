@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict
 
 from bson.objectid import ObjectId  # type: ignore[import]
 
-from ..databases import table_config_db as tc_db
+from ..databases import columns
 
 
 class Mongofier:
@@ -51,8 +51,8 @@ class Mongofier:
         """Transform doc to mongo-friendly, recursively, IN-PLACE."""
         doc = Mongofier._mongofy_every_key(doc)
 
-        if doc.get(tc_db.ID):
-            doc[tc_db.ID] = ObjectId(doc[tc_db.ID])  # cast ID
+        if doc.get(columns.ID):
+            doc[columns.ID] = ObjectId(doc[columns.ID])  # cast ID
 
         return doc
 
@@ -74,6 +74,6 @@ class Mongofier:
         doc = no_nones(doc)
         doc = Mongofier._demongofy_every_key(doc)
         if str_id:
-            doc[tc_db.ID] = str(doc[tc_db.ID])  # cast ID
+            doc[columns.ID] = str(doc[columns.ID])  # cast ID
 
         return doc

@@ -3,7 +3,7 @@
 from decimal import Decimal
 from typing import cast
 
-from ..databases import table_config_db as tc_db
+from ..databases import columns, table_config_db
 from . import types
 from .mongo_tools import Mongofier
 
@@ -11,7 +11,7 @@ from .mongo_tools import Mongofier
 class TableConfigDataAdaptor:
     """Augments a record/table using a `TableConfigDatabaseClient` instance."""
 
-    def __init__(self, tc_db_client: tc_db.TableConfigDatabaseClient) -> None:
+    def __init__(self, tc_db_client: table_config_db.TableConfigDatabaseClient) -> None:
         self.tc_db_client = tc_db_client
 
     def remove_on_the_fly_fields(self, record: types.Record) -> types.Record:
@@ -19,8 +19,10 @@ class TableConfigDataAdaptor:
         for field in record.copy().keys():
             if field in self.tc_db_client.get_on_the_fly_fields():
                 # copy over grand total to FTE
-                if (field == tc_db.GRAND_TOTAL) and (tc_db.FTE not in record.keys()):
-                    record[tc_db.FTE] = record[field]
+                if (field == columns.GRAND_TOTAL) and (
+                    columns.FTE not in record.keys()
+                ):
+                    record[columns.FTE] = record[field]
                 # remove
                 del record[field]
 
@@ -31,22 +33,22 @@ class TableConfigDataAdaptor:
         record = self.remove_on_the_fly_fields(record)
 
         def _get_fte_subcolumn(record: types.Record) -> str:
-            source = record[tc_db.SOURCE_OF_FUNDS_US_ONLY]
+            source = record[columns.SOURCE_OF_FUNDS_US_ONLY]
             return cast(str, source)
 
         # FTE fields
-        if tc_db.FTE in record.keys():
+        if columns.FTE in record.keys():
             try:
-                record[_get_fte_subcolumn(record)] = record[tc_db.FTE]
+                record[_get_fte_subcolumn(record)] = record[columns.FTE]
             except KeyError:
                 pass
-            record[tc_db.GRAND_TOTAL] = record[tc_db.FTE]
+            record[columns.GRAND_TOTAL] = record[columns.FTE]
 
         # US-only fields
-        inst = cast(str, record[tc_db.INSTITUTION])
-        record[tc_db.US_NON_US] = self.tc_db_client.us_or_non_us(inst)
-        if record[tc_db.US_NON_US] == tc_db.NON_US:
-            record[tc_db.SOURCE_OF_FUNDS_US_ONLY] = tc_db.NON_US_IN_KIND
+        inst = cast(str, record[columns.INSTITUTION])
+        record[columns.US_NON_US] = self.tc_db_client.us_or_non_us(inst)
+        if record[columns.US_NON_US] == table_config_db.NON_US:
+            record[columns.SOURCE_OF_FUNDS_US_ONLY] = columns.NON_US_IN_KIND
 
         return record
 
@@ -75,17 +77,18 @@ class TableConfigDataAdaptor:
         ) -> float:
             return float(
                 sum(
-                    Decimal(str(r[tc_db.FTE]))  # avoid floating point loss
+                    Decimal(str(r[columns.FTE]))  # avoid floating point loss
                     for r in table
                     if r
-                    and tc_db.TOTAL_COL not in r.keys()  # skip any total rows
-                    and r[tc_db.FTE]  # skip blanks (also 0s)
-                    and (not l2 or r[tc_db.WBS_L2] == l2)
-                    and (not l3 or r[tc_db.WBS_L3] == l3)
+                    and columns.TOTAL_COL not in r.keys()  # skip any total rows
+                    and r[columns.FTE]  # skip blanks (also 0s)
+                    and (not l2 or r[columns.WBS_L2] == l2)
+                    and (not l3 or r[columns.WBS_L3] == l3)
                     and (
-                        not fund_src or r.get(tc_db.SOURCE_OF_FUNDS_US_ONLY) == fund_src
+                        not fund_src
+                        or r.get(columns.SOURCE_OF_FUNDS_US_ONLY) == fund_src
                     )
-                    and (not region or r.get(tc_db.US_NON_US) == region)
+                    and (not region or r.get(columns.US_NON_US) == region)
                 )
             )
 
@@ -95,38 +98,38 @@ class TableConfigDataAdaptor:
 
                 # add US/Non-US
                 if with_us_non_us:
-                    for region in [tc_db.US, tc_db.NON_US]:
+                    for region in [table_config_db.US, table_config_db.NON_US]:
                         totals.append(
                             {
-                                tc_db.WBS_L2: l2_cat,
-                                tc_db.WBS_L3: l3_cat,
-                                tc_db.US_NON_US: region,
-                                tc_db.TOTAL_COL: f"L3 {region} total | {l3_cat}".upper(),
-                                tc_db.NSF_MO_CORE: grab_a_total(
+                                columns.WBS_L2: l2_cat,
+                                columns.WBS_L3: l3_cat,
+                                columns.US_NON_US: region,
+                                columns.TOTAL_COL: f"L3 {region} total | {l3_cat}".upper(),
+                                columns.NSF_MO_CORE: grab_a_total(
                                     l2=l2_cat,
                                     l3=l3_cat,
-                                    fund_src=tc_db.NSF_MO_CORE,
+                                    fund_src=columns.NSF_MO_CORE,
                                     region=region,
                                 ),
-                                tc_db.NSF_BASE_GRANTS: grab_a_total(
+                                columns.NSF_BASE_GRANTS: grab_a_total(
                                     l2=l2_cat,
                                     l3=l3_cat,
-                                    fund_src=tc_db.NSF_BASE_GRANTS,
+                                    fund_src=columns.NSF_BASE_GRANTS,
                                     region=region,
                                 ),
-                                tc_db.US_IN_KIND: grab_a_total(
+                                columns.US_IN_KIND: grab_a_total(
                                     l2=l2_cat,
                                     l3=l3_cat,
-                                    fund_src=tc_db.US_IN_KIND,
+                                    fund_src=columns.US_IN_KIND,
                                     region=region,  #
                                 ),
-                                tc_db.NON_US_IN_KIND: grab_a_total(
+                                columns.NON_US_IN_KIND: grab_a_total(
                                     l2=l2_cat,
                                     l3=l3_cat,
-                                    fund_src=tc_db.NON_US_IN_KIND,
+                                    fund_src=columns.NON_US_IN_KIND,
                                     region=region,
                                 ),
-                                tc_db.GRAND_TOTAL: grab_a_total(
+                                columns.GRAND_TOTAL: grab_a_total(
                                     l2=l2_cat, l3=l3_cat, region=region
                                 ),
                             }
@@ -135,59 +138,59 @@ class TableConfigDataAdaptor:
                 # add L3
                 totals.append(
                     {
-                        tc_db.WBS_L2: l2_cat,
-                        tc_db.WBS_L3: l3_cat,
-                        tc_db.TOTAL_COL: f"L3 total | {l3_cat}".upper(),
-                        tc_db.NSF_MO_CORE: grab_a_total(
-                            l2=l2_cat, l3=l3_cat, fund_src=tc_db.NSF_MO_CORE
+                        columns.WBS_L2: l2_cat,
+                        columns.WBS_L3: l3_cat,
+                        columns.TOTAL_COL: f"L3 total | {l3_cat}".upper(),
+                        columns.NSF_MO_CORE: grab_a_total(
+                            l2=l2_cat, l3=l3_cat, fund_src=columns.NSF_MO_CORE
                         ),  # #
-                        tc_db.NSF_BASE_GRANTS: grab_a_total(
-                            l2=l2_cat, l3=l3_cat, fund_src=tc_db.NSF_BASE_GRANTS
+                        columns.NSF_BASE_GRANTS: grab_a_total(
+                            l2=l2_cat, l3=l3_cat, fund_src=columns.NSF_BASE_GRANTS
                         ),
-                        tc_db.US_IN_KIND: grab_a_total(
-                            l2=l2_cat, l3=l3_cat, fund_src=tc_db.US_IN_KIND
+                        columns.US_IN_KIND: grab_a_total(
+                            l2=l2_cat, l3=l3_cat, fund_src=columns.US_IN_KIND
                         ),  # ##
-                        tc_db.NON_US_IN_KIND: grab_a_total(
-                            l2=l2_cat, l3=l3_cat, fund_src=tc_db.NON_US_IN_KIND
+                        columns.NON_US_IN_KIND: grab_a_total(
+                            l2=l2_cat, l3=l3_cat, fund_src=columns.NON_US_IN_KIND
                         ),
-                        tc_db.GRAND_TOTAL: grab_a_total(l2=l2_cat, l3=l3_cat),
+                        columns.GRAND_TOTAL: grab_a_total(l2=l2_cat, l3=l3_cat),
                     }
                 )
 
             # add L2
             totals.append(
                 {
-                    tc_db.WBS_L2: l2_cat,
-                    tc_db.TOTAL_COL: f"L2 total | {l2_cat}".upper(),
-                    tc_db.NSF_MO_CORE: grab_a_total(
-                        l2=l2_cat, fund_src=tc_db.NSF_MO_CORE
+                    columns.WBS_L2: l2_cat,
+                    columns.TOTAL_COL: f"L2 total | {l2_cat}".upper(),
+                    columns.NSF_MO_CORE: grab_a_total(
+                        l2=l2_cat, fund_src=columns.NSF_MO_CORE
                     ),
-                    tc_db.NSF_BASE_GRANTS: grab_a_total(
-                        l2=l2_cat, fund_src=tc_db.NSF_BASE_GRANTS
+                    columns.NSF_BASE_GRANTS: grab_a_total(
+                        l2=l2_cat, fund_src=columns.NSF_BASE_GRANTS
                     ),
-                    tc_db.US_IN_KIND: grab_a_total(
-                        l2=l2_cat, fund_src=tc_db.US_IN_KIND
+                    columns.US_IN_KIND: grab_a_total(
+                        l2=l2_cat, fund_src=columns.US_IN_KIND
                     ),
-                    tc_db.NON_US_IN_KIND: grab_a_total(
-                        l2=l2_cat, fund_src=tc_db.NON_US_IN_KIND
+                    columns.NON_US_IN_KIND: grab_a_total(
+                        l2=l2_cat, fund_src=columns.NON_US_IN_KIND
                     ),
-                    tc_db.GRAND_TOTAL: grab_a_total(l2=l2_cat),
+                    columns.GRAND_TOTAL: grab_a_total(l2=l2_cat),
                 }
             )
 
         # filter out rows with just 0s
         if only_totals_w_data:
-            totals = [r for r in totals if r[tc_db.GRAND_TOTAL] != 0]
+            totals = [r for r in totals if r[columns.GRAND_TOTAL] != 0]
 
         # Grand Total
         totals.append(
             {
-                tc_db.TOTAL_COL: "GRAND TOTAL",
-                tc_db.NSF_MO_CORE: grab_a_total(fund_src=tc_db.NSF_MO_CORE),
-                tc_db.NSF_BASE_GRANTS: grab_a_total(fund_src=tc_db.NSF_BASE_GRANTS),
-                tc_db.US_IN_KIND: grab_a_total(fund_src=tc_db.US_IN_KIND),
-                tc_db.NON_US_IN_KIND: grab_a_total(fund_src=tc_db.NON_US_IN_KIND),
-                tc_db.GRAND_TOTAL: grab_a_total(),
+                columns.TOTAL_COL: "GRAND TOTAL",
+                columns.NSF_MO_CORE: grab_a_total(fund_src=columns.NSF_MO_CORE),
+                columns.NSF_BASE_GRANTS: grab_a_total(fund_src=columns.NSF_BASE_GRANTS),
+                columns.US_IN_KIND: grab_a_total(fund_src=columns.US_IN_KIND),
+                columns.NON_US_IN_KIND: grab_a_total(fund_src=columns.NON_US_IN_KIND),
+                columns.GRAND_TOTAL: grab_a_total(),
             }
         )
 
@@ -199,7 +202,7 @@ class MoUDataAdaptor:
 
     IS_DELETED = "deleted"
 
-    def __init__(self, tc_db_client: tc_db.TableConfigDatabaseClient) -> None:
+    def __init__(self, tc_db_client: table_config_db.TableConfigDatabaseClient) -> None:
         self.tc_db_client = tc_db_client
 
     def _validate_record_data(self, wbs_db: str, record: types.Record) -> None:

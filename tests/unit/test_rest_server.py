@@ -25,7 +25,8 @@ from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0
 )
 from rest_server.databases import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
     mou_db,
-    table_config_db as tc_db,
+    table_config_db,
+    columns,
 )
 from rest_server import config  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
 
@@ -176,17 +177,17 @@ class TestMongofier:
         original_human = {
             "": "",
             " ": {"xyz": 33, "NESTED.": {"2x NESTED": None}},
-            tc_db.ID: "0123456789ab0123456789ab",
+            columns.ID: "0123456789ab0123456789ab",
         }
         mongoed = {
             "": "",
             " ": {"xyz": 33, "NESTED;": {"2x NESTED": None}},
-            tc_db.ID: ObjectId("0123456789ab0123456789ab"),
+            columns.ID: ObjectId("0123456789ab0123456789ab"),
         }
         rehumaned = {
             "": "",
             " ": {"xyz": 33, "NESTED.": {"2x NESTED": ""}},
-            tc_db.ID: "0123456789ab0123456789ab",
+            columns.ID: "0123456789ab0123456789ab",
         }
 
         # Calls & Asserts
@@ -214,7 +215,7 @@ class TestMoUDataAdaptor:
         # Setup & Mock
         mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
         mou_data_adaptor = utils.MoUDataAdaptor(
-            tc_db.TableConfigDatabaseClient(sentinel.mongo)
+            table_config_db.TableConfigDatabaseClient(sentinel.mongo)
         )
         mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
@@ -314,7 +315,7 @@ class TestMoUDataAdaptor:
         # Setup & Mock
         mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
         mou_data_adaptor = utils.MoUDataAdaptor(
-            tc_db.TableConfigDatabaseClient(sentinel.mongo)
+            table_config_db.TableConfigDatabaseClient(sentinel.mongo)
         )
         mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
@@ -376,7 +377,7 @@ class TestTableConfigDataAdaptor:
         # Setup & Mock
         mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
         tc_data_adaptor = utils.TableConfigDataAdaptor(
-            tc_db.TableConfigDatabaseClient(sentinel.mongo)
+            table_config_db.TableConfigDatabaseClient(sentinel.mongo)
         )
         mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
@@ -407,7 +408,7 @@ class TestTableConfigDataAdaptor:
         # Setup & Mock
         mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
         tc_data_adaptor = utils.TableConfigDataAdaptor(
-            tc_db.TableConfigDatabaseClient(sentinel.mongo)
+            table_config_db.TableConfigDatabaseClient(sentinel.mongo)
         )
         mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
@@ -510,7 +511,7 @@ class TestTableConfigDataAdaptor:
         """
         # Setup & Mock
         mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
-        tc_db_client = tc_db.TableConfigDatabaseClient(sentinel.mongo)
+        tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
         mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
         tc_data_adaptor = utils.TableConfigDataAdaptor(tc_db_client)
 
@@ -518,20 +519,20 @@ class TestTableConfigDataAdaptor:
             print("\n-----------------------------------------------------\n")
             pprint.pprint(_rows)
             pprint.pprint(_total_row)
-            assert _total_row[tc_db.GRAND_TOTAL] == float(
-                sum(Decimal(str(r[tc_db.FTE])) for r in _rows)
+            assert _total_row[columns.GRAND_TOTAL] == float(
+                sum(Decimal(str(r[columns.FTE])) for r in _rows)
             )
             for fund in [
-                tc_db.NSF_MO_CORE,
-                tc_db.NSF_BASE_GRANTS,
-                tc_db.US_IN_KIND,
-                tc_db.NON_US_IN_KIND,
+                columns.NSF_MO_CORE,
+                columns.NSF_BASE_GRANTS,
+                columns.US_IN_KIND,
+                columns.NON_US_IN_KIND,
             ]:
                 assert _total_row[fund] == float(
                     sum(
-                        Decimal(str(r[tc_db.FTE]))
+                        Decimal(str(r[columns.FTE]))
                         for r in _rows
-                        if r[tc_db.SOURCE_OF_FUNDS_US_ONLY] == fund
+                        if r[columns.SOURCE_OF_FUNDS_US_ONLY] == fund
                     )
                 )
 
@@ -548,40 +549,40 @@ class TestTableConfigDataAdaptor:
                 # L3 US/Non-US Level
                 if (
                     "L3 NON-US TOTAL"
-                    in total_row[tc_db.TOTAL_COL]  # type: ignore[operator]
+                    in total_row[columns.TOTAL_COL]  # type: ignore[operator]
                     or "L3 US TOTAL"
-                    in total_row[tc_db.TOTAL_COL]  # type: ignore[operator]
+                    in total_row[columns.TOTAL_COL]  # type: ignore[operator]
                 ):
                     _assert_funds_totals(
                         [
                             r
                             for r in table
-                            if total_row[tc_db.WBS_L2] == r[tc_db.WBS_L2]
-                            and total_row[tc_db.WBS_L3] == r[tc_db.WBS_L3]
-                            and total_row[tc_db.US_NON_US] == r[tc_db.US_NON_US]
+                            if total_row[columns.WBS_L2] == r[columns.WBS_L2]
+                            and total_row[columns.WBS_L3] == r[columns.WBS_L3]
+                            and total_row[columns.US_NON_US] == r[columns.US_NON_US]
                         ],
                         total_row,
                     )
 
                 # L3 Level
-                elif "L3 TOTAL" in total_row[tc_db.TOTAL_COL]:  # type: ignore[operator]
+                elif "L3 TOTAL" in total_row[columns.TOTAL_COL]:  # type: ignore[operator]
                     _assert_funds_totals(
                         [
                             r
                             for r in table
-                            if total_row[tc_db.WBS_L2] == r[tc_db.WBS_L2]
-                            and total_row[tc_db.WBS_L3] == r[tc_db.WBS_L3]
+                            if total_row[columns.WBS_L2] == r[columns.WBS_L2]
+                            and total_row[columns.WBS_L3] == r[columns.WBS_L3]
                         ],
                         total_row,
                     )
 
                 # L2 Level
-                elif "L2 TOTAL" in total_row[tc_db.TOTAL_COL]:  # type: ignore[operator]
+                elif "L2 TOTAL" in total_row[columns.TOTAL_COL]:  # type: ignore[operator]
                     _assert_funds_totals(
                         [
                             r
                             for r in table
-                            if total_row[tc_db.WBS_L2] == r[tc_db.WBS_L2]
+                            if total_row[columns.WBS_L2] == r[columns.WBS_L2]
                         ],
                         total_row,
                     )
@@ -589,7 +590,7 @@ class TestTableConfigDataAdaptor:
                 # Grand Total
                 elif (
                     "GRAND TOTAL"
-                    in total_row[tc_db.TOTAL_COL]  # type: ignore[operator]
+                    in total_row[columns.TOTAL_COL]  # type: ignore[operator]
                 ):
                     _assert_funds_totals(table, total_row)
 
@@ -599,9 +600,9 @@ class TestTableConfigDataAdaptor:
 
             # Assert that every possible total is there (including rows with only 0s)
             for l2_cat in tc_db_client.get_l2_categories(WBS):
-                assert l2_cat in set(r.get(tc_db.WBS_L2) for r in totals)
+                assert l2_cat in set(r.get(columns.WBS_L2) for r in totals)
                 for l3_cat in tc_db_client.get_l3_categories_by_l2(WBS, l2_cat):
-                    assert l3_cat in set(r.get(tc_db.WBS_L3) for r in totals)
+                    assert l3_cat in set(r.get(columns.WBS_L3) for r in totals)
 
 
 class TestTableConfig:
@@ -614,11 +615,11 @@ class TestTableConfig:
     @patch("rest_server.databases.table_config_db.MAX_CACHE_AGE", 5)
     async def test_caching(mock_ir: Any, mock_gmrd: Any) -> None:
         """Test functionality around `MAX_CACHE_AGE`."""
-        assert tc_db.MAX_CACHE_AGE == 5
+        assert table_config_db.MAX_CACHE_AGE == 5
 
         # Call #1
         mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
-        tc_db_client = tc_db.TableConfigDatabaseClient(sentinel.mongo)
+        tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
         mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
         # assert call to db (from __init__())
@@ -626,7 +627,7 @@ class TestTableConfig:
         reset_mock(mock_ir, mock_gmrd)
 
         # Call #2 - before cache time limit
-        time.sleep(tc_db.MAX_CACHE_AGE / 2)
+        time.sleep(table_config_db.MAX_CACHE_AGE / 2)
         mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
         mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
@@ -636,7 +637,7 @@ class TestTableConfig:
         reset_mock(mock_ir, mock_gmrd)
 
         # Call #3 - after cache time limit
-        time.sleep(tc_db.MAX_CACHE_AGE)
+        time.sleep(table_config_db.MAX_CACHE_AGE)
         mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
         mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
@@ -655,7 +656,7 @@ class TestTableConfig:
         """
         # Setup & Mock
         mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
-        tc_db_client = tc_db.TableConfigDatabaseClient(sentinel.mongo)
+        tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
         mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
         for inst in tc_db_client.institution_dicts().values():

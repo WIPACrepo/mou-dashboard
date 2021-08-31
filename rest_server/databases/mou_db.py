@@ -15,7 +15,7 @@ from tornado import web
 from ..config import EXCLUDE_COLLECTIONS, EXCLUDE_DBS
 from ..utils import types, utils
 from ..utils.mongo_tools import Mongofier
-from . import table_config_db as tc_db
+from . import columns, table_config_db
 
 _LIVE_COLLECTION = "LIVE_COLLECTION"
 
@@ -28,7 +28,7 @@ class MoUDatabaseClient:
     """MotorClient with additional guardrails for MoU things."""
 
     def __init__(self, motor_client: MotorClient) -> None:
-        tc_db_client = tc_db.TableConfigDatabaseClient(motor_client)
+        tc_db_client = table_config_db.TableConfigDatabaseClient(motor_client)
         self.data_adaptor = utils.MoUDataAdaptor(tc_db_client)
 
         self._mongo = motor_client
@@ -50,7 +50,7 @@ class MoUDatabaseClient:
         logging.debug(f"Creating Live Collection ({wbs_db=})...")
 
         for record in table:
-            record.update({tc_db.EDITOR: "", tc_db.TIMESTAMP: time.time()})
+            record.update({columns.EDITOR: "", columns.TIMESTAMP: time.time()})
 
         await self._ingest_new_collection(
             wbs_db, _LIVE_COLLECTION, table, "", creator, all_insts_values, False
@@ -69,7 +69,12 @@ class MoUDatabaseClient:
 
         def _is_a_total_row(row: types.Record) -> bool:
             # check L2, L3, Inst., & US/Non-US  columns for "total" substring
-            for key in [tc_db.WBS_L2, tc_db.WBS_L3, tc_db.INSTITUTION, tc_db.US_NON_US]:
+            for key in [
+                columns.WBS_L2,
+                columns.WBS_L3,
+                columns.INSTITUTION,
+                columns.US_NON_US,
+            ]:
                 data = row.get(key)
                 if isinstance(data, str) and ("TOTAL" in data.upper()):
                     return True
@@ -81,7 +86,7 @@ class MoUDatabaseClient:
                 return False
             # check blanks except tc.WBS_L2, tc.WBS_L3, & tc.US_NON_US
             for key, val in row.items():
-                if key in [tc_db.WBS_L2, tc_db.WBS_L3, tc_db.US_NON_US]:
+                if key in [columns.WBS_L2, columns.WBS_L3, columns.US_NON_US]:
                     continue
                 if val:  # just need one value
                     return True
@@ -360,10 +365,10 @@ class MoUDatabaseClient:
         """Create indexes in collection."""
         coll_obj = self._mongo[wbs_db][snap_coll]
 
-        _inst = Mongofier.mongofy_key_name(tc_db.INSTITUTION)
+        _inst = Mongofier.mongofy_key_name(columns.INSTITUTION)
         await coll_obj.create_index(_inst, name=f"{_inst}_index", unique=False)
 
-        _labor = Mongofier.mongofy_key_name(tc_db.LABOR_CAT)
+        _labor = Mongofier.mongofy_key_name(columns.LABOR_CAT)
         await coll_obj.create_index(_labor, name=f"{_labor}_index", unique=False)
 
         async for index in coll_obj.list_indexes():
@@ -392,9 +397,9 @@ class MoUDatabaseClient:
 
         query = {}
         if labor:
-            query[Mongofier.mongofy_key_name(tc_db.LABOR_CAT)] = labor
+            query[Mongofier.mongofy_key_name(columns.LABOR_CAT)] = labor
         if institution:
-            query[Mongofier.mongofy_key_name(tc_db.INSTITUTION)] = institution
+            query[Mongofier.mongofy_key_name(columns.INSTITUTION)] = institution
 
         # build demongofied table
         table: types.Table = []
@@ -425,23 +430,23 @@ class MoUDatabaseClient:
         await self._check_database_state(wbs_db)
 
         # record timestamp and editor's name
-        record[tc_db.TIMESTAMP] = time.time()
+        record[columns.TIMESTAMP] = time.time()
         if editor:
-            record[tc_db.EDITOR] = editor
+            record[columns.EDITOR] = editor
 
         # prep
         record = self.data_adaptor.mongofy_record(wbs_db, record)
         coll_obj = self._mongo[wbs_db][_LIVE_COLLECTION]
 
         # if record has an ID -- replace it
-        if record.get(tc_db.ID):
-            res = await coll_obj.replace_one({tc_db.ID: record[tc_db.ID]}, record)
+        if record.get(columns.ID):
+            res = await coll_obj.replace_one({columns.ID: record[columns.ID]}, record)
             logging.info(f"Updated {record} ({wbs_db=}).")
         # otherwise -- create it
         else:
-            record.pop(tc_db.ID)
+            record.pop(columns.ID)
             res = await coll_obj.insert_one(record)
-            record[tc_db.ID] = res.inserted_id
+            record[columns.ID] = res.inserted_id
             logging.info(f"Inserted {record} ({wbs_db=}).")
 
         return self.data_adaptor.demongofy_record(record)
@@ -452,7 +457,7 @@ class MoUDatabaseClient:
         """Mark the record as deleted/not-deleted."""
         query = self.data_adaptor.mongofy_record(
             wbs_db,
-            {tc_db.ID: record_id},
+            {columns.ID: record_id},
         )
         record: types.Record = await self._mongo[wbs_db][_LIVE_COLLECTION].find_one(
             query

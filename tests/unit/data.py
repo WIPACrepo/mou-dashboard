@@ -10,7 +10,8 @@ from unittest.mock import AsyncMock, patch, sentinel
 sys.path.append(".")
 from rest_server.utils import types  # isort:skip  # noqa # pylint: disable=E0401,C0413
 from rest_server.databases import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
-    table_config_db as tc_db,
+    table_config_db,
+    columns,
 )
 
 WBS: Final[str] = "mo"
@@ -370,7 +371,7 @@ FTE_ROWS: Final[types.Table] = [
 def _make_fte_rows(mock_ir: Any, mock_gmrd: Any) -> None:
     # Setup & Mock
     mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
-    tc_db_client = tc_db.TableConfigDatabaseClient(sentinel.mongo)
+    tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
     mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
     rows: types.Table = []
@@ -384,25 +385,25 @@ def _make_fte_rows(mock_ir: Any, mock_gmrd: Any) -> None:
             # append 2 US for each funding source
             for _ in range(2):
                 for fund in [
-                    tc_db.NSF_MO_CORE,
-                    tc_db.NSF_BASE_GRANTS,
-                    tc_db.US_IN_KIND,
+                    columns.NSF_MO_CORE,
+                    columns.NSF_BASE_GRANTS,
+                    columns.US_IN_KIND,
                 ]:
                     row = {
-                        tc_db.WBS_L2: l2,
-                        tc_db.WBS_L3: l3,
-                        tc_db.US_NON_US: tc_db.US,
+                        columns.WBS_L2: l2,
+                        columns.WBS_L3: l3,
+                        columns.US_NON_US: table_config_db.US,
                     }
-                    row[tc_db.SOURCE_OF_FUNDS_US_ONLY] = fund
-                    row[tc_db.FTE] = random.random() * 1  # type: ignore[assignment]
+                    row[columns.SOURCE_OF_FUNDS_US_ONLY] = fund
+                    row[columns.FTE] = random.random() * 1  # type: ignore[assignment]
                     rows.append(row)  # type: ignore[arg-type]
 
             # append 2 Non-US
             for _ in range(2):
-                row = {tc_db.WBS_L2: l2, tc_db.WBS_L3: l3}
-                row[tc_db.US_NON_US] = tc_db.NON_US
-                row[tc_db.SOURCE_OF_FUNDS_US_ONLY] = tc_db.NON_US_IN_KIND
-                row[tc_db.FTE] = random.random() * 1  # type: ignore[assignment]
+                row = {columns.WBS_L2: l2, columns.WBS_L3: l3}
+                row[columns.US_NON_US] = table_config_db.NON_US
+                row[columns.SOURCE_OF_FUNDS_US_ONLY] = columns.NON_US_IN_KIND
+                row[columns.FTE] = random.random() * 1  # type: ignore[assignment]
                 rows.append(row)  # type: ignore[arg-type]
 
     rows.sort(key=tc_db_client.sort_key)

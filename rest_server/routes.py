@@ -9,8 +9,7 @@ from rest_tools.server import RestHandler, handler  # type: ignore
 
 from . import wbs
 from .config import AUTH_PREFIX
-from .databases import mou_db
-from .databases import table_config_db as tc_db
+from .databases import columns, mou_db, table_config_db
 from .utils import types, utils
 
 _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
@@ -25,7 +24,7 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
     def initialize(  # pylint: disable=W0221
         self,
         mou_db_client: mou_db.MoUDatabaseClient,
-        tc_db_client: tc_db.TableConfigDatabaseClient,
+        tc_db_client: table_config_db.TableConfigDatabaseClient,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -137,11 +136,11 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
         editor = self.get_argument("editor")
 
         if inst := self.get_argument("institution", default=None):
-            record[tc_db.INSTITUTION] = inst  # insert
+            record[columns.INSTITUTION] = inst  # insert
         if labor := self.get_argument("labor", default=None):
-            record[tc_db.LABOR_CAT] = labor  # insert
+            record[columns.LABOR_CAT] = labor  # insert
         if task := self.get_argument("task", default=None):
-            record[tc_db.TASK_DESCRIPTION] = task  # insert
+            record[columns.TASK_DESCRIPTION] = task  # insert
 
         record = self.tc_data_adaptor.remove_on_the_fly_fields(record)
         record = await self.mou_db_client.upsert_record(wbs_l1, record, editor)

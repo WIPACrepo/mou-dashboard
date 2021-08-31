@@ -11,25 +11,7 @@ from motor.motor_tornado import MotorClient  # type: ignore
 
 from .. import wbs
 from ..utils.mongo_tools import Mongofier
-
-ID = "_id"
-WBS_L2 = "WBS L2"
-WBS_L3 = "WBS L3"
-LABOR_CAT = "Labor Cat."
-US_NON_US = "US / Non-US"
-INSTITUTION = "Institution"
-_NAME = "Name"
-TASK_DESCRIPTION = "Task Description"
-SOURCE_OF_FUNDS_US_ONLY = "Source of Funds (U.S. Only)"
-FTE = "FTE"
-NSF_MO_CORE = "NSF M&O Core"
-NSF_BASE_GRANTS = "NSF Base Grants"
-US_IN_KIND = "US In-Kind"
-NON_US_IN_KIND = "Non-US In-Kind"
-GRAND_TOTAL = "Grand Total"
-TOTAL_COL = "Total-Row Description"
-TIMESTAMP = "Date & Time of Last Edit"
-EDITOR = "Name of Last Editor"
+from . import columns
 
 US = "US"
 NON_US = "Non-US"
@@ -128,7 +110,7 @@ class TableConfigDatabaseClient:
         cursor.sort("timestamp", -1).limit(1)
         async for doc in cursor:
             doc = Mongofier.demongofy_document(doc, str_id=False)
-            return cast(_TableConfigDoc, doc), doc.pop(ID)
+            return cast(_TableConfigDoc, doc), doc.pop(columns.ID)
         return None, None
 
     async def _insert_replace(
@@ -197,9 +179,17 @@ class TableConfigDatabaseClient:
 
         # build column-configs
         column_configs: Final[Dict[str, _ColumnConfigTypedDict]] = {
-            WBS_L2: {"width": 115, "sort_value": 70, "tooltip": "WBS Level 2 Category"},
-            WBS_L3: {"width": 115, "sort_value": 60, "tooltip": "WBS Level 3 Category"},
-            US_NON_US: {
+            columns.WBS_L2: {
+                "width": 115,
+                "sort_value": 70,
+                "tooltip": "WBS Level 2 Category",
+            },
+            columns.WBS_L3: {
+                "width": 115,
+                "sort_value": 60,
+                "tooltip": "WBS Level 3 Category",
+            },
+            columns.US_NON_US: {
                 "width": 50,
                 "non_editable": True,
                 "hidden": True,
@@ -208,7 +198,7 @@ class TableConfigDatabaseClient:
                 "sort_value": 50,
                 "tooltip": "The institution's region. This cannot be changed.",
             },
-            INSTITUTION: {
+            columns.INSTITUTION: {
                 "width": 70,
                 "options": sorted(
                     set(inst["abbreviation"] for inst in institution_dicts.values())
@@ -217,27 +207,42 @@ class TableConfigDatabaseClient:
                 "sort_value": 40,
                 "tooltip": "The institution. This cannot be changed.",
             },
-            LABOR_CAT: {
+            columns.LABOR_CAT: {
                 "width": 50,
                 "options": sorted(_LABOR_CATEGORY_DICTIONARY.keys()),
                 "sort_value": 30,
                 "tooltip": "The labor category",
             },
-            _NAME: {"width": 100, "sort_value": 20, "tooltip": "LastName, FirstName"},
-            TASK_DESCRIPTION: {"width": 300, "tooltip": "A description of the task"},
-            SOURCE_OF_FUNDS_US_ONLY: {
+            columns.NAME: {
                 "width": 100,
-                "conditional_parent": US_NON_US,
+                "sort_value": 20,
+                "tooltip": "LastName, FirstName",
+            },
+            columns.TASK_DESCRIPTION: {
+                "width": 300,
+                "tooltip": "A description of the task",
+            },
+            columns.SOURCE_OF_FUNDS_US_ONLY: {
+                "width": 100,
+                "conditional_parent": columns.US_NON_US,
                 "conditional_options": {
-                    US: [NSF_MO_CORE, NSF_BASE_GRANTS, US_IN_KIND],
-                    NON_US: [NON_US_IN_KIND],
+                    US: [
+                        columns.NSF_MO_CORE,
+                        columns.NSF_BASE_GRANTS,
+                        columns.US_IN_KIND,
+                    ],
+                    NON_US: [columns.NON_US_IN_KIND],
                 },
                 "border_left": True,
                 "sort_value": 10,
                 "tooltip": "The funding source",
             },
-            FTE: {"width": 50, "numeric": True, "tooltip": "FTE for funding source"},
-            TOTAL_COL: {
+            columns.FTE: {
+                "width": 50,
+                "numeric": True,
+                "tooltip": "FTE for funding source",
+            },
+            columns.TOTAL_COL: {
                 "width": 100,
                 "non_editable": True,
                 "hidden": True,
@@ -245,7 +250,7 @@ class TableConfigDatabaseClient:
                 "on_the_fly": True,
                 "tooltip": "TOTAL-ROWS ONLY: FTE totals to the right refer to this category.",
             },
-            NSF_MO_CORE: {
+            columns.NSF_MO_CORE: {
                 "width": 50,
                 "funding_source": True,
                 "non_editable": True,
@@ -254,7 +259,7 @@ class TableConfigDatabaseClient:
                 "on_the_fly": True,
                 "tooltip": tooltip_funding_source_value,
             },
-            NSF_BASE_GRANTS: {
+            columns.NSF_BASE_GRANTS: {
                 "width": 50,
                 "funding_source": True,
                 "non_editable": True,
@@ -263,7 +268,7 @@ class TableConfigDatabaseClient:
                 "on_the_fly": True,
                 "tooltip": tooltip_funding_source_value,
             },
-            US_IN_KIND: {
+            columns.US_IN_KIND: {
                 "width": 50,
                 "funding_source": True,
                 "non_editable": True,
@@ -272,7 +277,7 @@ class TableConfigDatabaseClient:
                 "on_the_fly": True,
                 "tooltip": tooltip_funding_source_value,
             },
-            NON_US_IN_KIND: {
+            columns.NON_US_IN_KIND: {
                 "width": 50,
                 "funding_source": True,
                 "non_editable": True,
@@ -281,7 +286,7 @@ class TableConfigDatabaseClient:
                 "on_the_fly": True,
                 "tooltip": tooltip_funding_source_value,
             },
-            GRAND_TOTAL: {
+            columns.GRAND_TOTAL: {
                 "width": 50,
                 "numeric": True,
                 "non_editable": True,
@@ -290,19 +295,24 @@ class TableConfigDatabaseClient:
                 "on_the_fly": True,
                 "tooltip": "This is is the total of the four FTEs to the left.",
             },
-            ID: {"width": 0, "non_editable": True, "border_left": True, "hidden": True},
-            TIMESTAMP: {
+            columns.ID: {
+                "width": 0,
+                "non_editable": True,
+                "border_left": True,
+                "hidden": True,
+            },
+            columns.TIMESTAMP: {
                 "width": 100,
                 "non_editable": True,
                 "border_left": True,
                 "hidden": True,
-                "tooltip": f"{TIMESTAMP} (you may need to refresh to reflect a recent update)",
+                "tooltip": f"{columns.TIMESTAMP} (you may need to refresh to reflect a recent update)",
             },
-            EDITOR: {
+            columns.EDITOR: {
                 "width": 100,
                 "non_editable": True,
                 "hidden": True,
-                "tooltip": f"{EDITOR} (you may need to refresh to reflect a recent update)",
+                "tooltip": f"{columns.EDITOR} (you may need to refresh to reflect a recent update)",
             },
         }
 
@@ -361,7 +371,7 @@ class TableConfigDatabaseClient:
             for col, config in self.column_configs().items()
             if "options" in config
         }
-        ret[WBS_L2] = self.get_l2_categories(l1)
+        ret[columns.WBS_L2] = self.get_l2_categories(l1)
         return ret
 
     def get_conditional_dropdown_menus(
@@ -377,7 +387,7 @@ class TableConfigDatabaseClient:
             for col, config in self.column_configs().items()
             if ("conditional_parent" in config) and ("conditional_options" in config)
         }
-        ret[WBS_L3] = (WBS_L2, wbs.WORK_BREAKDOWN_STRUCTURES[l1])
+        ret[columns.WBS_L3] = (columns.WBS_L2, wbs.WORK_BREAKDOWN_STRUCTURES[l1])
         return ret
 
     def get_dropdowns(self, l1: str) -> List[str]:
