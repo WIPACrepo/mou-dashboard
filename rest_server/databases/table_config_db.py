@@ -6,6 +6,7 @@ import copy
 import time
 from typing import Any, Dict, Final, List, Optional, Tuple, TypedDict, Union, cast
 
+import nest_asyncio
 from bson.objectid import ObjectId  # type: ignore[import]
 from motor.motor_tornado import MotorClient  # type: ignore
 
@@ -15,6 +16,9 @@ from . import columns
 
 US = "US"
 NON_US = "Non-US"
+
+
+nest_asyncio.apply()  # allows nested event loops
 
 
 class InstitutionMeta(TypedDict):  # NOTE: from krs
