@@ -175,17 +175,17 @@ class TestMongofier:
         original_human = {
             "": "",
             " ": {"xyz": 33, "NESTED.": {"2x NESTED": None}},
-            tc_db.ID: "0123456",
+            tc_db.ID: "0123456789ab0123456789ab",
         }
         mongoed = {
             "": "",
             " ": {"xyz": 33, "NESTED;": {"2x NESTED": None}},
-            tc_db.ID: ObjectId("0123456"),
+            tc_db.ID: ObjectId("0123456789ab0123456789ab"),
         }
         rehumaned = {
             "": "",
             " ": {"xyz": 33, "NESTED.": {"2x NESTED": ""}},
-            tc_db.ID: "0123456",
+            tc_db.ID: "0123456789ab0123456789ab",
         }
 
         # Calls & Asserts
