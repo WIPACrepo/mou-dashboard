@@ -151,11 +151,22 @@ class TestMongofier:
             "N;M": 4,
         }
 
-        # Call & Assert
-        assert utils.Mongofier.mongofy_every_key(dict_out) == dict_out
-        assert utils.Mongofier.mongofy_every_key(dict_in) == dict_out
-        assert utils.Mongofier.demongofy_every_key(dict_out) == dict_in
+        # Calls & Asserts
+        into = copy.deepcopy(dict_out)
+        assert utils.Mongofier.mongofy_every_key(into) == dict_out
+        assert into == dict_out  # assert in-place change
+
+        into = copy.deepcopy(dict_in)
+        assert utils.Mongofier.mongofy_every_key(into) == dict_out
+        assert into == dict_out  # assert in-place change
+
+        into = copy.deepcopy(dict_out)
+        assert utils.Mongofier.demongofy_every_key(into) == dict_in
+        assert into == dict_in  # assert in-place change
+
+        into = copy.deepcopy(dict_in)
         assert utils.Mongofier.demongofy_every_key(dict_in) == dict_in
+        assert into == dict_in  # assert in-place change
 
 
 class TestMoUDataAdaptor:

@@ -210,18 +210,19 @@ class Mongofier:
 
     @staticmethod
     def mongofy_every_key(dicto: Dict[str, Any]) -> Dict[str, Any]:
-        """Transform all keys to mongo-friendly, recursively."""
+        """Transform all keys to mongo-friendly, recursively, IN-PLACE."""
         return Mongofier._transform_every_key(dicto, Mongofier.mongofy_key_name)
 
     @staticmethod
     def demongofy_every_key(dicto: Dict[str, Any]) -> Dict[str, Any]:
-        """Transform all keys to human-friendly, recursively."""
+        """Transform all keys to human-friendly, recursively, IN-PLACE."""
         return Mongofier._transform_every_key(dicto, Mongofier.demongofy_key_name)
 
     @staticmethod
     def _transform_every_key(
         dicto: Dict[str, Any], key_func: Callable[[str], str]
     ) -> Dict[str, Any]:
+        """Change every key, IN-PLACE."""
         # first get the keys right
         for key in list(dicto.keys()):
             dicto[key_func(key)] = dicto.pop(key)
@@ -292,6 +293,7 @@ class MoUDataAdaptor:
         assert_data: bool = True,
     ) -> types.Record:
         """Transform record to mongo-friendly and validate data."""
+        #  TODO - move over move common functionality
         # assert data is valid
         if assert_data:
             self._validate_record_data(wbs_db, record)
@@ -308,14 +310,14 @@ class MoUDataAdaptor:
     @staticmethod
     def demongofy_record(record: types.Record) -> types.Record:
         """Transform mongo-friendly record into a usable record."""
+        #  TODO - move over move common functionality
         # replace Nones with ""
         for key in record.keys():
             if record[key] is None:
                 record[key] = ""
 
         # demongofy key names
-        for key in list(record.keys()):
-            record[Mongofier.demongofy_key_name(key)] = record.pop(key)
+        record = Mongofier.demongofy_every_key(record)
 
         record[tc_db.ID] = str(record[tc_db.ID])  # cast ID
 
