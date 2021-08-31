@@ -21,6 +21,7 @@ sys.path.append(".")
 from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
     utils,
     types,
+    mongo_tools,
 )
 from rest_server.databases import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
     mou_db,
@@ -110,7 +111,7 @@ class TestMoUDB:  # pylint: disable=R0904
 
 
 class TestMongofier:
-    """Test utils.Mongofier."""
+    """Test mongo_tools.Mongofier."""
 
     @staticmethod
     def test_mongofy_key_name() -> None:
@@ -121,7 +122,7 @@ class TestMongofier:
 
         # Call & Assert
         for key, mkey in zip(keys, mongofied_keys):
-            assert utils.Mongofier.mongofy_key_name(key) == mkey
+            assert mongo_tools.Mongofier.mongofy_key_name(key) == mkey
 
     @staticmethod
     def test_demongofy_key_name() -> None:
@@ -132,7 +133,7 @@ class TestMongofier:
 
         # Call & Assert
         for key, dkey in zip(keys, demongofied_keys):
-            assert utils.Mongofier.demongofy_key_name(key) == dkey
+            assert mongo_tools.Mongofier.demongofy_key_name(key) == dkey
 
     @staticmethod
     def test_mongofy_every_key() -> None:
@@ -153,19 +154,19 @@ class TestMongofier:
 
         # Calls & Asserts
         into = copy.deepcopy(dict_out)
-        assert utils.Mongofier._mongofy_every_key(into) == dict_out
+        assert mongo_tools.Mongofier._mongofy_every_key(into) == dict_out
         assert into == dict_out  # assert in-place change
 
         into = copy.deepcopy(dict_in)
-        assert utils.Mongofier._mongofy_every_key(into) == dict_out
+        assert mongo_tools.Mongofier._mongofy_every_key(into) == dict_out
         assert into == dict_out  # assert in-place change
 
         into = copy.deepcopy(dict_out)
-        assert utils.Mongofier._demongofy_every_key(into) == dict_in
+        assert mongo_tools.Mongofier._demongofy_every_key(into) == dict_in
         assert into == dict_in  # assert in-place change
 
         into = copy.deepcopy(dict_in)
-        assert utils.Mongofier._demongofy_every_key(dict_in) == dict_in
+        assert mongo_tools.Mongofier._demongofy_every_key(dict_in) == dict_in
         assert into == dict_in  # assert in-place change
 
     @staticmethod
@@ -190,11 +191,11 @@ class TestMongofier:
 
         # Calls & Asserts
         into = copy.deepcopy(original_human)
-        assert utils.Mongofier.mongofy_document(into) == mongoed
+        assert mongo_tools.Mongofier.mongofy_document(into) == mongoed
         assert into == mongoed  # assert in-place change
 
         into = copy.deepcopy(mongoed)
-        assert utils.Mongofier.demongofy_document(into) == rehumaned
+        assert mongo_tools.Mongofier.demongofy_document(into) == rehumaned
         assert into == rehumaned  # assert in-place change
 
 

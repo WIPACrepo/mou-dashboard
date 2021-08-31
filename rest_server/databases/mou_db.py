@@ -14,6 +14,7 @@ from tornado import web
 
 from ..config import EXCLUDE_COLLECTIONS, EXCLUDE_DBS
 from ..utils import types, utils
+from ..utils.mongo_tools import Mongofier
 from . import table_config_db as tc_db
 
 _LIVE_COLLECTION = "LIVE_COLLECTION"
@@ -359,10 +360,10 @@ class MoUDatabaseClient:
         """Create indexes in collection."""
         coll_obj = self._mongo[wbs_db][snap_coll]
 
-        _inst = utils.Mongofier.mongofy_key_name(tc_db.INSTITUTION)
+        _inst = Mongofier.mongofy_key_name(tc_db.INSTITUTION)
         await coll_obj.create_index(_inst, name=f"{_inst}_index", unique=False)
 
-        _labor = utils.Mongofier.mongofy_key_name(tc_db.LABOR_CAT)
+        _labor = Mongofier.mongofy_key_name(tc_db.LABOR_CAT)
         await coll_obj.create_index(_labor, name=f"{_labor}_index", unique=False)
 
         async for index in coll_obj.list_indexes():
@@ -391,9 +392,9 @@ class MoUDatabaseClient:
 
         query = {}
         if labor:
-            query[utils.Mongofier.mongofy_key_name(tc_db.LABOR_CAT)] = labor
+            query[Mongofier.mongofy_key_name(tc_db.LABOR_CAT)] = labor
         if institution:
-            query[utils.Mongofier.mongofy_key_name(tc_db.INSTITUTION)] = institution
+            query[Mongofier.mongofy_key_name(tc_db.INSTITUTION)] = institution
 
         # build demongofied table
         table: types.Table = []
