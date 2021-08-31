@@ -259,6 +259,7 @@ class Mongofier:
                     dicto[key] = no_nones(val)
             return dicto
 
+        doc = no_nones(doc)
         doc = Mongofier._demongofy_every_key(doc)
         doc[tc_db.ID] = str(doc[tc_db.ID])  # cast ID
 
