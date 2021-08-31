@@ -109,6 +109,55 @@ class TestMoUDB:  # pylint: disable=R0904
     # NOTE: public methods are tested in integration tests
 
 
+class TestMongofier:
+    """Test utils.Mongofier."""
+
+    @staticmethod
+    def test_mongofy_key_name() -> None:
+        """Test _mongofy_key_name()."""
+        # Set-Up
+        keys = ["", "...", " ", "N;M"]
+        mongofied_keys = ["", ";;;", " ", "N;M"]
+
+        # Call & Assert
+        for key, mkey in zip(keys, mongofied_keys):
+            assert utils.Mongofier.mongofy_key_name(key) == mkey
+
+    @staticmethod
+    def testdemongofy_key_name() -> None:
+        """Test demongofy_key_name()."""
+        # Set-Up
+        keys = ["", ";;;", " ", "A;C", "."]
+        demongofied_keys = ["", "...", " ", "A.C", "."]
+
+        # Call & Assert
+        for key, dkey in zip(keys, demongofied_keys):
+            assert utils.Mongofier.demongofy_key_name(key) == dkey
+
+    @staticmethod
+    def test_mongofy_every_key() -> None:
+        """Test mongofy_every_key() & demongofy_every_key()."""
+        # Set-Up
+        dict_in = {
+            "": 1,
+            "...": 2,
+            " ": {"A.B": 33, "NESTED.": {"2x NESTED": 333}},
+            "N;M": 4,
+        }
+        dict_out = {
+            "": 1,
+            ";;;": 2,
+            " ": {"A;B": 33, "NESTED;": {"2x NESTED": 333}},
+            "N;M": 4,
+        }
+
+        # Call & Assert
+        assert utils.Mongofier.mongofy_every_key(dict_out) == dict_out
+        assert utils.Mongofier.mongofy_every_key(dict_in) == dict_out
+        assert utils.Mongofier.demongofy_every_key(dict_out) == dict_in
+        assert utils.Mongofier.demongofy_every_key(dict_in) == dict_in
+
+
 class TestMoUDataAdaptor:
     """Test utils.MoUDataAdaptor."""
 
@@ -214,28 +263,6 @@ class TestMoUDataAdaptor:
         for record in bad_records:
             with pytest.raises(Exception):
                 mou_data_adaptor._validate_record_data(WBS, record)
-
-    @staticmethod
-    def test_mongofy_key_name() -> None:
-        """Test _mongofy_key_name()."""
-        # Set-Up
-        keys = ["", "...", " ", "N;M"]
-        mongofied_keys = ["", ";;;", " ", "N;M"]
-
-        # Call & Assert
-        for key, mkey in zip(keys, mongofied_keys):
-            assert utils.MoUDataAdaptor.mongofy_key_name(key) == mkey
-
-    @staticmethod
-    def test_demongofy_key_name() -> None:
-        """Test _demongofy_key_name()."""
-        # Set-Up
-        keys = ["", ";;;", " ", "A;C", "."]
-        demongofied_keys = ["", "...", " ", "A.C", "."]
-
-        # Call & Assert
-        for key, dkey in zip(keys, demongofied_keys):
-            assert utils.MoUDataAdaptor._demongofy_key_name(key) == dkey
 
     @staticmethod
     @patch(MOU_DATA_ADAPTOR + "._validate_record_data")

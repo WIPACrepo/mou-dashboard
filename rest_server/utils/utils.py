@@ -1,7 +1,7 @@
 """Utility functions for the REST server interface."""
 
 from decimal import Decimal
-from typing import cast
+from typing import Any, Callable, Dict, cast
 
 from bson.objectid import ObjectId  # type: ignore[import]
 
@@ -195,6 +195,45 @@ class TableConfigDataAdaptor:
         return totals
 
 
+class Mongofier:
+    """Tools for moving/transforming data in/out of a MongoDB."""
+
+    @staticmethod
+    def mongofy_key_name(key: str) -> str:
+        """Transform string to mongo-friendly."""
+        return key.replace(".", ";")
+
+    @staticmethod
+    def demongofy_key_name(key: str) -> str:
+        """Transform string from mongo-friendly to human-friendly."""
+        return key.replace(";", ".")
+
+    @staticmethod
+    def mongofy_every_key(dicto: Dict[str, Any]) -> Dict[str, Any]:
+        """Transform all keys to mongo-friendly, recursively."""
+        return Mongofier._transform_every_key(dicto, Mongofier.mongofy_key_name)
+
+    @staticmethod
+    def demongofy_every_key(dicto: Dict[str, Any]) -> Dict[str, Any]:
+        """Transform all keys to human-friendly, recursively."""
+        return Mongofier._transform_every_key(dicto, Mongofier.demongofy_key_name)
+
+    @staticmethod
+    def _transform_every_key(
+        dicto: Dict[str, Any], key_func: Callable[[str], str]
+    ) -> Dict[str, Any]:
+        # first get the keys right
+        for key in list(dicto.keys()):
+            dicto[key_func(key)] = dicto.pop(key)
+
+        # then get any nested dicts
+        for key, val in list(dicto.items()):
+            if isinstance(val, dict):
+                dicto[key] = Mongofier._transform_every_key(val, key_func)
+
+        return dicto
+
+
 class MoUDataAdaptor:
     """Augments MoU data using a `TableConfigDatabaseClient` instance."""
 
@@ -209,7 +248,7 @@ class MoUDataAdaptor:
         If not, raise Exception.
         """
         for col_raw, value in record.items():
-            col = self._demongofy_key_name(col_raw)
+            col = Mongofier.demongofy_key_name(col_raw)
 
             # Blanks are okay
             if not value:
@@ -231,7 +270,7 @@ class MoUDataAdaptor:
                 if parent_col in record:
                     parent_value = record[parent_col]
                 # Check mongofied version  # pylint: disable=C0325
-                elif (mpc := self.mongofy_key_name(parent_col)) in record:
+                elif (mpc := Mongofier.mongofy_key_name(parent_col)) in record:
                     parent_value = record[mpc]
                 # Parent column is missing (*NOT* '' value)
                 else:  # validate with any/all parents
@@ -246,15 +285,6 @@ class MoUDataAdaptor:
                     continue
                 raise Exception(f"Invalid Conditional-Dropdown Data: {col=} {record=}")
 
-    @staticmethod
-    def mongofy_key_name(key: str) -> str:
-        """Transform string to mongo-friendly."""
-        return key.replace(".", ";")
-
-    @staticmethod
-    def _demongofy_key_name(key: str) -> str:
-        return key.replace(";", ".")
-
     def mongofy_record(
         self,
         wbs_db: str,
@@ -267,8 +297,7 @@ class MoUDataAdaptor:
             self._validate_record_data(wbs_db, record)
 
         # mongofy key names
-        for key in list(record.keys()):
-            record[self.mongofy_key_name(key)] = record.pop(key)
+        record = Mongofier.mongofy_every_key(record)
 
         # cast ID
         if record.get(tc_db.ID):
@@ -286,7 +315,7 @@ class MoUDataAdaptor:
 
         # demongofy key names
         for key in list(record.keys()):
-            record[MoUDataAdaptor._demongofy_key_name(key)] = record.pop(key)
+            record[MoUDataAdaptor.demongofy_key_name(key)] = record.pop(key)
 
         record[tc_db.ID] = str(record[tc_db.ID])  # cast ID
 
