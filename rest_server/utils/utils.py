@@ -209,12 +209,12 @@ class Mongofier:
         return key.replace(";", ".")
 
     @staticmethod
-    def mongofy_every_key(dicto: Dict[str, Any]) -> Dict[str, Any]:
+    def _mongofy_every_key(dicto: Dict[str, Any]) -> Dict[str, Any]:
         """Transform all keys to mongo-friendly, recursively, IN-PLACE."""
         return Mongofier._transform_every_key(dicto, Mongofier.mongofy_key_name)
 
     @staticmethod
-    def demongofy_every_key(dicto: Dict[str, Any]) -> Dict[str, Any]:
+    def _demongofy_every_key(dicto: Dict[str, Any]) -> Dict[str, Any]:
         """Transform all keys to human-friendly, recursively, IN-PLACE."""
         return Mongofier._transform_every_key(dicto, Mongofier.demongofy_key_name)
 
@@ -233,6 +233,36 @@ class Mongofier:
                 dicto[key] = Mongofier._transform_every_key(val, key_func)
 
         return dicto
+
+    @staticmethod
+    def mongofy_document(doc: Dict[str, Any]) -> Dict[str, Any]:
+        """Transform doc to mongo-friendly, recursively, IN-PLACE."""
+        doc = Mongofier._mongofy_every_key(doc)
+
+        if doc.get(tc_db.ID):
+            doc[tc_db.ID] = ObjectId(doc[tc_db.ID])  # cast ID
+
+        return doc
+
+    @staticmethod
+    def demongofy_document(doc: Dict[str, Any]) -> Dict[str, Any]:
+        """Transform doc to human-friendly, recursively, IN-PLACE."""
+
+        def no_nones(dicto: Dict[str, Any]) -> Dict[str, Any]:
+            """Recursively replace `None`s with ''."""
+            for key in dicto.keys():
+                if dicto[key] is None:
+                    dicto[key] = ""
+            # recurse over sub-dicts
+            for key, val in list(dicto.items()):
+                if isinstance(val, dict):
+                    dicto[key] = no_nones(val)
+            return dicto
+
+        doc = Mongofier._demongofy_every_key(doc)
+        doc[tc_db.ID] = str(doc[tc_db.ID])  # cast ID
+
+        return doc
 
 
 class MoUDataAdaptor:
@@ -293,33 +323,18 @@ class MoUDataAdaptor:
         assert_data: bool = True,
     ) -> types.Record:
         """Transform record to mongo-friendly and validate data."""
-        #  TODO - move over move common functionality
         # assert data is valid
         if assert_data:
             self._validate_record_data(wbs_db, record)
 
-        # mongofy key names
-        record = Mongofier.mongofy_every_key(record)
-
-        # cast ID
-        if record.get(tc_db.ID):
-            record[tc_db.ID] = ObjectId(record[tc_db.ID])
+        record = Mongofier.mongofy_document(record)
 
         return record
 
     @staticmethod
     def demongofy_record(record: types.Record) -> types.Record:
         """Transform mongo-friendly record into a usable record."""
-        #  TODO - move over move common functionality
-        # replace Nones with ""
-        for key in record.keys():
-            if record[key] is None:
-                record[key] = ""
-
-        # demongofy key names
-        record = Mongofier.demongofy_every_key(record)
-
-        record[tc_db.ID] = str(record[tc_db.ID])  # cast ID
+        record = Mongofier.demongofy_document(record)
 
         if MoUDataAdaptor.IS_DELETED in record.keys():
             record.pop(MoUDataAdaptor.IS_DELETED)

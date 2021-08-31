@@ -124,7 +124,7 @@ class TestMongofier:
             assert utils.Mongofier.mongofy_key_name(key) == mkey
 
     @staticmethod
-    def testdemongofy_key_name() -> None:
+    def test_demongofy_key_name() -> None:
         """Test demongofy_key_name()."""
         # Set-Up
         keys = ["", ";;;", " ", "A;C", "."]
@@ -136,7 +136,7 @@ class TestMongofier:
 
     @staticmethod
     def test_mongofy_every_key() -> None:
-        """Test mongofy_every_key() & demongofy_every_key()."""
+        """Test _mongofy_every_key() & _demongofy_every_key()."""
         # Set-Up
         dict_in = {
             "": 1,
@@ -153,20 +153,49 @@ class TestMongofier:
 
         # Calls & Asserts
         into = copy.deepcopy(dict_out)
-        assert utils.Mongofier.mongofy_every_key(into) == dict_out
+        assert utils.Mongofier._mongofy_every_key(into) == dict_out
         assert into == dict_out  # assert in-place change
 
         into = copy.deepcopy(dict_in)
-        assert utils.Mongofier.mongofy_every_key(into) == dict_out
+        assert utils.Mongofier._mongofy_every_key(into) == dict_out
         assert into == dict_out  # assert in-place change
 
         into = copy.deepcopy(dict_out)
-        assert utils.Mongofier.demongofy_every_key(into) == dict_in
+        assert utils.Mongofier._demongofy_every_key(into) == dict_in
         assert into == dict_in  # assert in-place change
 
         into = copy.deepcopy(dict_in)
-        assert utils.Mongofier.demongofy_every_key(dict_in) == dict_in
+        assert utils.Mongofier._demongofy_every_key(dict_in) == dict_in
         assert into == dict_in  # assert in-place change
+
+    @staticmethod
+    def test_mongofy_document() -> None:
+        """Test mongofy_document() & demongofy_document()."""
+        # Set-Up
+        original_human = {
+            "": "",
+            " ": {"xyz": 33, "NESTED.": {"2x NESTED": None}},
+            tc_db.ID: "0123456",
+        }
+        mongoed = {
+            "": "",
+            " ": {"xyz": 33, "NESTED;": {"2x NESTED": None}},
+            tc_db.ID: ObjectId("0123456"),
+        }
+        rehumaned = {
+            "": "",
+            " ": {"xyz": 33, "NESTED.": {"2x NESTED": ""}},
+            tc_db.ID: "0123456",
+        }
+
+        # Calls & Asserts
+        into = copy.deepcopy(original_human)
+        assert utils.Mongofier.mongofy_document(into) == mongoed
+        assert into == mongoed  # assert in-place change
+
+        into = copy.deepcopy(mongoed)
+        assert utils.Mongofier.demongofy_document(into) == rehumaned
+        assert into == rehumaned  # assert in-place change
 
 
 class TestMoUDataAdaptor:
