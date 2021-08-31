@@ -359,10 +359,10 @@ class MoUDatabaseClient:
         """Create indexes in collection."""
         coll_obj = self._mongo[wbs_db][snap_coll]
 
-        _inst = self.data_adaptor.mongofy_key_name(tc_db.INSTITUTION)
+        _inst = utils.Mongofier.mongofy_key_name(tc_db.INSTITUTION)
         await coll_obj.create_index(_inst, name=f"{_inst}_index", unique=False)
 
-        _labor = self.data_adaptor.mongofy_key_name(tc_db.LABOR_CAT)
+        _labor = utils.Mongofier.mongofy_key_name(tc_db.LABOR_CAT)
         await coll_obj.create_index(_labor, name=f"{_labor}_index", unique=False)
 
         async for index in coll_obj.list_indexes():
@@ -391,9 +391,9 @@ class MoUDatabaseClient:
 
         query = {}
         if labor:
-            query[self.data_adaptor.mongofy_key_name(tc_db.LABOR_CAT)] = labor
+            query[utils.Mongofier.mongofy_key_name(tc_db.LABOR_CAT)] = labor
         if institution:
-            query[self.data_adaptor.mongofy_key_name(tc_db.INSTITUTION)] = institution
+            query[utils.Mongofier.mongofy_key_name(tc_db.INSTITUTION)] = institution
 
         # build demongofied table
         table: types.Table = []

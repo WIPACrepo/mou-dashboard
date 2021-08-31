@@ -315,7 +315,7 @@ class MoUDataAdaptor:
 
         # demongofy key names
         for key in list(record.keys()):
-            record[MoUDataAdaptor.demongofy_key_name(key)] = record.pop(key)
+            record[Mongofier.demongofy_key_name(key)] = record.pop(key)
 
         record[tc_db.ID] = str(record[tc_db.ID])  # cast ID
 
