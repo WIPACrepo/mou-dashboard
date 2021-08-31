@@ -245,7 +245,7 @@ class Mongofier:
         return doc
 
     @staticmethod
-    def demongofy_document(doc: Dict[str, Any]) -> Dict[str, Any]:
+    def demongofy_document(doc: Dict[str, Any], str_id: bool = True) -> Dict[str, Any]:
         """Transform doc to human-friendly, recursively, IN-PLACE."""
 
         def no_nones(dicto: Dict[str, Any]) -> Dict[str, Any]:
@@ -261,7 +261,8 @@ class Mongofier:
 
         doc = no_nones(doc)
         doc = Mongofier._demongofy_every_key(doc)
-        doc[tc_db.ID] = str(doc[tc_db.ID])  # cast ID
+        if str_id:
+            doc[tc_db.ID] = str(doc[tc_db.ID])  # cast ID
 
         return doc
 

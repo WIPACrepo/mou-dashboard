@@ -10,6 +10,7 @@ from bson.objectid import ObjectId  # type: ignore[import]
 from motor.motor_tornado import MotorClient  # type: ignore
 
 from .. import wbs
+from ..utils import utils
 
 ID = "_id"
 WBS_L2 = "WBS L2"
@@ -126,6 +127,7 @@ class TableConfigDatabaseClient:
         cursor = self._mongo[DB_NAME][COLLECTION_NAME].find()
         cursor.sort("timestamp", -1).limit(1)
         async for doc in cursor:
+            doc = utils.Mongofier.demongofy_document(doc, str_id=False)
             return cast(_TableConfigDoc, doc), doc.pop(ID)
         return None, None
 
@@ -133,6 +135,7 @@ class TableConfigDatabaseClient:
         self, doc: _TableConfigDoc, _id: Optional[ObjectId] = None
     ) -> None:
         """Insert `doc` into db. If passed `_id`, replace existing doc."""
+        doc = utils.Mongofier.mongofy_document(doc)  # type: ignore[arg-type, assignment]
         if _id:
             await self._mongo[DB_NAME][COLLECTION_NAME].replace_one({"_id": _id}, doc)
         else:
