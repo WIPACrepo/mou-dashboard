@@ -142,7 +142,7 @@ class TestMongofier:
             "": 1,
             "...": 2,
             " ": {"A.B": 33, "NESTED.": {"2x NESTED": 333}},
-            "N;M": 4,
+            "N.M": 4,
         }
         dict_out = {
             "": 1,
