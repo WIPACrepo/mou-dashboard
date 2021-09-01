@@ -35,7 +35,7 @@ def ds_rc() -> RestClient:
 def test_ingest(ds_rc: RestClient) -> None:
     """Test POST /table/data.
 
-    Execute first, so other tests have data in the db.
+    NOTE: Execute first, so other tests have data in the db.
     """
     filename = "./tests/integration/WBS.xlsx"
     with open(filename, "rb") as f:
