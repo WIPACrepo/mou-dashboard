@@ -78,7 +78,6 @@ class TestMoUDB:  # pylint: disable=R0904
 
         # Assert
         assert mou_db_client._mongo == sentinel.mongo
-        mock_eadi.assert_called()  # TODO
 
         # --- test w/ xlsx
         # Mock
@@ -94,7 +93,6 @@ class TestMoUDB:  # pylint: disable=R0904
 
         # Assert
         assert mou_db_client._mongo == sentinel.mongo
-        mock_eadi.assert_called()  # TODO
 
     @staticmethod
     @pytest.mark.asyncio  # type: ignore[misc]

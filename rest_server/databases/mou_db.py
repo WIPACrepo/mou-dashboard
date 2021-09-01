@@ -29,9 +29,6 @@ class MoUDatabaseClient:
         self.data_adaptor = data_adaptor
         self._mongo = motor_client
 
-        # check indexes
-        asyncio.get_event_loop().run_until_complete(self._ensure_all_db_indexes())
-
     async def _create_live_collection(  # pylint: disable=R0913
         self,
         wbs_db: str,
@@ -387,6 +384,7 @@ class MoUDatabaseClient:
         logging.debug(f"Getting from {snap_coll} ({wbs_db=})...")
 
         await self._check_database_state(wbs_db)
+        await self._ensure_all_db_indexes()
 
         query = {}
         if labor:
