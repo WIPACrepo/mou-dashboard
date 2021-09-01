@@ -29,11 +29,8 @@ class MoUDatabaseClient:
         self.data_adaptor = data_adaptor
         self._mongo = motor_client
 
-        def _run(f: Coroutine[Any, Any, Any]) -> Any:
-            return asyncio.get_event_loop().run_until_complete(f)
-
         # check indexes
-        _run(self._ensure_all_db_indexes())
+        asyncio.get_event_loop().call_soon(self._ensure_all_db_indexes)
 
     async def _create_live_collection(  # pylint: disable=R0913
         self,
