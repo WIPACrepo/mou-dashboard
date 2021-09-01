@@ -5,7 +5,7 @@ import base64
 import io
 import logging
 import time
-from typing import Any, Coroutine, Dict, List, Tuple, cast
+from typing import Dict, List, Tuple, cast
 
 import pandas as pd  # type: ignore[import]
 import pymongo.errors  # type: ignore[import]

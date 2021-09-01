@@ -5,6 +5,7 @@ import json
 import logging
 from typing import Any
 
+from motor.motor_tornado import MotorClient  # type: ignore
 from pymongo import MongoClient  # type: ignore[import]
 from rest_tools.server import RestHandler, handler  # type: ignore
 
@@ -35,7 +36,7 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
             MongoClient(mongodb_url)
         )
         self.mou_db_client = mou_db.MoUDatabaseClient(
-            mongodb_url, utils.MoUDataAdaptor(self.tc_db_client)
+            MotorClient(mongodb_url), utils.MoUDataAdaptor(self.tc_db_client)
         )
         self.tc_data_adaptor = utils.TableConfigDataAdaptor(self.tc_db_client)
 
