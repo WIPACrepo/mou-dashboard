@@ -627,7 +627,7 @@ class TestTableConfig:
     @patch(TC_DB_CLIENT + ".get_most_recent_doc")
     @patch(TC_DB_CLIENT + "._insert_replace")
     @patch("rest_server.databases.table_config_db.MAX_CACHE_AGE", 5)
-    async def test_caching(mock_ir: Any, mock_gmrd: Any) -> None:
+    def test_caching(mock_ir: Any, mock_gmrd: Any) -> None:
         """Test functionality around `MAX_CACHE_AGE`."""
         assert table_config_db.MAX_CACHE_AGE == 5
 
