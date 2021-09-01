@@ -65,11 +65,16 @@ class TestMoUDB:  # pylint: disable=R0904
     def test_init(mock_ir: Any, mock_gmrd: Any, mock_eadi: Any) -> None:
         """Test MoUDatabaseClient.__init__()."""
         # Setup & Mock
-        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
-        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
+        mock_ir.return_value = None  # no-op the db insert
 
         # Call
-        mou_db_client = mou_db.MoUDatabaseClient(sentinel.mongo)
+        mou_db_client = mou_db.MoUDatabaseClient(
+            sentinel.mongo,
+            utils.MoUDataAdaptor(
+                table_config_db.TableConfigDatabaseClient(sentinel.tc_mongo)
+            ),
+        )
 
         # Assert
         assert mou_db_client._mongo == sentinel.mongo
@@ -80,7 +85,12 @@ class TestMoUDB:  # pylint: disable=R0904
         reset_mock(mock_eadi)
 
         # Call
-        mou_db_client = mou_db.MoUDatabaseClient(sentinel.mongo)
+        mou_db_client = mou_db.MoUDatabaseClient(
+            sentinel.mongo,
+            utils.MoUDataAdaptor(
+                table_config_db.TableConfigDatabaseClient(sentinel.tc_mongo)
+            ),
+        )
 
         # Assert
         assert mou_db_client._mongo == sentinel.mongo
@@ -96,9 +106,14 @@ class TestMoUDB:  # pylint: disable=R0904
         """Test _list_database_names()."""
         # Setup & Mock
         dbs = ["foo", "bar", "baz"] + config.EXCLUDE_DBS[:3]
-        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
-        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
-        mou_db_client = mou_db.MoUDatabaseClient(mock_mongo)
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
+        mock_ir.return_value = None  # no-op the db insert
+        mou_db_client = mou_db.MoUDatabaseClient(
+            mock_mongo,
+            utils.MoUDataAdaptor(
+                table_config_db.TableConfigDatabaseClient(sentinel.tc_mongo)
+            ),
+        )
         mock_mongo.list_database_names.side_effect = AsyncMock(return_value=dbs)
 
         # Call
@@ -213,11 +228,11 @@ class TestMoUDataAdaptor:
     ) -> None:
         """Test _validate_record_data()."""
         # Setup & Mock
-        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         mou_data_adaptor = utils.MoUDataAdaptor(
             table_config_db.TableConfigDatabaseClient(sentinel.mongo)
         )
-        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
+        mock_ir.return_value = None  # no-op the db insert
 
         mock_gsdm.return_value = {
             "F.o.o": ["foo-1", "foo-2"],
@@ -313,11 +328,11 @@ class TestMoUDataAdaptor:
     def test_mongofy_record(mock_ir: Any, mock_gmrd: Any, mock_vrd: Any) -> None:
         """Test _mongofy_record()."""
         # Setup & Mock
-        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         mou_data_adaptor = utils.MoUDataAdaptor(
             table_config_db.TableConfigDatabaseClient(sentinel.mongo)
         )
-        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
+        mock_ir.return_value = None  # no-op the db insert
 
         # Set-Up
         records: List[types.Record] = [
@@ -375,11 +390,11 @@ class TestTableConfigDataAdaptor:
     def test_remove_on_the_fly_fields(mock_ir: Any, mock_gmrd: Any) -> None:
         """Test remove_on_the_fly_fields()."""
         # Setup & Mock
-        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         tc_data_adaptor = utils.TableConfigDataAdaptor(
             table_config_db.TableConfigDatabaseClient(sentinel.mongo)
         )
-        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
+        mock_ir.return_value = None  # no-op the db insert
 
         # Set-Up
         before_records: List[types.Record] = [
@@ -406,11 +421,11 @@ class TestTableConfigDataAdaptor:
     def test_add_on_the_fly_fields(mock_ir: Any, mock_gmrd: Any) -> None:
         """Test add_on_the_fly_fields()."""
         # Setup & Mock
-        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         tc_data_adaptor = utils.TableConfigDataAdaptor(
             table_config_db.TableConfigDatabaseClient(sentinel.mongo)
         )
-        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
+        mock_ir.return_value = None  # no-op the db insert
 
         # Set-Up
         before_records: List[types.Record] = [
@@ -510,9 +525,9 @@ class TestTableConfigDataAdaptor:
         No need to integration test this.
         """
         # Setup & Mock
-        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
-        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
+        mock_ir.return_value = None  # no-op the db insert
         tc_data_adaptor = utils.TableConfigDataAdaptor(tc_db_client)
 
         def _assert_funds_totals(_rows: types.Table, _total_row: types.Record) -> None:
@@ -609,7 +624,6 @@ class TestTableConfig:
     """Test table_config_db.py."""
 
     @staticmethod
-    @pytest.mark.asyncio  # type: ignore[misc]
     @patch(TC_DB_CLIENT + ".get_most_recent_doc")
     @patch(TC_DB_CLIENT + "._insert_replace")
     @patch("rest_server.databases.table_config_db.MAX_CACHE_AGE", 5)
@@ -618,9 +632,9 @@ class TestTableConfig:
         assert table_config_db.MAX_CACHE_AGE == 5
 
         # Call #1
-        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
-        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
+        mock_ir.return_value = None  # no-op the db insert
 
         # assert call to db (from __init__())
         mock_gmrd.assert_called()
@@ -628,21 +642,21 @@ class TestTableConfig:
 
         # Call #2 - before cache time limit
         time.sleep(table_config_db.MAX_CACHE_AGE / 2)
-        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
-        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
+        mock_ir.return_value = None  # no-op the db insert
 
         # assert NO call to db
-        await tc_db_client.refresh_doc()
+        tc_db_client.refresh_doc()
         mock_gmrd.assert_not_called()
         reset_mock(mock_ir, mock_gmrd)
 
         # Call #3 - after cache time limit
         time.sleep(table_config_db.MAX_CACHE_AGE)
-        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
-        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
+        mock_ir.return_value = None  # no-op the db insert
 
         # assert call to db
-        await tc_db_client.refresh_doc()
+        tc_db_client.refresh_doc()
         mock_gmrd.assert_called()
         reset_mock(mock_ir, mock_gmrd)
 
@@ -655,9 +669,9 @@ class TestTableConfig:
         Function is very simple, so also test institution-dict's format.
         """
         # Setup & Mock
-        mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
-        mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
+        mock_ir.return_value = None  # no-op the db insert
 
         for inst in tc_db_client.institution_dicts().values():
             assert "abbreviation" in inst

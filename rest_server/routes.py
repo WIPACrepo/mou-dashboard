@@ -5,6 +5,7 @@ import json
 import logging
 from typing import Any
 
+from pymongo import MongoClient  # type: ignore[import]
 from rest_tools.server import RestHandler, handler  # type: ignore
 
 from . import wbs
@@ -23,16 +24,19 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
 
     def initialize(  # pylint: disable=W0221
         self,
-        mou_db_client: mou_db.MoUDatabaseClient,
-        tc_db_client: table_config_db.TableConfigDatabaseClient,
+        mongodb_url: str,
         *args: Any,
         **kwargs: Any,
     ) -> None:
         """Initialize a BaseMoUHandler object."""
         super().initialize(*args, **kwargs)
         # pylint: disable=W0201
-        self.mou_db_client = mou_db_client
-        self.tc_db_client = tc_db_client
+        self.tc_db_client = table_config_db.TableConfigDatabaseClient(
+            MongoClient(mongodb_url)
+        )
+        self.mou_db_client = mou_db.MoUDatabaseClient(
+            mongodb_url, utils.MoUDataAdaptor(self.tc_db_client)
+        )
         self.tc_data_adaptor = utils.TableConfigDataAdaptor(self.tc_db_client)
 
 

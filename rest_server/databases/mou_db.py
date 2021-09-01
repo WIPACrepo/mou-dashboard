@@ -15,7 +15,7 @@ from tornado import web
 from ..config import EXCLUDE_COLLECTIONS, EXCLUDE_DBS
 from ..utils import types, utils
 from ..utils.mongo_tools import DocumentNotFoundError, Mongofier
-from . import columns, table_config_db
+from . import columns
 
 _LIVE_COLLECTION = "LIVE_COLLECTION"
 
@@ -23,10 +23,10 @@ _LIVE_COLLECTION = "LIVE_COLLECTION"
 class MoUDatabaseClient:
     """MotorClient with additional guardrails for MoU things."""
 
-    def __init__(self, motor_client: MotorClient) -> None:
-        tc_db_client = table_config_db.TableConfigDatabaseClient(motor_client)
-        self.data_adaptor = utils.MoUDataAdaptor(tc_db_client)
-
+    def __init__(
+        self, motor_client: MotorClient, data_adaptor: utils.MoUDataAdaptor
+    ) -> None:
+        self.data_adaptor = data_adaptor
         self._mongo = motor_client
 
         def _run(f: Coroutine[Any, Any, Any]) -> Any:

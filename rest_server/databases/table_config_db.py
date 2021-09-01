@@ -1,24 +1,19 @@
 """Database interface for retrieving values for the table config."""
 
 
-import asyncio
 import copy
 import time
 from typing import Any, Dict, Final, List, Optional, Tuple, TypedDict, Union, cast
 
-import nest_asyncio
 from bson.objectid import ObjectId  # type: ignore[import]
-from motor.motor_tornado import MotorClient  # type: ignore
+from pymongo import MongoClient  # type: ignore[import]
 
 from .. import wbs
-from ..utils.mongo_tools import Mongofier
+from ..utils.mongo_tools import DocumentNotFoundError, Mongofier
 from . import columns
 
 US = "US"
 NON_US = "Non-US"
-
-
-nest_asyncio.apply()  # allows nested event loops
 
 
 class InstitutionMeta(TypedDict):  # NOTE: from krs
@@ -91,43 +86,42 @@ class _TableConfigDoc(TypedDict):
 class TableConfigDatabaseClient:
     """Manage the collection and parsing of the table config(s)."""
 
-    def __init__(self, motor_client: MotorClient) -> None:
-        self._mongo = motor_client
+    def __init__(self, mongo_client: MongoClient) -> None:
+        self._mongo = mongo_client
         self._doc = None
-        self._doc = asyncio.get_event_loop().run_until_complete(self.refresh_doc())
+        self._doc = self.refresh_doc()
 
     def column_configs(self) -> Dict[str, _ColumnConfigTypedDict]:
         """The column-config dicts."""
-        doc = asyncio.get_event_loop().run_until_complete(self.refresh_doc())
-        return doc["column_configs"]
+        return self.refresh_doc()["column_configs"]
 
     def institution_dicts(self) -> Dict[str, InstitutionMeta]:
         """The institution dicts."""
-        doc = asyncio.get_event_loop().run_until_complete(self.refresh_doc())
-        return doc["institution_dicts"]
+        return self.refresh_doc()["institution_dicts"]
 
-    async def get_most_recent_doc(
-        self,
-    ) -> Tuple[Optional[_TableConfigDoc], Optional[ObjectId]]:
+    def get_most_recent_doc(self) -> Tuple[_TableConfigDoc, ObjectId]:
         """Get doc w/ largest timestamp value, also its mongo id."""
         cursor = self._mongo[DB_NAME][COLLECTION_NAME].find()
         cursor.sort("timestamp", -1).limit(1)
-        async for doc in cursor:
+        for doc in cursor:
             doc = Mongofier.demongofy_document(doc, str_id=False)
             return cast(_TableConfigDoc, doc), doc.pop(columns.ID)
-        return None, None
+        raise DocumentNotFoundError()
 
-    async def _insert_replace(
+    def _insert_replace(
         self, doc: _TableConfigDoc, _id: Optional[ObjectId] = None
     ) -> None:
         """Insert `doc` into db. If passed `_id`, replace existing doc."""
-        doc = Mongofier.mongofy_document(doc)  # type: ignore[arg-type, assignment]
         if _id:
-            await self._mongo[DB_NAME][COLLECTION_NAME].replace_one({"_id": _id}, doc)
+            self._mongo[DB_NAME][COLLECTION_NAME].replace_one(
+                {"_id": _id}, Mongofier.mongofy_document(doc)  # type: ignore[arg-type]
+            )
         else:
-            await self._mongo[DB_NAME][COLLECTION_NAME].insert_one(doc)
+            self._mongo[DB_NAME][COLLECTION_NAME].insert_one(
+                Mongofier.mongofy_document(doc)  # type: ignore[arg-type]
+            )
 
-    async def refresh_doc(self) -> _TableConfigDoc:
+    def refresh_doc(self) -> _TableConfigDoc:
         """Get the most recent table-config doc."""
         if self._doc and int(time.time()) - self._doc["timestamp"] < MAX_CACHE_AGE:
             return self._doc
@@ -141,19 +135,21 @@ class TableConfigDatabaseClient:
             return False
 
         # Handle inserting/updating
-        from_db, from_db_id = await self.get_most_recent_doc()
-        if from_db:
+        try:
+            from_db, from_db_id = self.get_most_recent_doc()
+        # the db is empty!
+        except DocumentNotFoundError:
+            newest = self.build_table_config_doc(None)
+            self._insert_replace(newest)
+        # we found a doc!
+        else:
             newest = self.build_table_config_doc(from_db)
             # Insert, if data has changed
             if doc_has_changed(from_db, newest):
-                await self._insert_replace(newest)
+                self._insert_replace(newest)
             # Otherwise, just update what's already in there
             else:
-                await self._insert_replace(newest, from_db_id)
-        # Otherwise, the db is empty!
-        else:
-            newest = self.build_table_config_doc(None)
-            await self._insert_replace(newest)
+                self._insert_replace(newest, from_db_id)
 
         self._doc = newest
         return self._doc
