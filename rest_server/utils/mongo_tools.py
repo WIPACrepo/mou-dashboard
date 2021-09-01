@@ -7,6 +7,10 @@ from bson.objectid import ObjectId  # type: ignore[import]
 from ..databases import columns
 
 
+class DocumentNotFoundError(Exception):
+    """Raised when a document is not found."""
+
+
 class Mongofier:
     """Tools for moving/transforming data in/out of a MongoDB."""
 

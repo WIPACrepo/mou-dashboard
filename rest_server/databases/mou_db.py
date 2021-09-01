@@ -14,14 +14,10 @@ from tornado import web
 
 from ..config import EXCLUDE_COLLECTIONS, EXCLUDE_DBS
 from ..utils import types, utils
-from ..utils.mongo_tools import Mongofier
+from ..utils.mongo_tools import DocumentNotFoundError, Mongofier
 from . import columns, table_config_db
 
 _LIVE_COLLECTION = "LIVE_COLLECTION"
-
-
-class DocumentNotFoundError(Exception):
-    """Raised when a document is not found."""
 
 
 class MoUDatabaseClient:
