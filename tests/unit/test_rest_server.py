@@ -208,11 +208,11 @@ class TestMongofier:
         # Calls & Asserts
         into = copy.deepcopy(original_human)
         assert mongo_tools.Mongofier.mongofy_document(into) == mongoed
-        assert into == mongoed  # assert in-place change
+        assert into != mongoed  # assert in-place change
 
         into = copy.deepcopy(mongoed)
         assert mongo_tools.Mongofier.demongofy_document(into) == rehumaned
-        assert into == rehumaned  # assert in-place change
+        assert into != rehumaned  # assert in-place change
 
 
 class TestMoUDataAdaptor:

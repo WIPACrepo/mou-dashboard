@@ -1,5 +1,6 @@
 """General tools for interacting with a MongoDB."""
 
+import copy
 from typing import Any, Callable, Dict
 
 from bson.objectid import ObjectId  # type: ignore[import]
@@ -51,8 +52,9 @@ class Mongofier:
         return dicto
 
     @staticmethod
-    def mongofy_document(doc: Dict[str, Any]) -> Dict[str, Any]:
-        """Transform doc to mongo-friendly, recursively, IN-PLACE."""
+    def mongofy_document(doc_in: Dict[str, Any]) -> Dict[str, Any]:
+        """Transform doc to mongo-friendly, recursively, AS A COPY."""
+        doc = copy.deepcopy(doc_in)
         doc = Mongofier._mongofy_every_key(doc)
 
         if doc.get(columns.ID):
@@ -61,8 +63,11 @@ class Mongofier:
         return doc
 
     @staticmethod
-    def demongofy_document(doc: Dict[str, Any], str_id: bool = True) -> Dict[str, Any]:
-        """Transform doc to human-friendly, recursively, IN-PLACE."""
+    def demongofy_document(
+        doc_in: Dict[str, Any], str_id: bool = True
+    ) -> Dict[str, Any]:
+        """Transform doc to human-friendly, recursively, AS A COPY."""
+        doc = copy.deepcopy(doc_in)
 
         def no_nones(dicto: Dict[str, Any]) -> Dict[str, Any]:
             """Recursively replace `None`s with ''."""
