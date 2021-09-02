@@ -37,7 +37,7 @@ jobs:
             pip install -r rest_server/requirements.txt -r web_app/requirements.txt -r requirements-dev.txt
             pytest -vvv tests/integration
 
-  deploy:
+  deploy_docker:
     docker:
       - image: circleci/buildpack-deps:stretch
         environment:
@@ -53,12 +53,33 @@ jobs:
           echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
           docker push $IMAGE_NAME:$TAG
 
+  docker_deploy:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+        environment:
+          IMAGE_NAME: wipac/mou-dashboard-services
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run: |
+          echo 'export TAG="${CIRCLE_TAG:=latest}"' >> $BASH_ENV
+      - run: |
+          docker build -t $IMAGE_NAME:$TAG .
+
 workflows:
   build_and_test:
     jobs:
       - unit
       - integrate
-      - deploy:
+      - docker_test_build:
+          context: docker
+          requires:
+            - unit
+            - integrate
+          filters:
+            branches:
+              ignore: master
+      - docker_deploy:
           context: docker
           requires:
             - unit
