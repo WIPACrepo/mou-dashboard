@@ -13,6 +13,7 @@ COPY . .
 
 ENV PYTHONPATH=/home/app
 
+RUN chmod 755 /app
 RUN curl https://raw.githubusercontent.com/WIPACrepo/keycloak-rest-services/master/keycloak_setup/institution_list.py > rest_server/databases/institution_list.py
 
 CMD ["python", "-m", "rest_server"]
