@@ -53,7 +53,7 @@ jobs:
           echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
           docker push $IMAGE_NAME:$TAG
 
-  docker_deploy:
+  docker_test_build:
     docker:
       - image: circleci/buildpack-deps:stretch
         environment:
