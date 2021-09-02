@@ -7,13 +7,14 @@ COPY web_app/requirements.txt ./web_app_requirements.txt
 RUN pip install --no-cache-dir -r rest_server_requirements.txt -r web_app_requirements.txt
 
 WORKDIR /home/app
+RUN chmod 755 /home/app
+
 USER app
 
 COPY . .
 
 ENV PYTHONPATH=/home/app
 
-RUN chmod 755 /home/app
 RUN curl https://raw.githubusercontent.com/WIPACrepo/keycloak-rest-services/master/keycloak_setup/institution_list.py > rest_server/databases/institution_list.py
 
 CMD ["python", "-m", "rest_server"]
