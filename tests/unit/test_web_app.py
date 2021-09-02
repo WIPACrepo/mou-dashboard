@@ -26,7 +26,7 @@ from web_app.data_source import (  # isort:skip  # noqa # pylint: disable=E0401,
 WBS = "mo"
 
 
-@pytest.fixture  # type: ignore
+@pytest.fixture
 def tconfig() -> Any:
     """Provide a TableConfigParser instance."""
     return tc.TableConfigParser(WBS, MagicMock())
@@ -201,7 +201,7 @@ class TestDataSource:
     """Test data_source.py."""
 
     @staticmethod
-    @pytest.fixture  # type: ignore
+    @pytest.fixture
     def mock_rest(mocker: Any) -> Any:
         """Patch mock_rest."""
         return mocker.patch("web_app.data_source.utils._rest_connection")
@@ -371,7 +371,7 @@ class TestTableConfig:
     """Test table_config.py."""
 
     @staticmethod
-    @pytest.fixture  # type: ignore
+    @pytest.fixture
     def mock_rest(mocker: Any) -> Any:
         """Patch mock_rest."""
         return mocker.patch("web_app.data_source.utils._rest_connection")

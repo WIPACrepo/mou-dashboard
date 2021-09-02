@@ -1,11 +1,12 @@
 """Unit test rest_server module."""
 
-# pylint: disable=W0212
+# pylint: disable=W0212,redefined-outer-name
 
 
 import copy
 import pprint
 import sys
+import time
 from decimal import Decimal
 from typing import Any, Final, List
 from unittest.mock import ANY, AsyncMock, Mock, patch, sentinel
@@ -18,23 +19,26 @@ from . import data
 
 sys.path.append(".")
 from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
-    db_utils,
     utils,
     types,
+    mongo_tools,
 )
-from rest_server import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
-    config,
-    table_config as tc,
+from rest_server.databases import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
+    mou_db,
+    table_config_db,
+    columns,
 )
+from rest_server import config  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
 
 
 nest_asyncio.apply()  # allows nested event loops
 
 
-MOU_MOTOR_CLIENT: Final[str] = "rest_server.utils.db_utils.MoUMotorClient"
-MOTOR_CLIENT: Final[str] = "motor.motor_tornado.MotorClient"
-TC_READER: Final[str] = "rest_server.table_config.TableConfigReader"
-WBS: Final[str] = "mo"
+MOU_DB_CLIENT: Final = "rest_server.databases.mou_db.MoUDatabaseClient"
+MOTOR_CLIENT: Final = "motor.motor_tornado.MotorClient"
+TC_DB_CLIENT: Final = "rest_server.databases.table_config_db.TableConfigDatabaseClient"
+MOU_DATA_ADAPTOR: Final = "rest_server.utils.utils.MoUDataAdaptor"
+WBS: Final = "mo"
 
 
 def reset_mock(*args: Mock) -> None:
@@ -43,44 +47,191 @@ def reset_mock(*args: Mock) -> None:
         a.reset_mock()
 
 
-class TestDBUtils:  # pylint: disable=R0904
-    """Test private methods in db_utils.py."""
+@pytest.fixture
+def mock_mongo(mocker: Any) -> Any:
+    """Patch mock_mongo."""
+    mock_mongo = mocker.patch(MOTOR_CLIENT)  # pylint:disable=redefined-outer-name
+    mock_mongo.list_database_names.side_effect = AsyncMock()
+    return mock_mongo
+
+
+class TestMoUDB:  # pylint: disable=R0904
+    """Test private methods in mou_db.py."""
 
     @staticmethod
-    @pytest.fixture  # type: ignore
-    def mock_mongo(mocker: Any) -> Any:
-        """Patch mock_mongo."""
-        mock_mongo = mocker.patch(MOTOR_CLIENT)
-        mock_mongo.list_database_names.side_effect = AsyncMock()
-        return mock_mongo
+    @patch(MOU_DB_CLIENT + "._ensure_all_db_indexes")
+    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._insert_replace")
+    def test_init(mock_ir: Any, mock_gmrd: Any, mock_eadi: Any) -> None:
+        """Test MoUDatabaseClient.__init__()."""
+        # Setup & Mock
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
+        mock_ir.return_value = None  # no-op the db insert
 
-    @staticmethod
-    @patch(MOU_MOTOR_CLIENT + "._ensure_all_db_indexes")
-    def test_init(mock_eadi: Any) -> None:
-        """Test MoUMotorClient.__init__()."""
         # Call
-        moumc = db_utils.MoUMotorClient(sentinel._client)
+        mou_db_client = mou_db.MoUDatabaseClient(
+            sentinel.mongo,
+            utils.MoUDataAdaptor(
+                table_config_db.TableConfigDatabaseClient(sentinel.tc_mongo)
+            ),
+        )
 
         # Assert
-        assert moumc._client == sentinel._client
-        mock_eadi.assert_called()
+        assert mou_db_client._mongo == sentinel.mongo
 
         # --- test w/ xlsx
         # Mock
         reset_mock(mock_eadi)
 
         # Call
-        moumc = db_utils.MoUMotorClient(sentinel._client)
+        mou_db_client = mou_db.MoUDatabaseClient(
+            sentinel.mongo,
+            utils.MoUDataAdaptor(
+                table_config_db.TableConfigDatabaseClient(sentinel.tc_mongo)
+            ),
+        )
 
         # Assert
-        assert moumc._client == sentinel._client
-        mock_eadi.assert_called()
+        assert mou_db_client._mongo == sentinel.mongo
 
     @staticmethod
-    @patch(TC_READER + ".get_conditional_dropdown_menus")
-    @patch(TC_READER + ".get_simple_dropdown_menus")
-    def test_validate_record_data(mock_gsdm: Any, mock_gcdm: Any) -> None:
+    @pytest.mark.asyncio  # type: ignore[misc]
+    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._insert_replace")
+    async def test_list_database_names(
+        mock_ir: Any, mock_gmrd: Any, mock_mongo: Any
+    ) -> None:
+        """Test _list_database_names()."""
+        # Setup & Mock
+        dbs = ["foo", "bar", "baz"] + config.EXCLUDE_DBS[:3]
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
+        mock_ir.return_value = None  # no-op the db insert
+        mou_db_client = mou_db.MoUDatabaseClient(
+            mock_mongo,
+            utils.MoUDataAdaptor(
+                table_config_db.TableConfigDatabaseClient(sentinel.tc_mongo)
+            ),
+        )
+        mock_mongo.list_database_names.side_effect = AsyncMock(return_value=dbs)
+
+        # Call
+        ret = await mou_db_client._list_database_names()
+
+        # Assert
+        assert ret == dbs[:3]
+        assert mock_mongo.list_database_names.side_effect.await_count == 1
+
+    # NOTE: public methods are tested in integration tests
+
+
+class TestMongofier:
+    """Test mongo_tools.Mongofier."""
+
+    @staticmethod
+    def test_mongofy_key_name() -> None:
+        """Test _mongofy_key_name()."""
+        # Set-Up
+        keys = ["", "...", " ", "N;M"]
+        mongofied_keys = ["", ";;;", " ", "N;M"]
+
+        # Call & Assert
+        for key, mkey in zip(keys, mongofied_keys):
+            assert mongo_tools.Mongofier.mongofy_key_name(key) == mkey
+
+    @staticmethod
+    def test_demongofy_key_name() -> None:
+        """Test demongofy_key_name()."""
+        # Set-Up
+        keys = ["", ";;;", " ", "A;C", "."]
+        demongofied_keys = ["", "...", " ", "A.C", "."]
+
+        # Call & Assert
+        for key, dkey in zip(keys, demongofied_keys):
+            assert mongo_tools.Mongofier.demongofy_key_name(key) == dkey
+
+    @staticmethod
+    def test_mongofy_every_key() -> None:
+        """Test _mongofy_every_key() & _demongofy_every_key()."""
+        # Set-Up
+        dict_in = {
+            "": 1,
+            "...": 2,
+            " ": {"A.B": 33, "NESTED.": {"2x NESTED": 333}},
+            "N.M": 4,
+        }
+        dict_out = {
+            "": 1,
+            ";;;": 2,
+            " ": {"A;B": 33, "NESTED;": {"2x NESTED": 333}},
+            "N;M": 4,
+        }
+
+        # Calls & Asserts
+        into = copy.deepcopy(dict_out)
+        assert mongo_tools.Mongofier._mongofy_every_key(into) == dict_out
+        assert into == dict_out  # assert in-place change
+
+        into = copy.deepcopy(dict_in)
+        assert mongo_tools.Mongofier._mongofy_every_key(into) == dict_out
+        assert into == dict_out  # assert in-place change
+
+        into = copy.deepcopy(dict_out)
+        assert mongo_tools.Mongofier._demongofy_every_key(into) == dict_in
+        assert into == dict_in  # assert in-place change
+
+        into = copy.deepcopy(dict_in)
+        assert mongo_tools.Mongofier._demongofy_every_key(dict_in) == dict_in
+        assert into == dict_in  # assert in-place change
+
+    @staticmethod
+    def test_mongofy_document() -> None:
+        """Test mongofy_document() & demongofy_document()."""
+        # Set-Up
+        original_human = {
+            "": "",
+            " ": {"xyz": 33, "NESTED.": {"2x NESTED": None}},
+            columns.ID: "0123456789ab0123456789ab",
+        }
+        mongoed = {
+            "": "",
+            " ": {"xyz": 33, "NESTED;": {"2x NESTED": None}},
+            columns.ID: ObjectId("0123456789ab0123456789ab"),
+        }
+        rehumaned = {
+            "": "",
+            " ": {"xyz": 33, "NESTED.": {"2x NESTED": ""}},
+            columns.ID: "0123456789ab0123456789ab",
+        }
+
+        # Calls & Asserts
+        into = copy.deepcopy(original_human)
+        assert mongo_tools.Mongofier.mongofy_document(into) == mongoed
+        assert into != mongoed  # assert in-place change
+
+        into = copy.deepcopy(mongoed)
+        assert mongo_tools.Mongofier.demongofy_document(into) == rehumaned
+        assert into != rehumaned  # assert in-place change
+
+
+class TestMoUDataAdaptor:
+    """Test utils.MoUDataAdaptor."""
+
+    @staticmethod
+    @patch(TC_DB_CLIENT + ".get_conditional_dropdown_menus")
+    @patch(TC_DB_CLIENT + ".get_simple_dropdown_menus")
+    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._insert_replace")
+    def test_validate_record_data(
+        mock_ir: Any, mock_gmrd: Any, mock_gsdm: Any, mock_gcdm: Any
+    ) -> None:
         """Test _validate_record_data()."""
+        # Setup & Mock
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
+        mou_data_adaptor = utils.MoUDataAdaptor(
+            table_config_db.TableConfigDatabaseClient(sentinel.mongo)
+        )
+        mock_ir.return_value = None  # no-op the db insert
+
         mock_gsdm.return_value = {
             "F.o.o": ["foo-1", "foo-2"],
             "B.a.r": ["bar-1", "bar-2", "bar-3"],
@@ -145,7 +296,7 @@ class TestDBUtils:  # pylint: disable=R0904
         ]
 
         for record in good_records:
-            db_utils.MoUMotorClient._validate_record_data(WBS, record)
+            mou_data_adaptor._validate_record_data(WBS, record)
 
         # Test bad records
         bad_records: List[types.Record] = [
@@ -166,34 +317,21 @@ class TestDBUtils:  # pylint: disable=R0904
 
         for record in bad_records:
             with pytest.raises(Exception):
-                db_utils.MoUMotorClient._validate_record_data(WBS, record)
+                mou_data_adaptor._validate_record_data(WBS, record)
 
     @staticmethod
-    def test_mongofy_key_name() -> None:
-        """Test _mongofy_key_name()."""
-        # Set-Up
-        keys = ["", "...", " ", "N;M"]
-        mongofied_keys = ["", ";;;", " ", "N;M"]
-
-        # Call & Assert
-        for key, mkey in zip(keys, mongofied_keys):
-            assert db_utils.MoUMotorClient._mongofy_key_name(key) == mkey
-
-    @staticmethod
-    def test_demongofy_key_name() -> None:
-        """Test _demongofy_key_name()."""
-        # Set-Up
-        keys = ["", ";;;", " ", "A;C", "."]
-        demongofied_keys = ["", "...", " ", "A.C", "."]
-
-        # Call & Assert
-        for key, dkey in zip(keys, demongofied_keys):
-            assert db_utils.MoUMotorClient._demongofy_key_name(key) == dkey
-
-    @staticmethod
-    @patch(MOU_MOTOR_CLIENT + "._validate_record_data")
-    def test_mongofy_record(mock_vrd: Any) -> None:
+    @patch(MOU_DATA_ADAPTOR + "._validate_record_data")
+    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._insert_replace")
+    def test_mongofy_record(mock_ir: Any, mock_gmrd: Any, mock_vrd: Any) -> None:
         """Test _mongofy_record()."""
+        # Setup & Mock
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
+        mou_data_adaptor = utils.MoUDataAdaptor(
+            table_config_db.TableConfigDatabaseClient(sentinel.mongo)
+        )
+        mock_ir.return_value = None  # no-op the db insert
+
         # Set-Up
         records: List[types.Record] = [
             {},
@@ -210,7 +348,7 @@ class TestDBUtils:  # pylint: disable=R0904
 
         # Call & Assert
         for record, mrecord in zip(records, mongofied_records):
-            assert db_utils.MoUMotorClient._mongofy_record(WBS, record) == mrecord
+            assert mou_data_adaptor.mongofy_record(WBS, record) == mrecord
 
     @staticmethod
     def test_demongofy_record() -> None:
@@ -218,8 +356,8 @@ class TestDBUtils:  # pylint: disable=R0904
         # Set-Up
         records: List[types.Record] = [
             {"_id": ANY},
-            {"_id": ANY, db_utils.IS_DELETED: True},
-            {"_id": ANY, db_utils.IS_DELETED: False},
+            {"_id": ANY, utils.MoUDataAdaptor.IS_DELETED: True},
+            {"_id": ANY, utils.MoUDataAdaptor.IS_DELETED: False},
             {"_id": ANY, "a;b": 5, "Foo;Bar": "Baz"},
             {"_id": ObjectId("5f725c6af0803660075769ab"), "FOO": "bar"},
         ]
@@ -234,37 +372,28 @@ class TestDBUtils:  # pylint: disable=R0904
 
         # Call & Assert
         for record, drecord in zip(records, demongofied_records):
-            assert db_utils.MoUMotorClient._demongofy_record(record) == drecord
+            assert utils.MoUDataAdaptor.demongofy_record(record) == drecord
 
         # Error Case
         with pytest.raises(KeyError):
-            db_utils.MoUMotorClient._demongofy_record({"a;b": 5, "Foo;Bar": "Baz"})
+            utils.MoUDataAdaptor.demongofy_record({"a;b": 5, "Foo;Bar": "Baz"})
+
+
+class TestTableConfigDataAdaptor:
+    """Test utils.TableConfigDataAdaptor."""
 
     @staticmethod
-    @pytest.mark.asyncio  # type: ignore[misc]
-    async def test_list_database_names(mock_mongo: Any) -> None:
-        """Test _list_database_names()."""
-        # Mock
-        dbs = ["foo", "bar", "baz"] + config.EXCLUDE_DBS[:3]
-        moumc = db_utils.MoUMotorClient(mock_mongo)
-        mock_mongo.list_database_names.side_effect = AsyncMock(return_value=dbs)
-
-        # Call
-        ret = await moumc._list_database_names()
-
-        # Assert
-        assert ret == dbs[:3]
-        assert mock_mongo.list_database_names.side_effect.await_count == 1
-
-    # NOTE: public methods are tested in integration tests
-
-
-class TestUtils:
-    """Test utils.py."""
-
-    @staticmethod
-    def test_remove_on_the_fly_fields() -> None:
+    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._insert_replace")
+    def test_remove_on_the_fly_fields(mock_ir: Any, mock_gmrd: Any) -> None:
         """Test remove_on_the_fly_fields()."""
+        # Setup & Mock
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
+        tc_data_adaptor = utils.TableConfigDataAdaptor(
+            table_config_db.TableConfigDatabaseClient(sentinel.mongo)
+        )
+        mock_ir.return_value = None  # no-op the db insert
+
         # Set-Up
         before_records: List[types.Record] = [
             {"_id": ANY},
@@ -281,12 +410,21 @@ class TestUtils:
 
         # Call & Assert
         for before, after in zip(before_records, after_records):
-            assert utils.remove_on_the_fly_fields(before) == after
-            assert utils.remove_on_the_fly_fields(after) == after
+            assert tc_data_adaptor.remove_on_the_fly_fields(before) == after
+            assert tc_data_adaptor.remove_on_the_fly_fields(after) == after
 
     @staticmethod
-    def test_add_on_the_fly_fields() -> None:
+    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._insert_replace")
+    def test_add_on_the_fly_fields(mock_ir: Any, mock_gmrd: Any) -> None:
         """Test add_on_the_fly_fields()."""
+        # Setup & Mock
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
+        tc_data_adaptor = utils.TableConfigDataAdaptor(
+            table_config_db.TableConfigDatabaseClient(sentinel.mongo)
+        )
+        mock_ir.return_value = None  # no-op the db insert
+
         # Set-Up
         before_records: List[types.Record] = [
             {
@@ -354,21 +492,21 @@ class TestUtils:
 
         # Call & Assert
         for before, after in zip(before_records, after_records):
-            assert utils.add_on_the_fly_fields(before) == after
-            assert utils.add_on_the_fly_fields(after) == after
+            assert tc_data_adaptor.add_on_the_fly_fields(before) == after
+            assert tc_data_adaptor.add_on_the_fly_fields(after) == after
 
         # Error Case
         with pytest.raises(KeyError):
             # require institution
-            _ = utils.add_on_the_fly_fields({"foo": "bar", "FTE": 0})
+            _ = tc_data_adaptor.add_on_the_fly_fields({"foo": "bar", "FTE": 0})
         # with pytest.raises(KeyError): NOTE - removed b/c Upgrade doesn't require "Source of Funds"
         #     _ = utils.add_on_the_fly_fields(
         #         {"foo": "bar", "FTE": 0, "Institution": "UW"}
         #     )
-        _ = utils.add_on_the_fly_fields({"foo": "bar", "Institution": "SUNY"})
+        _ = tc_data_adaptor.add_on_the_fly_fields({"foo": "bar", "Institution": "SUNY"})
         with pytest.raises(KeyError):
             # require institution
-            _ = utils.add_on_the_fly_fields(
+            _ = tc_data_adaptor.add_on_the_fly_fields(
                 {
                     "foo": "bar",
                     "FTE": 0,
@@ -377,31 +515,37 @@ class TestUtils:
             )
 
     @staticmethod
-    def test_insert_total_rows() -> None:
+    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._insert_replace")
+    def test_insert_total_rows(mock_ir: Any, mock_gmrd: Any) -> None:
         """Test insert_total_rows().
 
         No need to integration test this.
         """
-        tc_reader = tc.TableConfigReader()
+        # Setup & Mock
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
+        tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
+        mock_ir.return_value = None  # no-op the db insert
+        tc_data_adaptor = utils.TableConfigDataAdaptor(tc_db_client)
 
         def _assert_funds_totals(_rows: types.Table, _total_row: types.Record) -> None:
             print("\n-----------------------------------------------------\n")
             pprint.pprint(_rows)
             pprint.pprint(_total_row)
-            assert _total_row[tc.GRAND_TOTAL] == float(
-                sum(Decimal(str(r[tc.FTE])) for r in _rows)
+            assert _total_row[columns.GRAND_TOTAL] == float(
+                sum(Decimal(str(r[columns.FTE])) for r in _rows)
             )
             for fund in [
-                tc.NSF_MO_CORE,
-                tc.NSF_BASE_GRANTS,
-                tc.US_IN_KIND,
-                tc.NON_US_IN_KIND,
+                columns.NSF_MO_CORE,
+                columns.NSF_BASE_GRANTS,
+                columns.US_IN_KIND,
+                columns.NON_US_IN_KIND,
             ]:
                 assert _total_row[fund] == float(
                     sum(
-                        Decimal(str(r[tc.FTE]))
+                        Decimal(str(r[columns.FTE]))
                         for r in _rows
-                        if r[tc.SOURCE_OF_FUNDS_US_ONLY] == fund
+                        if r[columns.SOURCE_OF_FUNDS_US_ONLY] == fund
                     )
                 )
 
@@ -409,7 +553,7 @@ class TestUtils:
         test_tables: Final[List[types.Table]] = [copy.deepcopy(data.FTE_ROWS), []]
         for table in test_tables:
             # Call
-            totals = utils.get_total_rows(WBS, table)
+            totals = tc_data_adaptor.get_total_rows(WBS, table)
             # pprint.pprint(totals)
 
             # Assert total sums
@@ -418,42 +562,49 @@ class TestUtils:
                 # L3 US/Non-US Level
                 if (
                     "L3 NON-US TOTAL"
-                    in total_row[tc.TOTAL_COL]  # type: ignore[operator]
+                    in total_row[columns.TOTAL_COL]  # type: ignore[operator]
                     or "L3 US TOTAL"
-                    in total_row[tc.TOTAL_COL]  # type: ignore[operator]
+                    in total_row[columns.TOTAL_COL]  # type: ignore[operator]
                 ):
                     _assert_funds_totals(
                         [
                             r
                             for r in table
-                            if total_row[tc.WBS_L2] == r[tc.WBS_L2]
-                            and total_row[tc.WBS_L3] == r[tc.WBS_L3]
-                            and total_row[tc.US_NON_US] == r[tc.US_NON_US]
+                            if total_row[columns.WBS_L2] == r[columns.WBS_L2]
+                            and total_row[columns.WBS_L3] == r[columns.WBS_L3]
+                            and total_row[columns.US_NON_US] == r[columns.US_NON_US]
                         ],
                         total_row,
                     )
 
                 # L3 Level
-                elif "L3 TOTAL" in total_row[tc.TOTAL_COL]:  # type: ignore[operator]
+                elif "L3 TOTAL" in total_row[columns.TOTAL_COL]:  # type: ignore[operator]
                     _assert_funds_totals(
                         [
                             r
                             for r in table
-                            if total_row[tc.WBS_L2] == r[tc.WBS_L2]
-                            and total_row[tc.WBS_L3] == r[tc.WBS_L3]
+                            if total_row[columns.WBS_L2] == r[columns.WBS_L2]
+                            and total_row[columns.WBS_L3] == r[columns.WBS_L3]
                         ],
                         total_row,
                     )
 
                 # L2 Level
-                elif "L2 TOTAL" in total_row[tc.TOTAL_COL]:  # type: ignore[operator]
+                elif "L2 TOTAL" in total_row[columns.TOTAL_COL]:  # type: ignore[operator]
                     _assert_funds_totals(
-                        [r for r in table if total_row[tc.WBS_L2] == r[tc.WBS_L2]],
+                        [
+                            r
+                            for r in table
+                            if total_row[columns.WBS_L2] == r[columns.WBS_L2]
+                        ],
                         total_row,
                     )
 
                 # Grand Total
-                elif "GRAND TOTAL" in total_row[tc.TOTAL_COL]:  # type: ignore[operator]
+                elif (
+                    "GRAND TOTAL"
+                    in total_row[columns.TOTAL_COL]  # type: ignore[operator]
+                ):
                     _assert_funds_totals(table, total_row)
 
                 # Other Kind?
@@ -461,28 +612,70 @@ class TestUtils:
                     raise Exception(f"Unaccounted total row ({total_row}).")
 
             # Assert that every possible total is there (including rows with only 0s)
-            for l2_cat in tc_reader.get_l2_categories(WBS):
-                assert l2_cat in set(r.get(tc.WBS_L2) for r in totals)
-                for l3_cat in tc_reader.get_l3_categories_by_l2(WBS, l2_cat):
-                    assert l3_cat in set(r.get(tc.WBS_L3) for r in totals)
+            for l2_cat in tc_db_client.get_l2_categories(WBS):
+                assert l2_cat in set(r.get(columns.WBS_L2) for r in totals)
+                for l3_cat in tc_db_client.get_l3_categories_by_l2(WBS, l2_cat):
+                    assert l3_cat in set(r.get(columns.WBS_L3) for r in totals)
 
 
 class TestTableConfig:
-    """Test table_config.py."""
+    """Test table_config_db.py."""
 
     @staticmethod
-    def test_us_or_non_us() -> None:
+    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._insert_replace")
+    @patch("rest_server.databases.table_config_db.MAX_CACHE_AGE", 5)
+    def test_caching(mock_ir: Any, mock_gmrd: Any) -> None:
+        """Test functionality around `MAX_CACHE_AGE`."""
+        assert table_config_db.MAX_CACHE_AGE == 5
+
+        # Call #1
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
+        tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
+        mock_ir.return_value = None  # no-op the db insert
+
+        # assert call to db (from __init__())
+        mock_gmrd.assert_called()
+        reset_mock(mock_ir, mock_gmrd)
+
+        # Call #2 - before cache time limit
+        time.sleep(table_config_db.MAX_CACHE_AGE / 2)
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
+        mock_ir.return_value = None  # no-op the db insert
+
+        # assert NO call to db
+        tc_db_client.refresh_doc()
+        mock_gmrd.assert_not_called()
+        reset_mock(mock_ir, mock_gmrd)
+
+        # Call #3 - after cache time limit
+        time.sleep(table_config_db.MAX_CACHE_AGE)
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
+        mock_ir.return_value = None  # no-op the db insert
+
+        # assert call to db
+        tc_db_client.refresh_doc()
+        mock_gmrd.assert_called()
+        reset_mock(mock_ir, mock_gmrd)
+
+    @staticmethod
+    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._insert_replace")
+    def test_us_or_non_us(mock_ir: Any, mock_gmrd: Any) -> None:
         """Test _us_or_non_us().
 
         Function is very simple, so also test institution-dict's format.
         """
-        tc_reader = tc.TableConfigReader()
+        # Setup & Mock
+        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
+        tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
+        mock_ir.return_value = None  # no-op the db insert
 
-        for inst in tc_reader.icecube_institutions.values():
+        for inst in tc_db_client.institution_dicts().values():
             assert "abbreviation" in inst
             assert "is_US" in inst
             assert inst["is_US"] is True or inst["is_US"] is False
             if inst["is_US"]:
-                assert tc_reader.us_or_non_us(inst["abbreviation"]) == "US"
+                assert tc_db_client.us_or_non_us(inst["abbreviation"]) == "US"
             else:
-                assert tc_reader.us_or_non_us(inst["abbreviation"]) == "Non-US"
+                assert tc_db_client.us_or_non_us(inst["abbreviation"]) == "Non-US"

@@ -4,12 +4,14 @@
 import pprint
 import random
 import sys
-from typing import Final
+from typing import Any, Final
+from unittest.mock import AsyncMock, patch, sentinel
 
 sys.path.append(".")
 from rest_server.utils import types  # isort:skip  # noqa # pylint: disable=E0401,C0413
-from rest_server import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
-    table_config as tc,
+from rest_server.databases import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
+    table_config_db,
+    columns,
 )
 
 WBS: Final[str] = "mo"
@@ -360,32 +362,49 @@ FTE_ROWS: Final[types.Table] = [
 #
 
 
-def _make_fte_rows() -> None:
-    tc_reader = tc.TableConfigReader()
+@patch(
+    "rest_server.databases.table_config_db.TableConfigDatabaseClient.get_most_recent_doc"
+)
+@patch(
+    "rest_server.databases.table_config_db.TableConfigDatabaseClient._insert_replace"
+)
+def _make_fte_rows(mock_ir: Any, mock_gmrd: Any) -> None:
+    # Setup & Mock
+    mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
+    tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
+    mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
     rows: types.Table = []
     for l2 in [
         "2.1 Program Coordination",
         "2.2 Detector Operations & Maintenance (Online)",
     ]:
-        for l3 in tc_reader.get_l3_categories_by_l2(WBS, l2):
+        for l3 in tc_db_client.get_l3_categories_by_l2(WBS, l2):
             if ".3" in l3:
                 break
             # append 2 US for each funding source
             for _ in range(2):
-                for fund in [tc.NSF_MO_CORE, tc.NSF_BASE_GRANTS, tc.US_IN_KIND]:
-                    row = {tc.WBS_L2: l2, tc.WBS_L3: l3, tc.US_NON_US: tc.US}
-                    row[tc.SOURCE_OF_FUNDS_US_ONLY] = fund
-                    row[tc.FTE] = random.random() * 1  # type: ignore[assignment]
+                for fund in [
+                    columns.NSF_MO_CORE,
+                    columns.NSF_BASE_GRANTS,
+                    columns.US_IN_KIND,
+                ]:
+                    row = {
+                        columns.WBS_L2: l2,
+                        columns.WBS_L3: l3,
+                        columns.US_NON_US: table_config_db.US,
+                    }
+                    row[columns.SOURCE_OF_FUNDS_US_ONLY] = fund
+                    row[columns.FTE] = random.random() * 1  # type: ignore[assignment]
                     rows.append(row)  # type: ignore[arg-type]
 
             # append 2 Non-US
             for _ in range(2):
-                row = {tc.WBS_L2: l2, tc.WBS_L3: l3}
-                row[tc.US_NON_US] = tc.NON_US
-                row[tc.SOURCE_OF_FUNDS_US_ONLY] = tc.NON_US_IN_KIND
-                row[tc.FTE] = random.random() * 1  # type: ignore[assignment]
+                row = {columns.WBS_L2: l2, columns.WBS_L3: l3}
+                row[columns.US_NON_US] = table_config_db.NON_US
+                row[columns.SOURCE_OF_FUNDS_US_ONLY] = columns.NON_US_IN_KIND
+                row[columns.FTE] = random.random() * 1  # type: ignore[assignment]
                 rows.append(row)  # type: ignore[arg-type]
 
-    rows.sort(key=tc_reader.sort_key)
+    rows.sort(key=tc_db_client.sort_key)
     pprint.pprint(rows)

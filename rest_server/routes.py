@@ -5,12 +5,14 @@ import json
 import logging
 from typing import Any
 
+from motor.motor_tornado import MotorClient  # type: ignore
+from pymongo import MongoClient  # type: ignore[import]
 from rest_tools.server import RestHandler, handler  # type: ignore
 
-from . import table_config as tc
 from . import wbs
 from .config import AUTH_PREFIX
-from .utils import db_utils, types, utils
+from .databases import columns, mou_db, table_config_db
+from .utils import types, utils
 
 _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
 
@@ -22,11 +24,21 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
     """BaseMoUHandler is a RestHandler for all MoU routes."""
 
     def initialize(  # pylint: disable=W0221
-        self, db_client: db_utils.MoUMotorClient, *args: Any, **kwargs: Any
+        self,
+        mongodb_url: str,
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
         """Initialize a BaseMoUHandler object."""
         super().initialize(*args, **kwargs)
-        self.dbms = db_client  # pylint: disable=W0201
+        # pylint: disable=W0201
+        self.tc_db_client = table_config_db.TableConfigDatabaseClient(
+            MongoClient(mongodb_url)
+        )
+        self.mou_db_client = mou_db.MoUDatabaseClient(
+            MotorClient(mongodb_url), utils.MoUDataAdaptor(self.tc_db_client)
+        )
+        self.tc_data_adaptor = utils.TableConfigDataAdaptor(self.tc_db_client)
 
 
 # -----------------------------------------------------------------------------
@@ -61,18 +73,18 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
         total_rows = self.get_argument("total_rows", default=False, type=bool)
 
         if restore_id:
-            await self.dbms.restore_record(wbs_l1, restore_id)
+            await self.mou_db_client.restore_record(wbs_l1, restore_id)
 
-        table = await self.dbms.get_table(
+        table = await self.mou_db_client.get_table(
             wbs_l1, collection, labor=labor, institution=institution
         )
 
         # On-the-fly fields/rows
         for record in table:
-            utils.add_on_the_fly_fields(record)
+            self.tc_data_adaptor.add_on_the_fly_fields(record)
         if total_rows:
             table.extend(
-                utils.get_total_rows(
+                self.tc_data_adaptor.get_total_rows(
                     wbs_l1,
                     table,
                     only_totals_w_data=labor or institution,
@@ -81,7 +93,7 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
             )
 
         # sort
-        table.sort(key=tc.TableConfigReader().sort_key)
+        table.sort(key=self.tc_db_client.sort_key)
 
         self.write({"table": table})
 
@@ -93,19 +105,21 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
         creator = self.get_argument("creator")
 
         # ingest
-        prev_snap, curr_snap = await self.dbms.ingest_xlsx(
+        prev_snap, curr_snap = await self.mou_db_client.ingest_xlsx(
             wbs_l1, base64_file, filename, creator
         )
 
         # get info for snapshot(s)
-        curr_snap_info = await self.dbms.get_snapshot_info(wbs_l1, curr_snap)
+        curr_snap_info = await self.mou_db_client.get_snapshot_info(wbs_l1, curr_snap)
         prev_snap_info = None
         if prev_snap:
-            prev_snap_info = await self.dbms.get_snapshot_info(wbs_l1, prev_snap)
+            prev_snap_info = await self.mou_db_client.get_snapshot_info(
+                wbs_l1, prev_snap
+            )
 
         self.write(
             {
-                "n_records": len(await self.dbms.get_table(wbs_l1)),
+                "n_records": len(await self.mou_db_client.get_table(wbs_l1)),
                 "previous_snapshot": prev_snap_info,
                 "current_snapshot": curr_snap_info,
             }
@@ -127,15 +141,15 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
         editor = self.get_argument("editor")
 
         if inst := self.get_argument("institution", default=None):
-            record[tc.INSTITUTION] = inst  # insert
+            record[columns.INSTITUTION] = inst  # insert
         if labor := self.get_argument("labor", default=None):
-            record[tc.LABOR_CAT] = labor  # insert
+            record[columns.LABOR_CAT] = labor  # insert
         if task := self.get_argument("task", default=None):
-            record[tc.TASK_DESCRIPTION] = task  # insert
+            record[columns.TASK_DESCRIPTION] = task  # insert
 
-        record = utils.remove_on_the_fly_fields(record)
-        record = await self.dbms.upsert_record(wbs_l1, record, editor)
-        record = utils.add_on_the_fly_fields(record)
+        record = self.tc_data_adaptor.remove_on_the_fly_fields(record)
+        record = await self.mou_db_client.upsert_record(wbs_l1, record, editor)
+        record = self.tc_data_adaptor.add_on_the_fly_fields(record)
 
         self.write({"record": record})
 
@@ -145,7 +159,7 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
         record_id = self.get_argument("record_id")
         editor = self.get_argument("editor")
 
-        record = await self.dbms.delete_record(wbs_l1, record_id, editor)
+        record = await self.mou_db_client.delete_record(wbs_l1, record_id, editor)
 
         self.write({"record": record})
 
@@ -161,24 +175,27 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
-        tc_reader = tc.TableConfigReader()
         table_config = {
             l1: {
-                "columns": tc_reader.get_columns(),
-                "simple_dropdown_menus": tc_reader.get_simple_dropdown_menus(l1),
-                "institutions": tc_reader.get_institutions_and_abbrevs(),
-                "labor_categories": tc_reader.get_labor_categories_and_abbrevs(),
-                "conditional_dropdown_menus": tc_reader.get_conditional_dropdown_menus(l1),
-                "dropdowns": tc_reader.get_dropdowns(l1),
-                "numerics": tc_reader.get_numerics(),
-                "non_editables": tc_reader.get_non_editables(),
-                "hiddens": tc_reader.get_hiddens(),
-                "tooltips": tc_reader.get_tooltips(),
-                "widths": tc_reader.get_widths(),
-                "border_left_columns": tc_reader.get_border_left_columns(),
-                "page_size": tc_reader.get_page_size(),
+                "columns": self.tc_db_client.get_columns(),
+                "simple_dropdown_menus": self.tc_db_client.get_simple_dropdown_menus(
+                    l1
+                ),
+                "institutions": self.tc_db_client.get_institutions_and_abbrevs(),
+                "labor_categories": self.tc_db_client.get_labor_categories_and_abbrevs(),
+                "conditional_dropdown_menus": self.tc_db_client.get_conditional_dropdown_menus(
+                    l1
+                ),
+                "dropdowns": self.tc_db_client.get_dropdowns(l1),
+                "numerics": self.tc_db_client.get_numerics(),
+                "non_editables": self.tc_db_client.get_non_editables(),
+                "hiddens": self.tc_db_client.get_hiddens(),
+                "tooltips": self.tc_db_client.get_tooltips(),
+                "widths": self.tc_db_client.get_widths(),
+                "border_left_columns": self.tc_db_client.get_border_left_columns(),
+                "page_size": self.tc_db_client.get_page_size(),
             }
-            for l1 in wbs.WORK_BREAKDOWN_STRUCTURES.keys()
+            for l1 in wbs.WORK_BREAKDOWN_STRUCTURES.keys()  # pylint:disable=C0201
         }
 
         logging.debug("Table Config:\n%s", json.dumps(table_config, indent=4))
@@ -199,12 +216,14 @@ class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
         """Handle GET."""
         is_admin = self.get_argument("is_admin", type=bool, default=False)
 
-        timestamps = await self.dbms.list_snapshot_timestamps(
+        timestamps = await self.mou_db_client.list_snapshot_timestamps(
             wbs_l1, exclude_admin_snaps=not is_admin
         )
         timestamps.sort(reverse=True)
 
-        snapshots = [await self.dbms.get_snapshot_info(wbs_l1, ts) for ts in timestamps]
+        snapshots = [
+            await self.mou_db_client.get_snapshot_info(wbs_l1, ts) for ts in timestamps
+        ]
 
         self.write({"snapshots": snapshots})
 
@@ -223,8 +242,10 @@ class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
         name = self.get_argument("name")
         creator = self.get_argument("creator")
 
-        snap_ts = await self.dbms.snapshot_live_collection(wbs_l1, name, creator, False)
-        snap_info = await self.dbms.get_snapshot_info(wbs_l1, snap_ts)
+        snap_ts = await self.mou_db_client.snapshot_live_collection(
+            wbs_l1, name, creator, False
+        )
+        snap_info = await self.mou_db_client.get_snapshot_info(wbs_l1, snap_ts)
 
         self.write(snap_info)
 
@@ -243,7 +264,7 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
         institution = self.get_argument("institution")
         snapshot_timestamp = self.get_argument("snapshot_timestamp", "")
 
-        vals = await self.dbms.get_institution_values(
+        vals = await self.mou_db_client.get_institution_values(
             wbs_l1, snapshot_timestamp, institution
         )
 
@@ -280,6 +301,6 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
             "computing_confirmed": computing_confirmed,
         }
 
-        await self.dbms.upsert_institution_values(wbs_l1, institution, vals)
+        await self.mou_db_client.upsert_institution_values(wbs_l1, institution, vals)
 
         self.write({})
