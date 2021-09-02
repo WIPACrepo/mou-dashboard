@@ -1,6 +1,5 @@
 """Database interface for MoU data."""
 
-import asyncio
 import base64
 import io
 import logging
@@ -432,13 +431,13 @@ class MoUDatabaseClient:
         # if record has an ID -- replace it
         if record.get(columns.ID):
             res = await coll_obj.replace_one({columns.ID: record[columns.ID]}, record)
-            logging.info(f"Updated {record} ({wbs_db=}).")
+            logging.info(f"Updated {record} ({wbs_db=}) -> {res}.")
         # otherwise -- create it
         else:
             record.pop(columns.ID)
             res = await coll_obj.insert_one(record)
             record[columns.ID] = res.inserted_id
-            logging.info(f"Inserted {record} ({wbs_db=}).")
+            logging.info(f"Inserted {record} ({wbs_db=}) -> {res}.")
 
         return self.data_adaptor.demongofy_record(record)
 
