@@ -37,7 +37,7 @@ jobs:
             pip install -r rest_server/requirements.txt -r web_app/requirements.txt -r requirements-dev.txt
             pytest -vvv tests/integration
 
-  deploy_docker:
+  docker_deploy:
     docker:
       - image: circleci/buildpack-deps:stretch
         environment:
