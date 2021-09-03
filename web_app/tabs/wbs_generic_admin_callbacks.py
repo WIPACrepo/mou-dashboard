@@ -3,7 +3,7 @@
 import logging
 from collections import OrderedDict as ODict
 from decimal import Decimal
-from typing import cast, Dict, Final, List, Optional, Tuple, TypedDict
+from typing import Dict, Final, List, Optional, Tuple, TypedDict, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -282,7 +282,7 @@ def _blame_row(
         for field in record:
             if field in ["", tconfig.const.GRAND_TOTAL, tconfig.const.US_NON_US]:
                 continue
-            if not snap_record:
+            if (not snap_record) or (field not in snap_record):
                 field_changes[field][snap_ts] = NA
             elif snap_record[field] != record[field]:
                 field_changes[field][snap_ts] = snap_record[field]
@@ -404,7 +404,8 @@ def blame(
     try:
         data_table = src.pull_data_table(wbs_l1, tconfig, raw=True)
         data_table.sort(
-            key=lambda r: r[tconfig.const.TIMESTAMP], reverse=True,
+            key=lambda r: r[tconfig.const.TIMESTAMP],
+            reverse=True,
         )
     except DataSourceException:
         return [], [], []
@@ -422,7 +423,10 @@ def blame(
     snap_bundles: Dict[str, _SnapshotBundle] = {
         info["timestamp"]: {
             "table": src.pull_data_table(
-                wbs_l1, tconfig, snapshot_ts=info["timestamp"], raw=True,
+                wbs_l1,
+                tconfig,
+                snapshot_ts=info["timestamp"],
+                raw=True,
             ),
             "info": info,
         }
