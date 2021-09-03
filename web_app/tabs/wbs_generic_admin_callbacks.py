@@ -260,7 +260,7 @@ def _blame_row(
     snap_bundles: Dict[str, _SnapshotBundle],
 ) -> types.Record:
     """Get the blame row for a record."""
-    logging.debug(f"Blaming {record[tconfig.const.ID]}...")
+    logging.info(f"Blaming {record[tconfig.const.ID]}...")
 
     NA: Final[str] = "n/a"  # pylint: disable=C0103
 
