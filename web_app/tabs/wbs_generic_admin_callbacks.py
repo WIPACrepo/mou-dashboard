@@ -229,7 +229,6 @@ def summarize(
             row["Headcount Total"] = sum(
                 cast(float, row.get(hc))
                 for hc in [
-                    "Ph.D. Authors",
                     "Faculty",
                     "Scientists / Post Docs",
                     "Ph.D. Students",
