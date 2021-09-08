@@ -32,6 +32,9 @@ A REST server that interfaces with a local MongoDB server *(future: also Smartsh
     python3 -m virtualenv -p python3 mou-dash-rest
     . mou-dash-rest/bin/activate
     pip install -r rest_server/requirements.txt
+    
+##### 1.b. Grab Institutions List File (pre-krs)
+    curl https://raw.githubusercontent.com/WIPACrepo/keycloak-rest-services/master/keycloak_setup/institution_list.py > rest_server/databases/institution_list.py
 
 #### 2. Start the Server
     python -m rest_server
