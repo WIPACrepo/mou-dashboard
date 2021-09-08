@@ -263,6 +263,7 @@ def _blame_row(
     logging.info(f"Blaming {record[tconfig.const.ID]}...")
 
     NA: Final[str] = "n/a"  # pylint: disable=C0103
+    MOST_RECENT_VALUE: Final[str] = "today"  # pylint: disable=C0103
 
     def _find_record_in_snap(table: types.Table) -> Optional[types.Record]:
         try:
@@ -274,7 +275,7 @@ def _blame_row(
 
     # get each field's history; Schema: { <field>: {<snap_ts>:<field_value>} }
     field_changes: Dict[str, Dict[str, types.StrNum]] = {}
-    field_changes = ODict({k: ODict({"today": record[k]}) for k in record})
+    field_changes = ODict({k: ODict({MOST_RECENT_VALUE: record[k]}) for k in record})
     brand_new, never_changed, oldest_snap_ts = True, True, ""
     for snap_ts, bundle in snap_bundles.items():
         if snap_record := _find_record_in_snap(bundle["table"]):
@@ -316,7 +317,7 @@ def _blame_row(
             for snap_ts, snap_val in changes.items():
                 if snap_val == NA:
                     if first_na:
-                        markdown += "    + **original snapshot value**\n"
+                        markdown += "    + **Original Snapshot's Value**\n"
                         first_na = False
                     continue
                 # convert timestamps to be human-readable
@@ -325,11 +326,13 @@ def _blame_row(
                 # value
                 markdown += f"- `{snap_val}`\n" if snap_val else "- *none*\n"
                 # a current value
-                if snap_ts == "today":
-                    markdown += f"    + today ({utils.get_human_now(short=True)})\n"
+                if snap_ts == MOST_RECENT_VALUE:
+                    markdown += (
+                        f"    + **Current Value** ({utils.get_human_now(short=True)})\n"
+                    )
                 # a historical value
                 else:
-                    markdown += f"    + {snap_bundles[snap_ts]['info']['name']} ({utils.get_human_time(str(snap_ts), short=True)})\n"
+                    markdown += f"    + Snapshot: {snap_bundles[snap_ts]['info']['name']} ({utils.get_human_time(str(snap_ts), short=True)})\n"
 
     blame_row = {k: v for k, v in record.items() if k in column_names}
     blame_row[_CHANGES_COL] = markdown
