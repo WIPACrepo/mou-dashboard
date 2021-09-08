@@ -221,13 +221,13 @@ class TableConfigDatabaseClient:
                 "tooltip": "LastName, FirstName",
             },
             columns.TASK_CATEGORY: {
-                "width": 100,
+                "width": 50,
                 "options": ["standard", "intro", "open", "custom"],
                 "sort_value": 15,
                 "tooltip": "The category of the task",
             },
             columns.TASK_DESCRIPTION: {
-                "width": 200,
+                "width": 250,
                 "tooltip": "A more detailed description of the task",
             },
             columns.SOURCE_OF_FUNDS_US_ONLY: {
