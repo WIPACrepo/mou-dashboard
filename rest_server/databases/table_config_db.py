@@ -183,11 +183,13 @@ class TableConfigDatabaseClient:
                 "width": 115,
                 "sort_value": 70,
                 "tooltip": "WBS Level 2 Category",
+                # NOTE - options -> get_simple_dropdown_menus()
             },
             columns.WBS_L3: {
                 "width": 115,
                 "sort_value": 60,
                 "tooltip": "WBS Level 3 Category",
+                # NOTE - conditional_parent, conditional_options -> get_conditional_dropdown_menus()
             },
             columns.US_NON_US: {
                 "width": 50,
@@ -218,9 +220,15 @@ class TableConfigDatabaseClient:
                 "sort_value": 20,
                 "tooltip": "LastName, FirstName",
             },
+            columns.TASK_CATEGORY: {
+                "width": 100,
+                "options": ["standard", "intro", "open", "custom"],
+                "sort_value": 15,
+                "tooltip": "The category of the task",
+            },
             columns.TASK_DESCRIPTION: {
-                "width": 300,
-                "tooltip": "A description of the task",
+                "width": 200,
+                "tooltip": "A more detailed description of the task",
             },
             columns.SOURCE_OF_FUNDS_US_ONLY: {
                 "width": 100,
