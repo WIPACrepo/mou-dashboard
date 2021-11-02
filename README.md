@@ -17,6 +17,7 @@ You will need to launch four servers:
 - Token Server
 - REST Server
 - Web Server
+- *Optional:* Telemetry Service (see [WIPAC Telemetry Repo](https://github.com/WIPACrepo/wipac-telemetry-prototype#wipac-telemetry-prototype))
 
 ### Launch Local MongoDB Server via Docker
 1. *(Optional)* Kill All Active MongoDB Daemons
@@ -36,6 +37,8 @@ A REST server that interfaces with a local MongoDB server *(future: also Smartsh
 #### 2. Start the Server
     python -m rest_server
 
+##### 2a. or with telemetry, instead:
+    ./resources/start-rest-server-wipactel-local.sh
 
 ### Web App
 A dashboard for managing & reporting MoU tasks
@@ -47,6 +50,9 @@ A dashboard for managing & reporting MoU tasks
 
 #### 2. Start the Server
     python -m web_app
+
+##### 2a. or with telemetry, instead:
+    ./resources/start-web-app-wipactel-local.sh
 
 #### 3. View Webpage
 Go to http://localhost:8050/
