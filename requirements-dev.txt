@@ -1,7 +1,6 @@
 flake8
 mypy
 numpy
-pandas
 pytest
 pytest-asyncio
 pytest-mock
