@@ -1,8 +1,9 @@
+flake8
+mypy
+numpy
 pytest
 pytest-asyncio
-pytest-flake8
 pytest-mock
-pytest-mypy
 requests-mock
 types-python-dateutil
 types-requests
