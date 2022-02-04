@@ -65,6 +65,7 @@ class ConfigVarsTypedDict(TypedDict, total=False):
 
     REST_SERVER_URL: str
     TOKEN_SERVER_URL: str
+    WEB_SERVER_HOST: str
     WEB_SERVER_PORT: int
     AUTH_PREFIX: str
     TOKEN_REQUEST_URL: str
