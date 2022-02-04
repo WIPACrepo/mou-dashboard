@@ -8,3 +8,4 @@ python-dateutil==2.8.1
 requests>=2.25.1
 git+https://github.com/WIPACrepo/rest-tools@v1.1.20#egg=rest_tools
 tornado==6.0.4
+xlrd==1.2.0
