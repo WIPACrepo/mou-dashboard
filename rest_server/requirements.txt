@@ -1,10 +1,11 @@
 coloredlogs>=14.0
+git+https://github.com/WIPACrepo/rest-tools@v1.1.20#egg=rest_tools
 motor==2.2.0
 nest-asyncio==1.4.1
+openpyxl==3.0.9
 pandas==1.4.0
 pymongo==3.11.0
 python-dateutil==2.8.1
 requests>=2.25.1
-git+https://github.com/WIPACrepo/rest-tools@v1.1.20#egg=rest_tools
 tornado==6.0.4
 xlrd==1.2.0
