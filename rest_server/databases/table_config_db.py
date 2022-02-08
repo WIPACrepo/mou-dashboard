@@ -120,23 +120,18 @@ class TableConfigDatabaseClient:
                     return True
             return False
 
-        # Handle inserting/updating
         try:
             from_db = self._get_most_recent_doc()
         # the db is empty!
         except DocumentNotFoundError:
-            newest = self._build_table_config_doc()
+            from_db = None
+
+        # Insert only if data has changed
+        newest = self._build_table_config_doc()
+        if from_db and doc_has_changed(from_db, newest):
             self._mongo[DB_NAME][COLLECTION_NAME].insert_one(
                 Mongofier.mongofy_document(newest)  # type: ignore[arg-type]
             )
-        # we found a doc!
-        else:
-            newest = self._build_table_config_doc()
-            # Insert, if data has changed
-            if doc_has_changed(from_db, newest):
-                self._mongo[DB_NAME][COLLECTION_NAME].insert_one(
-                    Mongofier.mongofy_document(newest)  # type: ignore[arg-type]
-                )
 
         self._doc = newest
         return self._doc
