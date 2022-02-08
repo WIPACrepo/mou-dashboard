@@ -128,7 +128,7 @@ class TableConfigDatabaseClient:
 
         def doc_has_changed(from_db: _TableConfigDoc, newest: _TableConfigDoc) -> bool:
             for field in newest.keys():
-                if field in ["timestamp"]:
+                if field in ["timestamp"]:  # skip these key(s)
                     continue
                 if newest[field] != from_db[field]:  # type: ignore[misc]
                     return True
