@@ -1,11 +1,10 @@
 """Database interface for retrieving values for the table config."""
 
 
-import copy
 import time
-from typing import Any, Dict, Final, List, Optional, Tuple, TypedDict, Union, cast
+from dataclasses import dataclass
+from typing import Any, Dict, Final, List, Tuple, TypedDict, Union, cast
 
-from bson.objectid import ObjectId  # type: ignore[import]
 from pymongo import MongoClient  # type: ignore[import]
 
 from .. import wbs
@@ -14,15 +13,6 @@ from . import columns
 
 US = "US"
 NON_US = "Non-US"
-
-
-class InstitutionMeta(TypedDict):  # NOTE: from krs
-    """Metadata schema for an institution."""
-
-    cite: str
-    abbreviation: str
-    is_US: bool
-    region: str
 
 
 class _ColumnConfigTypedDict(TypedDict, total=False):
@@ -63,7 +53,15 @@ DB_NAME = "table_config"
 COLLECTION_NAME = "cache"
 
 
-def krs_institution_dicts() -> Dict[str, InstitutionMeta]:
+@dataclass
+class Institution:
+    """Hold minimal institution data."""
+
+    name: str
+    is_us: bool
+
+
+def krs_institutions() -> List[Institution]:
     """Grab the master list of institutions along with their details.
 
     NOTE: locally importing is a stopgap measure until
@@ -79,7 +77,7 @@ def krs_institution_dicts() -> Dict[str, InstitutionMeta]:
 
 class _TableConfigDoc(TypedDict):
     column_configs: Dict[str, _ColumnConfigTypedDict]
-    institution_dicts: Dict[str, InstitutionMeta]
+    institutions: List[Institution]
     timestamp: int
 
 
@@ -88,41 +86,28 @@ class TableConfigDatabaseClient:
 
     def __init__(self, mongo_client: MongoClient) -> None:
         self._mongo = mongo_client
-        self._doc = None
-        self._doc = self.refresh_doc()
+        self._doc = self.refresh()
 
     def column_configs(self) -> Dict[str, _ColumnConfigTypedDict]:
         """The column-config dicts."""
-        return self.refresh_doc()["column_configs"]
+        return self._doc["column_configs"]
 
-    def institution_dicts(self) -> Dict[str, InstitutionMeta]:
-        """The institution dicts."""
-        return self.refresh_doc()["institution_dicts"]
+    @property
+    def institutions(self) -> List[Institution]:
+        """The institutions list."""
+        return self._doc["institutions"]
 
-    def get_most_recent_doc(self) -> Tuple[_TableConfigDoc, ObjectId]:
-        """Get doc w/ largest timestamp value, also its mongo id."""
+    def _get_most_recent_doc(self) -> _TableConfigDoc:
+        """Get doc w/ largest timestamp."""
         cursor = self._mongo[DB_NAME][COLLECTION_NAME].find()
         cursor.sort("timestamp", -1).limit(1)
         for doc in cursor:
             doc = Mongofier.demongofy_document(doc, str_id=False)
-            return cast(_TableConfigDoc, doc), doc.pop(columns.ID)
+            return cast(_TableConfigDoc, doc)
         raise DocumentNotFoundError()
 
-    def _insert_replace(
-        self, doc: _TableConfigDoc, _id: Optional[ObjectId] = None
-    ) -> None:
-        """Insert `doc` into db. If passed `_id`, replace existing doc."""
-        if _id:
-            self._mongo[DB_NAME][COLLECTION_NAME].replace_one(
-                {"_id": _id}, Mongofier.mongofy_document(doc)  # type: ignore[arg-type]
-            )
-        else:
-            self._mongo[DB_NAME][COLLECTION_NAME].insert_one(
-                Mongofier.mongofy_document(doc)  # type: ignore[arg-type]
-            )
-
-    def refresh_doc(self) -> _TableConfigDoc:
-        """Get the most recent table-config doc."""
+    def refresh(self) -> _TableConfigDoc:
+        """Get/Create the most recent table-config doc."""
         if self._doc and int(time.time()) - self._doc["timestamp"] < MAX_CACHE_AGE:
             return self._doc
 
@@ -136,46 +121,35 @@ class TableConfigDatabaseClient:
 
         # Handle inserting/updating
         try:
-            from_db, from_db_id = self.get_most_recent_doc()
+            from_db = self._get_most_recent_doc()
         # the db is empty!
         except DocumentNotFoundError:
-            newest = self.build_table_config_doc(None)
-            self._insert_replace(newest)
+            newest = self._build_table_config_doc()
+            self._mongo[DB_NAME][COLLECTION_NAME].insert_one(
+                Mongofier.mongofy_document(newest)  # type: ignore[arg-type]
+            )
         # we found a doc!
         else:
-            newest = self.build_table_config_doc(from_db)
+            newest = self._build_table_config_doc()
             # Insert, if data has changed
             if doc_has_changed(from_db, newest):
-                self._insert_replace(newest)
-            # Otherwise, just update what's already in there
-            else:
-                self._insert_replace(newest, from_db_id)
+                self._mongo[DB_NAME][COLLECTION_NAME].insert_one(
+                    Mongofier.mongofy_document(newest)  # type: ignore[arg-type]
+                )
 
         self._doc = newest
         return self._doc
 
     @staticmethod
-    def build_table_config_doc(prev_doc: Optional[_TableConfigDoc]) -> _TableConfigDoc:
-        """Build the table config doc.
-
-        If an actual `prev_doc` is passed, then incorporate
-        the institutions into the out doc. This is needed to
-        preserve institutions that are no longer in krs, but
-        are in previous MoUs.
-
-        NOTE: future development can incorporate more from
-        `prev_doc` (like `col_widths`) and process similarly.
-        """
+    def _build_table_config_doc() -> _TableConfigDoc:
+        """Build the table config doc."""
         tooltip_funding_source_value: Final[str] = (
             "This number is dependent on the Funding Source and FTE. "
             "Changing those values will affect this number."
         )
 
-        # aggregate institution dicts
-        institution_dicts = {}
-        if prev_doc:
-            institution_dicts = copy.deepcopy(prev_doc["institution_dicts"])
-        institution_dicts.update(krs_institution_dicts())
+        # TODO - get all the institutions from previous docs (non-active) & set-aggregate
+        institutions = krs_institutions()
 
         # build column-configs
         column_configs: Final[Dict[str, _ColumnConfigTypedDict]] = {
@@ -200,9 +174,7 @@ class TableConfigDatabaseClient:
             },
             columns.INSTITUTION: {
                 "width": 70,
-                "options": sorted(
-                    set(inst["abbreviation"] for inst in institution_dicts.values())
-                ),
+                "options": sorted(set(inst.name for inst in institutions)),
                 "border_left": True,
                 "sort_value": 40,
                 "tooltip": "The institution. This cannot be changed.",
@@ -318,15 +290,15 @@ class TableConfigDatabaseClient:
 
         return {
             "column_configs": column_configs,
-            "institution_dicts": institution_dicts,
+            "institutions": institutions,
             "timestamp": int(time.time()),
         }
 
-    def us_or_non_us(self, institution: str) -> str:
+    def us_or_non_us(self, inst_name: str) -> str:
         """Return "US" or "Non-US" per institution name."""
-        for inst in self.institution_dicts().values():
-            if inst["abbreviation"] == institution:
-                if inst["is_US"]:
+        for inst in self.institutions:
+            if inst.name == inst_name:
+                if inst.is_us:
                     return US
                 return NON_US
         return ""
@@ -335,22 +307,13 @@ class TableConfigDatabaseClient:
         """Get the columns."""
         return list(self.column_configs().keys())
 
-    def get_institutions_and_abbrevs(self) -> List[Tuple[str, str]]:
-        """Get the institutions and their abbreviations."""
-        abbrev_name: Dict[str, str] = {}
-        for inst, val in self.institution_dicts().items():
-            # for institutions with the same abbreviation (aka different departments)
-            # append their name
-            if val["abbreviation"] in abbrev_name:
-                abbrev_name[
-                    val["abbreviation"]
-                ] = f"{abbrev_name[val['abbreviation']]} / {inst}"
-            else:
-                abbrev_name[val["abbreviation"]] = inst
+    def get_institution_names(self) -> List[str]:
+        """Get the institutions' names."""
+        return [inst.name for inst in self.institutions]
 
-        return [(name, abbrev) for abbrev, name in abbrev_name.items()]
-
-    def get_labor_categories_and_abbrevs(self) -> List[Tuple[str, str]]:
+    def get_labor_categories_and_abbrevs(
+        self,
+    ) -> List[Tuple[str, str]]:  # pylint:disable=no-self-use
         """Get the labor categories and their abbreviations."""
         return [(name, abbrev) for abbrev, name in _LABOR_CATEGORY_DICTIONARY.items()]
 

@@ -175,13 +175,14 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
+        self.tc_db_client.refresh()
         table_config = {
             l1: {
                 "columns": self.tc_db_client.get_columns(),
                 "simple_dropdown_menus": self.tc_db_client.get_simple_dropdown_menus(
                     l1
                 ),
-                "institutions": self.tc_db_client.get_institutions_and_abbrevs(),
+                "institutions": self.tc_db_client.get_institution_names(),
                 "labor_categories": self.tc_db_client.get_labor_categories_and_abbrevs(),
                 "conditional_dropdown_menus": self.tc_db_client.get_conditional_dropdown_menus(
                     l1

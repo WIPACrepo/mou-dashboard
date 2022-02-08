@@ -644,7 +644,7 @@ class TestTableConfig:
         mock_ir.return_value = None  # no-op the db insert
 
         # assert NO call to db
-        tc_db_client.refresh_doc()
+        tc_db_client.refresh()
         mock_gmrd.assert_not_called()
         reset_mock(mock_ir, mock_gmrd)
 
@@ -654,7 +654,7 @@ class TestTableConfig:
         mock_ir.return_value = None  # no-op the db insert
 
         # assert call to db
-        tc_db_client.refresh_doc()
+        tc_db_client.refresh()
         mock_gmrd.assert_called()
         reset_mock(mock_ir, mock_gmrd)
 
