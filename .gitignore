@@ -135,5 +135,4 @@ dmypy.json
 .*#
 
 src/
-institution_list.py
 test-env-vars.sh
