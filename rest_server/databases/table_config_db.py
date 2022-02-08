@@ -88,6 +88,7 @@ class TableConfigDatabaseClient:
         self._mongo = mongo_client
         self._doc = self.refresh()
 
+    @property
     def column_configs(self) -> Dict[str, _ColumnConfigTypedDict]:
         """The column-config dicts."""
         return self._doc["column_configs"]
@@ -305,7 +306,7 @@ class TableConfigDatabaseClient:
 
     def get_columns(self) -> List[str]:
         """Get the columns."""
-        return list(self.column_configs().keys())
+        return list(self.column_configs.keys())
 
     def get_institution_names(self) -> List[str]:
         """Get the institutions' names."""
@@ -331,7 +332,7 @@ class TableConfigDatabaseClient:
         """Get the columns that are simple dropdowns, with their options."""
         ret = {
             col: config["options"]
-            for col, config in self.column_configs().items()
+            for col, config in self.column_configs.items()
             if "options" in config
         }
         ret[columns.WBS_L2] = self.get_l2_categories(l1)
@@ -347,7 +348,7 @@ class TableConfigDatabaseClient:
         """
         ret = {
             col: (config["conditional_parent"], config["conditional_options"])
-            for col, config in self.column_configs().items()
+            for col, config in self.column_configs.items()
             if ("conditional_parent" in config) and ("conditional_options" in config)
         }
         ret[columns.WBS_L3] = (columns.WBS_L2, wbs.WORK_BREAKDOWN_STRUCTURES[l1])
@@ -362,34 +363,32 @@ class TableConfigDatabaseClient:
     def get_numerics(self) -> List[str]:
         """Get the columns that have numeric data."""
         return [
-            col
-            for col, config in self.column_configs().items()
-            if config.get("numeric")
+            col for col, config in self.column_configs.items() if config.get("numeric")
         ]
 
     def get_non_editables(self) -> List[str]:
         """Get the columns that are not editable."""
         return [
             col
-            for col, config in self.column_configs().items()
+            for col, config in self.column_configs.items()
             if config.get("non_editable")
         ]
 
     def get_hiddens(self) -> List[str]:
         """Get the columns that are hidden."""
         return [
-            col for col, config in self.column_configs().items() if config.get("hidden")
+            col for col, config in self.column_configs.items() if config.get("hidden")
         ]
 
     def get_widths(self) -> Dict[str, int]:
         """Get the widths of each column."""
-        return {col: config["width"] for col, config in self.column_configs().items()}
+        return {col: config["width"] for col, config in self.column_configs.items()}
 
     def get_tooltips(self) -> Dict[str, str]:
         """Get the widths of each column."""
         return {
             col: config["tooltip"]
-            for col, config in self.column_configs().items()
+            for col, config in self.column_configs.items()
             if config.get("tooltip")
         }
 
@@ -397,7 +396,7 @@ class TableConfigDatabaseClient:
         """Get the columns that have a left border."""
         return [
             col
-            for col, config in self.column_configs().items()
+            for col, config in self.column_configs.items()
             if config.get("border_left")
         ]
 
@@ -409,7 +408,7 @@ class TableConfigDatabaseClient:
         """Get names of fields created on-the-fly, data not stored."""
         return [
             col
-            for col, config in self.column_configs().items()
+            for col, config in self.column_configs.items()
             if config.get("on_the_fly")
         ]
 
@@ -419,7 +418,7 @@ class TableConfigDatabaseClient:
 
         column_orders = {
             col: config["sort_value"]
-            for col, config in self.column_configs().items()
+            for col, config in self.column_configs.items()
             if "sort_value" in config
         }
         columns_by_precedence = sorted(
