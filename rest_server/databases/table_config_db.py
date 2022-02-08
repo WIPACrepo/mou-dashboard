@@ -57,7 +57,8 @@ COLLECTION_NAME = "cache"
 class Institution:
     """Hold minimal institution data."""
 
-    name: str
+    short_name: str
+    long_name: str
     is_us: bool
 
 
@@ -67,12 +68,16 @@ def krs_institutions() -> List[Institution]:
     NOTE: locally importing is a stopgap measure until
     the Keycloak REST Service is operational.
     """
-    # TODO: remove when krs is up and running
-    from .institution_list import (  # type: ignore[import]  # pylint:disable=C0415,E0401
-        ICECUBE_INSTS,
-    )
+    # TODO: remove when krs is up and running & replace with "has_mou" filter
+    from .institution_list import INSTITUTIONS
 
-    return ICECUBE_INSTS  # type: ignore
+    insts: List[Institution] = []
+    for inst, attrs in INSTITUTIONS.items():
+        insts.append(
+            Institution(short_name=inst, long_name=attrs["name"], is_us=attrs["is_US"])  # type: ignore[arg-type]
+        )
+
+    return insts
 
 
 class _TableConfigDoc(TypedDict):
@@ -170,7 +175,7 @@ class TableConfigDatabaseClient:
             },
             columns.INSTITUTION: {
                 "width": 70,
-                "options": sorted(set(inst.name for inst in institutions)),
+                "options": sorted(set(inst.short_name for inst in institutions)),
                 "border_left": True,
                 "sort_value": 40,
                 "tooltip": "The institution. This cannot be changed.",
@@ -293,7 +298,7 @@ class TableConfigDatabaseClient:
     def us_or_non_us(self, inst_name: str) -> str:
         """Return "US" or "Non-US" per institution name."""
         for inst in self.institutions:
-            if inst.name == inst_name:
+            if inst.short_name == inst_name:
                 if inst.is_us:
                     return US
                 return NON_US
@@ -303,9 +308,9 @@ class TableConfigDatabaseClient:
         """Get the columns."""
         return list(self.column_configs.keys())
 
-    def get_institution_names(self) -> List[str]:
-        """Get the institutions' names."""
-        return [inst.name for inst in self.institutions]
+    def get_institution_long_and_short(self) -> List[Tuple[str, str]]:
+        """Get the institutions' long-names and (regular/short) names."""
+        return [(inst.long_name, inst.short_name) for inst in self.institutions]
 
     def get_labor_categories_and_abbrevs(
         self,
