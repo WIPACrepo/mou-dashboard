@@ -112,6 +112,11 @@ class TableConfigDatabaseClient:
             return cast(_TableConfigDoc, doc)
         raise DocumentNotFoundError()
 
+    def _insert_tconfig_doc(self, doc: _TableConfigDoc) -> None:
+        self._mongo[DB_NAME][COLLECTION_NAME].insert_one(
+            Mongofier.mongofy_document(doc)  # type: ignore[arg-type]
+        )
+
     def refresh(self) -> _TableConfigDoc:
         """Get/Create the most recent table-config doc."""
         if self._doc and int(time.time()) - self._doc["timestamp"] < MAX_CACHE_AGE:
@@ -134,9 +139,7 @@ class TableConfigDatabaseClient:
         # Insert only if data has changed
         newest = self._build_table_config_doc()
         if from_db and doc_has_changed(from_db, newest):
-            self._mongo[DB_NAME][COLLECTION_NAME].insert_one(
-                Mongofier.mongofy_document(newest)  # type: ignore[arg-type]
-            )
+            self._insert_tconfig_doc(newest)
 
         self._doc = newest
         return self._doc

@@ -61,12 +61,12 @@ class TestMoUDB:  # pylint: disable=R0904
     @staticmethod
     @patch(MOU_DB_CLIENT + "._ensure_all_db_indexes")
     @patch(TC_DB_CLIENT + ".get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_replace")
-    def test_init(mock_ir: Any, mock_gmrd: Any, mock_eadi: Any) -> None:
+    @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
+    def test_init(mock_itcd: Any, mock_gmrd: Any, mock_eadi: Any) -> None:
         """Test MoUDatabaseClient.__init__()."""
         # Setup & Mock
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
-        mock_ir.return_value = None  # no-op the db insert
+        mock_itcd.return_value = None  # no-op the db insert
 
         # Call
         mou_db_client = mou_db.MoUDatabaseClient(
@@ -97,15 +97,15 @@ class TestMoUDB:  # pylint: disable=R0904
     @staticmethod
     @pytest.mark.asyncio  # type: ignore[misc]
     @patch(TC_DB_CLIENT + ".get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_replace")
+    @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
     async def test_list_database_names(
-        mock_ir: Any, mock_gmrd: Any, mock_mongo: Any
+        mock_itcd: Any, mock_gmrd: Any, mock_mongo: Any
     ) -> None:
         """Test _list_database_names()."""
         # Setup & Mock
         dbs = ["foo", "bar", "baz"] + config.EXCLUDE_DBS[:3]
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
-        mock_ir.return_value = None  # no-op the db insert
+        mock_itcd.return_value = None  # no-op the db insert
         mou_db_client = mou_db.MoUDatabaseClient(
             mock_mongo,
             utils.MoUDataAdaptor(
@@ -220,9 +220,9 @@ class TestMoUDataAdaptor:
     @patch(TC_DB_CLIENT + ".get_conditional_dropdown_menus")
     @patch(TC_DB_CLIENT + ".get_simple_dropdown_menus")
     @patch(TC_DB_CLIENT + ".get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_replace")
+    @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
     def test_validate_record_data(
-        mock_ir: Any, mock_gmrd: Any, mock_gsdm: Any, mock_gcdm: Any
+        mock_itcd: Any, mock_gmrd: Any, mock_gsdm: Any, mock_gcdm: Any
     ) -> None:
         """Test _validate_record_data()."""
         # Setup & Mock
@@ -230,7 +230,7 @@ class TestMoUDataAdaptor:
         mou_data_adaptor = utils.MoUDataAdaptor(
             table_config_db.TableConfigDatabaseClient(sentinel.mongo)
         )
-        mock_ir.return_value = None  # no-op the db insert
+        mock_itcd.return_value = None  # no-op the db insert
 
         mock_gsdm.return_value = {
             "F.o.o": ["foo-1", "foo-2"],
@@ -322,15 +322,15 @@ class TestMoUDataAdaptor:
     @staticmethod
     @patch(MOU_DATA_ADAPTOR + "._validate_record_data")
     @patch(TC_DB_CLIENT + ".get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_replace")
-    def test_mongofy_record(mock_ir: Any, mock_gmrd: Any, mock_vrd: Any) -> None:
+    @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
+    def test_mongofy_record(mock_itcd: Any, mock_gmrd: Any, mock_vrd: Any) -> None:
         """Test _mongofy_record()."""
         # Setup & Mock
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         mou_data_adaptor = utils.MoUDataAdaptor(
             table_config_db.TableConfigDatabaseClient(sentinel.mongo)
         )
-        mock_ir.return_value = None  # no-op the db insert
+        mock_itcd.return_value = None  # no-op the db insert
 
         # Set-Up
         records: List[types.Record] = [
@@ -384,15 +384,15 @@ class TestTableConfigDataAdaptor:
 
     @staticmethod
     @patch(TC_DB_CLIENT + ".get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_replace")
-    def test_remove_on_the_fly_fields(mock_ir: Any, mock_gmrd: Any) -> None:
+    @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
+    def test_remove_on_the_fly_fields(mock_itcd: Any, mock_gmrd: Any) -> None:
         """Test remove_on_the_fly_fields()."""
         # Setup & Mock
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         tc_data_adaptor = utils.TableConfigDataAdaptor(
             table_config_db.TableConfigDatabaseClient(sentinel.mongo)
         )
-        mock_ir.return_value = None  # no-op the db insert
+        mock_itcd.return_value = None  # no-op the db insert
 
         # Set-Up
         before_records: List[types.Record] = [
@@ -415,15 +415,15 @@ class TestTableConfigDataAdaptor:
 
     @staticmethod
     @patch(TC_DB_CLIENT + ".get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_replace")
-    def test_add_on_the_fly_fields(mock_ir: Any, mock_gmrd: Any) -> None:
+    @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
+    def test_add_on_the_fly_fields(mock_itcd: Any, mock_gmrd: Any) -> None:
         """Test add_on_the_fly_fields()."""
         # Setup & Mock
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         tc_data_adaptor = utils.TableConfigDataAdaptor(
             table_config_db.TableConfigDatabaseClient(sentinel.mongo)
         )
-        mock_ir.return_value = None  # no-op the db insert
+        mock_itcd.return_value = None  # no-op the db insert
 
         # Set-Up
         before_records: List[types.Record] = [
@@ -516,8 +516,8 @@ class TestTableConfigDataAdaptor:
 
     @staticmethod
     @patch(TC_DB_CLIENT + ".get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_replace")
-    def test_insert_total_rows(mock_ir: Any, mock_gmrd: Any) -> None:
+    @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
+    def test_insert_total_rows(mock_itcd: Any, mock_gmrd: Any) -> None:
         """Test insert_total_rows().
 
         No need to integration test this.
@@ -525,7 +525,7 @@ class TestTableConfigDataAdaptor:
         # Setup & Mock
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
-        mock_ir.return_value = None  # no-op the db insert
+        mock_itcd.return_value = None  # no-op the db insert
         tc_data_adaptor = utils.TableConfigDataAdaptor(tc_db_client)
 
         def _assert_funds_totals(_rows: types.Table, _total_row: types.Record) -> None:
@@ -623,45 +623,45 @@ class TestTableConfig:
 
     @staticmethod
     @patch(TC_DB_CLIENT + ".get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_replace")
+    @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
     @patch("rest_server.databases.table_config_db.MAX_CACHE_AGE", 5)
-    def test_caching(mock_ir: Any, mock_gmrd: Any) -> None:
+    def test_caching(mock_itcd: Any, mock_gmrd: Any) -> None:
         """Test functionality around `MAX_CACHE_AGE`."""
         assert table_config_db.MAX_CACHE_AGE == 5
 
         # Call #1
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
-        mock_ir.return_value = None  # no-op the db insert
+        mock_itcd.return_value = None  # no-op the db insert
 
         # assert call to db (from __init__())
         mock_gmrd.assert_called()
-        reset_mock(mock_ir, mock_gmrd)
+        reset_mock(mock_itcd, mock_gmrd)
 
         # Call #2 - before cache time limit
         time.sleep(table_config_db.MAX_CACHE_AGE / 2)
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
-        mock_ir.return_value = None  # no-op the db insert
+        mock_itcd.return_value = None  # no-op the db insert
 
         # assert NO call to db
         tc_db_client.refresh()
         mock_gmrd.assert_not_called()
-        reset_mock(mock_ir, mock_gmrd)
+        reset_mock(mock_itcd, mock_gmrd)
 
         # Call #3 - after cache time limit
         time.sleep(table_config_db.MAX_CACHE_AGE)
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
-        mock_ir.return_value = None  # no-op the db insert
+        mock_itcd.return_value = None  # no-op the db insert
 
         # assert call to db
         tc_db_client.refresh()
         mock_gmrd.assert_called()
-        reset_mock(mock_ir, mock_gmrd)
+        reset_mock(mock_itcd, mock_gmrd)
 
     @staticmethod
     @patch(TC_DB_CLIENT + ".get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_replace")
-    def test_us_or_non_us(mock_ir: Any, mock_gmrd: Any) -> None:
+    @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
+    def test_us_or_non_us(mock_itcd: Any, mock_gmrd: Any) -> None:
         """Test _us_or_non_us().
 
         Function is very simple, so also test institution-dict's format.
@@ -669,7 +669,7 @@ class TestTableConfig:
         # Setup & Mock
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
-        mock_ir.return_value = None  # no-op the db insert
+        mock_itcd.return_value = None  # no-op the db insert
 
         for inst in tc_db_client.institutions:
             assert hasattr(inst, "short_name")
