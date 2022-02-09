@@ -428,6 +428,7 @@ class TestTableConfigDataAdaptor:
             table_config_db.Institution(short_name="SKKU", long_name="", is_us=False),
             table_config_db.Institution(short_name="MERCER", long_name="", is_us=True),
             table_config_db.Institution(short_name="SUNY", long_name="", is_us=True),
+            table_config_db.Institution(short_name="UW", long_name="", is_us=True),
         ]
 
         tc_data_adaptor = utils.TableConfigDataAdaptor(
