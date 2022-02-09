@@ -61,6 +61,7 @@ class Institution:
     short_name: str
     long_name: str
     is_us: bool
+    has_mou: bool
 
 
 def krs_institutions() -> List[Institution]:
@@ -69,7 +70,7 @@ def krs_institutions() -> List[Institution]:
     NOTE: locally importing is a stopgap measure until
     the Keycloak REST Service is operational.
     """
-    # TODO: remove when krs is up and running & replace with "has_mou" filter
+    # TODO: remove when krs is up and running & DON'T use "has_mou" filter
     from .institution_list import INSTITUTIONS
 
     insts: List[Institution] = []
@@ -79,6 +80,7 @@ def krs_institutions() -> List[Institution]:
                 short_name=inst,
                 long_name=attrs["name"],
                 is_us=bool(strtobool(attrs["is_US"])),
+                has_mou=bool(strtobool(attrs["has_mou"])),
             )
         )
 
