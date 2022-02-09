@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, patch, sentinel
 sys.path.append(".")
 from rest_server.utils import types  # isort:skip  # noqa # pylint: disable=E0401,C0413
 from rest_server.databases import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
-    table_config_db,
+    table_config_cache,
     columns,
 )
 
@@ -362,16 +362,12 @@ FTE_ROWS: Final[types.Table] = [
 #
 
 
-@patch(
-    "rest_server.databases.table_config_db.TableConfigDatabaseClient.get_most_recent_doc"
-)
-@patch(
-    "rest_server.databases.table_config_db.TableConfigDatabaseClient._insert_replace"
-)
+@patch("rest_server.databases.table_config_cache.TableConfigCache.get_most_recent_doc")
+@patch("rest_server.databases.table_config_cache.TableConfigCache._insert_replace")
 def _make_fte_rows(mock_ir: Any, mock_gmrd: Any) -> None:
     # Setup & Mock
     mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
-    tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
+    tc_cache = table_config_cache.TableConfigCache(sentinel.mongo)
     mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
     rows: types.Table = []
@@ -379,7 +375,7 @@ def _make_fte_rows(mock_ir: Any, mock_gmrd: Any) -> None:
         "2.1 Program Coordination",
         "2.2 Detector Operations & Maintenance (Online)",
     ]:
-        for l3 in tc_db_client.get_l3_categories_by_l2(WBS, l2):
+        for l3 in tc_cache.get_l3_categories_by_l2(WBS, l2):
             if ".3" in l3:
                 break
             # append 2 US for each funding source
@@ -392,7 +388,7 @@ def _make_fte_rows(mock_ir: Any, mock_gmrd: Any) -> None:
                     row = {
                         columns.WBS_L2: l2,
                         columns.WBS_L3: l3,
-                        columns.US_NON_US: table_config_db.US,
+                        columns.US_NON_US: table_config_cache.US,
                     }
                     row[columns.SOURCE_OF_FUNDS_US_ONLY] = fund
                     row[columns.FTE] = random.random() * 1  # type: ignore[assignment]
@@ -401,10 +397,10 @@ def _make_fte_rows(mock_ir: Any, mock_gmrd: Any) -> None:
             # append 2 Non-US
             for _ in range(2):
                 row = {columns.WBS_L2: l2, columns.WBS_L3: l3}
-                row[columns.US_NON_US] = table_config_db.NON_US
+                row[columns.US_NON_US] = table_config_cache.NON_US
                 row[columns.SOURCE_OF_FUNDS_US_ONLY] = columns.NON_US_IN_KIND
                 row[columns.FTE] = random.random() * 1  # type: ignore[assignment]
                 rows.append(row)  # type: ignore[arg-type]
 
-    rows.sort(key=tc_db_client.sort_key)
+    rows.sort(key=tc_cache.sort_key)
     pprint.pprint(rows)

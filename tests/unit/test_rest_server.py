@@ -25,7 +25,7 @@ from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0
 )
 from rest_server.databases import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
     mou_db,
-    table_config_db,
+    table_config_cache,
     columns,
 )
 from rest_server import config  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
@@ -36,7 +36,7 @@ nest_asyncio.apply()  # allows nested event loops
 
 MOU_DB_CLIENT: Final = "rest_server.databases.mou_db.MoUDatabaseClient"
 MOTOR_CLIENT: Final = "motor.motor_tornado.MotorClient"
-TC_DB_CLIENT: Final = "rest_server.databases.table_config_db.TableConfigDatabaseClient"
+tc_cache: Final = "rest_server.databases.table_config_cache.TableConfigCache"
 MOU_DATA_ADAPTOR: Final = "rest_server.utils.utils.MoUDataAdaptor"
 WBS: Final = "mo"
 
@@ -60,8 +60,8 @@ class TestMoUDB:  # pylint: disable=R0904
 
     @staticmethod
     @patch(MOU_DB_CLIENT + "._ensure_all_db_indexes")
-    @patch(TC_DB_CLIENT + "._get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
+    @patch(tc_cache + "._get_most_recent_doc")
+    @patch(tc_cache + "._insert_tconfig_doc")
     def test_init(mock_itcd: Any, mock_gmrd: Any, mock_eadi: Any) -> None:
         """Test MoUDatabaseClient.__init__()."""
         # Setup & Mock
@@ -72,7 +72,7 @@ class TestMoUDB:  # pylint: disable=R0904
         mou_db_client = mou_db.MoUDatabaseClient(
             sentinel.mongo,
             utils.MoUDataAdaptor(
-                table_config_db.TableConfigDatabaseClient(sentinel.tc_mongo)
+                table_config_cache.TableConfigCache(sentinel.tc_mongo)
             ),
         )
 
@@ -87,7 +87,7 @@ class TestMoUDB:  # pylint: disable=R0904
         mou_db_client = mou_db.MoUDatabaseClient(
             sentinel.mongo,
             utils.MoUDataAdaptor(
-                table_config_db.TableConfigDatabaseClient(sentinel.tc_mongo)
+                table_config_cache.TableConfigCache(sentinel.tc_mongo)
             ),
         )
 
@@ -96,8 +96,8 @@ class TestMoUDB:  # pylint: disable=R0904
 
     @staticmethod
     @pytest.mark.asyncio  # type: ignore[misc]
-    @patch(TC_DB_CLIENT + "._get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
+    @patch(tc_cache + "._get_most_recent_doc")
+    @patch(tc_cache + "._insert_tconfig_doc")
     async def test_list_database_names(
         mock_itcd: Any, mock_gmrd: Any, mock_mongo: Any
     ) -> None:
@@ -109,7 +109,7 @@ class TestMoUDB:  # pylint: disable=R0904
         mou_db_client = mou_db.MoUDatabaseClient(
             mock_mongo,
             utils.MoUDataAdaptor(
-                table_config_db.TableConfigDatabaseClient(sentinel.tc_mongo)
+                table_config_cache.TableConfigCache(sentinel.tc_mongo)
             ),
         )
         mock_mongo.list_database_names.side_effect = AsyncMock(return_value=dbs)
@@ -217,10 +217,10 @@ class TestMoUDataAdaptor:
     """Test utils.MoUDataAdaptor."""
 
     @staticmethod
-    @patch(TC_DB_CLIENT + ".get_conditional_dropdown_menus")
-    @patch(TC_DB_CLIENT + ".get_simple_dropdown_menus")
-    @patch(TC_DB_CLIENT + "._get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
+    @patch(tc_cache + ".get_conditional_dropdown_menus")
+    @patch(tc_cache + ".get_simple_dropdown_menus")
+    @patch(tc_cache + "._get_most_recent_doc")
+    @patch(tc_cache + "._insert_tconfig_doc")
     def test_validate_record_data(
         mock_itcd: Any, mock_gmrd: Any, mock_gsdm: Any, mock_gcdm: Any
     ) -> None:
@@ -228,7 +228,7 @@ class TestMoUDataAdaptor:
         # Setup & Mock
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         mou_data_adaptor = utils.MoUDataAdaptor(
-            table_config_db.TableConfigDatabaseClient(sentinel.mongo)
+            table_config_cache.TableConfigCache(sentinel.mongo)
         )
         mock_itcd.return_value = None  # no-op the db insert
 
@@ -321,14 +321,14 @@ class TestMoUDataAdaptor:
 
     @staticmethod
     @patch(MOU_DATA_ADAPTOR + "._validate_record_data")
-    @patch(TC_DB_CLIENT + "._get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
+    @patch(tc_cache + "._get_most_recent_doc")
+    @patch(tc_cache + "._insert_tconfig_doc")
     def test_mongofy_record(mock_itcd: Any, mock_gmrd: Any, mock_vrd: Any) -> None:
         """Test _mongofy_record()."""
         # Setup & Mock
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         mou_data_adaptor = utils.MoUDataAdaptor(
-            table_config_db.TableConfigDatabaseClient(sentinel.mongo)
+            table_config_cache.TableConfigCache(sentinel.mongo)
         )
         mock_itcd.return_value = None  # no-op the db insert
 
@@ -383,14 +383,14 @@ class TestTableConfigDataAdaptor:
     """Test utils.TableConfigDataAdaptor."""
 
     @staticmethod
-    @patch(TC_DB_CLIENT + "._get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
+    @patch(tc_cache + "._get_most_recent_doc")
+    @patch(tc_cache + "._insert_tconfig_doc")
     def test_remove_on_the_fly_fields(mock_itcd: Any, mock_gmrd: Any) -> None:
         """Test remove_on_the_fly_fields()."""
         # Setup & Mock
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         tc_data_adaptor = utils.TableConfigDataAdaptor(
-            table_config_db.TableConfigDatabaseClient(sentinel.mongo)
+            table_config_cache.TableConfigCache(sentinel.mongo)
         )
         mock_itcd.return_value = None  # no-op the db insert
 
@@ -414,9 +414,9 @@ class TestTableConfigDataAdaptor:
             assert tc_data_adaptor.remove_on_the_fly_fields(after) == after
 
     @staticmethod
-    @patch("rest_server.databases.table_config_db.krs_institutions")
-    @patch(TC_DB_CLIENT + "._get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
+    @patch("rest_server.databases.table_config_cache.krs_institutions")
+    @patch(tc_cache + "._get_most_recent_doc")
+    @patch(tc_cache + "._insert_tconfig_doc")
     def test_add_on_the_fly_fields(
         mock_itcd: Any, mock_gmrd: Any, mock_krsi: Any
     ) -> None:
@@ -424,15 +424,19 @@ class TestTableConfigDataAdaptor:
         # Setup & Mock
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         mock_krsi.return_value = [
-            table_config_db.Institution(short_name="SBU", long_name="", is_us=True),
-            table_config_db.Institution(short_name="SKKU", long_name="", is_us=False),
-            table_config_db.Institution(short_name="MERCER", long_name="", is_us=True),
-            table_config_db.Institution(short_name="SUNY", long_name="", is_us=True),
-            table_config_db.Institution(short_name="UW", long_name="", is_us=True),
+            table_config_cache.Institution(short_name="SBU", long_name="", is_us=True),
+            table_config_cache.Institution(
+                short_name="SKKU", long_name="", is_us=False
+            ),
+            table_config_cache.Institution(
+                short_name="MERCER", long_name="", is_us=True
+            ),
+            table_config_cache.Institution(short_name="SUNY", long_name="", is_us=True),
+            table_config_cache.Institution(short_name="UW", long_name="", is_us=True),
         ]
 
         tc_data_adaptor = utils.TableConfigDataAdaptor(
-            table_config_db.TableConfigDatabaseClient(sentinel.mongo)
+            table_config_cache.TableConfigCache(sentinel.mongo)
         )
 
         mock_itcd.return_value = None  # no-op the db insert
@@ -527,8 +531,8 @@ class TestTableConfigDataAdaptor:
             )
 
     @staticmethod
-    @patch(TC_DB_CLIENT + "._get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
+    @patch(tc_cache + "._get_most_recent_doc")
+    @patch(tc_cache + "._insert_tconfig_doc")
     def test_insert_total_rows(mock_itcd: Any, mock_gmrd: Any) -> None:
         """Test insert_total_rows().
 
@@ -536,9 +540,9 @@ class TestTableConfigDataAdaptor:
         """
         # Setup & Mock
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
-        tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
+        tc_cache = table_config_cache.TableConfigCache(sentinel.mongo)
         mock_itcd.return_value = None  # no-op the db insert
-        tc_data_adaptor = utils.TableConfigDataAdaptor(tc_db_client)
+        tc_data_adaptor = utils.TableConfigDataAdaptor(tc_cache)
 
         def _assert_funds_totals(_rows: types.Table, _total_row: types.Record) -> None:
             print("\n-----------------------------------------------------\n")
@@ -624,26 +628,26 @@ class TestTableConfigDataAdaptor:
                     raise Exception(f"Unaccounted total row ({total_row}).")
 
             # Assert that every possible total is there (including rows with only 0s)
-            for l2_cat in tc_db_client.get_l2_categories(WBS):
+            for l2_cat in tc_cache.get_l2_categories(WBS):
                 assert l2_cat in set(r.get(columns.WBS_L2) for r in totals)
-                for l3_cat in tc_db_client.get_l3_categories_by_l2(WBS, l2_cat):
+                for l3_cat in tc_cache.get_l3_categories_by_l2(WBS, l2_cat):
                     assert l3_cat in set(r.get(columns.WBS_L3) for r in totals)
 
 
 class TestTableConfig:
-    """Test table_config_db.py."""
+    """Test table_config_cache.py."""
 
     @staticmethod
-    @patch(TC_DB_CLIENT + "._get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
-    @patch("rest_server.databases.table_config_db.MAX_CACHE_AGE", 5)
+    @patch(tc_cache + "._get_most_recent_doc")
+    @patch(tc_cache + "._insert_tconfig_doc")
+    @patch("rest_server.databases.table_config_cache.MAX_CACHE_AGE", 5)
     def test_caching(mock_itcd: Any, mock_gmrd: Any) -> None:
         """Test functionality around `MAX_CACHE_AGE`."""
-        assert table_config_db.MAX_CACHE_AGE == 5
+        assert table_config_cache.MAX_CACHE_AGE == 5
 
         # Call #1
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
-        tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
+        tc_cache = table_config_cache.TableConfigCache(sentinel.mongo)
         mock_itcd.return_value = None  # no-op the db insert
 
         # assert call to db (from __init__())
@@ -651,28 +655,28 @@ class TestTableConfig:
         reset_mock(mock_itcd, mock_gmrd)
 
         # Call #2 - before cache time limit
-        time.sleep(table_config_db.MAX_CACHE_AGE / 2)
+        time.sleep(table_config_cache.MAX_CACHE_AGE / 2)
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         mock_itcd.return_value = None  # no-op the db insert
 
         # assert NO call to db
-        tc_db_client.refresh()
+        tc_cache.refresh()
         mock_gmrd.assert_not_called()
         reset_mock(mock_itcd, mock_gmrd)
 
         # Call #3 - after cache time limit
-        time.sleep(table_config_db.MAX_CACHE_AGE)
+        time.sleep(table_config_cache.MAX_CACHE_AGE)
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         mock_itcd.return_value = None  # no-op the db insert
 
         # assert call to db
-        tc_db_client.refresh()
+        tc_cache.refresh()
         mock_gmrd.assert_called()
         reset_mock(mock_itcd, mock_gmrd)
 
     @staticmethod
-    @patch(TC_DB_CLIENT + "._get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
+    @patch(tc_cache + "._get_most_recent_doc")
+    @patch(tc_cache + "._insert_tconfig_doc")
     def test_us_or_non_us(mock_itcd: Any, mock_gmrd: Any) -> None:
         """Test _us_or_non_us().
 
@@ -680,15 +684,15 @@ class TestTableConfig:
         """
         # Setup & Mock
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
-        tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
+        tc_cache = table_config_cache.TableConfigCache(sentinel.mongo)
         mock_itcd.return_value = None  # no-op the db insert
 
-        for inst in tc_db_client.institutions:
+        for inst in tc_cache.institutions:
             assert hasattr(inst, "short_name")
             assert hasattr(inst, "long_name")
             assert hasattr(inst, "is_us")
             assert inst.is_us is True or inst.is_us is False
             if inst.is_us:
-                assert tc_db_client.us_or_non_us(inst.short_name) == "US"
+                assert tc_cache.us_or_non_us(inst.short_name) == "US"
             else:
-                assert tc_db_client.us_or_non_us(inst.short_name) == "Non-US"
+                assert tc_cache.us_or_non_us(inst.short_name) == "Non-US"

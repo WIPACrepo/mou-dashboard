@@ -1,15 +1,14 @@
-"""Database interface for retrieving values for the table config."""
+"""Interface for retrieving values for the table config."""
 
 
 import time
 from dataclasses import dataclass
 from distutils.util import strtobool
-from typing import Any, Dict, Final, List, Tuple, TypedDict, Union, cast
+from typing import Any, Dict, Final, List, Tuple, TypedDict, Union
 
 from pymongo import MongoClient  # type: ignore[import]
 
 from .. import wbs
-from ..utils.mongo_tools import DocumentNotFoundError, Mongofier
 from . import columns
 
 US = "US"
@@ -50,8 +49,6 @@ _LABOR_CATEGORY_DICTIONARY: Dict[str, str] = {
 }
 
 MAX_CACHE_AGE = 60 * 60  # seconds
-DB_NAME = "table_config"
-COLLECTION_NAME = "cache"
 
 
 @dataclass(frozen=True)
@@ -87,81 +84,28 @@ def krs_institutions() -> List[Institution]:
     return insts
 
 
-class _TableConfigDoc(TypedDict):
-    column_configs: Dict[str, _ColumnConfigTypedDict]
-    institutions: List[Institution]
-    timestamp: int
-
-
-class TableConfigDatabaseClient:
-    """Manage the collection and parsing of the table config(s)."""
+class TableConfigCache:
+    """Manage the collection and parsing of the table config."""
 
     def __init__(self, mongo_client: MongoClient) -> None:
         self._mongo = mongo_client
-        self._doc = self._init_doc()
-
-    @property
-    def column_configs(self) -> Dict[str, _ColumnConfigTypedDict]:
-        """The column-config dicts."""
-        return self._doc["column_configs"]
-
-    @property
-    def institutions(self) -> List[Institution]:
-        """The institutions list."""
-        return self._doc["institutions"]
-
-    def _get_most_recent_doc(self) -> _TableConfigDoc:
-        """Get doc w/ largest timestamp."""
-        cursor = self._mongo[DB_NAME][COLLECTION_NAME].find()
-        cursor.sort("timestamp", -1).limit(1)
-        for doc in cursor:
-            doc = Mongofier.demongofy_document(doc, str_id=False)
-            return cast(_TableConfigDoc, doc)
-        raise DocumentNotFoundError()
-
-    def _insert_tconfig_doc(self, doc: _TableConfigDoc) -> None:
-        self._mongo[DB_NAME][COLLECTION_NAME].insert_one(
-            Mongofier.mongofy_document(doc)  # type: ignore[arg-type]
-        )
+        self.column_configs, self.institutions = self._build()
+        self._timestamp = int(time.time())
 
     def refresh(self) -> None:
         """Get/Create the most recent table-config doc."""
-        if self._doc and int(time.time()) - self._doc["timestamp"] < MAX_CACHE_AGE:
+        if int(time.time()) - self._timestamp < MAX_CACHE_AGE:
             return
-        self._init_doc()
-
-    def _init_doc(self) -> _TableConfigDoc:
-        def doc_has_changed(from_db: _TableConfigDoc, newest: _TableConfigDoc) -> bool:
-            for field in newest.keys():
-                if field in ["timestamp"]:  # skip these key(s)
-                    continue
-                if newest[field] != from_db[field]:  # type: ignore[misc]
-                    return True
-            return False
-
-        try:
-            from_db = self._get_most_recent_doc()
-        # the db is empty!
-        except DocumentNotFoundError:
-            from_db = None
-
-        # Insert only if data has changed
-        newest = self._build_table_config_doc()
-        if from_db and doc_has_changed(from_db, newest):
-            self._insert_tconfig_doc(newest)
-
-        self._doc = newest
-        return self._doc
+        self.column_configs, self.institutions = self._build()
 
     @staticmethod
-    def _build_table_config_doc() -> _TableConfigDoc:
-        """Build the table config doc."""
+    def _build() -> Tuple[Dict[str, _ColumnConfigTypedDict], List[Institution]]:
+        """Build the table config."""
         tooltip_funding_source_value: Final[str] = (
             "This number is dependent on the Funding Source and FTE. "
             "Changing those values will affect this number."
         )
 
-        # TODO - get all the institutions from previous docs (non-active) & set-aggregate
         institutions = krs_institutions()
 
         # build column-configs
@@ -301,11 +245,7 @@ class TableConfigDatabaseClient:
             },
         }
 
-        return {
-            "column_configs": column_configs,
-            "institutions": institutions,
-            "timestamp": int(time.time()),
-        }
+        return column_configs, institutions
 
     def us_or_non_us(self, inst_name: str) -> str:
         """Return "US" or "Non-US" per institution name."""

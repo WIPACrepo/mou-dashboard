@@ -98,18 +98,18 @@ class MoUDatabaseClient:
         for row in raw_table:
             # check for extra keys
             if not all(
-                k in self.data_adaptor.tc_db_client.get_columns() for k in row.keys()
+                k in self.data_adaptor.tc_cache.get_columns() for k in row.keys()
             ):
                 raise web.HTTPError(
                     422,
                     reason=f"Table not in correct format: "
                     f"XLSX's KEYS={row.keys()} vs "
-                    f"ALLOWABLE KEYS={self.data_adaptor.tc_db_client.get_columns()})",
+                    f"ALLOWABLE KEYS={self.data_adaptor.tc_cache.get_columns()})",
                 )
 
         # mongofy table -- and verify data
         try:
-            tc_adaptor = TableConfigDataAdaptor(self.data_adaptor.tc_db_client)
+            tc_adaptor = TableConfigDataAdaptor(self.data_adaptor.tc_cache)
             table: types.Table = [
                 self.data_adaptor.mongofy_record(
                     wbs_db,
