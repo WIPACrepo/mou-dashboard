@@ -414,9 +414,12 @@ class TestTableConfigDataAdaptor:
             assert tc_data_adaptor.remove_on_the_fly_fields(after) == after
 
     @staticmethod
+    @patch("rest_server.databases.table_config_db.krs_institutions")
     @patch(TC_DB_CLIENT + "._get_most_recent_doc")
     @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
-    def test_add_on_the_fly_fields(mock_itcd: Any, mock_gmrd: Any) -> None:
+    def test_add_on_the_fly_fields(
+        mock_krsi: Any, mock_itcd: Any, mock_gmrd: Any
+    ) -> None:
         """Test add_on_the_fly_fields()."""
         # Setup & Mock
         mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
@@ -424,6 +427,13 @@ class TestTableConfigDataAdaptor:
             table_config_db.TableConfigDatabaseClient(sentinel.mongo)
         )
         mock_itcd.return_value = None  # no-op the db insert
+
+        mock_krsi.return_value = [
+            table_config_db.Institution(short_name="SBU", long_name="", is_us=True),
+            table_config_db.Institution(short_name="SKKU", long_name="", is_us=False),
+            table_config_db.Institution(short_name="MERCER", long_name="", is_us=True),
+            table_config_db.Institution(short_name="SUNY", long_name="", is_us=True),
+        ]
 
         # Set-Up
         before_records: List[types.Record] = [
