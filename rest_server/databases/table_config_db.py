@@ -53,7 +53,7 @@ DB_NAME = "table_config"
 COLLECTION_NAME = "cache"
 
 
-@dataclass
+@dataclass(frozen=True)
 class Institution:
     """Hold minimal institution data."""
 
