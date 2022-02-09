@@ -91,6 +91,7 @@ class TableConfigDatabaseClient:
 
     def __init__(self, mongo_client: MongoClient) -> None:
         self._mongo = mongo_client
+        self._doc = None  # needed to prime self.refresh()
         self._doc = self.refresh()
 
     @property
