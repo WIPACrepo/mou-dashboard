@@ -418,7 +418,7 @@ class TestTableConfigDataAdaptor:
     @patch(TC_DB_CLIENT + "._get_most_recent_doc")
     @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
     def test_add_on_the_fly_fields(
-        mock_krsi: Any, mock_itcd: Any, mock_gmrd: Any
+        mock_itcd: Any, mock_gmrd: Any, mock_krsi: Any
     ) -> None:
         """Test add_on_the_fly_fields()."""
         # Setup & Mock
