@@ -9,7 +9,6 @@ jobs:
       - checkout
       - run: |
           python3 -m virtualenv -p python3 env && . env/bin/activate && pip install --upgrade pip
-          curl https://raw.githubusercontent.com/WIPACrepo/keycloak-rest-services/master/keycloak_setup/institution_list.py > rest_server/databases/institution_list.py
           pip install -r rest_server/requirements.txt -r web_app/requirements.txt -r requirements-dev.txt
           pytest -vvv tests/unit
 
@@ -27,7 +26,6 @@ jobs:
       - run:
           command: |
             python3 -m virtualenv -p python3 env_rest && . env_rest/bin/activate && pip install --upgrade pip
-            curl https://raw.githubusercontent.com/WIPACrepo/keycloak-rest-services/master/keycloak_setup/institution_list.py > rest_server/databases/institution_list.py
             pip install -r rest_server/requirements.txt
             python3 -m rest_server
           background: true
