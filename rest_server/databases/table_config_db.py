@@ -3,6 +3,7 @@
 
 import time
 from dataclasses import dataclass
+from distutils.util import strtobool
 from typing import Any, Dict, Final, List, Tuple, TypedDict, Union, cast
 
 from pymongo import MongoClient  # type: ignore[import]
@@ -74,7 +75,11 @@ def krs_institutions() -> List[Institution]:
     insts: List[Institution] = []
     for inst, attrs in INSTITUTIONS.items():
         insts.append(
-            Institution(short_name=inst, long_name=attrs["name"], is_us=attrs["is_US"])  # type: ignore[arg-type]
+            Institution(
+                short_name=inst,
+                long_name=attrs["name"],
+                is_us=bool(strtobool(attrs["is_US"])),
+            )
         )
 
     return insts
