@@ -671,11 +671,12 @@ class TestTableConfig:
         tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
         mock_ir.return_value = None  # no-op the db insert
 
-        for inst in tc_db_client.institution_dicts().values():
-            assert "abbreviation" in inst
-            assert "is_US" in inst
-            assert inst["is_US"] is True or inst["is_US"] is False
-            if inst["is_US"]:
-                assert tc_db_client.us_or_non_us(inst["abbreviation"]) == "US"
+        for inst in tc_db_client.institutions:
+            assert hasattr(inst, "short_name")
+            assert hasattr(inst, "long_name")
+            assert hasattr(inst, "is_us")
+            assert inst.is_us is True or inst.is_us is False
+            if inst.is_us:
+                assert tc_db_client.us_or_non_us(inst.short_name) == "US"
             else:
-                assert tc_db_client.us_or_non_us(inst["abbreviation"]) == "Non-US"
+                assert tc_db_client.us_or_non_us(inst.short_name) == "Non-US"
