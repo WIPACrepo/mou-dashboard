@@ -91,8 +91,7 @@ class TableConfigDatabaseClient:
 
     def __init__(self, mongo_client: MongoClient) -> None:
         self._mongo = mongo_client
-        self._doc = None  # needed to prime self.refresh()
-        self._doc = self.refresh()
+        self._doc = self._init_doc()
 
     @property
     def column_configs(self) -> Dict[str, _ColumnConfigTypedDict]:
@@ -118,11 +117,13 @@ class TableConfigDatabaseClient:
             Mongofier.mongofy_document(doc)  # type: ignore[arg-type]
         )
 
-    def refresh(self) -> _TableConfigDoc:
+    def refresh(self) -> None:
         """Get/Create the most recent table-config doc."""
         if self._doc and int(time.time()) - self._doc["timestamp"] < MAX_CACHE_AGE:
-            return self._doc
+            return
+        self._init_doc()
 
+    def _init_doc(self) -> _TableConfigDoc:
         def doc_has_changed(from_db: _TableConfigDoc, newest: _TableConfigDoc) -> bool:
             for field in newest.keys():
                 if field in ["timestamp"]:  # skip these key(s)
