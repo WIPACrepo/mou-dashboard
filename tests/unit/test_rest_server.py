@@ -60,7 +60,7 @@ class TestMoUDB:  # pylint: disable=R0904
 
     @staticmethod
     @patch(MOU_DB_CLIENT + "._ensure_all_db_indexes")
-    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._get_most_recent_doc")
     @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
     def test_init(mock_itcd: Any, mock_gmrd: Any, mock_eadi: Any) -> None:
         """Test MoUDatabaseClient.__init__()."""
@@ -96,7 +96,7 @@ class TestMoUDB:  # pylint: disable=R0904
 
     @staticmethod
     @pytest.mark.asyncio  # type: ignore[misc]
-    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._get_most_recent_doc")
     @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
     async def test_list_database_names(
         mock_itcd: Any, mock_gmrd: Any, mock_mongo: Any
@@ -219,7 +219,7 @@ class TestMoUDataAdaptor:
     @staticmethod
     @patch(TC_DB_CLIENT + ".get_conditional_dropdown_menus")
     @patch(TC_DB_CLIENT + ".get_simple_dropdown_menus")
-    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._get_most_recent_doc")
     @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
     def test_validate_record_data(
         mock_itcd: Any, mock_gmrd: Any, mock_gsdm: Any, mock_gcdm: Any
@@ -321,7 +321,7 @@ class TestMoUDataAdaptor:
 
     @staticmethod
     @patch(MOU_DATA_ADAPTOR + "._validate_record_data")
-    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._get_most_recent_doc")
     @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
     def test_mongofy_record(mock_itcd: Any, mock_gmrd: Any, mock_vrd: Any) -> None:
         """Test _mongofy_record()."""
@@ -383,7 +383,7 @@ class TestTableConfigDataAdaptor:
     """Test utils.TableConfigDataAdaptor."""
 
     @staticmethod
-    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._get_most_recent_doc")
     @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
     def test_remove_on_the_fly_fields(mock_itcd: Any, mock_gmrd: Any) -> None:
         """Test remove_on_the_fly_fields()."""
@@ -414,7 +414,7 @@ class TestTableConfigDataAdaptor:
             assert tc_data_adaptor.remove_on_the_fly_fields(after) == after
 
     @staticmethod
-    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._get_most_recent_doc")
     @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
     def test_add_on_the_fly_fields(mock_itcd: Any, mock_gmrd: Any) -> None:
         """Test add_on_the_fly_fields()."""
@@ -515,7 +515,7 @@ class TestTableConfigDataAdaptor:
             )
 
     @staticmethod
-    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._get_most_recent_doc")
     @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
     def test_insert_total_rows(mock_itcd: Any, mock_gmrd: Any) -> None:
         """Test insert_total_rows().
@@ -622,7 +622,7 @@ class TestTableConfig:
     """Test table_config_db.py."""
 
     @staticmethod
-    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._get_most_recent_doc")
     @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
     @patch("rest_server.databases.table_config_db.MAX_CACHE_AGE", 5)
     def test_caching(mock_itcd: Any, mock_gmrd: Any) -> None:
@@ -659,7 +659,7 @@ class TestTableConfig:
         reset_mock(mock_itcd, mock_gmrd)
 
     @staticmethod
-    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
+    @patch(TC_DB_CLIENT + "._get_most_recent_doc")
     @patch(TC_DB_CLIENT + "._insert_tconfig_doc")
     def test_us_or_non_us(mock_itcd: Any, mock_gmrd: Any) -> None:
         """Test _us_or_non_us().
