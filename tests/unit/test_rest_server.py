@@ -616,6 +616,7 @@ class TestTableConfig:
         assert table_config_cache.MAX_CACHE_AGE == 5
 
         # Call #1
+        mock_b.return_value = (Mock(), Mock())
         tc_cache = table_config_cache.TableConfigCache(sentinel.mongo)
 
         # assert call to db (from __init__())
@@ -624,17 +625,18 @@ class TestTableConfig:
 
         # Call #2 - before cache time limit
         time.sleep(table_config_cache.MAX_CACHE_AGE / 2)
+        tc_cache.refresh()
 
         # assert NO call to source
-        tc_cache.refresh()
         mock_b.assert_not_called()
         reset_mock(mock_b)
 
         # Call #3 - after cache time limit
         time.sleep(table_config_cache.MAX_CACHE_AGE)
+        mock_b.return_value = (Mock(), Mock())
+        tc_cache.refresh()
 
         # assert call to source
-        tc_cache.refresh()
         mock_b.assert_called()
         reset_mock(mock_b)
 
