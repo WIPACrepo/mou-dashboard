@@ -101,6 +101,7 @@ class TableConfigCache:
         if int(time.time()) - self._timestamp < MAX_CACHE_AGE:
             return
         self.column_configs, self.institutions = self._build()
+        self._timestamp = int(time.time())
 
     @staticmethod
     def _build() -> Tuple[Dict[str, _ColumnConfigTypedDict], List[Institution]]:
