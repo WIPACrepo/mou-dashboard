@@ -67,9 +67,7 @@ class TestMoUDB:  # pylint: disable=R0904
         # Call
         mou_db_client = mou_db.MoUDatabaseClient(
             sentinel.mongo,
-            utils.MoUDataAdaptor(
-                table_config_cache.TableConfigCache(sentinel.tc_mongo)
-            ),
+            utils.MoUDataAdaptor(table_config_cache.TableConfigCache()),
         )
 
         # Assert
@@ -82,9 +80,7 @@ class TestMoUDB:  # pylint: disable=R0904
         # Call
         mou_db_client = mou_db.MoUDatabaseClient(
             sentinel.mongo,
-            utils.MoUDataAdaptor(
-                table_config_cache.TableConfigCache(sentinel.tc_mongo)
-            ),
+            utils.MoUDataAdaptor(table_config_cache.TableConfigCache()),
         )
 
         # Assert
@@ -98,9 +94,7 @@ class TestMoUDB:  # pylint: disable=R0904
         dbs = ["foo", "bar", "baz"] + config.EXCLUDE_DBS[:3]
         mou_db_client = mou_db.MoUDatabaseClient(
             mock_mongo,
-            utils.MoUDataAdaptor(
-                table_config_cache.TableConfigCache(sentinel.tc_mongo)
-            ),
+            utils.MoUDataAdaptor(table_config_cache.TableConfigCache()),
         )
         mock_mongo.list_database_names.side_effect = AsyncMock(return_value=dbs)
 
@@ -212,9 +206,7 @@ class TestMoUDataAdaptor:
     def test_validate_record_data(mock_gsdm: Any, mock_gcdm: Any) -> None:
         """Test _validate_record_data()."""
         # Setup & Mock
-        mou_data_adaptor = utils.MoUDataAdaptor(
-            table_config_cache.TableConfigCache(sentinel.mongo)
-        )
+        mou_data_adaptor = utils.MoUDataAdaptor(table_config_cache.TableConfigCache())
 
         mock_gsdm.return_value = {
             "F.o.o": ["foo-1", "foo-2"],
@@ -308,9 +300,7 @@ class TestMoUDataAdaptor:
     def test_mongofy_record(mock_vrd: Any) -> None:
         """Test _mongofy_record()."""
         # Setup & Mock
-        mou_data_adaptor = utils.MoUDataAdaptor(
-            table_config_cache.TableConfigCache(sentinel.mongo)
-        )
+        mou_data_adaptor = utils.MoUDataAdaptor(table_config_cache.TableConfigCache())
 
         # Set-Up
         records: List[types.Record] = [
@@ -367,7 +357,7 @@ class TestTableConfigDataAdaptor:
         """Test remove_on_the_fly_fields()."""
         # Setup & Mock
         tc_data_adaptor = utils.TableConfigDataAdaptor(
-            table_config_cache.TableConfigCache(sentinel.mongo)
+            table_config_cache.TableConfigCache()
         )
 
         # Set-Up
@@ -413,7 +403,7 @@ class TestTableConfigDataAdaptor:
         ]
 
         tc_data_adaptor = utils.TableConfigDataAdaptor(
-            table_config_cache.TableConfigCache(sentinel.mongo)
+            table_config_cache.TableConfigCache()
         )
 
         # Set-Up
@@ -512,7 +502,7 @@ class TestTableConfigDataAdaptor:
         No need to integration test this.
         """
         # Setup & Mock
-        tc_cache = table_config_cache.TableConfigCache(sentinel.mongo)
+        tc_cache = table_config_cache.TableConfigCache()
         tc_data_adaptor = utils.TableConfigDataAdaptor(tc_cache)
 
         def _assert_funds_totals(_rows: types.Table, _total_row: types.Record) -> None:
@@ -617,7 +607,7 @@ class TestTableConfig:
 
         # Call #1
         mock_b.return_value = (Mock(), Mock())
-        tc_cache = table_config_cache.TableConfigCache(sentinel.mongo)
+        tc_cache = table_config_cache.TableConfigCache()
 
         # assert call to db (from __init__())
         mock_b.assert_called()
@@ -647,7 +637,7 @@ class TestTableConfig:
         Function is very simple, so also test institution-dict's format.
         """
         # Setup & Mock
-        tc_cache = table_config_cache.TableConfigCache(sentinel.mongo)
+        tc_cache = table_config_cache.TableConfigCache()
 
         for inst in tc_cache.institutions:
             assert hasattr(inst, "short_name")
