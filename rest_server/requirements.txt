@@ -1,6 +1,6 @@
 coloredlogs>=14.0
 git+https://github.com/WIPACrepo/keycloak-rest-services@v1.1.14#egg=krs
-git+https://github.com/WIPACrepo/rest-tools@v1.1.20#egg=rest_tools
+https://github.com/WIPACrepo/rest-tools/archive/refs/tags/v1.1.20.zip
 motor==2.2.0
 nest-asyncio==1.4.1
 openpyxl==3.0.9
