@@ -367,7 +367,7 @@ FTE_ROWS: Final[types.Table] = [
 def _make_fte_rows(mock_ir: Any, mock_gmrd: Any) -> None:
     # Setup & Mock
     mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
-    tc_cache = table_config_cache.TableConfigCache(sentinel.mongo)
+    tc_cache = table_config_cache.TableConfigCache()
     mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
     rows: types.Table = []
