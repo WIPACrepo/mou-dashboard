@@ -1,11 +1,12 @@
 """Testing data."""
 
-
 import pprint
 import random
 import sys
 from typing import Any, Final
-from unittest.mock import AsyncMock, patch, sentinel
+from unittest.mock import AsyncMock, patch
+
+from .. import institution_list
 
 sys.path.append(".")
 from rest_server.utils import types  # isort:skip  # noqa # pylint: disable=E0401,C0413
@@ -13,6 +14,7 @@ from rest_server.databases import (  # isort:skip  # noqa # pylint: disable=E040
     table_config_cache,
     columns,
 )
+
 
 WBS: Final[str] = "mo"
 
@@ -362,10 +364,12 @@ FTE_ROWS: Final[types.Table] = [
 #
 
 
+@patch("krs.institutions.list_insts_flat")
 @patch("rest_server.databases.table_config_cache.TableConfigCache.get_most_recent_doc")
 @patch("rest_server.databases.table_config_cache.TableConfigCache._insert_replace")
-def _make_fte_rows(mock_ir: Any, mock_gmrd: Any) -> None:
+def _make_fte_rows(mock_ir: Any, mock_gmrd: Any, mock_lif: Any) -> None:
     # Setup & Mock
+    mock_lif.side_effect = AsyncMock(return_value=institution_list.INSTITUTIONS)
     mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
     tc_cache = table_config_cache.TableConfigCache()
     mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
