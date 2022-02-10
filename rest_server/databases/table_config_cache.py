@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from distutils.util import strtobool
 from typing import Any, Dict, Final, List, Tuple, TypedDict, Union
 
-from krs import institutions, token
+from krs import institutions, token  # type: ignore[import]
 from pymongo import MongoClient  # type: ignore[import]
 
 from .. import wbs
