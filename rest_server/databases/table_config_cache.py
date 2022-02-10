@@ -1,11 +1,13 @@
 """Interface for retrieving values for the table config."""
 
 
+import asyncio
 import time
 from dataclasses import dataclass
 from distutils.util import strtobool
 from typing import Any, Dict, Final, List, Tuple, TypedDict, Union
 
+from krs import institutions, token
 from pymongo import MongoClient  # type: ignore[import]
 
 from .. import wbs
@@ -62,16 +64,18 @@ class Institution:
 
 
 def krs_institutions() -> List[Institution]:
-    """Grab the master list of institutions along with their details.
+    """Grab the master list of institutions along with their details."""
+    rc = token.get_rest_client()
 
-    NOTE: locally importing is a stopgap measure until
-    the Keycloak REST Service is operational.
-    """
-    # TODO: remove when krs is up and running & DON'T use "has_mou" filter
-    from .institution_list import INSTITUTIONS
+    response = asyncio.get_event_loop().run_until_complete(
+        institutions.list_insts_flat(
+            filter_func=lambda _, attrs: attrs.get("has_mou", "") == "true",
+            rest_client=rc,
+        )
+    )
 
     insts: List[Institution] = []
-    for inst, attrs in INSTITUTIONS.items():
+    for inst, attrs in response.items():
         insts.append(
             Institution(
                 short_name=inst,
