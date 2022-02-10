@@ -7,7 +7,8 @@ from dataclasses import dataclass
 from distutils.util import strtobool
 from typing import Any, Dict, Final, List, Tuple, TypedDict, Union
 
-from krs import institutions, token  # type: ignore[import]
+from krs import institutions as krs_institutions  # type: ignore[import]
+from krs import token
 from pymongo import MongoClient  # type: ignore[import]
 
 from .. import wbs
@@ -63,12 +64,12 @@ class Institution:
     has_mou: bool
 
 
-def krs_institutions() -> List[Institution]:
+def request_krs_institutions() -> List[Institution]:
     """Grab the master list of institutions along with their details."""
     rc = token.get_rest_client()
 
     response = asyncio.get_event_loop().run_until_complete(
-        institutions.list_insts_flat(
+        krs_institutions.list_insts_flat(
             filter_func=lambda _, attrs: attrs.get("has_mou", "") == "true",
             rest_client=rc,
         )
@@ -111,7 +112,7 @@ class TableConfigCache:
             "Changing those values will affect this number."
         )
 
-        institutions = krs_institutions()
+        institutions = request_krs_institutions()
 
         # build column-configs
         column_configs: Final[Dict[str, _ColumnConfigTypedDict]] = {
