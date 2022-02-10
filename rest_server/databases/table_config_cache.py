@@ -9,7 +9,6 @@ from typing import Any, Dict, Final, List, Tuple, TypedDict, Union
 
 from krs import institutions as krs_institutions  # type: ignore[import]
 from krs import token
-from pymongo import MongoClient  # type: ignore[import]
 
 from .. import wbs
 from . import columns
@@ -92,8 +91,7 @@ def request_krs_institutions() -> List[Institution]:
 class TableConfigCache:
     """Manage the collection and parsing of the table config."""
 
-    def __init__(self, mongo_client: MongoClient) -> None:
-        self._mongo = mongo_client
+    def __init__(self) -> None:
         self.column_configs, self.institutions = self._build()
         self._timestamp = int(time.time())
 

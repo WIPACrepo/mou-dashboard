@@ -6,7 +6,6 @@ import logging
 from typing import Any
 
 from motor.motor_tornado import MotorClient  # type: ignore
-from pymongo import MongoClient  # type: ignore[import]
 from rest_tools.server import RestHandler, handler  # type: ignore
 
 from . import wbs
@@ -32,7 +31,7 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
         """Initialize a BaseMoUHandler object."""
         super().initialize(*args, **kwargs)
         # pylint: disable=W0201
-        self.tc_cache = table_config_cache.TableConfigCache(MongoClient(mongodb_url))
+        self.tc_cache = table_config_cache.TableConfigCache()
         self.mou_db_client = mou_db.MoUDatabaseClient(
             MotorClient(mongodb_url), utils.MoUDataAdaptor(self.tc_cache)
         )
