@@ -81,7 +81,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
     parser.add_argument(
-        "--testing-dummy-krs",
+        "--override-krs-insts",
         default=None,
         help="Don't actually connect to krs. Read from this json file instead.",
     )
@@ -89,12 +89,12 @@ if __name__ == "__main__":
 
     coloredlogs.install(level=getattr(logging, _args.log.upper()))
 
-    if _args.testing_dummy_krs:
+    if _args.override_krs_insts:
         import json
 
         from .databases import table_config_cache as tcc
 
-        with open(_args.testing_dummy_krs) as f:
+        with open(_args.override_krs_insts) as f:
             json_insts = json.load(f)
         tcc.request_krs_institutions = lambda: tcc.convert_krs_institutions(json_insts)
 
