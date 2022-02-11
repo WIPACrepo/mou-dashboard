@@ -83,7 +83,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--override-krs-insts",
         default=None,
-        help="Don't actually connect to krs. Read from this json file instead.",
+        help="Don't actually connect to krs. Read from this json file instead. "
+        "This is meant for testing only.",
     )
     _args = parser.parse_args()
 
@@ -94,6 +95,9 @@ if __name__ == "__main__":
 
         from .databases import table_config_cache as tcc
 
+        logging.warning(
+            f"Using Overriding KRS Institution Data: {_args.override_krs_insts}"
+        )
         with open(_args.override_krs_insts) as f:
             json_insts = json.load(f)
         tcc.request_krs_institutions = lambda: tcc.convert_krs_institutions(json_insts)
