@@ -1,4 +1,7 @@
-"""Integration test rest_server module."""
+"""Integration test rest_server module.
+
+NOTE: THESE TESTS NEED TO RUN IN ORDER -- STATE DEPENDENT
+"""
 
 
 # pylint: disable=W0212,W0621
@@ -37,7 +40,7 @@ def test_ingest(ds_rc: RestClient) -> None:
 
     NOTE: Execute first, so other tests have data in the db.
     """
-    filename = "./tests/integration/WBS.xlsx"
+    filename = "./tests/integration/Dummy_WBS.xlsx"
     with open(filename, "rb") as f:
         base64_bin = base64.b64encode(f.read())
         base64_file = base64_bin.decode(encoding="utf-8")

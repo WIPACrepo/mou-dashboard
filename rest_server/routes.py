@@ -6,12 +6,11 @@ import logging
 from typing import Any
 
 from motor.motor_tornado import MotorClient  # type: ignore
-from pymongo import MongoClient  # type: ignore[import]
 from rest_tools.server import RestHandler, handler  # type: ignore
 
 from . import wbs
 from .config import AUTH_PREFIX
-from .databases import columns, mou_db, table_config_db
+from .databases import columns, mou_db, table_config_cache
 from .utils import types, utils
 
 _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
@@ -32,13 +31,11 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
         """Initialize a BaseMoUHandler object."""
         super().initialize(*args, **kwargs)
         # pylint: disable=W0201
-        self.tc_db_client = table_config_db.TableConfigDatabaseClient(
-            MongoClient(mongodb_url)
-        )
+        self.tc_cache = table_config_cache.TableConfigCache()
         self.mou_db_client = mou_db.MoUDatabaseClient(
-            MotorClient(mongodb_url), utils.MoUDataAdaptor(self.tc_db_client)
+            MotorClient(mongodb_url), utils.MoUDataAdaptor(self.tc_cache)
         )
-        self.tc_data_adaptor = utils.TableConfigDataAdaptor(self.tc_db_client)
+        self.tc_data_adaptor = utils.TableConfigDataAdaptor(self.tc_cache)
 
 
 # -----------------------------------------------------------------------------
@@ -93,7 +90,7 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
             )
 
         # sort
-        table.sort(key=self.tc_db_client.sort_key)
+        table.sort(key=self.tc_cache.sort_key)
 
         self.write({"table": table})
 
@@ -175,25 +172,24 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
+        self.tc_cache.refresh()
         table_config = {
             l1: {
-                "columns": self.tc_db_client.get_columns(),
-                "simple_dropdown_menus": self.tc_db_client.get_simple_dropdown_menus(
+                "columns": self.tc_cache.get_columns(),
+                "simple_dropdown_menus": self.tc_cache.get_simple_dropdown_menus(l1),
+                "institutions": self.tc_cache.get_institution_long_and_short(),
+                "labor_categories": self.tc_cache.get_labor_categories_and_abbrevs(),
+                "conditional_dropdown_menus": self.tc_cache.get_conditional_dropdown_menus(
                     l1
                 ),
-                "institutions": self.tc_db_client.get_institutions_and_abbrevs(),
-                "labor_categories": self.tc_db_client.get_labor_categories_and_abbrevs(),
-                "conditional_dropdown_menus": self.tc_db_client.get_conditional_dropdown_menus(
-                    l1
-                ),
-                "dropdowns": self.tc_db_client.get_dropdowns(l1),
-                "numerics": self.tc_db_client.get_numerics(),
-                "non_editables": self.tc_db_client.get_non_editables(),
-                "hiddens": self.tc_db_client.get_hiddens(),
-                "tooltips": self.tc_db_client.get_tooltips(),
-                "widths": self.tc_db_client.get_widths(),
-                "border_left_columns": self.tc_db_client.get_border_left_columns(),
-                "page_size": self.tc_db_client.get_page_size(),
+                "dropdowns": self.tc_cache.get_dropdowns(l1),
+                "numerics": self.tc_cache.get_numerics(),
+                "non_editables": self.tc_cache.get_non_editables(),
+                "hiddens": self.tc_cache.get_hiddens(),
+                "tooltips": self.tc_cache.get_tooltips(),
+                "widths": self.tc_cache.get_widths(),
+                "border_left_columns": self.tc_cache.get_border_left_columns(),
+                "page_size": self.tc_cache.get_page_size(),
             }
             for l1 in wbs.WORK_BREAKDOWN_STRUCTURES.keys()  # pylint:disable=C0201
         }

@@ -13,7 +13,5 @@ COPY --chown=app:app . .
 
 ENV PYTHONPATH=/home/app
 
-RUN curl https://raw.githubusercontent.com/WIPACrepo/keycloak-rest-services/master/keycloak_setup/institution_list.py > rest_server/databases/institution_list.py
-
 CMD ["python", "-m", "rest_server"]
 CMD ["python", "-m", "web_app"]

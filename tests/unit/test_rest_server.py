@@ -15,6 +15,7 @@ import nest_asyncio  # type: ignore[import]
 import pytest
 from bson.objectid import ObjectId  # type: ignore[import]
 
+from .. import institution_list
 from . import data
 
 sys.path.append(".")
@@ -25,7 +26,7 @@ from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0
 )
 from rest_server.databases import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
     mou_db,
-    table_config_db,
+    table_config_cache,
     columns,
 )
 from rest_server import config  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
@@ -34,9 +35,11 @@ from rest_server import config  # isort:skip  # noqa # pylint: disable=E0401,C04
 nest_asyncio.apply()  # allows nested event loops
 
 
+KRS_INSTS: Final = "krs.institutions.list_insts_flat"
+KRS_TOKEN: Final = "krs.token.get_rest_client"
 MOU_DB_CLIENT: Final = "rest_server.databases.mou_db.MoUDatabaseClient"
 MOTOR_CLIENT: Final = "motor.motor_tornado.MotorClient"
-TC_DB_CLIENT: Final = "rest_server.databases.table_config_db.TableConfigDatabaseClient"
+TC_CACHE: Final = "rest_server.databases.table_config_cache.TableConfigCache"
 MOU_DATA_ADAPTOR: Final = "rest_server.utils.utils.MoUDataAdaptor"
 WBS: Final = "mo"
 
@@ -59,21 +62,17 @@ class TestMoUDB:  # pylint: disable=R0904
     """Test private methods in mou_db.py."""
 
     @staticmethod
+    @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
+    @patch(KRS_TOKEN, return_value=Mock())
     @patch(MOU_DB_CLIENT + "._ensure_all_db_indexes")
-    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_replace")
-    def test_init(mock_ir: Any, mock_gmrd: Any, mock_eadi: Any) -> None:
+    def test_init(mock_eadi: Any, _: Any, __: Any) -> None:
         """Test MoUDatabaseClient.__init__()."""
         # Setup & Mock
-        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
-        mock_ir.return_value = None  # no-op the db insert
 
         # Call
         mou_db_client = mou_db.MoUDatabaseClient(
             sentinel.mongo,
-            utils.MoUDataAdaptor(
-                table_config_db.TableConfigDatabaseClient(sentinel.tc_mongo)
-            ),
+            utils.MoUDataAdaptor(table_config_cache.TableConfigCache()),
         )
 
         # Assert
@@ -86,31 +85,23 @@ class TestMoUDB:  # pylint: disable=R0904
         # Call
         mou_db_client = mou_db.MoUDatabaseClient(
             sentinel.mongo,
-            utils.MoUDataAdaptor(
-                table_config_db.TableConfigDatabaseClient(sentinel.tc_mongo)
-            ),
+            utils.MoUDataAdaptor(table_config_cache.TableConfigCache()),
         )
 
         # Assert
         assert mou_db_client._mongo == sentinel.mongo
 
     @staticmethod
-    @pytest.mark.asyncio  # type: ignore[misc]
-    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_replace")
-    async def test_list_database_names(
-        mock_ir: Any, mock_gmrd: Any, mock_mongo: Any
-    ) -> None:
+    @pytest.mark.asyncio
+    @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
+    @patch(KRS_TOKEN, return_value=Mock())
+    async def test_list_database_names(_: Any, __: Any, mock_mongo: Any) -> None:
         """Test _list_database_names()."""
         # Setup & Mock
         dbs = ["foo", "bar", "baz"] + config.EXCLUDE_DBS[:3]
-        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
-        mock_ir.return_value = None  # no-op the db insert
         mou_db_client = mou_db.MoUDatabaseClient(
             mock_mongo,
-            utils.MoUDataAdaptor(
-                table_config_db.TableConfigDatabaseClient(sentinel.tc_mongo)
-            ),
+            utils.MoUDataAdaptor(table_config_cache.TableConfigCache()),
         )
         mock_mongo.list_database_names.side_effect = AsyncMock(return_value=dbs)
 
@@ -217,20 +208,16 @@ class TestMoUDataAdaptor:
     """Test utils.MoUDataAdaptor."""
 
     @staticmethod
-    @patch(TC_DB_CLIENT + ".get_conditional_dropdown_menus")
-    @patch(TC_DB_CLIENT + ".get_simple_dropdown_menus")
-    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_replace")
+    @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
+    @patch(KRS_TOKEN, return_value=Mock())
+    @patch(TC_CACHE + ".get_conditional_dropdown_menus")
+    @patch(TC_CACHE + ".get_simple_dropdown_menus")
     def test_validate_record_data(
-        mock_ir: Any, mock_gmrd: Any, mock_gsdm: Any, mock_gcdm: Any
+        mock_gsdm: Any, mock_gcdm: Any, _: Any, __: Any
     ) -> None:
         """Test _validate_record_data()."""
         # Setup & Mock
-        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
-        mou_data_adaptor = utils.MoUDataAdaptor(
-            table_config_db.TableConfigDatabaseClient(sentinel.mongo)
-        )
-        mock_ir.return_value = None  # no-op the db insert
+        mou_data_adaptor = utils.MoUDataAdaptor(table_config_cache.TableConfigCache())
 
         mock_gsdm.return_value = {
             "F.o.o": ["foo-1", "foo-2"],
@@ -320,17 +307,13 @@ class TestMoUDataAdaptor:
                 mou_data_adaptor._validate_record_data(WBS, record)
 
     @staticmethod
+    @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
+    @patch(KRS_TOKEN, return_value=Mock())
     @patch(MOU_DATA_ADAPTOR + "._validate_record_data")
-    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_replace")
-    def test_mongofy_record(mock_ir: Any, mock_gmrd: Any, mock_vrd: Any) -> None:
+    def test_mongofy_record(mock_vrd: Any, _: Any, __: Any) -> None:
         """Test _mongofy_record()."""
         # Setup & Mock
-        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
-        mou_data_adaptor = utils.MoUDataAdaptor(
-            table_config_db.TableConfigDatabaseClient(sentinel.mongo)
-        )
-        mock_ir.return_value = None  # no-op the db insert
+        mou_data_adaptor = utils.MoUDataAdaptor(table_config_cache.TableConfigCache())
 
         # Set-Up
         records: List[types.Record] = [
@@ -383,16 +366,14 @@ class TestTableConfigDataAdaptor:
     """Test utils.TableConfigDataAdaptor."""
 
     @staticmethod
-    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_replace")
-    def test_remove_on_the_fly_fields(mock_ir: Any, mock_gmrd: Any) -> None:
+    @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
+    @patch(KRS_TOKEN, return_value=Mock())
+    def test_remove_on_the_fly_fields(_: Any, __: Any) -> None:
         """Test remove_on_the_fly_fields()."""
         # Setup & Mock
-        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         tc_data_adaptor = utils.TableConfigDataAdaptor(
-            table_config_db.TableConfigDatabaseClient(sentinel.mongo)
+            table_config_cache.TableConfigCache()
         )
-        mock_ir.return_value = None  # no-op the db insert
 
         # Set-Up
         before_records: List[types.Record] = [
@@ -414,32 +395,30 @@ class TestTableConfigDataAdaptor:
             assert tc_data_adaptor.remove_on_the_fly_fields(after) == after
 
     @staticmethod
-    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_replace")
-    def test_add_on_the_fly_fields(mock_ir: Any, mock_gmrd: Any) -> None:
+    @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
+    @patch(KRS_TOKEN, return_value=Mock())
+    def test_add_on_the_fly_fields(_: Any, __: Any) -> None:
         """Test add_on_the_fly_fields()."""
         # Setup & Mock
-        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
         tc_data_adaptor = utils.TableConfigDataAdaptor(
-            table_config_db.TableConfigDatabaseClient(sentinel.mongo)
+            table_config_cache.TableConfigCache()
         )
-        mock_ir.return_value = None  # no-op the db insert
 
         # Set-Up
         before_records: List[types.Record] = [
             {
                 "_id": ANY,
-                "Institution": "SBU",
+                "Institution": "Stony-Brook",
                 "Source of Funds (U.S. Only)": "NSF M&O Core",
             },
             {
-                "Institution": "SKKU",
+                "Institution": "Sungkyunkwan",
                 "US / Non-US": "BLAH",  # will get overwritten
                 "Source of Funds (U.S. Only)": "Non-US In-Kind",
                 "Grand Total": 50,  # will get copied to FTE
             },
             {
-                "Institution": "MERCER",
+                "Institution": "Mercer",
                 "Source of Funds (U.S. Only)": "NSF Base Grants",
                 "FTE": 100,
                 "NSF Base Grants": 5555555555,  # will get overwritten w/ FTE
@@ -448,7 +427,7 @@ class TestTableConfigDataAdaptor:
                 "_id": ANY,
                 "a;b": 5,
                 "Foo;Bar": "Baz",
-                "Institution": "UW",
+                "Institution": "UW-Madison",
                 "Source of Funds (U.S. Only)": "US In-Kind",
                 "FTE": 999.99,
                 "Grand Total": 5555555555,  # will get overwritten w/ FTE
@@ -457,12 +436,12 @@ class TestTableConfigDataAdaptor:
         after_records: List[types.Record] = [
             {
                 "_id": ANY,
-                "Institution": "SBU",
+                "Institution": "Stony-Brook",
                 "US / Non-US": "US",
                 "Source of Funds (U.S. Only)": "NSF M&O Core",
             },
             {
-                "Institution": "SKKU",
+                "Institution": "Sungkyunkwan",
                 "US / Non-US": "Non-US",
                 "Source of Funds (U.S. Only)": "Non-US In-Kind",
                 "FTE": 50,
@@ -470,7 +449,7 @@ class TestTableConfigDataAdaptor:
                 "Grand Total": 50,
             },
             {
-                "Institution": "MERCER",
+                "Institution": "Mercer",
                 "US / Non-US": "US",
                 "Source of Funds (U.S. Only)": "NSF Base Grants",
                 "FTE": 100,
@@ -481,7 +460,7 @@ class TestTableConfigDataAdaptor:
                 "_id": ANY,
                 "a;b": 5,
                 "Foo;Bar": "Baz",
-                "Institution": "UW",
+                "Institution": "UW-Madison",
                 "US / Non-US": "US",
                 "Source of Funds (U.S. Only)": "US In-Kind",
                 "FTE": 999.99,
@@ -501,7 +480,7 @@ class TestTableConfigDataAdaptor:
             _ = tc_data_adaptor.add_on_the_fly_fields({"foo": "bar", "FTE": 0})
         # with pytest.raises(KeyError): NOTE - removed b/c Upgrade doesn't require "Source of Funds"
         #     _ = utils.add_on_the_fly_fields(
-        #         {"foo": "bar", "FTE": 0, "Institution": "UW"}
+        #         {"foo": "bar", "FTE": 0, "Institution": "UW-Madison"}
         #     )
         _ = tc_data_adaptor.add_on_the_fly_fields({"foo": "bar", "Institution": "SUNY"})
         with pytest.raises(KeyError):
@@ -515,18 +494,16 @@ class TestTableConfigDataAdaptor:
             )
 
     @staticmethod
-    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_replace")
-    def test_insert_total_rows(mock_ir: Any, mock_gmrd: Any) -> None:
+    @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
+    @patch(KRS_TOKEN, return_value=Mock())
+    def test_insert_total_rows(_: Any, __: Any) -> None:
         """Test insert_total_rows().
 
         No need to integration test this.
         """
         # Setup & Mock
-        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
-        tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
-        mock_ir.return_value = None  # no-op the db insert
-        tc_data_adaptor = utils.TableConfigDataAdaptor(tc_db_client)
+        tc_cache = table_config_cache.TableConfigCache()
+        tc_data_adaptor = utils.TableConfigDataAdaptor(tc_cache)
 
         def _assert_funds_totals(_rows: types.Table, _total_row: types.Record) -> None:
             print("\n-----------------------------------------------------\n")
@@ -612,70 +589,66 @@ class TestTableConfigDataAdaptor:
                     raise Exception(f"Unaccounted total row ({total_row}).")
 
             # Assert that every possible total is there (including rows with only 0s)
-            for l2_cat in tc_db_client.get_l2_categories(WBS):
+            for l2_cat in tc_cache.get_l2_categories(WBS):
                 assert l2_cat in set(r.get(columns.WBS_L2) for r in totals)
-                for l3_cat in tc_db_client.get_l3_categories_by_l2(WBS, l2_cat):
+                for l3_cat in tc_cache.get_l3_categories_by_l2(WBS, l2_cat):
                     assert l3_cat in set(r.get(columns.WBS_L3) for r in totals)
 
 
 class TestTableConfig:
-    """Test table_config_db.py."""
+    """Test table_config_cache.py."""
 
     @staticmethod
-    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_replace")
-    @patch("rest_server.databases.table_config_db.MAX_CACHE_AGE", 5)
-    def test_caching(mock_ir: Any, mock_gmrd: Any) -> None:
+    @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
+    @patch(KRS_TOKEN, return_value=Mock())
+    @patch(TC_CACHE + "._build")
+    @patch("rest_server.databases.table_config_cache.MAX_CACHE_AGE", 5)
+    def test_caching(mock_b: Any, _: Any, __: Any) -> None:
         """Test functionality around `MAX_CACHE_AGE`."""
-        assert table_config_db.MAX_CACHE_AGE == 5
+        assert table_config_cache.MAX_CACHE_AGE == 5
 
         # Call #1
-        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
-        tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
-        mock_ir.return_value = None  # no-op the db insert
+        mock_b.return_value = (Mock(), Mock())
+        tc_cache = table_config_cache.TableConfigCache()
 
         # assert call to db (from __init__())
-        mock_gmrd.assert_called()
-        reset_mock(mock_ir, mock_gmrd)
+        mock_b.assert_called()
+        reset_mock(mock_b)
 
         # Call #2 - before cache time limit
-        time.sleep(table_config_db.MAX_CACHE_AGE / 2)
-        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
-        mock_ir.return_value = None  # no-op the db insert
+        time.sleep(table_config_cache.MAX_CACHE_AGE / 2)
+        tc_cache.refresh()
 
-        # assert NO call to db
-        tc_db_client.refresh_doc()
-        mock_gmrd.assert_not_called()
-        reset_mock(mock_ir, mock_gmrd)
+        # assert NO call to source
+        mock_b.assert_not_called()
+        reset_mock(mock_b)
 
         # Call #3 - after cache time limit
-        time.sleep(table_config_db.MAX_CACHE_AGE)
-        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
-        mock_ir.return_value = None  # no-op the db insert
+        time.sleep(table_config_cache.MAX_CACHE_AGE)
+        mock_b.return_value = (Mock(), Mock())
+        tc_cache.refresh()
 
-        # assert call to db
-        tc_db_client.refresh_doc()
-        mock_gmrd.assert_called()
-        reset_mock(mock_ir, mock_gmrd)
+        # assert call to source
+        mock_b.assert_called()
+        reset_mock(mock_b)
 
     @staticmethod
-    @patch(TC_DB_CLIENT + ".get_most_recent_doc")
-    @patch(TC_DB_CLIENT + "._insert_replace")
-    def test_us_or_non_us(mock_ir: Any, mock_gmrd: Any) -> None:
+    @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
+    @patch(KRS_TOKEN, return_value=Mock())
+    def test_us_or_non_us(_: Any, __: Any) -> None:
         """Test _us_or_non_us().
 
         Function is very simple, so also test institution-dict's format.
         """
         # Setup & Mock
-        mock_gmrd.side_effect = mongo_tools.DocumentNotFoundError()  # "db is empty"
-        tc_db_client = table_config_db.TableConfigDatabaseClient(sentinel.mongo)
-        mock_ir.return_value = None  # no-op the db insert
+        tc_cache = table_config_cache.TableConfigCache()
 
-        for inst in tc_db_client.institution_dicts().values():
-            assert "abbreviation" in inst
-            assert "is_US" in inst
-            assert inst["is_US"] is True or inst["is_US"] is False
-            if inst["is_US"]:
-                assert tc_db_client.us_or_non_us(inst["abbreviation"]) == "US"
+        for inst in tc_cache.institutions:
+            assert hasattr(inst, "short_name")
+            assert hasattr(inst, "long_name")
+            assert hasattr(inst, "is_us")
+            assert inst.is_us is True or inst.is_us is False
+            if inst.is_us:
+                assert tc_cache.us_or_non_us(inst.short_name) == "US"
             else:
-                assert tc_db_client.us_or_non_us(inst["abbreviation"]) == "Non-US"
+                assert tc_cache.us_or_non_us(inst.short_name) == "Non-US"

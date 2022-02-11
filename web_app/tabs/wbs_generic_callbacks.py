@@ -1,7 +1,7 @@
 """Callbacks for a specified WBS layout."""
 
 import logging
-from typing import cast, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
@@ -261,7 +261,12 @@ def table_data_exterior_controls(
     elif du.triggered_id() in ["wbs-new-data-button-1", "wbs-new-data-button-2"]:
         if not s_snap_ts:  # are we looking at a snapshot?
             table, toast = _add_new_data(
-                wbs_l1, s_table, columns, labor, inst, tconfig,  # s_new_task
+                wbs_l1,
+                s_table,
+                columns,
+                labor,
+                inst,
+                tconfig,  # s_new_task
             )
 
     # OR Restore a types.Record and Pull types.Table (optionally filtered)
@@ -580,7 +585,11 @@ def setup_table(
     s_urlpath: str,
     s_tconfig_cache: tc.TableConfigParser.CacheType,
 ) -> Tuple[
-    types.TSCCond, types.TSDCond, types.TColumns, types.TDDown, types.TDDownCond,
+    types.TSCCond,
+    types.TSDCond,
+    types.TColumns,
+    types.TDDown,
+    types.TDDownCond,
 ]:
     """Set up table-related components."""
     logging.warning(f"'{du.triggered()}' -> setup_table()  ({s_urlpath=})")
@@ -852,12 +861,7 @@ def setup_institution_components(
         ]
     else:
         inst_options = [
-            {
-                "label": name  # only incl. the abbrev if it adds info
-                if name.upper() == abbrev.upper()
-                else f"{name} ({abbrev})",
-                "value": abbrev,
-            }
+            {"label": name, "value": abbrev}
             for name, abbrev in sorted(tconfig.get_institutions_w_abbrevs())
         ]
 

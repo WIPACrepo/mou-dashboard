@@ -3,21 +3,21 @@
 from decimal import Decimal
 from typing import cast
 
-from ..databases import columns, table_config_db
+from ..databases import columns, table_config_cache
 from . import types
 from .mongo_tools import Mongofier
 
 
 class TableConfigDataAdaptor:
-    """Augments a record/table using a `TableConfigDatabaseClient` instance."""
+    """Augments a record/table using a `TableConfigCache` instance."""
 
-    def __init__(self, tc_db_client: table_config_db.TableConfigDatabaseClient) -> None:
-        self.tc_db_client = tc_db_client
+    def __init__(self, tc_cache: table_config_cache.TableConfigCache) -> None:
+        self.tc_cache = tc_cache
 
     def remove_on_the_fly_fields(self, record: types.Record) -> types.Record:
         """Remove (del) any fields that are only to be calculated on-the-fly."""
         for field in record.copy().keys():
-            if field in self.tc_db_client.get_on_the_fly_fields():
+            if field in self.tc_cache.get_on_the_fly_fields():
                 # copy over grand total to FTE
                 if (field == columns.GRAND_TOTAL) and (
                     columns.FTE not in record.keys()
@@ -46,8 +46,8 @@ class TableConfigDataAdaptor:
 
         # US-only fields
         inst = cast(str, record[columns.INSTITUTION])
-        record[columns.US_NON_US] = self.tc_db_client.us_or_non_us(inst)
-        if record[columns.US_NON_US] == table_config_db.NON_US:
+        record[columns.US_NON_US] = self.tc_cache.us_or_non_us(inst)
+        if record[columns.US_NON_US] == table_config_cache.NON_US:
             record[columns.SOURCE_OF_FUNDS_US_ONLY] = columns.NON_US_IN_KIND
 
         return record
@@ -92,13 +92,13 @@ class TableConfigDataAdaptor:
                 )
             )
 
-        for l2_cat in self.tc_db_client.get_l2_categories(wbs_l1):
+        for l2_cat in self.tc_cache.get_l2_categories(wbs_l1):
 
-            for l3_cat in self.tc_db_client.get_l3_categories_by_l2(wbs_l1, l2_cat):
+            for l3_cat in self.tc_cache.get_l3_categories_by_l2(wbs_l1, l2_cat):
 
                 # add US/Non-US
                 if with_us_non_us:
-                    for region in [table_config_db.US, table_config_db.NON_US]:
+                    for region in [table_config_cache.US, table_config_cache.NON_US]:
                         totals.append(
                             {
                                 columns.WBS_L2: l2_cat,
@@ -198,12 +198,12 @@ class TableConfigDataAdaptor:
 
 
 class MoUDataAdaptor:
-    """Augments MoU data using a `TableConfigDatabaseClient` instance."""
+    """Augments MoU data using a `TableConfigCache` instance."""
 
     IS_DELETED = "deleted"
 
-    def __init__(self, tc_db_client: table_config_db.TableConfigDatabaseClient) -> None:
-        self.tc_db_client = tc_db_client
+    def __init__(self, tc_cache: table_config_cache.TableConfigCache) -> None:
+        self.tc_cache = tc_cache
 
     def _validate_record_data(self, wbs_db: str, record: types.Record) -> None:
         """Check that each value in a dropdown-type column is valid.
@@ -218,14 +218,14 @@ class MoUDataAdaptor:
                 continue
 
             # Validate a simple dropdown column
-            if col in self.tc_db_client.get_simple_dropdown_menus(wbs_db):
-                if value in self.tc_db_client.get_simple_dropdown_menus(wbs_db)[col]:
+            if col in self.tc_cache.get_simple_dropdown_menus(wbs_db):
+                if value in self.tc_cache.get_simple_dropdown_menus(wbs_db)[col]:
                     continue
                 raise Exception(f"Invalid Simple-Dropdown Data: {col=} {record=}")
 
             # Validate a conditional dropdown column
-            if col in self.tc_db_client.get_conditional_dropdown_menus(wbs_db):
-                parent_col, menus = self.tc_db_client.get_conditional_dropdown_menus(
+            if col in self.tc_cache.get_conditional_dropdown_menus(wbs_db):
+                parent_col, menus = self.tc_cache.get_conditional_dropdown_menus(
                     wbs_db
                 )[col]
 
