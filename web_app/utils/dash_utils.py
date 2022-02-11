@@ -101,7 +101,7 @@ def get_sow_last_updated_label(
 
 
 def timecheck_labels(
-    subject: str, verbage: str, snap_ts: types.DashVal = None,
+    subject: str, verbage: str, snap_ts: types.DashVal = None
 ) -> List[html.Label]:
     """Return labels with datetime and a checkmark for saved/submitted/etc."""
     if snap_ts:
@@ -182,8 +182,8 @@ def get_wbs_l1(urlpath: str) -> str:
 def get_inst(urlpath: str) -> str:
     """Get the institution from the url hash."""
     try:
-        # "/mo/m%C3%BCnster" -> "MÜNSTER"
-        return urllib.parse.unquote(urlpath).split("/")[2].upper()
+        # insts & url are case-sensitive
+        return urllib.parse.unquote(urlpath).split("/")[2]
     except IndexError:
         return ""
 
@@ -192,7 +192,7 @@ def build_urlpath(wbs_l1: str, inst: str = "") -> str:
     """Return a url pathname built from it pieces."""
     if wbs_l1:
         if inst:
-            return f"{wbs_l1}/{inst.lower()}"
+            return f"{wbs_l1}/{inst}"
         return wbs_l1
     return ""
 
@@ -449,7 +449,10 @@ def after_deletion_toast() -> dbc.Toast:
 
 
 def make_toast(
-    header: str, message: Union[str, List[str]], icon_color: str, duration: float = 0,
+    header: str,
+    message: Union[str, List[str]],
+    icon_color: str,
+    duration: float = 0,
 ) -> dbc.Toast:
     """Dynamically make a toast."""
     if isinstance(message, str):
