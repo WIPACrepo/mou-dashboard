@@ -7,7 +7,6 @@ from typing import Any, Final
 from unittest.mock import AsyncMock, Mock, patch
 
 from .. import institution_list
-from .test_rest_server import KRS_INSTS, KRS_TOKEN
 
 sys.path.append(".")
 from rest_server.utils import types  # isort:skip  # noqa # pylint: disable=E0401,C0413
@@ -365,8 +364,11 @@ FTE_ROWS: Final[types.Table] = [
 #
 
 
-@patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
-@patch(KRS_TOKEN, return_value=Mock())
+@patch(
+    "krs.institutions.list_insts_flat",
+    side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS),
+)
+@patch("krs.token.get_rest_client", return_value=Mock())
 @patch("rest_server.databases.table_config_cache.TableConfigCache.get_most_recent_doc")
 @patch("rest_server.databases.table_config_cache.TableConfigCache._insert_replace")
 def _make_fte_rows(mock_ir: Any, mock_gmrd: Any, _: Any, __: Any) -> None:
