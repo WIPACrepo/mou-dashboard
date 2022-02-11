@@ -15,6 +15,7 @@ import nest_asyncio  # type: ignore[import]
 import pytest
 from bson.objectid import ObjectId  # type: ignore[import]
 
+from .. import institution_list
 from . import data
 
 sys.path.append(".")
@@ -34,6 +35,7 @@ from rest_server import config  # isort:skip  # noqa # pylint: disable=E0401,C04
 nest_asyncio.apply()  # allows nested event loops
 
 
+KRS_PATCH = "krs.institutions.list_insts_flat"
 MOU_DB_CLIENT: Final = "rest_server.databases.mou_db.MoUDatabaseClient"
 MOTOR_CLIENT: Final = "motor.motor_tornado.MotorClient"
 TC_CACHE: Final = "rest_server.databases.table_config_cache.TableConfigCache"
@@ -59,10 +61,12 @@ class TestMoUDB:  # pylint: disable=R0904
     """Test private methods in mou_db.py."""
 
     @staticmethod
+    @patch(KRS_PATCH)
     @patch(MOU_DB_CLIENT + "._ensure_all_db_indexes")
-    def test_init(mock_eadi: Any) -> None:
+    def test_init(mock_eadi: Any, mock_krs: Any) -> None:
         """Test MoUDatabaseClient.__init__()."""
         # Setup & Mock
+        mock_krs.side_effect = AsyncMock(return_value=institution_list.INSTITUTIONS)
 
         # Call
         mou_db_client = mou_db.MoUDatabaseClient(
