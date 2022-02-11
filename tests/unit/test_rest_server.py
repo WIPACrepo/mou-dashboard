@@ -61,7 +61,7 @@ class TestMoUDB:  # pylint: disable=R0904
 
     @staticmethod
     @patch("krs.institutions.list_insts_flat")
-    @patch("krs.institutions.token.get_rest_client")
+    @patch("krs.token.get_rest_client")
     @patch(MOU_DB_CLIENT + "._ensure_all_db_indexes")
     def test_init(mock_eadi: Any, mock_krs_grc: Any, mock_krs_lif: Any) -> None:
         """Test MoUDatabaseClient.__init__()."""
