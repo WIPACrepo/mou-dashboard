@@ -26,7 +26,7 @@ from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0
 )
 from rest_server.databases import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
     mou_db,
-    table_config_cache,
+    table_config_cache as tcc,
     columns,
 )
 from rest_server import config  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
@@ -62,17 +62,18 @@ class TestMoUDB:  # pylint: disable=R0904
     """Test private methods in mou_db.py."""
 
     @staticmethod
+    @pytest.mark.asyncio
     @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
     @patch(KRS_TOKEN, return_value=Mock())
     @patch(MOU_DB_CLIENT + "._ensure_all_db_indexes")
-    def test_init(mock_eadi: Any, _: Any, __: Any) -> None:
+    async def test_init(mock_eadi: Any, _: Any, __: Any) -> None:
         """Test MoUDatabaseClient.__init__()."""
         # Setup & Mock
 
         # Call
         mou_db_client = mou_db.MoUDatabaseClient(
             sentinel.mongo,
-            utils.MoUDataAdaptor(table_config_cache.TableConfigCache()),
+            utils.MoUDataAdaptor(await tcc.TableConfigCache.create()),
         )
 
         # Assert
@@ -85,7 +86,7 @@ class TestMoUDB:  # pylint: disable=R0904
         # Call
         mou_db_client = mou_db.MoUDatabaseClient(
             sentinel.mongo,
-            utils.MoUDataAdaptor(table_config_cache.TableConfigCache()),
+            utils.MoUDataAdaptor(await tcc.TableConfigCache.create()),
         )
 
         # Assert
@@ -101,7 +102,7 @@ class TestMoUDB:  # pylint: disable=R0904
         dbs = ["foo", "bar", "baz"] + config.EXCLUDE_DBS[:3]
         mou_db_client = mou_db.MoUDatabaseClient(
             mock_mongo,
-            utils.MoUDataAdaptor(table_config_cache.TableConfigCache()),
+            utils.MoUDataAdaptor(await tcc.TableConfigCache.create()),
         )
         mock_mongo.list_database_names.side_effect = AsyncMock(return_value=dbs)
 
@@ -208,16 +209,17 @@ class TestMoUDataAdaptor:
     """Test utils.MoUDataAdaptor."""
 
     @staticmethod
+    @pytest.mark.asyncio
     @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
     @patch(KRS_TOKEN, return_value=Mock())
     @patch(TC_CACHE + ".get_conditional_dropdown_menus")
     @patch(TC_CACHE + ".get_simple_dropdown_menus")
-    def test_validate_record_data(
+    async def test_validate_record_data(
         mock_gsdm: Any, mock_gcdm: Any, _: Any, __: Any
     ) -> None:
         """Test _validate_record_data()."""
         # Setup & Mock
-        mou_data_adaptor = utils.MoUDataAdaptor(table_config_cache.TableConfigCache())
+        mou_data_adaptor = utils.MoUDataAdaptor(await tcc.TableConfigCache.create())
 
         mock_gsdm.return_value = {
             "F.o.o": ["foo-1", "foo-2"],
@@ -307,13 +309,14 @@ class TestMoUDataAdaptor:
                 mou_data_adaptor._validate_record_data(WBS, record)
 
     @staticmethod
+    @pytest.mark.asyncio
     @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
     @patch(KRS_TOKEN, return_value=Mock())
     @patch(MOU_DATA_ADAPTOR + "._validate_record_data")
-    def test_mongofy_record(mock_vrd: Any, _: Any, __: Any) -> None:
+    async def test_mongofy_record(mock_vrd: Any, _: Any, __: Any) -> None:
         """Test _mongofy_record()."""
         # Setup & Mock
-        mou_data_adaptor = utils.MoUDataAdaptor(table_config_cache.TableConfigCache())
+        mou_data_adaptor = utils.MoUDataAdaptor(await tcc.TableConfigCache.create())
 
         # Set-Up
         records: List[types.Record] = [
@@ -366,13 +369,14 @@ class TestTableConfigDataAdaptor:
     """Test utils.TableConfigDataAdaptor."""
 
     @staticmethod
+    @pytest.mark.asyncio
     @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
     @patch(KRS_TOKEN, return_value=Mock())
-    def test_remove_on_the_fly_fields(_: Any, __: Any) -> None:
+    async def test_remove_on_the_fly_fields(_: Any, __: Any) -> None:
         """Test remove_on_the_fly_fields()."""
         # Setup & Mock
         tc_data_adaptor = utils.TableConfigDataAdaptor(
-            table_config_cache.TableConfigCache()
+            await tcc.TableConfigCache.create()
         )
 
         # Set-Up
@@ -395,13 +399,14 @@ class TestTableConfigDataAdaptor:
             assert tc_data_adaptor.remove_on_the_fly_fields(after) == after
 
     @staticmethod
+    @pytest.mark.asyncio
     @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
     @patch(KRS_TOKEN, return_value=Mock())
-    def test_add_on_the_fly_fields(_: Any, __: Any) -> None:
+    async def test_add_on_the_fly_fields(_: Any, __: Any) -> None:
         """Test add_on_the_fly_fields()."""
         # Setup & Mock
         tc_data_adaptor = utils.TableConfigDataAdaptor(
-            table_config_cache.TableConfigCache()
+            await tcc.TableConfigCache.create()
         )
 
         # Set-Up
@@ -494,15 +499,16 @@ class TestTableConfigDataAdaptor:
             )
 
     @staticmethod
+    @pytest.mark.asyncio
     @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
     @patch(KRS_TOKEN, return_value=Mock())
-    def test_insert_total_rows(_: Any, __: Any) -> None:
+    async def test_insert_total_rows(_: Any, __: Any) -> None:
         """Test insert_total_rows().
 
         No need to integration test this.
         """
         # Setup & Mock
-        tc_cache = table_config_cache.TableConfigCache()
+        tc_cache = await tcc.TableConfigCache.create()
         tc_data_adaptor = utils.TableConfigDataAdaptor(tc_cache)
 
         def _assert_funds_totals(_rows: types.Table, _total_row: types.Record) -> None:
@@ -596,27 +602,28 @@ class TestTableConfigDataAdaptor:
 
 
 class TestTableConfig:
-    """Test table_config_cache.py."""
+    """Test tcc.py."""
 
     @staticmethod
+    @pytest.mark.asyncio
     @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
     @patch(KRS_TOKEN, return_value=Mock())
     @patch(TC_CACHE + "._build")
-    @patch("rest_server.databases.table_config_cache.MAX_CACHE_AGE", 5)
-    def test_caching(mock_b: Any, _: Any, __: Any) -> None:
+    @patch("rest_server.databases.tcc.MAX_CACHE_AGE", 5)
+    async def test_caching(mock_b: Any, _: Any, __: Any) -> None:
         """Test functionality around `MAX_CACHE_AGE`."""
-        assert table_config_cache.MAX_CACHE_AGE == 5
+        assert tcc.MAX_CACHE_AGE == 5
 
         # Call #1
         mock_b.return_value = (Mock(), Mock())
-        tc_cache = table_config_cache.TableConfigCache()
+        tc_cache = await tcc.TableConfigCache.create()
 
         # assert call to db (from __init__())
         mock_b.assert_called()
         reset_mock(mock_b)
 
         # Call #2 - before cache time limit
-        time.sleep(table_config_cache.MAX_CACHE_AGE / 2)
+        time.sleep(tcc.MAX_CACHE_AGE / 2)
         tc_cache.refresh()
 
         # assert NO call to source
@@ -624,7 +631,7 @@ class TestTableConfig:
         reset_mock(mock_b)
 
         # Call #3 - after cache time limit
-        time.sleep(table_config_cache.MAX_CACHE_AGE)
+        time.sleep(tcc.MAX_CACHE_AGE)
         mock_b.return_value = (Mock(), Mock())
         tc_cache.refresh()
 
@@ -633,15 +640,16 @@ class TestTableConfig:
         reset_mock(mock_b)
 
     @staticmethod
+    @pytest.mark.asyncio
     @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
     @patch(KRS_TOKEN, return_value=Mock())
-    def test_us_or_non_us(_: Any, __: Any) -> None:
+    async def test_us_or_non_us(_: Any, __: Any) -> None:
         """Test _us_or_non_us().
 
         Function is very simple, so also test institution-dict's format.
         """
         # Setup & Mock
-        tc_cache = table_config_cache.TableConfigCache()
+        tc_cache = await tcc.TableConfigCache.create()
 
         for inst in tc_cache.institutions:
             assert hasattr(inst, "short_name")
