@@ -1,7 +1,7 @@
 """Interface for retrieving values for the table config."""
 
 
-import asyncio
+import logging
 import time
 from dataclasses import dataclass
 from distutils.util import strtobool
@@ -78,16 +78,11 @@ def convert_krs_institutions(response: Dict[str, Any]) -> List[Institution]:
     return insts
 
 
-def request_krs_institutions() -> List[Institution]:
+async def request_krs_institutions() -> List[Institution]:
     """Grab the master list of institutions along with their details."""
     rc = token.get_rest_client()
 
-    response = asyncio.get_event_loop().run_until_complete(
-        krs_institutions.list_insts_flat(
-            filter_func=lambda _, attrs: attrs.get("has_mou", "") == "true",
-            rest_client=rc,
-        )
-    )
+    response = await krs_institutions.list_insts_flat(rest_client=rc)
 
     return convert_krs_institutions(response)
 
@@ -95,26 +90,39 @@ def request_krs_institutions() -> List[Institution]:
 class TableConfigCache:
     """Manage the collection and parsing of the table config."""
 
-    def __init__(self) -> None:
-        self.column_configs, self.institutions = self._build()
+    @staticmethod
+    async def create() -> "TableConfigCache":
+        """Factory function."""
+        # pylint:disable=protected-access
+        column_configs, institutions = await TableConfigCache._build()
+        new = TableConfigCache(column_configs, institutions)
+        return new
+
+    def __init__(
+        self,
+        _column_configs: Dict[str, _ColumnConfigTypedDict],
+        _institutions: List[Institution],
+    ) -> None:
+        self.column_configs, self.institutions = _column_configs, _institutions
         self._timestamp = int(time.time())
 
-    def refresh(self) -> None:
+    async def refresh(self) -> None:
         """Get/Create the most recent table-config doc."""
         if int(time.time()) - self._timestamp < MAX_CACHE_AGE:
             return
-        self.column_configs, self.institutions = self._build()
+        self.column_configs, self.institutions = await self._build()
         self._timestamp = int(time.time())
 
     @staticmethod
-    def _build() -> Tuple[Dict[str, _ColumnConfigTypedDict], List[Institution]]:
+    async def _build() -> Tuple[Dict[str, _ColumnConfigTypedDict], List[Institution]]:
         """Build the table config."""
         tooltip_funding_source_value: Final[str] = (
             "This number is dependent on the Funding Source and FTE. "
             "Changing those values will affect this number."
         )
 
-        institutions = request_krs_institutions()
+        institutions = await request_krs_institutions()
+        logging.debug(f"KRS responded with {len(institutions)} institutions")
 
         # build column-configs
         column_configs: Final[Dict[str, _ColumnConfigTypedDict]] = {

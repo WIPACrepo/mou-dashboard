@@ -3,7 +3,9 @@
 
 import argparse
 import asyncio
+import json
 import logging
+from typing import List
 from urllib.parse import quote_plus
 
 import coloredlogs  # type: ignore[import]
@@ -13,6 +15,7 @@ from rest_tools.server import RestHandlerSetup, RestServer  # type: ignore
 from rest_tools.server.config import from_environment  # type: ignore[import]
 
 from . import config
+from .databases import table_config_cache as tcc
 from .routes import (
     InstitutionValuesHandler,
     MainHandler,
@@ -24,7 +27,7 @@ from .routes import (
 )
 
 
-def start(debug: bool = False) -> RestServer:
+async def start(debug: bool = False) -> RestServer:
     """Start a Mad Dash REST service."""
     config_env = from_environment(config.DEFAULT_ENV_CONFIG)
     config.log_environment(config_env)
@@ -44,6 +47,7 @@ def start(debug: bool = False) -> RestServer:
             "debug": debug,
         }
     )
+    args["tc_cache"] = await tcc.TableConfigCache.create()
 
     # Setup DB URL
     mongodb_url = f"mongodb://{mongodb_host}:{mongodb_port}"
@@ -71,8 +75,8 @@ def start(debug: bool = False) -> RestServer:
 
 def main() -> None:
     """Configure logging and start a MoU data service."""
-    start(debug=True)
     loop = asyncio.get_event_loop()
+    loop.run_until_complete(start(debug=True))
     loop.run_forever()
 
 
@@ -91,15 +95,15 @@ if __name__ == "__main__":
     coloredlogs.install(level=getattr(logging, _args.log.upper()))
 
     if _args.override_krs_insts:
-        import json
-
-        from .databases import table_config_cache as tcc
-
         logging.warning(
             f"Using Overriding KRS Institution Data: {_args.override_krs_insts}"
         )
         with open(_args.override_krs_insts) as f:
             json_insts = json.load(f)
-        tcc.request_krs_institutions = lambda: tcc.convert_krs_institutions(json_insts)
+
+        async def _overridden_krs() -> List[tcc.Institution]:
+            return tcc.convert_krs_institutions(json_insts)
+
+        tcc.request_krs_institutions = _overridden_krs
 
     main()
