@@ -6,6 +6,8 @@ import sys
 from typing import Any, Final
 from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
+
 from .. import institution_list
 
 sys.path.append(".")
@@ -364,6 +366,7 @@ FTE_ROWS: Final[types.Table] = [
 #
 
 
+@pytest.mark.asyncio
 @patch(
     "krs.institutions.list_insts_flat",
     side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS),
@@ -371,10 +374,10 @@ FTE_ROWS: Final[types.Table] = [
 @patch("krs.token.get_rest_client", return_value=Mock())
 @patch("rest_server.databases.table_config_cache.TableConfigCache.get_most_recent_doc")
 @patch("rest_server.databases.table_config_cache.TableConfigCache._insert_replace")
-def _make_fte_rows(mock_ir: Any, mock_gmrd: Any, _: Any, __: Any) -> None:
+async def _make_fte_rows(mock_ir: Any, mock_gmrd: Any, _: Any, __: Any) -> None:
     # Setup & Mock
     mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
-    tc_cache = table_config_cache.TableConfigCache()
+    tc_cache = await table_config_cache.TableConfigCache.create()
     mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
     rows: types.Table = []

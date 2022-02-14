@@ -609,7 +609,7 @@ class TestTableConfig:
     @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
     @patch(KRS_TOKEN, return_value=Mock())
     @patch(TC_CACHE + "._build")
-    @patch("rest_server.databases.tcc.MAX_CACHE_AGE", 5)
+    @patch("rest_server.databases.table_config_cache.MAX_CACHE_AGE", 5)
     async def test_caching(mock_b: Any, _: Any, __: Any) -> None:
         """Test functionality around `MAX_CACHE_AGE`."""
         assert tcc.MAX_CACHE_AGE == 5
