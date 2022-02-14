@@ -75,7 +75,9 @@ async def start(debug: bool = False) -> RestServer:
 
 def main() -> None:
     """Configure logging and start a MoU data service."""
-    asyncio.run(start(debug=True))
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(start(debug=True))
+    loop.run_forever()
 
 
 if __name__ == "__main__":
