@@ -82,10 +82,7 @@ async def request_krs_institutions() -> List[Institution]:
     """Grab the master list of institutions along with their details."""
     rc = token.get_rest_client()
 
-    response = await krs_institutions.list_insts_flat(
-        filter_func=lambda _, attrs: attrs.get("has_mou", "") == "true",
-        rest_client=rc,
-    )
+    response = await krs_institutions.list_insts_flat(rest_client=rc)
 
     return convert_krs_institutions(response)
 
