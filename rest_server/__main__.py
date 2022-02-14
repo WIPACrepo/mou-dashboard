@@ -45,9 +45,9 @@ async def start(debug: bool = False) -> RestServer:
                 "algorithm": config_env["MOU_AUTH_ALGORITHM"],
             },
             "debug": debug,
-            "tc_cache": await tcc.TableConfigCache.create(),
         }
     )
+    args["tc_cache"] = await tcc.TableConfigCache.create()
 
     # Setup DB URL
     mongodb_url = f"mongodb://{mongodb_host}:{mongodb_port}"
