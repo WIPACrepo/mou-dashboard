@@ -95,8 +95,20 @@ def request_krs_institutions() -> List[Institution]:
 class TableConfigCache:
     """Manage the collection and parsing of the table config."""
 
-    def __init__(self) -> None:
-        self.column_configs, self.institutions = self._build()
+    @staticmethod
+    async def create() -> "TableConfigCache":
+        """Factory function."""
+        # pylint:disable=protected-access
+        column_configs, institutions = TableConfigCache._build()
+        new = TableConfigCache(column_configs, institutions)
+        return new
+
+    def __init__(
+        self,
+        _column_configs: Dict[str, _ColumnConfigTypedDict],
+        _institutions: List[Institution],
+    ) -> None:
+        self.column_configs, self.institutions = _column_configs, _institutions
         self._timestamp = int(time.time())
 
     def refresh(self) -> None:
