@@ -1,7 +1,6 @@
 """Interface for retrieving values for the table config."""
 
 
-import asyncio
 import time
 from dataclasses import dataclass
 from distutils.util import strtobool
