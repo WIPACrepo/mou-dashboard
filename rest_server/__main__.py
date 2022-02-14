@@ -5,6 +5,7 @@ import argparse
 import asyncio
 import json
 import logging
+from typing import List
 from urllib.parse import quote_plus
 
 import coloredlogs  # type: ignore[import]
@@ -97,6 +98,10 @@ if __name__ == "__main__":
         )
         with open(_args.override_krs_insts) as f:
             json_insts = json.load(f)
-        tcc.request_krs_institutions = lambda: tcc.convert_krs_institutions(json_insts)
+
+        async def _overridden_krs() -> List[tcc.Institution]:
+            return tcc.convert_krs_institutions(json_insts)
+
+        tcc.request_krs_institutions = _overridden_krs
 
     main()
