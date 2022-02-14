@@ -3,6 +3,7 @@
 
 import argparse
 import asyncio
+import json
 import logging
 from urllib.parse import quote_plus
 
@@ -13,6 +14,7 @@ from rest_tools.server import RestHandlerSetup, RestServer  # type: ignore
 from rest_tools.server.config import from_environment  # type: ignore[import]
 
 from . import config
+from .databases import table_config_cache as tcc
 from .routes import (
     InstitutionValuesHandler,
     MainHandler,
@@ -24,7 +26,7 @@ from .routes import (
 )
 
 
-def start(debug: bool = False) -> RestServer:
+async def start(debug: bool = False) -> RestServer:
     """Start a Mad Dash REST service."""
     config_env = from_environment(config.DEFAULT_ENV_CONFIG)
     config.log_environment(config_env)
@@ -42,6 +44,7 @@ def start(debug: bool = False) -> RestServer:
                 "algorithm": config_env["MOU_AUTH_ALGORITHM"],
             },
             "debug": debug,
+            "tc_cache": await tcc.TableConfigCache.create(),
         }
     )
 
@@ -71,9 +74,7 @@ def start(debug: bool = False) -> RestServer:
 
 def main() -> None:
     """Configure logging and start a MoU data service."""
-    start(debug=True)
-    loop = asyncio.get_event_loop()
-    loop.run_forever()
+    asyncio.run(start(debug=True))
 
 
 if __name__ == "__main__":
@@ -91,10 +92,6 @@ if __name__ == "__main__":
     coloredlogs.install(level=getattr(logging, _args.log.upper()))
 
     if _args.override_krs_insts:
-        import json
-
-        from .databases import table_config_cache as tcc
-
         logging.warning(
             f"Using Overriding KRS Institution Data: {_args.override_krs_insts}"
         )

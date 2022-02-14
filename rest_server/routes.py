@@ -25,13 +25,14 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
     def initialize(  # pylint: disable=W0221
         self,
         mongodb_url: str,
+        tc_cache: table_config_cache.TableConfigCache,
         *args: Any,
         **kwargs: Any,
     ) -> None:
         """Initialize a BaseMoUHandler object."""
         super().initialize(*args, **kwargs)
         # pylint: disable=W0201
-        self.tc_cache = table_config_cache.TableConfigCache()
+        self.tc_cache = tc_cache
         self.mou_db_client = mou_db.MoUDatabaseClient(
             MotorClient(mongodb_url), utils.MoUDataAdaptor(self.tc_cache)
         )
