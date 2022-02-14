@@ -173,7 +173,7 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
-        self.tc_cache.refresh()
+        await self.tc_cache.refresh()
         table_config = {
             l1: {
                 "columns": self.tc_cache.get_columns(),

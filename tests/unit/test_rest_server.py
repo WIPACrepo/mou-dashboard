@@ -624,7 +624,7 @@ class TestTableConfig:
 
         # Call #2 - before cache time limit
         time.sleep(tcc.MAX_CACHE_AGE / 2)
-        tc_cache.refresh()
+        await tc_cache.refresh()
 
         # assert NO call to source
         mock_b.assert_not_called()
@@ -633,7 +633,7 @@ class TestTableConfig:
         # Call #3 - after cache time limit
         time.sleep(tcc.MAX_CACHE_AGE)
         mock_b.return_value = (Mock(), Mock())
-        tc_cache.refresh()
+        await tc_cache.refresh()
 
         # assert call to source
         mock_b.assert_called()
