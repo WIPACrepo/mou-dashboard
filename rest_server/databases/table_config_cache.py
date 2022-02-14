@@ -1,6 +1,7 @@
 """Interface for retrieving values for the table config."""
 
 
+import logging
 import time
 from dataclasses import dataclass
 from distutils.util import strtobool
@@ -121,6 +122,7 @@ class TableConfigCache:
         )
 
         institutions = await request_krs_institutions()
+        logging.debug(f"KRS responded with {len(institutions)} institutions")
 
         # build column-configs
         column_configs: Final[Dict[str, _ColumnConfigTypedDict]] = {
