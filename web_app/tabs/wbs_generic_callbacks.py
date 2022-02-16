@@ -82,51 +82,6 @@ def _add_new_data(  # pylint: disable=R0913
     return table, toast
 
 
-# @app.callback(  # type: ignore[misc]
-#     [
-#         Output("wbs-new-data-modal", "is_open"),
-#         Output("wbs-new-data-modal-task", "value"),
-#         Output("wbs-new-data-modal-dummy-add", "n_clicks"),
-#         Output("wbs-new-data-modal-header", "children"),
-#     ],
-#     [
-#         Input("wbs-new-data-button-1", "n_clicks"),  # user-only
-#         Input("wbs-new-data-button-2", "n_clicks"),  # user-only
-#         Input("wbs-new-data-modal-add-button", "n_clicks"),  # user-only
-#     ],
-#     [
-#         State("wbs-new-data-modal-task", "value"),
-#         State("url", "pathname"),
-#         State("wbs-filter-labor", "value"),
-#     ],
-#     prevent_initial_call=True,
-# )
-# def handle_add_new_data(
-#     _: int,
-#     __: int,
-#     ___: int,
-#     # state(s)
-#     s_task: str,
-#     s_urlpath: str,
-#     s_labor: str,
-# ) -> Tuple[bool, str, int, str]:
-#     """Handle the modal for adding a new row."""
-#     logging.warning(f"'{du.triggered()}' -> handle_add_new_data()")
-
-#     if du.triggered_id() == "wbs-new-data-modal-add-button":
-#         if not s_task:
-#             return no_update, no_update, no_update, no_update
-#         return False, s_task, 1, no_update
-
-#     header = "Add New Data"
-#     if inst := du.get_inst(s_urlpath):
-#         header += f" for {inst}"
-#     if s_labor:
-#         header += f" ({s_labor})"
-
-#     return True, "", no_update, header
-
-
 @app.callback(  # type: ignore[misc]
     [
         Output("wbs-toast-via-confirm-deletion-div", "children"),
