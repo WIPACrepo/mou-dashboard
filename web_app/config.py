@@ -9,8 +9,7 @@ import dash  # type: ignore
 import dash_bootstrap_components as dbc  # type: ignore
 import flask  # type: ignore
 from flask_caching import Cache  # type: ignore[import]
-from flask_login import LoginManager  # type: ignore[import]
-from flask_oidc import OpenIDConnect
+from flask_oidc import OpenIDConnect  # type: ignore[import]
 
 # local imports
 from rest_tools.server.config import from_environment  # type: ignore[import]
@@ -35,26 +34,8 @@ app = dash.Dash(
 server = app.server
 app.config.suppress_callback_exceptions = True
 server.config.update(SECRET_KEY=os.urandom(12))
-
-
-# Setup the LoginManager for the server
-# NOTE: https://github.com/RafaelMiquelino/dash-flask-login
 cache = Cache(app.server, config={"CACHE_TYPE": "simple"})
-login_manager = LoginManager()
-login_manager.init_app(server)
-ADMINS = [
-    "eevans",
-    "desiati",
-    "paolo.desiati",
-    "dschultz",
-    "david.schultz",
-    "cvakhnina",
-    "catherine.vakhnina",
-    "khanson",
-    "kael.hanson",
-    "benedikt.riedel",
-    "briedel",
-]
+
 
 # --------------------------------------------------------------------------------------
 # configure keycloak login
@@ -76,61 +57,21 @@ server.config.update(
 oidc = OpenIDConnect(server)
 
 
-@server.route("/login")
-@oidc.require_login
-def login():
-    """Example for protected endpoint that extracts private information from the OpenID Connect id_token.
-    Uses the accompanied access_token to access a backend service.
-    """
-
-    info = oidc.user_getinfo(["preferred_username", "email", "sub"])
-
-    username = info.get("preferred_username")
-    email = info.get("email")
-    user_id = info.get("sub")
-
-    # if user_id in oidc.credentials_store:
-    #     try:
-    #         from oauth2client.client import OAuth2Credentials
-
-    #         access_token = OAuth2Credentials.from_json(
-    #             oidc.credentials_store[user_id]
-    #         ).access_token
-    #         print("access_token=<%s>" % access_token)
-    #         headers = {"Authorization": "Bearer %s" % (access_token)}
-    #         # YOLO
-    #         greeting = requests.get(
-    #             "http://localhost:8080/greeting", headers=headers
-    #         ).text
-    #     except:
-    #         print("Could not access greeting-service")
-    #         greeting = "Hello %s" % username
-
-    # return """%s your email is %s and your user_id is %s!
-    #            <ul>
-    #              <li><a href="/">Home</a></li>
-    #              <li><a href="//localhost:8081/auth/realms/pysaar/account?referrer=flask-app&referrer_uri=http://localhost:5000/private&">Account</a></li>
-    #             </ul>""" % (
-    #     greeting,
-    #     email,
-    #     user_id,
-    # )
+@server.route("/login")  # type: ignore[misc]
+@oidc.require_login  # type: ignore[misc]
+def login() -> flask.Response:
+    """On successful login, redirect to index."""
+    logging.critical("/login")
     return flask.redirect("/")
 
 
-# @app.route('/api', methods=['POST'])
-# @oidc.accept_token(require_token=True, scopes_required=['openid'])
-# def hello_api():
-#     """OAuth 2.0 protected API endpoint accessible via AccessToken"""
-
-#     return json.dumps({'hello': 'Welcome %s' % g.oidc_token_info['sub']})
-
-
-@server.route("/logout")
-def logout():
-    """Performs local logout by removing the session cookie."""
-
+@server.route("/logout")  # type: ignore[misc]
+def logout() -> flask.Response:
+    """Performs local logout by removing the session cookie. Redirect to index."""
+    logging.critical("/logout")
+    # refresh_token = oidc.get_refresh_token()
     oidc.logout()
+    # keycloak_openid.logout(refresh_token)
     return flask.redirect("/")
 
 

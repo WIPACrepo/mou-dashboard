@@ -8,7 +8,6 @@ from typing import Dict, Final, List, Optional, Tuple, TypedDict, cast
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
-from flask_login import current_user  # type: ignore[import]
 
 from ..config import app
 from ..data_source import data_source as src
@@ -16,6 +15,7 @@ from ..data_source import table_config as tc
 from ..data_source.utils import DataSourceException
 from ..utils import dash_utils as du
 from ..utils import types, utils
+from ..utils.oidc_tools import CurrentUser
 
 _CHANGES_COL: Final[str] = "Changes"
 
@@ -101,7 +101,7 @@ def handle_xlsx(  # pylint: disable=R0911
     """Manage uploading a new xlsx document as the new live table."""
     logging.warning(f"'{du.triggered()}' -> handle_xlsx()")
 
-    if not current_user.is_authenticated or not current_user.is_admin:
+    if not CurrentUser.is_authenticated() or not CurrentUser.is_admin():
         logging.error("Cannot handle xlsx since user is not admin.")
         return False, "", "", True, None, False, []
 

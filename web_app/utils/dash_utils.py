@@ -11,11 +11,11 @@ import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 import dash_table  # type: ignore[import]
 from dash import no_update
-from flask_login import current_user  # type: ignore[import]
 
 from ..data_source import data_source as src
 from ..data_source import table_config as tc
 from ..utils import types, utils
+from ..utils.oidc_tools import CurrentUser
 
 # constants
 REFRESH_MSG: Final[str] = "Refresh page and try again."
@@ -200,9 +200,9 @@ def build_urlpath(wbs_l1: str, inst: str = "") -> str:
 def need_user_redirect(urlpath: str) -> bool:
     """Return whether the user needs to be redirected."""
     return (
-        current_user.is_authenticated
-        and not current_user.is_admin
-        and get_inst(urlpath) != current_user.institution
+        CurrentUser.is_authenticated()
+        and not CurrentUser.is_admin()
+        and get_inst(urlpath) != CurrentUser.get_institution()
     )
 
 

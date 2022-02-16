@@ -7,7 +7,6 @@ import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 from dash import no_update  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
-from flask_login import current_user  # type: ignore[import]
 
 from ..config import app
 from ..data_source import data_source as src
@@ -15,6 +14,7 @@ from ..data_source import table_config as tc
 from ..data_source.utils import DataSourceException
 from ..utils import dash_utils as du
 from ..utils import types, utils
+from ..utils.oidc_tools import CurrentUser
 
 # --------------------------------------------------------------------------------------
 # Table Callbacks
@@ -253,7 +253,7 @@ def table_data_exterior_controls(
     )
 
     # Check Login
-    if not current_user.is_authenticated:
+    if not CurrentUser.is_authenticated():
         pass
 
     # Add New Data
@@ -313,7 +313,7 @@ def table_data_exterior_controls(
     do_paginate = (
         len(table) / tconfig.get_page_size() > 2  # paginate if 3+ pages
         and not inst  # paginate if viewing entire collaboration
-        and current_user.is_admin  # paginate if admin
+        and CurrentUser.is_admin()  # paginate if admin
     )
     # hide "Show All Rows"/"Collapse Rows to Pages" if paginating wouldn't do anything
     style_paginate_button = {}
@@ -488,7 +488,7 @@ def _table_columns_callback(
     precedence for editable-ness: table > column > disable_institution
     """
     is_institution_editable = False
-    if current_user.is_authenticated and current_user.is_admin:
+    if CurrentUser.is_authenticated() and CurrentUser.is_admin():
         is_institution_editable = True
 
     return du.table_columns(
@@ -679,7 +679,7 @@ def setup_snapshot_components(
     assert not du.triggered_id()  # Guarantee this is the initial call
 
     # Check Login
-    if not current_user.is_authenticated:
+    if not CurrentUser.is_authenticated():
         return no_update, no_update, no_update
 
     snap_options: List[Dict[str, str]] = []
@@ -712,7 +712,7 @@ def setup_snapshot_components(
             html.Label(f"{snap_info['name']}"),
             html.Label(
                 f"created by {snap_info['creator']} — {human_time}"
-                if current_user.is_admin  # only show creator for admins
+                if CurrentUser.is_admin()  # only show creator for admins
                 else human_time,
                 style={"font-size": "75%", "font-style": "italic"},
             ),
@@ -829,13 +829,13 @@ def setup_institution_components(
 ]:
     """Set up institution-related components."""
     logging.warning(
-        f"'{du.triggered()}' -> setup_institution_components() ({s_urlpath=} {s_snap_ts=} {current_user=})"
+        f"'{du.triggered()}' -> setup_institution_components() ({s_urlpath=} {s_snap_ts=} {CurrentUser.get_summary()=})"
     )
 
     assert not du.triggered_id()  # Guarantee this is the initial call
 
     # Check Login
-    if not current_user.is_authenticated:
+    if not CurrentUser.is_authenticated():
         return tuple(no_update for _ in range(17))  # type: ignore[return-value]
 
     phds: types.DashVal = 0
@@ -854,7 +854,7 @@ def setup_institution_components(
     wbs_l1 = du.get_wbs_l1(s_urlpath)
     tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
 
-    if current_user.is_authenticated and current_user.is_admin:
+    if CurrentUser.is_authenticated() and CurrentUser.is_admin():
         inst_options = [  # always include the abbreviations for admins
             {"label": f"{abbrev} ({name})", "value": abbrev}
             for name, abbrev in tconfig.get_institutions_w_abbrevs()
@@ -910,7 +910,7 @@ def setup_institution_components(
 def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
     """Refresh if the user selected an institution."""
     logging.warning(
-        f"'{du.triggered()}' -> select_dropdown_institution() {inst=} {current_user.institution=})"
+        f"'{du.triggered()}' -> select_dropdown_institution() {inst=} {CurrentUser.get_institution()=})"
     )
     inst = "" if not inst else inst
 
@@ -986,7 +986,7 @@ def push_institution_values(  # pylint: disable=R0913
         return False, [], [], [], no_update, no_update, no_update
 
     # Are the fields editable?
-    if not current_user.is_authenticated:
+    if not CurrentUser.is_authenticated():
         return False, [], [], [], no_update, no_update, True
 
     # Is this a snapshot?
@@ -1082,7 +1082,7 @@ def setup_user_dependent_components(
 ]:
     """Logged-in callback."""
     logging.warning(
-        f"'{du.triggered()}' -> setup_user_dependent_components({s_snap_ts=}, {s_urlpath=}, {current_user=})"
+        f"'{du.triggered()}' -> setup_user_dependent_components({s_snap_ts=}, {s_urlpath=}, {CurrentUser.get_summary()=})"
     )
 
     assert not du.triggered_id()  # Guarantee this is the initial call
@@ -1091,10 +1091,14 @@ def setup_user_dependent_components(
         logging.error(f"User viewing wrong mou {s_urlpath=}. Redirecting...")
         return tuple(  # type: ignore[return-value]
             [no_update for _ in range(13)]
-            + [du.build_urlpath(du.get_wbs_l1(s_urlpath), current_user.institution)]
+            + [
+                du.build_urlpath(
+                    du.get_wbs_l1(s_urlpath), CurrentUser.get_institution()
+                )
+            ]
         )
 
-    if not current_user.is_authenticated:
+    if not CurrentUser.is_authenticated():
         return tuple(no_update for _ in range(14))  # type: ignore[return-value]
 
     if s_snap_ts:
@@ -1103,7 +1107,7 @@ def setup_user_dependent_components(
             True,  # new-data-div-1 hidden
             True,  # new-data-div-2 hidden
             False,  # row NOT deletable
-            not current_user.is_admin,  # filter-inst disabled if not admin
+            not CurrentUser.is_admin(),  # filter-inst disabled if not admin
             True,  # wbs-admin-zone-div hidden
             True,  # institution value disabled
             True,  # institution value disabled
@@ -1120,8 +1124,8 @@ def setup_user_dependent_components(
         False,  # new-data-div-1 NOT hidden
         False,  # new-data-div-2 NOT hidden
         True,  # row is deletable
-        not current_user.is_admin,  # filter-inst disabled if user is not an admin
-        not current_user.is_admin,  # wbs-admin-zone-div hidden if user is not an admin
+        not CurrentUser.is_admin(),  # filter-inst disabled if user is not an admin
+        not CurrentUser.is_admin(),  # wbs-admin-zone-div hidden if user is not an admin
         False,  # institution value NOT disabled
         False,  # institution value NOT disabled
         False,  # institution value NOT disabled
@@ -1194,7 +1198,7 @@ def toggle_hidden_columns(
 
     if n_clicks % 2 == 0:
         hiddens = tconfig.get_hidden_columns()
-        if du.get_inst(s_urlpath) and not current_user.is_admin:
+        if du.get_inst(s_urlpath) and not CurrentUser.is_admin():
             hiddens.append(tconfig.const.INSTITUTION)
         return (
             "Show Hidden Columns",
