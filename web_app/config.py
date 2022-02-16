@@ -10,6 +10,7 @@ import dash_bootstrap_components as dbc  # type: ignore
 import flask  # type: ignore
 from flask_caching import Cache  # type: ignore[import]
 from flask_oidc import OpenIDConnect  # type: ignore[import]
+from keycloak import KeycloakOpenID  # type: ignore[import]
 
 # local imports
 from rest_tools.server.config import from_environment  # type: ignore[import]
@@ -66,13 +67,19 @@ def login() -> flask.Response:
 
 
 @server.route("/logout")  # type: ignore[misc]
+# @oidc.require_login  # type: ignore[misc]
 def logout() -> flask.Response:
-    """Performs local logout by removing the session cookie. Redirect to index."""
+    """Performs local logout by removing the session cookie.
+
+    Redirect to keycloak's logout landing page.
+    """
     logging.critical("/logout")
-    # refresh_token = oidc.get_refresh_token()
     oidc.logout()
-    # keycloak_openid.logout(refresh_token)
-    return flask.redirect("/")
+    return flask.redirect(
+        oidc.client_secrets["issuer"]
+        + "/protocol/openid-connect/logout?redirect_uri="
+        + oidc.client_secrets["redirect_uris"][0]
+    )
 
 
 # --------------------------------------------------------------------------------------
