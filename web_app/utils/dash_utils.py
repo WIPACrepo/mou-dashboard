@@ -202,7 +202,7 @@ def need_user_redirect(urlpath: str) -> bool:
     return (
         CurrentUser.is_authenticated()
         and not CurrentUser.is_admin()
-        and get_inst(urlpath) != CurrentUser.get_institution()
+        and get_inst(urlpath) not in CurrentUser.get_institutions()
     )
 
 

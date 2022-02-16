@@ -175,7 +175,10 @@ def layout() -> html.Div:
                             for _id, _label in [
                                 ("wbs-phds-authors", "PhDs/Authors"),
                                 ("wbs-faculty", "Faculty"),
-                                ("wbs-scientists-post-docs", "Scientists/Post-Docs",),
+                                (
+                                    "wbs-scientists-post-docs",
+                                    "Scientists/Post-Docs",
+                                ),
                                 ("wbs-grad-students", "Grad Students"),
                             ]
                         ],

@@ -55,6 +55,8 @@ server.config.update(
         "OIDC_INTROSPECTION_AUTH_METHOD": "client_secret_post",
     }
 )
+
+# TODO: implement DB to allow persisted logins between restarts
 oidc = OpenIDConnect(server)
 
 

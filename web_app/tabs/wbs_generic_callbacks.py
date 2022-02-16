@@ -809,15 +809,16 @@ def setup_institution_components(
     wbs_l1 = du.get_wbs_l1(s_urlpath)
     tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
 
-    if CurrentUser.is_authenticated() and CurrentUser.is_admin():
+    if CurrentUser.is_admin():
         inst_options = [  # always include the abbreviations for admins
             {"label": f"{abbrev} ({name})", "value": abbrev}
             for name, abbrev in tconfig.get_institutions_w_abbrevs()
         ]
     else:
-        inst_options = [
+        inst_options = [  # only include the user's institution(s)
             {"label": name, "value": abbrev}
             for name, abbrev in sorted(tconfig.get_institutions_w_abbrevs())
+            if abbrev in CurrentUser.get_institutions()
         ]
 
     labor_options = [
@@ -865,7 +866,7 @@ def setup_institution_components(
 def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
     """Refresh if the user selected an institution."""
     logging.warning(
-        f"'{du.triggered()}' -> select_dropdown_institution() {inst=} {CurrentUser.get_institution()=})"
+        f"'{du.triggered()}' -> select_dropdown_institution() {inst=} {CurrentUser.get_institutions()=})"
     )
     inst = "" if not inst else inst
 
@@ -1048,7 +1049,7 @@ def setup_user_dependent_components(
             [no_update for _ in range(13)]
             + [
                 du.build_urlpath(
-                    du.get_wbs_l1(s_urlpath), CurrentUser.get_institution()
+                    du.get_wbs_l1(s_urlpath), CurrentUser.get_institutions()[0]
                 )
             ]
         )
@@ -1056,13 +1057,18 @@ def setup_user_dependent_components(
     if not CurrentUser.is_authenticated():
         return tuple(no_update for _ in range(14))  # type: ignore[return-value]
 
+    # filter-inst disabled if not admin and less than 2 insts (to pick from)
+    dropdown_institution_disabled = (
+        not CurrentUser.is_admin() and len(CurrentUser.get_institutions()) < 2
+    )
+
     if s_snap_ts:
         return (
             False,  # data-table NOT editable
             True,  # new-data-div-1 hidden
             True,  # new-data-div-2 hidden
             False,  # row NOT deletable
-            not CurrentUser.is_admin(),  # filter-inst disabled if not admin
+            dropdown_institution_disabled,
             True,  # wbs-admin-zone-div hidden
             True,  # institution value disabled
             True,  # institution value disabled
@@ -1079,7 +1085,7 @@ def setup_user_dependent_components(
         False,  # new-data-div-1 NOT hidden
         False,  # new-data-div-2 NOT hidden
         True,  # row is deletable
-        not CurrentUser.is_admin(),  # filter-inst disabled if user is not an admin
+        dropdown_institution_disabled,
         not CurrentUser.is_admin(),  # wbs-admin-zone-div hidden if user is not an admin
         False,  # institution value NOT disabled
         False,  # institution value NOT disabled

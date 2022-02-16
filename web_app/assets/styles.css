@@ -339,20 +339,20 @@ code {
 
 .large-dropdown > .Select-control {
     height: 4rem;
-    border: 0;
+    /*border: 0;*/
     width: 40rem;
-    padding: 0;
-    background-color: transparent;
+    /*padding: 0;*/
+    /*background-color: transparent;*/
 }
 
 .large-dropdown > .Select-control > .Select-arrow-zone {
-    visibility: hidden;
+    /*visibility: hidden;*/
 }
 
 .large-dropdown > .Select-control > .Select-multi-value-wrapper > * {
     padding: 0 !important;
     padding-top: 0.25rem !important;
-    line-height: 2 !important;
+    /*line-height: 2 !important;*/
 }
 
 .large-dropdown > .Select-control > .Select-multi-value-wrapper > .Select-placeholder,

@@ -1,6 +1,6 @@
 """Handle user log-in and account info."""
 
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, List, Optional, cast
 
 from ..config import cache, oidc
 
@@ -43,7 +43,15 @@ class CurrentUser:
         return cast(str, CurrentUser._get_info()["preferred_username"])
 
     @staticmethod
-    def get_institution() -> str:
+    def get_institutions() -> List[str]:
         """Get the user's institution."""
-        # TODO - multiple institutions logic
-        return "UW-Madison"
+        insts = []
+        for group in CurrentUser._get_info()["groups"]:
+            if group.startswith("/institutions/"):
+                insts.append(group.split("/")[-1])
+
+        # get rid of duplicates, like
+        # "/institutions/IceCube/UW-Madison" -> "UW-Madison"
+        # "/institutions/IceCube-Gen2/UW-Madison" -> "UW-Madison"
+
+        return list(set(insts))
