@@ -1,7 +1,6 @@
 """Config file."""
 
 import logging
-import os
 from typing import TypedDict
 from urllib.parse import urljoin
 
@@ -13,6 +12,52 @@ from flask_oidc import OpenIDConnect  # type: ignore[import]
 
 # local imports
 from rest_tools.server.config import from_environment  # type: ignore[import]
+
+# --------------------------------------------------------------------------------------
+# configure config_vars
+
+
+class ConfigVarsTypedDict(TypedDict, total=False):
+    """Global configuration-variable types."""
+
+    REST_SERVER_URL: str
+    TOKEN_SERVER_URL: str
+    WEB_SERVER_HOST: str
+    WEB_SERVER_PORT: int
+    AUTH_PREFIX: str
+    TOKEN_REQUEST_URL: str
+    TOKEN: str
+    NO_USER_AUTH_REQ: bool
+    FLASK_SECRET: str
+
+
+def get_config_vars() -> ConfigVarsTypedDict:
+    """Get the global configuration variables."""
+    config_vars: ConfigVarsTypedDict = from_environment(
+        {
+            "REST_SERVER_URL": "http://localhost:8080",
+            "TOKEN_SERVER_URL": "http://localhost:8888",
+            "WEB_SERVER_HOST": "localhost",
+            "WEB_SERVER_PORT": 8050,
+            "AUTH_PREFIX": "mou",
+            "TOKEN": "",
+            "FLASK_SECRET": "super-secret-flask-key",
+        }
+    )
+
+    config_vars["TOKEN_REQUEST_URL"] = urljoin(
+        config_vars["TOKEN_SERVER_URL"],
+        f"token?scope={config_vars['AUTH_PREFIX']}:admin",
+    )
+
+    return config_vars
+
+
+def log_config_vars() -> None:
+    """Log the global configuration variables, key-value."""
+    for key, val in get_config_vars().items():
+        logging.info(f"{key}\t{val}\t({type(val).__name__})")
+
 
 # --------------------------------------------------------------------------------------
 # Set-up Dash server
@@ -33,7 +78,7 @@ app = dash.Dash(
 # config
 server = app.server
 app.config.suppress_callback_exceptions = True
-server.config.update(SECRET_KEY=os.urandom(12))
+server.config.update(SECRET_KEY=get_config_vars()["FLASK_SECRET"])
 cache = Cache(app.server, config={"CACHE_TYPE": "simple"})
 
 
@@ -54,8 +99,6 @@ server.config.update(
         "OIDC_INTROSPECTION_AUTH_METHOD": "client_secret_post",
     }
 )
-
-# TODO: implement DB to allow persisted logins between restarts
 oidc = OpenIDConnect(server)
 
 
@@ -73,47 +116,3 @@ def logout() -> flask.Response:
     logging.critical("/logout")
     oidc.logout()
     return 'Hi, you have been logged out! <a href="/">Return</a>'
-
-
-# --------------------------------------------------------------------------------------
-# configure config_vars
-
-
-class ConfigVarsTypedDict(TypedDict, total=False):
-    """Global configuration-variable types."""
-
-    REST_SERVER_URL: str
-    TOKEN_SERVER_URL: str
-    WEB_SERVER_HOST: str
-    WEB_SERVER_PORT: int
-    AUTH_PREFIX: str
-    TOKEN_REQUEST_URL: str
-    TOKEN: str
-    NO_USER_AUTH_REQ: bool
-
-
-def get_config_vars() -> ConfigVarsTypedDict:
-    """Get the global configuration variables."""
-    config_vars: ConfigVarsTypedDict = from_environment(
-        {
-            "REST_SERVER_URL": "http://localhost:8080",
-            "TOKEN_SERVER_URL": "http://localhost:8888",
-            "WEB_SERVER_HOST": "localhost",
-            "WEB_SERVER_PORT": 8050,
-            "AUTH_PREFIX": "mou",
-            "TOKEN": "",
-        }
-    )
-
-    config_vars["TOKEN_REQUEST_URL"] = urljoin(
-        config_vars["TOKEN_SERVER_URL"],
-        f"token?scope={config_vars['AUTH_PREFIX']}:admin",
-    )
-
-    return config_vars
-
-
-def log_config_vars() -> None:
-    """Log the global configuration variables, key-value."""
-    for key, val in get_config_vars().items():
-        logging.info(f"{key}\t{val}\t({type(val).__name__})")
