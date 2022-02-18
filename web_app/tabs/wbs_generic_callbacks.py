@@ -52,7 +52,6 @@ def _add_new_data(  # pylint: disable=R0913
     labor: types.DashVal,
     institution: types.DashVal,
     tconfig: tc.TableConfigParser,
-    # new_task: str,
 ) -> Tuple[types.Table, dbc.Toast]:
     """Push new record to data source; add to table.
 
@@ -69,7 +68,6 @@ def _add_new_data(  # pylint: disable=R0913
             wbs_l1,
             new_record,
             tconfig,
-            # task=new_task,
             labor=labor,
             institution=institution,
             novel=True,
@@ -149,7 +147,6 @@ def confirm_deletion(
         Input("wbs-data-table", "columns"),  # setup_table()-only
         Input("wbs-filter-labor", "value"),  # user
         Input("wbs-show-totals-button", "n_clicks"),  # user-only
-        # Input("wbs-new-data-modal-dummy-add", "n_clicks"),  # handle_add_new_data()-only
         Input("wbs-new-data-button-1", "n_clicks"),  # user-only
         Input("wbs-new-data-button-2", "n_clicks"),  # user-only
         Input("wbs-undo-last-delete-hidden-button", "n_clicks"),  # confirm_deletion()
@@ -161,7 +158,6 @@ def confirm_deletion(
         State("wbs-show-all-columns-button", "n_clicks"),
         State("wbs-last-deleted-record", "data"),
         State("wbs-table-config-cache", "data"),
-        # State("wbs-new-data-modal-task", "value"),
         State("wbs-table-update-flag-exterior-control", "data"),
     ],
     prevent_initial_call=True,  # must wait for columns
@@ -180,7 +176,6 @@ def table_data_exterior_controls(
     s_all_cols: int,
     s_deleted_record: types.Record,
     s_tconfig_cache: tc.TableConfigParser.CacheType,
-    # s_new_task: str,
     s_flag_extctrl: bool,
 ) -> Tuple[types.Table, int, dbc.Toast, str, str, bool, int, bool, int, Dict[str, str]]:
     """Exterior control signaled that the table should be updated.
@@ -207,14 +202,8 @@ def table_data_exterior_controls(
         tot_n_clicks, s_all_cols
     )
 
-    # Check Login
-    if not CurrentUser.is_loggedin_with_permissions():
-        # TODO - add checks for is_loggedin_with_permissions() on all 'setup*()' calls (check logs for these)
-        pass
-
     # Add New Data
-    # elif du.triggered_id() == "wbs-new-data-modal-dummy-add":
-    elif du.triggered_id() in ["wbs-new-data-button-1", "wbs-new-data-button-2"]:
+    if du.triggered_id() in ["wbs-new-data-button-1", "wbs-new-data-button-2"]:
         if not s_snap_ts:  # are we looking at a snapshot?
             table, toast = _add_new_data(
                 wbs_l1,

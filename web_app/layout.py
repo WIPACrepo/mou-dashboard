@@ -26,7 +26,6 @@ def layout() -> None:
     app.layout = html.Div(
         children=[
             dcc.Location(id="url"),  # duplicates will auto-sync values w/o triggering
-            dcc.Location(id="url-login"),  # use duplicates for multi-outputs
             dcc.Location(id="url-user-inst-redirect"),
             dcc.Location(id="url-404-redirect"),
             #
