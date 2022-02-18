@@ -348,7 +348,7 @@ def list_snapshots(wbs_l1: str) -> List[types.SnapshotInfo]:
         snapshots: List[types.SnapshotInfo]
 
     body = {
-        "is_admin": CurrentUser.is_authenticated() and CurrentUser.is_admin(),
+        "is_admin": CurrentUser.is_loggedin_with_permissions() and CurrentUser.is_admin(),
     }
     response = cast(
         _RespSnapshots, mou_request("GET", f"/snapshots/list/{wbs_l1}", body)

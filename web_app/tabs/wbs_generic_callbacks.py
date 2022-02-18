@@ -208,7 +208,8 @@ def table_data_exterior_controls(
     )
 
     # Check Login
-    if not CurrentUser.is_authenticated():
+    if not CurrentUser.is_loggedin_with_permissions():
+        # TODO - add checks for is_loggedin_with_permissions() on all 'setup*()' calls (check logs for these)
         pass
 
     # Add New Data
@@ -443,7 +444,7 @@ def _table_columns_callback(
     precedence for editable-ness: table > column > disable_institution
     """
     is_institution_editable = False
-    if CurrentUser.is_authenticated() and CurrentUser.is_admin():
+    if CurrentUser.is_loggedin_with_permissions() and CurrentUser.is_admin():
         is_institution_editable = True
 
     return du.table_columns(
@@ -634,7 +635,7 @@ def setup_snapshot_components(
     assert not du.triggered_id()  # Guarantee this is the initial call
 
     # Check Login
-    if not CurrentUser.is_authenticated():
+    if not CurrentUser.is_loggedin_with_permissions():
         return no_update, no_update, no_update
 
     snap_options: List[Dict[str, str]] = []
@@ -790,7 +791,7 @@ def setup_institution_components(
     assert not du.triggered_id()  # Guarantee this is the initial call
 
     # Check Login
-    if not CurrentUser.is_authenticated():
+    if not CurrentUser.is_loggedin_with_permissions():
         return tuple(no_update for _ in range(17))  # type: ignore[return-value]
 
     phds: types.DashVal = 0
@@ -942,7 +943,7 @@ def push_institution_values(  # pylint: disable=R0913
         return False, [], [], [], no_update, no_update, no_update
 
     # Are the fields editable?
-    if not CurrentUser.is_authenticated():
+    if not CurrentUser.is_loggedin_with_permissions():
         return False, [], [], [], no_update, no_update, True
 
     # Is this a snapshot?
@@ -1054,7 +1055,7 @@ def setup_user_dependent_components(
             ]
         )
 
-    if not CurrentUser.is_authenticated():
+    if not CurrentUser.is_loggedin_with_permissions():
         return tuple(no_update for _ in range(14))  # type: ignore[return-value]
 
     # filter-inst disabled if not admin and less than 2 insts (to pick from)

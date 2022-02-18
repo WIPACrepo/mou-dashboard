@@ -115,4 +115,11 @@ def logout() -> flask.Response:
     """Performs local logout by removing the session cookie."""
     logging.critical("/logout")
     oidc.logout()
-    return 'Hi, you have been logged out! <a href="/">Return</a>'
+    return 'Hi, you have been logged out! <a href="/">Login</a>'
+
+
+@server.route("/invalid-permissions")  # type: ignore[misc]
+def invalid_permissions() -> flask.Response:
+    """Redirected to tell the user they can't do anything other than logout."""
+    logging.critical("/invalid-permissions")
+    return 'You don\'t have permissions to edit MoUs. <a href="/logout">Logout</a>'

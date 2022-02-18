@@ -200,7 +200,7 @@ def build_urlpath(wbs_l1: str, inst: str = "") -> str:
 def need_user_redirect(urlpath: str) -> bool:
     """Return whether the user needs to be redirected."""
     return (
-        CurrentUser.is_authenticated()
+        CurrentUser.is_loggedin_with_permissions()
         and not CurrentUser.is_admin()
         and get_inst(urlpath) not in CurrentUser.get_institutions()
     )

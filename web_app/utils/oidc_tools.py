@@ -1,5 +1,6 @@
 """Handle user log-in and account info."""
 
+import re
 from typing import Any, Dict, List, Optional, cast
 
 from ..config import cache, oidc
@@ -20,20 +21,42 @@ class CurrentUser:
     @staticmethod
     def get_summary() -> Optional[Dict[str, Any]]:
         """Query OIDC."""
-        if not CurrentUser.is_authenticated():
+        if not oidc.user_loggedin:
             return None
-        return CurrentUser._get_info()
+        return {
+            "mou": {
+                "is_authenticated": CurrentUser.is_loggedin_with_permissions(),
+                "is_admin": CurrentUser.is_admin(),
+                "get_username": CurrentUser.get_username(),
+                "get_institutions": CurrentUser.get_institutions(),
+            },
+            "info": CurrentUser._get_info(),
+        }
 
     @staticmethod
-    def is_authenticated() -> bool:
-        """Is the user authenticated (logged-in)?"""
+    def is_loggedin() -> bool:
+        """Is the user logged-in?"""
         return bool(oidc.user_loggedin)
+
+    @staticmethod
+    def is_loggedin_with_permissions() -> bool:
+        """Is the user authenticated (logged-in w/ permissions)?"""
+        if not oidc.user_loggedin:
+            return False
+
+        if CurrentUser.is_admin():
+            return True
+
+        if CurrentUser.get_institutions():
+            return True
+
+        return False
 
     @staticmethod
     def is_admin() -> bool:
         """Is the user an admin?"""
         try:
-            return "/posix/mou-dashboard-admin" in CurrentUser._get_info()["groups"]
+            return "/tokens/mou-dashboard-admin" in CurrentUser._get_info()["groups"]
         except (KeyError, TypeError):
             return False
 
@@ -44,14 +67,19 @@ class CurrentUser:
 
     @staticmethod
     def get_institutions() -> List[str]:
-        """Get the user's institution."""
-        insts = []
-        for group in CurrentUser._get_info()["groups"]:
-            if group.startswith("/institutions/"):
-                insts.append(group.split("/")[-1])
+        """Get the user's editable institutions."""
 
-        # get rid of duplicates, like
-        # "/institutions/IceCube/UW-Madison" -> "UW-Madison"
-        # "/institutions/IceCube-Gen2/UW-Madison" -> "UW-Madison"
+        # Ex: /institutions/IceCube/UW-Madison/mou-dashboard
+        # Ex: /institutions/IceCube/UW-Madison/_admin
 
-        return list(set(insts))
+        # also, get rid of duplicates, like
+        # "/institutions/IceCube/UW-Madison/_admin" -> "UW-Madison"
+        # "/institutions/IceCube-Gen2/UW-Madison/_admin" -> "UW-Madison"
+
+        insts = set()
+        for user_group in CurrentUser._get_info()["groups"]:
+            pattern = r"/institutions/[^/]+/(?P<inst>[^/]+)/(mou-dashboard|_admin)"
+            if m := re.match(pattern, user_group):
+                insts.add(m.groupdict()["inst"])
+
+        return list(insts)

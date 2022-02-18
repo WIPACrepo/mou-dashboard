@@ -127,8 +127,12 @@ def redirect(_: bool, s_urlpath: str) -> Tuple[str, bool, str]:
     logging.critical(f"'{du.triggered()}' -> redirect() {CurrentUser.get_summary()=}")
 
     # is the user logged-in?
-    if not CurrentUser.is_authenticated():
+    if not CurrentUser.is_loggedin():
         return "login", True, ""
+
+    # does the user have permissions?
+    if not CurrentUser.is_loggedin_with_permissions():
+        return "invalid-permissions", True, ""
 
     if CurrentUser.is_admin():
         user_label = f"{CurrentUser.get_username()} (Admin)"

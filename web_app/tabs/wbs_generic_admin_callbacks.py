@@ -101,7 +101,7 @@ def handle_xlsx(  # pylint: disable=R0911
     """Manage uploading a new xlsx document as the new live table."""
     logging.warning(f"'{du.triggered()}' -> handle_xlsx()")
 
-    if not CurrentUser.is_authenticated() or not CurrentUser.is_admin():
+    if not CurrentUser.is_loggedin_with_permissions() or not CurrentUser.is_admin():
         logging.error("Cannot handle xlsx since user is not admin.")
         return False, "", "", True, None, False, []
 
