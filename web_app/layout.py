@@ -17,6 +17,8 @@ from .utils import dash_utils as du
 from .utils import utils
 from .utils.oidc_tools import CurrentUser
 
+AUTO_RELOAD_MINS = 30
+
 
 def layout() -> None:
     """Serve the layout to `app`."""
@@ -25,6 +27,11 @@ def layout() -> None:
     # Layout
     app.layout = html.Div(
         children=[
+            dcc.Interval(
+                id="interval", interval=AUTO_RELOAD_MINS * 60 * 1000  # milliseconds
+            ),
+            #
+            # To change URLs without necessarily refreshing
             dcc.Location(id="url"),  # duplicates will auto-sync values w/o triggering
             dcc.Location(id="url-user-inst-redirect"),
             dcc.Location(id="url-404-redirect"),
@@ -33,6 +40,7 @@ def layout() -> None:
             visdcc.Run_js("refresh-for-snapshot-make"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-override-success"),  # pylint: disable=E1101
             visdcc.Run_js("refresh-for-snapshot-change"),  # pylint: disable=E1101
+            visdcc.Run_js("refresh-for-interval"),  # pylint: disable=E1101
             #
             # Logo, Tabs, & Login
             dbc.Navbar(
@@ -113,6 +121,24 @@ def layout() -> None:
 
 
 @app.callback(  # type: ignore[misc]
+    Output("refresh-for-interval", "run"),
+    Input("interval", "n_intervals"),  # dummy input
+    prevent_initial_call=True,
+)
+def interval(_: int) -> str:
+    """Automatically refresh/reload page on interval.
+
+    This will help re-check for login credentials in case of an expired
+    session cookie. The user will remain on the same page, unless they
+    need to log in again.
+    """
+    logging.critical(
+        f"'{du.triggered()}' -> interval() {AUTO_RELOAD_MINS=} {CurrentUser.get_summary()=}"
+    )
+    return du.RELOAD
+
+
+@app.callback(  # type: ignore[misc]
     [
         Output("url-404-redirect", "pathname"),
         Output("tab-content", "hidden"),  # update to call view_live_table()
@@ -164,7 +190,7 @@ def toggle_navbar_collapse(n_clicks: int, is_open: bool) -> Tuple[bool, str, boo
     return is_open, "navbar-uncollapsed", is_open
 
 
-@app.callback(
+@app.callback(  # type: ignore[misc]
     [
         Output("mou-title", "children"),
         Output("nav-link-mo", "active"),
@@ -172,7 +198,7 @@ def toggle_navbar_collapse(n_clicks: int, is_open: bool) -> Tuple[bool, str, boo
     ],
     Input("mou-title", "hidden"),  # dummy input
     [State("url", "pathname")],
-)  # type: ignore
+)
 def load_nav_title(_: bool, s_urlpath: str) -> Tuple[str, bool, bool]:
     """Load the title for the current mou/wbs-l1."""
     wbs_l1 = du.get_wbs_l1(s_urlpath)
