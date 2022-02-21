@@ -16,18 +16,22 @@ class Institution:
     long_name: str
     is_us: bool
     has_mou: bool
+    institution_lead_uid: str
 
 
 def convert_krs_institutions(response: Dict[str, Any]) -> List[Institution]:
     """Convert from krs response data to List[Institution]."""
     insts: List[Institution] = []
     for inst, attrs in response.items():
+        if not attrs:
+            continue
         insts.append(
             Institution(
                 short_name=inst,
                 long_name=attrs["name"],
                 is_us=bool(strtobool(attrs["is_US"])),
                 has_mou=bool(strtobool(attrs["has_mou"])),
+                institution_lead_uid=attrs.get("institutionLeadUid", ""),
             )
         )
     return insts

@@ -411,13 +411,15 @@
         "has_mou": "true",
         "name": "University of Wisconsin\u2013Madison",
         "abbreviation": "UW",
-        "is_US": "true"
+        "is_US": "true",
+        "institutionLeadUid": "tom.hanks"
     },
     "UW-River-Falls": {
         "has_mou": "true",
         "name": "University of Wisconsin, River Falls",
         "abbreviation": "UWRF",
-        "is_US": "true"
+        "is_US": "true",
+        "institutionLeadUid": "hom.tanks"
     },
     "Uppsala": {
         "has_mou": "true",

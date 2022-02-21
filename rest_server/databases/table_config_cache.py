@@ -239,10 +239,6 @@ class TableConfigCache:
         """Get the columns."""
         return list(self.column_configs.keys())
 
-    def get_institution_long_and_short(self) -> List[Tuple[str, str]]:
-        """Get the institutions' long-names and (regular/short) names."""
-        return [(inst.long_name, inst.short_name) for inst in self.institutions]
-
     def get_labor_categories_and_abbrevs(
         self,
     ) -> List[Tuple[str, str]]:  # pylint:disable=no-self-use

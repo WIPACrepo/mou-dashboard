@@ -172,6 +172,8 @@ def summarize(
     except DataSourceException:
         return [], []
 
+    insts_infos = src.get_institutions_infos()
+
     column_names = ["Institution", "Institutional Lead"]
     if wbs_l1 == "mo":
         column_names.extend(
@@ -206,13 +208,14 @@ def summarize(
         )
 
     summary_table: types.Table = []
-    for inst_full, abbrev in tconfig.get_institutions_w_abbrevs():
+    for short_name, inst_info in insts_infos.items():
         row: Dict[str, types.StrNum] = {
-            "Institution": inst_full,
+            "Institution": inst_info.long_name,
+            "Institutional Lead": inst_info.institution_lead_uid,
         }
 
         if wbs_l1 == "mo":
-            ret = src.pull_institution_values(wbs_l1, s_snap_ts, abbrev)
+            ret = src.pull_institution_values(wbs_l1, s_snap_ts, short_name)
             (phds, faculty, sci, grad, cpus, gpus, __, hc_conf, comp_conf) = ret
             row.update(
                 {
@@ -228,16 +231,12 @@ def summarize(
             )
             row["Headcount Total"] = sum(
                 cast(float, row.get(hc))
-                for hc in [
-                    "Faculty",
-                    "Scientists / Post Docs",
-                    "Ph.D. Students",
-                ]
+                for hc in ["Faculty", "Scientists / Post Docs", "Ph.D. Students"]
             )
 
-        row.update({l2: _sum_it(abbrev, l2) for l2 in tconfig.get_l2_categories()})
+        row.update({l2: _sum_it(short_name, l2) for l2 in tconfig.get_l2_categories()})
 
-        row["FTE Total"] = _sum_it(abbrev)
+        row["FTE Total"] = _sum_it(short_name)
 
         if wbs_l1 == "mo":
             try:

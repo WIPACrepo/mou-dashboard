@@ -799,16 +799,29 @@ def setup_institution_components(
     wbs_l1 = du.get_wbs_l1(s_urlpath)
     tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
 
+    def inactive_flag(info: src.Institution) -> str:
+        if info.has_mou:
+            return ""
+        return "inactive: "
+
     if CurrentUser.is_admin():
         inst_options = [  # always include the abbreviations for admins
-            {"label": f"{abbrev} ({name})", "value": abbrev}
-            for name, abbrev in tconfig.get_institutions_w_abbrevs()
+            {
+                "label": f"{inactive_flag(info)}{short_name} ({info.long_name})",
+                "value": short_name,
+                # "disabled": not info.has_mou,
+            }
+            for short_name, info in src.get_institutions_infos().items()
         ]
     else:
         inst_options = [  # only include the user's institution(s)
-            {"label": name, "value": abbrev}
-            for name, abbrev in sorted(tconfig.get_institutions_w_abbrevs())
-            if abbrev in CurrentUser.get_institutions()
+            {
+                "label": inactive_flag(info) + short_name,
+                "value": short_name,
+                # "disabled": not info.has_mou,
+            }
+            for short_name, info in src.get_institutions_infos().items()
+            if short_name in CurrentUser.get_institutions()
         ]
 
     labor_options = [
@@ -840,7 +853,7 @@ def setup_institution_components(
         not inst if wbs_l1 == "mo" else True,  # just hide it if not M&O
         not inst if wbs_l1 == "mo" else True,  # just hide it if not M&O
         inst,
-        inst_options,
+        sorted(inst_options, key=lambda d: d["label"]),
         labor_options,
         True if s_snap_ts else hc_conf,
         True if s_snap_ts else comp_conf,

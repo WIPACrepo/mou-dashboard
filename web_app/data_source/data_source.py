@@ -1,6 +1,7 @@
 """REST interface for reading and writing MoU data."""
 
 
+from dataclasses import dataclass
 from typing import Any, Dict, Final, List, Optional, Tuple, TypedDict, Union, cast
 
 from ..utils import types, utils
@@ -224,7 +225,7 @@ def _validate(
 
 
 # --------------------------------------------------------------------------------------
-# Data/types.Table Functions
+# Table/Record Functions
 
 
 def pull_data_table(  # pylint: disable=R0913
@@ -340,6 +341,10 @@ def delete_record(wbs_l1: str, record_id: str) -> None:
     mou_request("DELETE", f"/record/{wbs_l1}", body=body)
 
 
+# --------------------------------------------------------------------------------------
+# Snapshot Functions
+
+
 def list_snapshots(wbs_l1: str) -> List[types.SnapshotInfo]:
     """Get the list of snapshots."""
     _validate(wbs_l1, str, falsy_okay=False)
@@ -348,7 +353,8 @@ def list_snapshots(wbs_l1: str) -> List[types.SnapshotInfo]:
         snapshots: List[types.SnapshotInfo]
 
     body = {
-        "is_admin": CurrentUser.is_loggedin_with_permissions() and CurrentUser.is_admin(),
+        "is_admin": CurrentUser.is_loggedin_with_permissions()
+        and CurrentUser.is_admin()
     }
     response = cast(
         _RespSnapshots, mou_request("GET", f"/snapshots/list/{wbs_l1}", body)
@@ -368,6 +374,10 @@ def create_snapshot(wbs_l1: str, name: str) -> types.SnapshotInfo:
     }
     response = mou_request("POST", f"/snapshots/make/{wbs_l1}", body=body)
     return cast(types.SnapshotInfo, response)
+
+
+# --------------------------------------------------------------------------------------
+# Table-Override Functions
 
 
 def override_table(
@@ -407,6 +417,10 @@ def override_table(
         response["previous_snapshot"],
         response["current_snapshot"],
     )
+
+
+# --------------------------------------------------------------------------------------
+# Institution-Value Functions
 
 
 def pull_institution_values(
@@ -489,3 +503,27 @@ def push_institution_values(  # pylint: disable=R0913
     body["computing_confirmed"] = comp_confirmed
 
     _ = mou_request("POST", f"/institution/values/{wbs_l1}", body=body)
+
+
+# --------------------------------------------------------------------------------------
+# Static Institution Info Functions
+
+
+@dataclass(frozen=True)
+class Institution:
+    """Hold minimal institution data."""
+
+    short_name: str
+    long_name: str
+    is_us: bool
+    has_mou: bool
+    institution_lead_uid: str
+
+
+def get_institutions_infos() -> Dict[str, Institution]:
+    """Get a dict of all institutions with their info."""
+    resp = cast(Dict[str, Dict[str, Any]], mou_request("GET", "/institution/today"))
+
+    infos = {k: Institution(**v) for k, v in resp.items()}
+
+    return infos

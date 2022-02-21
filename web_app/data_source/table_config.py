@@ -1,7 +1,7 @@
 """REST interface for get configurations for the table/columns."""
 
 
-from typing import cast, Dict, Final, List, Optional, Tuple, TypedDict
+from typing import Dict, Final, List, Optional, Tuple, TypedDict, cast
 
 from .utils import mou_request
 
@@ -11,7 +11,6 @@ class _WBSTableCache(TypedDict):  # pylint: disable=R0903
 
     columns: List[str]
     simple_dropdown_menus: Dict[str, List[str]]
-    institutions: List[Tuple[str, str]]
     labor_categories: List[Tuple[str, str]]
     conditional_dropdown_menus: Dict[str, Tuple[str, Dict[str, List[str]]]]
     dropdowns: List[str]
@@ -107,10 +106,6 @@ class TableConfigParser:  # pylint: disable=R0904
     def get_l2_categories(self) -> List[str]:
         """Get dropdown menu for a column."""
         return self.get_simple_column_dropdown_menu(self.const.WBS_L2)
-
-    def get_institutions_w_abbrevs(self) -> List[Tuple[str, str]]:
-        """Get list of institutions and their abbreviations."""
-        return sorted(self._configs[self._wbs_l1]["institutions"], key=lambda k: k[1])
 
     def get_labor_categories_w_abbrevs(self) -> List[Tuple[str, str]]:
         """Get list of labors  and their abbreviations.."""

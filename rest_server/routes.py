@@ -3,6 +3,7 @@
 
 import json
 import logging
+from dataclasses import asdict
 from typing import Any
 
 from motor.motor_tornado import MotorClient  # type: ignore
@@ -10,7 +11,7 @@ from rest_tools.server import RestHandler, handler  # type: ignore
 
 from . import wbs
 from .config import AUTH_PREFIX
-from .databases import columns, mou_db, table_config_cache
+from .databases import columns, mou_db, table_config_cache, todays_institutions
 from .utils import types, utils
 
 _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
@@ -178,7 +179,6 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
             l1: {
                 "columns": self.tc_cache.get_columns(),
                 "simple_dropdown_menus": self.tc_cache.get_simple_dropdown_menus(l1),
-                "institutions": self.tc_cache.get_institution_long_and_short(),
                 "labor_categories": self.tc_cache.get_labor_categories_and_abbrevs(),
                 "conditional_dropdown_menus": self.tc_cache.get_conditional_dropdown_menus(
                     l1
@@ -251,7 +251,7 @@ class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
 
 
 class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
-    """Handle requests for making snapshots."""
+    """Handle requests for managing an institution's values, possibly for a snapshot."""
 
     ROUTE = rf"/institution/values/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
@@ -301,3 +301,20 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
         await self.mou_db_client.upsert_institution_values(wbs_l1, institution, vals)
 
         self.write({})
+
+
+# -----------------------------------------------------------------------------
+
+
+class InstitutionStaticHandler(BaseMoUHandler):  # pylint: disable=W0223
+    """Handle requests for querying current-day info about the institutions."""
+
+    ROUTE = r"/institution/today$"
+
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
+    async def get(self) -> None:
+        """Handle GET."""
+        institutions = await todays_institutions.request_krs_institutions()
+        vals = {i.short_name: asdict(i) for i in institutions}
+
+        self.write(vals)

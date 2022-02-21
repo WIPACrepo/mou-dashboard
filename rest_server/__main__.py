@@ -17,6 +17,7 @@ from rest_tools.server.config import from_environment  # type: ignore[import]
 from . import config
 from .databases import table_config_cache, todays_institutions
 from .routes import (
+    InstitutionStaticHandler,
     InstitutionValuesHandler,
     MainHandler,
     MakeSnapshotHandler,
@@ -65,6 +66,9 @@ async def start(debug: bool = False) -> RestServer:
     server.add_route(TableConfigHandler.ROUTE, TableConfigHandler, args)  # get
     server.add_route(  # get, post
         InstitutionValuesHandler.ROUTE, InstitutionValuesHandler, args
+    )
+    server.add_route(  # get
+        InstitutionStaticHandler.ROUTE, InstitutionStaticHandler, args
     )
 
     server.startup(
