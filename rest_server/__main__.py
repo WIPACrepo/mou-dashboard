@@ -15,7 +15,7 @@ from rest_tools.server import RestHandlerSetup, RestServer  # type: ignore
 from rest_tools.server.config import from_environment  # type: ignore[import]
 
 from . import config
-from .databases import table_config_cache as tcc
+from .databases import table_config_cache, todays_institutions
 from .routes import (
     InstitutionValuesHandler,
     MainHandler,
@@ -47,7 +47,7 @@ async def start(debug: bool = False) -> RestServer:
             "debug": debug,
         }
     )
-    args["tc_cache"] = await tcc.TableConfigCache.create()
+    args["tc_cache"] = await table_config_cache.TableConfigCache.create()
 
     # Setup DB URL
     mongodb_url = f"mongodb://{mongodb_host}:{mongodb_port}"
@@ -101,9 +101,9 @@ if __name__ == "__main__":
         with open(_args.override_krs_insts) as f:
             json_insts = json.load(f)
 
-        async def _overridden_krs() -> List[tcc.Institution]:
-            return tcc.convert_krs_institutions(json_insts)
+        async def _overridden_krs() -> List[todays_institutions.Institution]:
+            return todays_institutions.convert_krs_institutions(json_insts)
 
-        tcc.request_krs_institutions = _overridden_krs
+        todays_institutions.request_krs_institutions = _overridden_krs
 
     main()
