@@ -2,22 +2,51 @@
 
 import logging
 import re
-from typing import Any, Dict, List, Optional, cast
+import time
+from dataclasses import dataclass
+from functools import lru_cache
+from typing import Any, Dict, List, Optional
 
-from ..config import cache, oidc
+import flask  # type: ignore[import]
+
+from ..config import MAX_CACHE_MINS, oidc
 from ..data_source import institution_info
+
+
+@dataclass(frozen=True)
+class UserInfo:
+    """Hold user data."""
+
+    preferred_username: str
+    email: str
+    name: str
+    groups: List[str]
 
 
 class CurrentUser:
     """Wrap oidc's user info requests."""
 
-    # TODO - cache, clear cache, etc.
     @staticmethod
-    def _get_info() -> Dict[str, Any]:
+    @lru_cache()
+    def _cached_get_info(oidc_csrf_token: str, timeframe: int) -> UserInfo:
+        """Cache is keyed by the oidc session token and an int.
+
+        The int is used to auto-expire/regenerate cache results,
+        before a session ends.
+        """
+        # pylint:disable=unused-argument
+        resp: Dict[str, Any] = oidc.user_getinfo(
+            ["preferred_username", "email", "name", "groups"]
+        )
+
+        return UserInfo(**resp)
+
+    @staticmethod
+    def _get_info() -> UserInfo:
         """Query OIDC."""
-        return cast(
-            Dict[str, Any],
-            oidc.user_getinfo(["preferred_username", "email", "name", "groups"]),
+        return CurrentUser._cached_get_info(
+            flask.session["oidc_csrf_token"],
+            time.time() // (60 * MAX_CACHE_MINS),  # make cache hit expire after X mins
         )
 
     @staticmethod
@@ -58,14 +87,14 @@ class CurrentUser:
     def is_admin() -> bool:
         """Is the user an admin?"""
         try:
-            return "/tokens/mou-dashboard-admin" in CurrentUser._get_info()["groups"]
+            return "/tokens/mou-dashboard-admin" in CurrentUser._get_info().groups
         except (KeyError, TypeError):
             return False
 
     @staticmethod
     def get_username() -> str:
         """Get the user's name."""
-        return cast(str, CurrentUser._get_info()["preferred_username"])
+        return CurrentUser._get_info().preferred_username
 
     @staticmethod
     def get_institutions() -> List[str]:
@@ -79,7 +108,7 @@ class CurrentUser:
         # "/institutions/IceCube-Gen2/UW-Madison/_admin" -> "UW-Madison"
 
         group_insts = set()
-        for user_group in CurrentUser._get_info()["groups"]:
+        for user_group in CurrentUser._get_info().groups:
             pattern = r"/institutions/[^/]+/(?P<inst>[^/]+)/(mou-dashboard|_admin)"
             if m := re.match(pattern, user_group):
                 group_insts.add(m.groupdict()["inst"])

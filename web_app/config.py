@@ -7,11 +7,14 @@ from urllib.parse import urljoin
 import dash  # type: ignore
 import dash_bootstrap_components as dbc  # type: ignore
 import flask  # type: ignore
-from flask_caching import Cache  # type: ignore[import]
 from flask_oidc import OpenIDConnect  # type: ignore[import]
 
 # local imports
 from rest_tools.server.config import from_environment  # type: ignore[import]
+
+AUTO_RELOAD_MINS = 30  # how often to auto-reload the page
+MAX_CACHE_MINS = 5  # how often to expire a cache result
+
 
 # --------------------------------------------------------------------------------------
 # configure config_vars
@@ -79,7 +82,6 @@ app = dash.Dash(
 server = app.server
 app.config.suppress_callback_exceptions = True
 server.config.update(SECRET_KEY=get_config_vars()["FLASK_SECRET"])
-cache = Cache(app.server, config={"CACHE_TYPE": "simple"})
 
 
 # --------------------------------------------------------------------------------------
