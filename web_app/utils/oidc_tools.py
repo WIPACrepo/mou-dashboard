@@ -35,6 +35,10 @@ class CurrentUser:
         before a session ends.
         """
         # pylint:disable=unused-argument
+        logging.info(
+            f"Cache Miss: CurrentUser._get_info({oidc_csrf_token=}, {timeframe=})"
+        )
+
         resp: Dict[str, Any] = oidc.user_getinfo(
             ["preferred_username", "email", "name", "groups"]
         )

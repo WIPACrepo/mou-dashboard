@@ -1,5 +1,6 @@
 """Static Institution Info Functions"""
 
+import logging
 import time
 from dataclasses import dataclass
 from functools import lru_cache
@@ -27,6 +28,8 @@ def _cached_get_institutions_infos(timeframe: int) -> Dict[str, Institution]:
     The int is used to auto-expire/regenerate cache results.
     """
     # pylint:disable=unused-argument
+    logging.info(f"Cache Miss: get_institutions_infos({timeframe=})")
+
     resp = cast(Dict[str, Dict[str, Any]], mou_request("GET", "/institution/today"))
 
     return {k: Institution(**v) for k, v in resp.items()}
