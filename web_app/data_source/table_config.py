@@ -63,7 +63,7 @@ class TableConfigParser:  # pylint: disable=R0904
         """
         self._wbs_l1 = wbs_l1
         self._configs = TableConfigParser._cached_get_configs(
-            get_epoch_mins(MAX_CACHE_MINS),  # make cache hit expire after X mins
+            get_epoch_mins(MAX_CACHE_MINS),  # make cache hit expire <= X mins
         )
 
         # set up constants for quick reference

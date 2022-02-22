@@ -39,5 +39,5 @@ def get_institutions_infos() -> Dict[str, Institution]:
     """Get a dict of all institutions with their info."""
 
     return _cached_get_institutions_infos(
-        get_epoch_mins(MAX_CACHE_MINS),  # make cache hit expire after X mins
+        get_epoch_mins(MAX_CACHE_MINS),  # make cache hit expire <= X mins
     )

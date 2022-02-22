@@ -50,7 +50,7 @@ class CurrentUser:
         """Query OIDC."""
         return CurrentUser._cached_get_info(
             flask.session["oidc_csrf_token"],
-            get_epoch_mins(MAX_CACHE_MINS),  # make cache hit expire after X mins
+            get_epoch_mins(MAX_CACHE_MINS),  # make cache hit expire <= X mins
         )
 
     @staticmethod
