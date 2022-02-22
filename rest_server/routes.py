@@ -9,9 +9,8 @@ from typing import Any
 from motor.motor_tornado import MotorClient  # type: ignore
 from rest_tools.server import RestHandler, handler  # type: ignore
 
-from . import wbs
 from .config import AUTH_PREFIX
-from .databases import columns, mou_db, table_config_cache, todays_institutions
+from .data_sources import columns, mou_db, table_config_cache, todays_institutions, wbs
 from .utils import types, utils
 
 _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())

@@ -5,8 +5,7 @@ import logging
 import time
 from typing import Any, Dict, Final, List, Tuple, TypedDict, Union
 
-from .. import wbs
-from . import columns, todays_institutions
+from . import columns, todays_institutions, wbs
 
 US = "US"
 NON_US = "Non-US"

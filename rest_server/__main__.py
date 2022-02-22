@@ -15,7 +15,7 @@ from rest_tools.server import RestHandlerSetup, RestServer  # type: ignore
 from rest_tools.server.config import from_environment  # type: ignore[import]
 
 from . import config
-from .databases import table_config_cache, todays_institutions
+from .data_sources import table_config_cache, todays_institutions
 from .routes import (
     InstitutionStaticHandler,
     InstitutionValuesHandler,
