@@ -10,6 +10,7 @@ from dash.dependencies import Input, Output, State  # type: ignore[import]
 
 from ..config import app
 from ..data_source import data_source as src
+from ..data_source import institution_info
 from ..data_source import table_config as tc
 from ..data_source.utils import DataSourceException
 from ..utils import dash_utils as du
@@ -799,7 +800,7 @@ def setup_institution_components(
     wbs_l1 = du.get_wbs_l1(s_urlpath)
     tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
 
-    def inactive_flag(info: src.Institution) -> str:
+    def inactive_flag(info: institution_info.Institution) -> str:
         if info.has_mou:
             return ""
         return "inactive: "
@@ -811,7 +812,7 @@ def setup_institution_components(
                 "value": short_name,
                 # "disabled": not info.has_mou,
             }
-            for short_name, info in src.get_institutions_infos().items()
+            for short_name, info in institution_info.get_institutions_infos().items()
         ]
     else:
         inst_options = [  # only include the user's institution(s)
@@ -820,7 +821,7 @@ def setup_institution_components(
                 "value": short_name,
                 # "disabled": not info.has_mou,
             }
-            for short_name, info in src.get_institutions_infos().items()
+            for short_name, info in institution_info.get_institutions_infos().items()
             if short_name in CurrentUser.get_institutions()
         ]
 

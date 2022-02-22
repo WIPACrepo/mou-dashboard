@@ -11,6 +11,7 @@ from dash.dependencies import Input, Output, State  # type: ignore[import]
 
 from ..config import app
 from ..data_source import data_source as src
+from ..data_source import institution_info
 from ..data_source import table_config as tc
 from ..data_source.utils import DataSourceException
 from ..utils import dash_utils as du
@@ -172,7 +173,7 @@ def summarize(
     except DataSourceException:
         return [], []
 
-    insts_infos = src.get_institutions_infos()
+    insts_infos = institution_info.get_institutions_infos()
 
     column_names = ["Institution", "Institutional Lead"]
     if wbs_l1 == "mo":

@@ -1,7 +1,6 @@
 """REST interface for reading and writing MoU data."""
 
 
-from dataclasses import dataclass
 from typing import Any, Dict, Final, List, Optional, Tuple, TypedDict, Union, cast
 
 from ..utils import types, utils
@@ -503,27 +502,3 @@ def push_institution_values(  # pylint: disable=R0913
     body["computing_confirmed"] = comp_confirmed
 
     _ = mou_request("POST", f"/institution/values/{wbs_l1}", body=body)
-
-
-# --------------------------------------------------------------------------------------
-# Static Institution Info Functions
-
-
-@dataclass(frozen=True)
-class Institution:
-    """Hold minimal institution data."""
-
-    short_name: str
-    long_name: str
-    is_us: bool
-    has_mou: bool
-    institution_lead_uid: str
-
-
-def get_institutions_infos() -> Dict[str, Institution]:
-    """Get a dict of all institutions with their info."""
-    resp = cast(Dict[str, Dict[str, Any]], mou_request("GET", "/institution/today"))
-
-    infos = {k: Institution(**v) for k, v in resp.items()}
-
-    return infos

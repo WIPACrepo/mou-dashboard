@@ -1,9 +1,11 @@
 """Handle user log-in and account info."""
 
+import logging
 import re
 from typing import Any, Dict, List, Optional, cast
 
 from ..config import cache, oidc
+from ..data_source import institution_info
 
 
 class CurrentUser:
@@ -76,10 +78,21 @@ class CurrentUser:
         # "/institutions/IceCube/UW-Madison/_admin" -> "UW-Madison"
         # "/institutions/IceCube-Gen2/UW-Madison/_admin" -> "UW-Madison"
 
-        insts = set()
+        group_insts = set()
         for user_group in CurrentUser._get_info()["groups"]:
             pattern = r"/institutions/[^/]+/(?P<inst>[^/]+)/(mou-dashboard|_admin)"
             if m := re.match(pattern, user_group):
-                insts.add(m.groupdict()["inst"])
+                group_insts.add(m.groupdict()["inst"])
 
-        return list(insts)
+        # now, check if each of the institutions has an mou
+        infos = institution_info.get_institutions_infos()
+        editable_insts = []
+        for short_name in group_insts:
+            if not infos[short_name].has_mou:
+                logging.error(
+                    f"User ({CurrentUser.get_username()}) belongs to {short_name},"
+                    " but institution does not have an MOU (has_mou=false)"
+                )
+            editable_insts.append(short_name)
+
+        return editable_insts
