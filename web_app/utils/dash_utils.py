@@ -13,6 +13,7 @@ import dash_table  # type: ignore[import]
 from dash import no_update
 
 from ..data_source import data_source as src
+from ..data_source import institution_info
 from ..data_source import table_config as tc
 from ..utils import types, utils
 from ..utils.oidc_tools import CurrentUser
@@ -197,13 +198,42 @@ def build_urlpath(wbs_l1: str, inst: str = "") -> str:
     return ""
 
 
-def need_user_redirect(urlpath: str) -> bool:
-    """Return whether the user needs to be redirected."""
-    return (
-        CurrentUser.is_loggedin_with_permissions()
-        and not CurrentUser.is_admin()
-        and get_inst(urlpath) not in CurrentUser.get_institutions()
-    )
+def user_viewing_wrong_inst(urlpath: str) -> bool:
+    """Return whether the user needs to be redirected.
+
+    Assumes the user is logged in.
+    """
+    if CurrentUser.is_admin():
+        all_insts = list(institution_info.get_institutions_infos().keys())
+        return get_inst(urlpath) not in all_insts + [""]
+    else:
+        return get_inst(urlpath) not in CurrentUser.get_institutions()
+
+
+def root_is_not_wbs(s_urlpath: str) -> bool:
+    """Return whether the root is not a legit."""
+    return get_wbs_l1(s_urlpath) not in ["mo", "upgrade"]
+
+
+class CallbackAbortException(Exception):
+    """Raised when there's a reason to abort a callback."""
+
+
+def precheck_setup_callback(s_urlpath: str) -> None:
+    """Return whether to abort a dash setup callback."""
+    if triggered_id():  # Guarantee this is the initial call
+        raise Exception(f"Setup-callback was called after setup ({triggered_id()=})")
+
+    # Check if legit full-fledged path (otherwise a redirect is happening soon)
+    if root_is_not_wbs(s_urlpath):
+        raise CallbackAbortException(f"Bad URL: {s_urlpath}")
+
+    # Check Login
+    if not CurrentUser.is_loggedin_with_permissions():
+        raise CallbackAbortException(f"Bad permissions: {s_urlpath}")
+
+    if user_viewing_wrong_inst(s_urlpath):
+        raise CallbackAbortException(f"Bad institution: {s_urlpath}")
 
 
 # --------------------------------------------------------------------------------------

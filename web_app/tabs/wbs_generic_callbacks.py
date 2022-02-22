@@ -610,15 +610,15 @@ def setup_snapshot_components(
     s_snap_ts: types.DashVal,
 ) -> Tuple[List[Dict[str, str]], List[html.Label], bool]:
     """Set up snapshot-related components."""
-    logging.warning(
-        f"'{du.triggered()}' -> setup_snapshot_components()  ({s_urlpath=} {s_snap_ts=})"
-    )
-
-    assert not du.triggered_id()  # Guarantee this is the initial call
-
-    # Check Login
-    if not CurrentUser.is_loggedin_with_permissions():
-        return no_update, no_update, no_update
+    try:
+        du.precheck_setup_callback(s_urlpath)
+    except du.CallbackAbortException as e:
+        logging.critical(f"ABORTED: setup_snapshot_components() [{e}]")
+        return tuple(no_update for _ in range(3))  # type: ignore[return-value]
+    else:
+        logging.warning(
+            f"'{du.triggered()}' -> setup_snapshot_components()  ({s_urlpath=} {s_snap_ts=})"
+        )
 
     snap_options: List[Dict[str, str]] = []
     label_lines: List[html.Label] = []
@@ -764,15 +764,15 @@ def setup_institution_components(
     bool,
 ]:
     """Set up institution-related components."""
-    logging.warning(
-        f"'{du.triggered()}' -> setup_institution_components() ({s_urlpath=} {s_snap_ts=} {CurrentUser.get_summary()=})"
-    )
-
-    assert not du.triggered_id()  # Guarantee this is the initial call
-
-    # Check Login
-    if not CurrentUser.is_loggedin_with_permissions():
+    try:
+        du.precheck_setup_callback(s_urlpath)
+    except du.CallbackAbortException as e:
+        logging.critical(f"ABORTED: setup_institution_components() [{e}]")
         return tuple(no_update for _ in range(17))  # type: ignore[return-value]
+    else:
+        logging.warning(
+            f"'{du.triggered()}' -> setup_institution_components() ({s_urlpath=} {s_snap_ts=} {CurrentUser.get_summary()=})"
+        )
 
     phds: types.DashVal = 0
     faculty: types.DashVal = 0
@@ -1031,25 +1031,15 @@ def setup_user_dependent_components(
     bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, str
 ]:
     """Logged-in callback."""
-    logging.warning(
-        f"'{du.triggered()}' -> setup_user_dependent_components({s_snap_ts=}, {s_urlpath=}, {CurrentUser.get_summary()=})"
-    )
-
-    assert not du.triggered_id()  # Guarantee this is the initial call
-
-    if du.need_user_redirect(s_urlpath):  # redirect user to their institution's mou
-        logging.error(f"User viewing wrong mou {s_urlpath=}. Redirecting...")
-        return tuple(  # type: ignore[return-value]
-            [no_update for _ in range(13)]
-            + [
-                du.build_urlpath(
-                    du.get_wbs_l1(s_urlpath), CurrentUser.get_institutions()[0]
-                )
-            ]
-        )
-
-    if not CurrentUser.is_loggedin_with_permissions():
+    try:
+        du.precheck_setup_callback(s_urlpath)
+    except du.CallbackAbortException as e:
+        logging.critical(f"ABORTED: setup_user_dependent_components() [{e}]")
         return tuple(no_update for _ in range(14))  # type: ignore[return-value]
+    else:
+        logging.warning(
+            f"'{du.triggered()}' -> setup_user_dependent_components({s_snap_ts=}, {s_urlpath=}, {CurrentUser.get_summary()=})"
+        )
 
     # filter-inst disabled if not admin and less than 2 insts (to pick from)
     dropdown_institution_disabled = (

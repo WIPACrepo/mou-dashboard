@@ -11,7 +11,7 @@ import visdcc  # type: ignore[import]
 from dash import no_update  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore
 
-from .config import AUTO_RELOAD_MINS, app
+from .config import AUTO_RELOAD_MINS, REDIRECT_WBS, app
 from .tabs import wbs_generic_layout
 from .utils import dash_utils as du
 from .utils import utils
@@ -145,9 +145,11 @@ def interval(_: int) -> str:
     [Input("url-404-redirect", "refresh")],  # never triggered
     [State("url", "pathname")],
 )
-def redirect(_: bool, s_urlpath: str) -> Tuple[str, bool, str]:
+def main_redirect(_: bool, s_urlpath: str) -> Tuple[str, bool, str]:
     """Redirect the url for any reason."""
-    logging.critical(f"'{du.triggered()}' -> redirect() {CurrentUser.get_summary()=}")
+    logging.critical(
+        f"'{du.triggered()}' -> main_redirect() {CurrentUser.get_summary()=}"
+    )
 
     # is the user logged-in?
     if not CurrentUser.is_loggedin():
@@ -162,10 +164,24 @@ def redirect(_: bool, s_urlpath: str) -> Tuple[str, bool, str]:
     else:
         user_label = CurrentUser.get_username()
 
+    # is this a correct institution?
+    if du.user_viewing_wrong_inst(s_urlpath):
+        logging.error(f"User viewing wrong mou {s_urlpath=}. Redirecting...")
+        if du.root_is_not_wbs(s_urlpath):
+            root = REDIRECT_WBS
+        else:
+            root = du.get_wbs_l1(s_urlpath)
+        # redirect
+        if CurrentUser.is_admin():
+            return root, False, user_label
+        else:
+            return f"{root}/{CurrentUser.get_institutions()[0]}", False, user_label
+
     # is this a known page?
-    if du.get_wbs_l1(s_urlpath) not in ["mo", "upgrade"]:
-        logging.error(f"User viewing {s_urlpath=}. Redirecting...")
-        return "mo", False, user_label
+    if du.root_is_not_wbs(s_urlpath):
+        logging.error(f"User viewing {s_urlpath=}. Redirecting to '{REDIRECT_WBS}'...")
+        return REDIRECT_WBS, False, user_label
+
     return no_update, False, user_label
 
 

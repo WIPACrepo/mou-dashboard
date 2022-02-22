@@ -15,6 +15,8 @@ from rest_tools.server.config import from_environment  # type: ignore[import]
 AUTO_RELOAD_MINS = 30  # how often to auto-reload the page
 MAX_CACHE_MINS = 5  # how often to expire a cache result
 
+REDIRECT_WBS = "mo"  # which mou to go to by default when ambiguously redirecting
+
 
 # --------------------------------------------------------------------------------------
 # configure config_vars
@@ -124,4 +126,6 @@ def logout() -> flask.Response:
 def invalid_permissions() -> flask.Response:
     """Redirected to tell the user they can't do anything other than logout."""
     logging.critical("/invalid-permissions")
-    return 'You don\'t have permissions to edit MoUs. <a href="/logout">Logout</a>'
+    return (
+        'You don\'t have valid permissions to edit MoUs. <a href="/logout">Logout</a>'
+    )
