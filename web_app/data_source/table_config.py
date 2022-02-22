@@ -1,8 +1,12 @@
 """REST interface for get configurations for the table/columns."""
 
 
-from typing import Dict, Final, List, Optional, Tuple, TypedDict, cast
+import logging
+from functools import lru_cache
+from typing import Dict, Final, List, Tuple, TypedDict, cast
 
+from ..config import MAX_CACHE_MINS
+from ..utils.utils import get_epoch_mins
 from .utils import mou_request
 
 
@@ -52,24 +56,31 @@ class TableConfigParser:  # pylint: disable=R0904
             self.TIMESTAMP: Final[str] = "Date & Time of Last Edit"
             self.EDITOR: Final[str] = "Name of Last Editor"
 
-    def __init__(self, wbs_l1: str, cache: Optional[CacheType] = None) -> None:
+    def __init__(self, wbs_l1: str) -> None:
         """Get the dictionary of table configurations.
 
         Use the parser functions to access configurations.
         """
         self._wbs_l1 = wbs_l1
-
-        if cache:
-            self._configs = cache
-        else:
-            self._configs = TableConfigParser.get_configs()
+        self._configs = TableConfigParser._cached_get_configs(
+            get_epoch_mins(MAX_CACHE_MINS),  # make cache hit expire after X mins
+        )
 
         # set up constants for quick reference
         self.const = TableConfigParser._Constants()
 
     @staticmethod
-    def get_configs() -> CacheType:
-        """Get the `_configs` dict for caching."""
+    @lru_cache()
+    def _cached_get_configs(timeframe: int) -> "TableConfigParser.CacheType":
+        """Get the `_configs` dict for caching.
+
+        Cache is keyed by an int.
+
+        The int is used to auto-expire/regenerate cache results.
+        """
+        logging.warning(
+            f"Cache Miss: TableConfigParser._cached_get_configs({timeframe=})"
+        )
         return cast(TableConfigParser.CacheType, mou_request("GET", "/table/config"))
 
     def get_table_columns(self) -> List[str]:

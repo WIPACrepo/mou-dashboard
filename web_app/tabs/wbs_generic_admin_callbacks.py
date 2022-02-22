@@ -147,7 +147,6 @@ def handle_xlsx(  # pylint: disable=R0911
     [Input("wbs-summary-table-recalculate", "n_clicks")],  # user-only
     [
         State("url", "pathname"),
-        State("wbs-table-config-cache", "data"),
         State("wbs-current-snapshot-ts", "value"),
     ],
     prevent_initial_call=True,
@@ -157,7 +156,6 @@ def summarize(
     _: int,
     # state(s)
     s_urlpath: str,
-    s_tconfig_cache: tc.TableConfigParser.CacheType,
     s_snap_ts: types.DashVal,
 ) -> Tuple[types.Table, List[Dict[str, str]]]:
     """Manage uploading a new xlsx document as the new live table."""
@@ -166,7 +164,7 @@ def summarize(
     assert not s_snap_ts
 
     wbs_l1 = du.get_wbs_l1(s_urlpath)
-    tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
+    tconfig = tc.TableConfigParser(wbs_l1)
 
     try:
         data_table = src.pull_data_table(wbs_l1, tconfig)
@@ -381,7 +379,6 @@ def _blame_style_cell_conditional(column_names: List[str]) -> types.TSCCond:
     [Input("wbs-blame-table-button", "n_clicks")],  # user-only
     [
         State("url", "pathname"),
-        State("wbs-table-config-cache", "data"),
         State("wbs-current-snapshot-ts", "value"),
     ],
     prevent_initial_call=True,
@@ -391,7 +388,6 @@ def blame(
     _: int,
     # state(s)
     s_urlpath: str,
-    s_tconfig_cache: tc.TableConfigParser.CacheType,
     s_snap_ts: types.DashVal,
 ) -> Tuple[types.Table, List[Dict[str, str]], types.TSCCond]:
     """Manage uploading a new xlsx document as the new live table."""
@@ -401,7 +397,7 @@ def blame(
 
     # setup
     wbs_l1 = du.get_wbs_l1(s_urlpath)
-    tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
+    tconfig = tc.TableConfigParser(wbs_l1)
 
     try:
         data_table = src.pull_data_table(wbs_l1, tconfig, raw=True)

@@ -94,7 +94,6 @@ def _add_new_data(  # pylint: disable=R0913
     ],
     [
         State("url", "pathname"),
-        State("wbs-table-config-cache", "data"),
         State("wbs-last-deleted-record", "data"),
     ],
     prevent_initial_call=True,
@@ -104,7 +103,6 @@ def confirm_deletion(
     __: int,
     # state(s)
     s_urlpath: str,
-    s_tconfig_cache: tc.TableConfigParser.CacheType,
     s_record: types.Record,
 ) -> Tuple[dbc.Toast, int, bool, List[html.Div]]:
     """Handle deleting the record chosen ."""
@@ -118,7 +116,7 @@ def confirm_deletion(
     elif du.triggered_property() == "submit_n_clicks":
         try:
             wbs_l1 = du.get_wbs_l1(s_urlpath)
-            tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
+            tconfig = tc.TableConfigParser(wbs_l1)
             src.delete_record(wbs_l1, cast(str, s_record[tconfig.const.ID]))
             lines = [html.Div(s) for s in src.record_to_strings(s_record, tconfig)]
             return None, no_update, True, lines
@@ -158,7 +156,6 @@ def confirm_deletion(
         State("wbs-data-table", "data"),
         State("wbs-show-all-columns-button", "n_clicks"),
         State("wbs-last-deleted-record", "data"),
-        State("wbs-table-config-cache", "data"),
         State("wbs-table-update-flag-exterior-control", "data"),
     ],
     prevent_initial_call=True,  # must wait for columns
@@ -176,7 +173,6 @@ def table_data_exterior_controls(
     s_table: types.Table,
     s_all_cols: int,
     s_deleted_record: types.Record,
-    s_tconfig_cache: tc.TableConfigParser.CacheType,
     s_flag_extctrl: bool,
 ) -> Tuple[types.Table, int, dbc.Toast, str, str, bool, int, bool, int, Dict[str, str]]:
     """Exterior control signaled that the table should be updated.
@@ -196,7 +192,7 @@ def table_data_exterior_controls(
     toast: dbc.Toast = None
     wbs_l1 = du.get_wbs_l1(s_urlpath)
     inst = du.get_inst(s_urlpath)
-    tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
+    tconfig = tc.TableConfigParser(wbs_l1)
 
     # Format "Show Totals" button
     show_totals, tot_label, tot_color, tot_outline, all_cols = _totals_button_logic(
@@ -344,7 +340,6 @@ def _find_deleted_record(
     [
         State("url", "pathname"),
         State("wbs-data-table", "data_previous"),
-        State("wbs-table-config-cache", "data"),
         State("wbs-current-snapshot-ts", "value"),
         State("wbs-table-update-flag-exterior-control", "data"),
         State("wbs-table-update-flag-interior-control", "data"),
@@ -356,7 +351,6 @@ def table_data_interior_controls(
     # state(s)
     s_urlpath: str,
     s_previous_table: types.Table,
-    s_tconfig_cache: tc.TableConfigParser.CacheType,
     s_snap_ts: types.DashVal,
     s_flag_extctrl: bool,
     s_flag_intctrl: bool,
@@ -372,7 +366,7 @@ def table_data_interior_controls(
     logging.warning(f"'{du.triggered()}' -> table_data_interior_controls()")
 
     wbs_l1 = du.get_wbs_l1(s_urlpath)
-    tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
+    tconfig = tc.TableConfigParser(wbs_l1)
 
     # Make labels
     timecheck_labels = du.timecheck_labels("Table", "Autosaved", s_snap_ts)
@@ -490,14 +484,13 @@ def _table_dropdown(
 @app.callback(  # type: ignore[misc]
     Output("wbs-data-table", "tooltip"),
     [Input("wbs-data-table", "page_current")],  # user and show_all_rows button
-    [State("url", "pathname"), State("wbs-table-config-cache", "data")],
+    [State("url", "pathname")],
     prevent_initial_call=True,
 )
 def load_table_tooltips(
     page_current: Optional[int],
     # state(s)
     s_urlpath: str,
-    s_tconfig_cache: tc.TableConfigParser.CacheType,
 ) -> types.TTooltips:
     """Load the tooltips but only for the first page.
 
@@ -509,7 +502,7 @@ def load_table_tooltips(
     if page_current != 0:  # pages are 0-indexed
         return {}
 
-    tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath), cache=s_tconfig_cache)
+    tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath))
     return du.get_table_tooltips(tconfig)
 
 
@@ -522,14 +515,13 @@ def load_table_tooltips(
         Output("wbs-data-table", "dropdown_conditional"),
     ],
     [Input("wbs-data-table", "editable")],  # setup_user_dependent_components()-only
-    [State("url", "pathname"), State("wbs-table-config-cache", "data")],
+    [State("url", "pathname")],
     prevent_initial_call=True,
 )
 def setup_table(
     table_editable: bool,
     # state(s)
     s_urlpath: str,
-    s_tconfig_cache: tc.TableConfigParser.CacheType,
 ) -> Tuple[
     types.TSCCond,
     types.TSDCond,
@@ -540,7 +532,7 @@ def setup_table(
     """Set up table-related components."""
     logging.warning(f"'{du.triggered()}' -> setup_table()  ({s_urlpath=})")
 
-    tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath), cache=s_tconfig_cache)
+    tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath))
 
     style_cell_conditional = du.style_cell_conditional(tconfig)
     style_data_conditional = du.get_style_data_conditional(tconfig)
@@ -745,7 +737,6 @@ def handle_make_snapshot(
     [
         State("url", "pathname"),
         State("wbs-current-snapshot-ts", "value"),
-        State("wbs-table-config-cache", "data"),
     ],
 )
 def setup_institution_components(
@@ -753,7 +744,6 @@ def setup_institution_components(
     # state(s)
     s_urlpath: str,
     s_snap_ts: types.DashVal,
-    s_tconfig_cache: tc.TableConfigParser.CacheType,
 ) -> Tuple[
     types.DashVal,
     types.DashVal,
@@ -798,7 +788,7 @@ def setup_institution_components(
     h2_computing = ""
 
     wbs_l1 = du.get_wbs_l1(s_urlpath)
-    tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
+    tconfig = tc.TableConfigParser(wbs_l1)
 
     def inactive_flag(info: institution_info.Institution) -> str:
         if info.has_mou:
@@ -1114,20 +1104,19 @@ def setup_user_dependent_components(
         # user/table_data_exterior_controls
         Input("wbs-show-all-rows-button", "n_clicks")
     ],
-    [State("wbs-table-config-cache", "data"), State("url", "pathname")],
+    [State("url", "pathname")],
     prevent_initial_call=True,
 )
 def toggle_pagination(
     n_clicks: int,
     # state(s)
-    s_tconfig_cache: tc.TableConfigParser.CacheType,
     s_urlpath: str,
 ) -> Tuple[str, str, bool, int, str]:
     """Toggle whether the table is paginated."""
     logging.warning(f"'{du.triggered()}' -> toggle_pagination({n_clicks=})")
 
     if n_clicks % 2 == 0:
-        tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath), cache=s_tconfig_cache)
+        tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath))
         return (
             "Show All Rows",
             du.Color.SECONDARY,
@@ -1147,19 +1136,18 @@ def toggle_pagination(
         Output("wbs-data-table", "hidden_columns"),
     ],
     [Input("wbs-show-all-columns-button", "n_clicks")],  # user/table_data_exterior_c...
-    [State("wbs-table-config-cache", "data"), State("url", "pathname")],
+    [State("url", "pathname")],
     prevent_initial_call=True,
 )
 def toggle_hidden_columns(
     n_clicks: int,
     # state(s)
-    s_tconfig_cache: tc.TableConfigParser.CacheType,
     s_urlpath: str,
 ) -> Tuple[str, str, bool, List[str]]:
     """Toggle hiding/showing the default hidden columns."""
     logging.warning(f"'{du.triggered()}' -> toggle_hidden_columns()")
 
-    tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath), cache=s_tconfig_cache)
+    tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath))
 
     if n_clicks % 2 == 0:
         hiddens = tconfig.get_hidden_columns()

@@ -451,12 +451,6 @@ def layout() -> html.Div:
             #
             #
             # Data Stores aka Cookies
-            # - for caching the table config, to limit REST calls
-            dcc.Store(
-                id="wbs-table-config-cache",
-                storage_type="memory",
-                data=tc.TableConfigParser.get_configs(),  # get all tables' configs
-            ),
             # - for fagging whether the institution values were changed
             dcc.Store(
                 id="wbs-institution-values-first-time-flag",
