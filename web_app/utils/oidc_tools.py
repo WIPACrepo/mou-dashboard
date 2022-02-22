@@ -2,7 +2,6 @@
 
 import logging
 import re
-import time
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Dict, List, Optional
@@ -11,6 +10,7 @@ import flask  # type: ignore[import]
 
 from ..config import MAX_CACHE_MINS, oidc
 from ..data_source import institution_info
+from .utils import get_epoch_mins
 
 
 @dataclass(frozen=True)
@@ -35,7 +35,7 @@ class CurrentUser:
         before a session ends.
         """
         # pylint:disable=unused-argument
-        logging.info(
+        logging.warning(
             f"Cache Miss: CurrentUser._get_info({oidc_csrf_token=}, {timeframe=})"
         )
 
@@ -50,7 +50,7 @@ class CurrentUser:
         """Query OIDC."""
         return CurrentUser._cached_get_info(
             flask.session["oidc_csrf_token"],
-            time.time() // (60 * MAX_CACHE_MINS),  # make cache hit expire after X mins
+            get_epoch_mins(MAX_CACHE_MINS),  # make cache hit expire after X mins
         )
 
     @staticmethod

@@ -47,3 +47,8 @@ def get_human_time(timestamp: str, short: bool = False) -> str:
 def get_human_now(short: bool = False) -> str:
     """Get the current date and time with timezone, human-readable."""
     return get_human_time(get_now(), short)
+
+
+def get_epoch_mins(mins: int) -> int:
+    """Return the epoch timestamp int-divided by `60*mins`."""
+    return int(time.time() / (60 * mins))
