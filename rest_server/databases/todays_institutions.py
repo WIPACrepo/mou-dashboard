@@ -30,7 +30,7 @@ def convert_krs_institutions(response: Dict[str, Any]) -> List[Institution]:
                 short_name=inst,
                 long_name=attrs["name"],
                 is_us=bool(strtobool(attrs["is_US"])),
-                has_mou=bool(strtobool(attrs["has_mou"])),
+                has_mou=bool(strtobool(attrs.get("has_mou", "false"))),
                 institution_lead_uid=attrs.get("institutionLeadUid", ""),
             )
         )
@@ -41,6 +41,9 @@ async def request_krs_institutions() -> List[Institution]:
     """Grab the master list of institutions along with their details."""
     rc = token.get_rest_client()
 
-    response = await krs_institutions.list_insts_flat(rest_client=rc)
+    response = await krs_institutions.list_insts_flat(
+        rest_client=rc,
+        attr_whitelist=["name", "is_US", "has_mou", "institutionLeadUid"],
+    )
 
     return convert_krs_institutions(response)
