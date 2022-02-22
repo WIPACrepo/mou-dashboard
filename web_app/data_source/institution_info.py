@@ -28,7 +28,7 @@ def _cached_get_institutions_infos(timeframe: int) -> Dict[str, Institution]:
     The int is used to auto-expire/regenerate cache results.
     """
     # pylint:disable=unused-argument
-    logging.warning(f"Cache Miss: get_institutions_infos({timeframe=})")
+    logging.warning(f"Cache Miss: _cached_get_institutions_infos({timeframe=})")
 
     resp = cast(Dict[str, Dict[str, Any]], mou_request("GET", "/institution/today"))
 

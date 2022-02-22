@@ -36,7 +36,7 @@ class CurrentUser:
         """
         # pylint:disable=unused-argument
         logging.warning(
-            f"Cache Miss: CurrentUser._get_info({oidc_csrf_token=}, {timeframe=})"
+            f"Cache Miss: CurrentUser._cached_get_info({oidc_csrf_token=}, {timeframe=})"
         )
 
         resp: Dict[str, Any] = oidc.user_getinfo(
