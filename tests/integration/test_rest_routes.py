@@ -22,6 +22,10 @@ from rest_server import routes  # isort:skip  # noqa # pylint: disable=E0401,C04
 from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
     types,
 )
+from rest_server.data_sources import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
+    todays_institutions,
+)
+
 import web_app.data_source.utils  # isort:skip  # noqa # pylint: disable=E0401,C0413
 import web_app.config  # isort:skip  # noqa # pylint: disable=E0401,C0413
 
@@ -185,6 +189,21 @@ class TestNoArgumentRoutes:
                 "border_left_columns",
                 "page_size",
             ]
+
+    @staticmethod
+    def test_institution_static_get(ds_rc: RestClient) -> None:
+        """Test `GET` @ `/institution/today`."""
+        assert routes.InstitutionStaticHandler.ROUTE == r"/institution/today$"
+        assert "get" in dir(routes.InstitutionStaticHandler)
+
+        resp = ds_rc.request_seq("GET", "/institution/today")
+        assert resp  # not empty
+        assert isinstance(resp, dict)
+        for inst, info in resp.items():
+            assert " " not in inst
+            # check all "-"-delimited substrings are initial-cased
+            assert all(s[0].is_upper() for s in inst.split("-"))
+            todays_institutions.Institution(**info)  # try to cast it (atrrs & types)
 
 
 class TestTableHandler:
