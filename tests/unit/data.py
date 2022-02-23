@@ -373,8 +373,10 @@ FTE_ROWS: Final[types.Table] = [
     side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS),
 )
 @patch("krs.token.get_rest_client", return_value=Mock())
-@patch("rest_server.databases.table_config_cache.TableConfigCache.get_most_recent_doc")
-@patch("rest_server.databases.table_config_cache.TableConfigCache._insert_replace")
+@patch(
+    "rest_server.data_sources.table_config_cache.TableConfigCache.get_most_recent_doc"
+)
+@patch("rest_server.data_sources.table_config_cache.TableConfigCache._insert_replace")
 async def _make_fte_rows(mock_ir: Any, mock_gmrd: Any, _: Any, __: Any) -> None:
     # Setup & Mock
     mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
