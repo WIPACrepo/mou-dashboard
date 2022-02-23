@@ -42,7 +42,7 @@ class CurrentUser:
     @staticmethod
     def get_summary() -> Optional[Dict[str, Any]]:
         """Query OIDC."""
-        if not oidc.user_loggedin:
+        if not CurrentUser.is_loggedin():
             return None
         return {
             "mou": {
@@ -62,7 +62,7 @@ class CurrentUser:
     @staticmethod
     def is_loggedin_with_permissions() -> bool:
         """Is the user authenticated (logged-in w/ permissions)?"""
-        if not oidc.user_loggedin:
+        if not CurrentUser.is_loggedin():
             return False
 
         if CurrentUser.is_admin():

@@ -336,12 +336,16 @@ class TestDataSource:
         )
 
     @staticmethod
+    @patch("web_app.utils.oidc_tools.CurrentUser.is_loggedin")
     @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
-    def test_list_snapshot_timestamps(current_user: Any, mock_rest: Any) -> None:
+    def test_list_snapshot_timestamps(
+        current_user: Any, mock_ili: Any, mock_rest: Any
+    ) -> None:
         """Test list_snapshot_timestamps()."""
         current_user.return_value = web_app.utils.oidc_tools.UserInfo(
             "t.hanks", ["/tokens/mou-dashboard-admin"]
         )
+        mock_ili.return_value = True
         response = {
             "snapshots": [
                 {"timestamp": "a", "name": "aye", "creator": "George"},
