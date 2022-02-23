@@ -16,10 +16,7 @@ import pytest
 import requests
 
 sys.path.append(".")
-from web_app.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
-    types,
-    oidc_tools,
-)
+import web_app.utils  # isort:skip  # noqa # pylint: disable=E0401,C0413
 from web_app.data_source import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
     data_source as src,
     table_config as tc,
@@ -38,9 +35,9 @@ def tconfig() -> Any:
 class TestPrivateDataSource:
     """Test private functions in dash_source.py."""
 
-    RECORD: Final[types.Record] = {"a": "AA", "b": "BB", "c": "CC"}
+    RECORD: Final[web_app.utils.types.Record] = {"a": "AA", "b": "BB", "c": "CC"}
 
-    def _get_new_record(self) -> types.Record:
+    def _get_new_record(self) -> web_app.utils.types.Record:
         return deepcopy(self.RECORD)
 
     def test_add_original_copies_to_record(self, tconfig: tc.TableConfigParser) -> None:
@@ -114,7 +111,9 @@ class TestPrivateDataSource:
 
         tconfig = tc.TableConfigParser(WBS)
 
-        def _assert(_orig: types.Record, _good: types.Record) -> None:
+        def _assert(
+            _orig: web_app.utils.types.Record, _good: web_app.utils.types.Record
+        ) -> None:
             assert (
                 _good
                 == src._remove_invalid_data(_orig, tconfig)
@@ -126,7 +125,7 @@ class TestPrivateDataSource:
 
         # Test every combination of a simple-dropdown-type & a conditional-dropdown type
         for alpha, dish in itertools.product(list(Scenario), list(Scenario)):
-            record: types.Record = {"F1": 0}
+            record: web_app.utils.types.Record = {"F1": 0}
 
             if alpha != Scenario.MISSING:
                 record["Alpha"] = {
@@ -262,7 +261,7 @@ class TestDataSource:
         current_user: Any, mock_rest: Any, tconfig: tc.TableConfigParser
     ) -> None:
         """Test push_record()."""
-        current_user.return_value = oidc_tools.UserInfo(
+        current_user.return_value = web_app.utils.oidc_tools.UserInfo(
             "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
         )
         response = {
@@ -305,10 +304,10 @@ class TestDataSource:
             assert ret == response["record"]
 
     @staticmethod
-    @patch("web_app.utils.oidc_tools.CurrentUser._get_info()")
+    @patch("web_app.utils.web_app.utils.oidc_tools.CurrentUser._get_info()")
     def test_delete_record(current_user: Any, mock_rest: Any) -> None:
         """Test delete_record()."""
-        current_user.return_value = oidc_tools.UserInfo(
+        current_user.return_value = web_app.utils.oidc_tools.UserInfo(
             "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
         )
         record_id = "23"
@@ -334,10 +333,10 @@ class TestDataSource:
         )
 
     @staticmethod
-    @patch("web_app.utils.oidc_tools.CurrentUser._get_info()")
+    @patch("web_app.utils.web_app.utils.oidc_tools.CurrentUser._get_info()")
     def test_list_snapshot_timestamps(current_user: Any, mock_rest: Any) -> None:
         """Test list_snapshot_timestamps()."""
-        current_user.return_value = oidc_tools.UserInfo(
+        current_user.return_value = web_app.utils.oidc_tools.UserInfo(
             "t.hanks", ["/tokens/mou-dashboard-admin"]
         )
         response = {
@@ -360,10 +359,10 @@ class TestDataSource:
         assert sorted(ret, key=lambda k: k["timestamp"]) == response["snapshots"]
 
     @staticmethod
-    @patch("web_app.utils.oidc_tools.CurrentUser._get_info()")
+    @patch("web_app.utils.web_app.utils.oidc_tools.CurrentUser._get_info()")
     def test_create_snapshot(current_user: Any, mock_rest: Any) -> None:
         """Test create_snapshot()."""
-        current_user.return_value = oidc_tools.UserInfo(
+        current_user.return_value = web_app.utils.oidc_tools.UserInfo(
             "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
         )
         response = {"timestamp": "a", "foo": "bar"}
