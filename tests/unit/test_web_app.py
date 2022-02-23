@@ -256,7 +256,7 @@ class TestDataSource:
             assert ret == response["table"]
 
     @staticmethod
-    @patch("web_app.web_app.utils.oidc_tools.CurrentUser._get_info")
+    @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
     def test_push_record(
         current_user: Any, mock_rest: Any, tconfig: tc.TableConfigParser
     ) -> None:
@@ -304,7 +304,7 @@ class TestDataSource:
             assert ret == response["record"]
 
     @staticmethod
-    @patch("web_app.web_app.utils.oidc_tools.CurrentUser._get_info")
+    @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
     def test_delete_record(current_user: Any, mock_rest: Any) -> None:
         """Test delete_record()."""
         current_user.return_value = web_app.utils.oidc_tools.UserInfo(
@@ -333,7 +333,7 @@ class TestDataSource:
         )
 
     @staticmethod
-    @patch("web_app.web_app.utils.oidc_tools.CurrentUser._get_info")
+    @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
     def test_list_snapshot_timestamps(current_user: Any, mock_rest: Any) -> None:
         """Test list_snapshot_timestamps()."""
         current_user.return_value = web_app.utils.oidc_tools.UserInfo(
@@ -359,7 +359,7 @@ class TestDataSource:
         assert sorted(ret, key=lambda k: k["timestamp"]) == response["snapshots"]
 
     @staticmethod
-    @patch("web_app.web_app.utils.oidc_tools.CurrentUser._get_info")
+    @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
     def test_create_snapshot(current_user: Any, mock_rest: Any) -> None:
         """Test create_snapshot()."""
         current_user.return_value = web_app.utils.oidc_tools.UserInfo(
