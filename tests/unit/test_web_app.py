@@ -56,6 +56,7 @@ def tconfig() -> Iterator[tc.TableConfigParser]:
 def clear_all_cachetools_func_caches() -> Iterator[None]:
     """Clear all `cachetools.func` caches, everywhere"""
     yield
+    # type: ignore[attr-defined]
     institution_info._cached_get_institutions_infos.cache_clear()
     tc.TableConfigParser._cached_get_configs.cache_clear()
     web_app.utils.oidc_tools.CurrentUser._cached_get_info.cache_clear()
