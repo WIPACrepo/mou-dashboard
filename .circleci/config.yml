@@ -34,6 +34,7 @@ jobs:
             python3 -m virtualenv -p python3 env_web && . env_web/bin/activate && pip install --upgrade pip
             sleep 30
             pip install -r rest_server/requirements.txt -r web_app/requirements.txt -r requirements-dev.txt
+            cp resources/dummy_client_secrets.json client_secrets.json
             pytest -vvv tests/integration
 
   docker_deploy:
