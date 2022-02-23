@@ -28,7 +28,7 @@ jobs:
           command: |
             python3 -m virtualenv -p python3 env_rest && . env_rest/bin/activate && pip install --upgrade pip
             pip install -r rest_server/requirements.txt
-            python3 -m rest_server --override-krs-insts ./resources/krs-dummy-data.json
+            python3 -m rest_server --override-krs-insts ./resources/dummy-krs-data.json
           background: true
       - run: |
             python3 -m virtualenv -p python3 env_web && . env_web/bin/activate && pip install --upgrade pip
