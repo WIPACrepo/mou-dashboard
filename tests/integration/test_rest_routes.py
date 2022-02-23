@@ -174,7 +174,6 @@ class TestNoArgumentRoutes:
             assert list(config.keys()) == [
                 "columns",
                 "simple_dropdown_menus",
-                "institutions",
                 "labor_categories",
                 "conditional_dropdown_menus",
                 "dropdowns",
