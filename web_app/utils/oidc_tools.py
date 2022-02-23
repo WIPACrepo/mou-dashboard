@@ -17,8 +17,6 @@ class UserInfo:
     """Hold user data."""
 
     preferred_username: str
-    email: str
-    name: str
     groups: List[str]
 
 
@@ -31,9 +29,7 @@ class CurrentUser:
         """Cache is keyed by the oidc session token."""
         # pylint:disable=unused-argument
         logging.warning(f"Cache Miss: CurrentUser._cached_get_info({oidc_csrf_token=})")
-        resp: Dict[str, Any] = oidc.user_getinfo(
-            ["preferred_username", "email", "name", "groups"]
-        )
+        resp: Dict[str, Any] = oidc.user_getinfo(["preferred_username", "groups"])
         return UserInfo(**resp)
 
     @staticmethod

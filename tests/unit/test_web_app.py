@@ -16,7 +16,10 @@ import pytest
 import requests
 
 sys.path.append(".")
-from web_app.utils import types  # isort:skip  # noqa # pylint: disable=E0401,C0413
+from web_app.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
+    types,
+    oidc_tools,
+)
 from web_app.data_source import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
     data_source as src,
     table_config as tc,
@@ -254,26 +257,28 @@ class TestDataSource:
             assert ret == response["table"]
 
     @staticmethod
-    @patch("flask_login.utils._get_user")
+    @patch("web_app.utils.oidc_tools.CurrentUser._get_info()")
     def test_push_record(
         current_user: Any, mock_rest: Any, tconfig: tc.TableConfigParser
     ) -> None:
         """Test push_record()."""
-        current_user.return_value.name = "Hank"
+        current_user.return_value = oidc_tools.UserInfo(
+            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
+        )
         response = {
             "foo": 0,
             "record": {"x": "foo", "y": 22, "z": "z"},
-            # "editor": "Hank",
+            # "editor": "t.hanks",
         }
         bodies = [
             # Default values
-            {"record": {"BAR": 23}, "editor": "Hank"},
+            {"record": {"BAR": 23}, "editor": "t.hanks"},
             # Other values
             {
                 "institution": "foo",
                 "labor": "bar",
                 "record": {"a": 1},
-                "editor": "Hank",
+                "editor": "t.hanks",
             },
         ]
 
@@ -300,10 +305,12 @@ class TestDataSource:
             assert ret == response["record"]
 
     @staticmethod
-    @patch("flask_login.utils._get_user")
+    @patch("web_app.utils.oidc_tools.CurrentUser._get_info()")
     def test_delete_record(current_user: Any, mock_rest: Any) -> None:
         """Test delete_record()."""
-        current_user.return_value.name = "Hank"
+        current_user.return_value = oidc_tools.UserInfo(
+            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
+        )
         record_id = "23"
 
         # Call
@@ -311,7 +318,7 @@ class TestDataSource:
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
-            "DELETE", f"/record/{WBS}", {"record_id": record_id, "editor": "Hank"}
+            "DELETE", f"/record/{WBS}", {"record_id": record_id, "editor": "t.hanks"}
         )
 
         # Fail Test #
@@ -323,15 +330,16 @@ class TestDataSource:
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
-            "DELETE", f"/record/{WBS}", {"record_id": record_id, "editor": "Hank"}
+            "DELETE", f"/record/{WBS}", {"record_id": record_id, "editor": "t.hanks"}
         )
 
     @staticmethod
-    @patch("flask_login.utils._get_user")
+    @patch("web_app.utils.oidc_tools.CurrentUser._get_info()")
     def test_list_snapshot_timestamps(current_user: Any, mock_rest: Any) -> None:
         """Test list_snapshot_timestamps()."""
-        current_user.return_value.is_authenticated = True
-        current_user.return_value.is_admin = True
+        current_user.return_value = oidc_tools.UserInfo(
+            "t.hanks", ["/tokens/mou-dashboard-admin"]
+        )
         response = {
             "snapshots": [
                 {"timestamp": "a", "name": "aye", "creator": "George"},
@@ -352,10 +360,12 @@ class TestDataSource:
         assert sorted(ret, key=lambda k: k["timestamp"]) == response["snapshots"]
 
     @staticmethod
-    @patch("flask_login.utils._get_user")
+    @patch("web_app.utils.oidc_tools.CurrentUser._get_info()")
     def test_create_snapshot(current_user: Any, mock_rest: Any) -> None:
         """Test create_snapshot()."""
-        current_user.return_value.name = "Hank"
+        current_user.return_value = oidc_tools.UserInfo(
+            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
+        )
         response = {"timestamp": "a", "foo": "bar"}
 
         # Call
@@ -364,7 +374,9 @@ class TestDataSource:
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
-            "POST", f"/snapshots/make/{WBS}", {"creator": "Hank", "name": "snap_name"}
+            "POST",
+            f"/snapshots/make/{WBS}",
+            {"creator": "t.hanks", "name": "snap_name"},
         )
         assert ret == response
 
