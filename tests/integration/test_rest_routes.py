@@ -202,7 +202,7 @@ class TestNoArgumentRoutes:
         for inst, info in resp.items():
             assert " " not in inst
             # check all "-"-delimited substrings are initial-cased
-            assert all(s[0].is_upper() for s in inst.split("-"))
+            assert all(s[0].isupper() for s in inst.split("-"))
             todays_institutions.Institution(**info)  # try to cast it (atrrs & types)
 
 
