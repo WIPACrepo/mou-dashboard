@@ -9,7 +9,7 @@ import itertools
 import sys
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Final
+from typing import Any, Final, Iterator
 from unittest.mock import patch
 
 import pytest
@@ -21,13 +21,14 @@ from web_app.data_source import (  # isort:skip  # noqa # pylint: disable=E0401,
     data_source as src,
     table_config as tc,
     utils,
+    institution_info,
 )
 
 WBS = "mo"
 
 
 @pytest.fixture
-def tconfig() -> Any:
+def tconfig() -> Iterator[tc.TableConfigParser]:
     """Provide a TableConfigParser instance."""
     tconfig_cache: tc.TableConfigParser.CacheType = {
         WBS: {  # type: ignore[typeddict-item]
@@ -49,6 +50,15 @@ def tconfig() -> Any:
     ) as mock_cgc:
         mock_cgc.return_value = tconfig_cache
         yield tc.TableConfigParser(WBS)
+
+
+@pytest.fixture(autouse=True)
+def clear_all_cachetools_func_caches() -> Iterator[None]:
+    """Clear all `cachetools.func` caches, everywhere"""
+    yield
+    institution_info._cached_get_institutions_infos.cache_clear()
+    tc.TableConfigParser._cached_get_configs.cache_clear()
+    web_app.utils.oidc_tools.CurrentUser._cached_get_info.cache_clear()
 
 
 class TestPrivateDataSource:
@@ -108,11 +118,9 @@ class TestPrivateDataSource:
         assert record_out == record_orig
 
     @staticmethod
-    @patch("web_app.data_source.table_config.TableConfigParser._cached_get_configs")
-    def test_remove_invalid_data(
-        mock_cgc: Any, tconfig: tc.TableConfigParser
-    ) -> None:  # pylint: disable=R0915,R0912
+    def test_remove_invalid_data(tconfig: tc.TableConfigParser) -> None:
         """Test _remove_invalid_data() & _convert_record_dash_to_rest()."""
+        # pylint: disable=R0915,R0912
 
         def _assert(
             _orig: web_app.utils.types.Record, _good: web_app.utils.types.Record
@@ -267,7 +275,7 @@ class TestDataSource:
         current_user.return_value = web_app.utils.oidc_tools.UserInfo(
             "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
         )
-        response = {
+        unrealistic_hardcoded_resp = {
             "foo": 0,
             "record": {"x": "foo", "y": 22, "z": "z"},
             # "editor": "t.hanks",
@@ -286,7 +294,7 @@ class TestDataSource:
 
         for i, _ in enumerate(bodies):
             # Call
-            mock_rest.return_value.request_seq.return_value = response
+            mock_rest.return_value.request_seq.return_value = unrealistic_hardcoded_resp
             # Default values
             if i == 0:
                 ret = src.push_record(WBS, bodies[0]["record"], tconfig)  # type: ignore[arg-type]
@@ -301,10 +309,13 @@ class TestDataSource:
                 )
 
             # Assert
+            posted = deepcopy(bodies[i])
+            # fields not included in `push_record()` are added as blanks
+            posted["record"].update({"Alpha": "", "Dish": "", "F1": "", "Beta": ""})
             mock_rest.return_value.request_seq.assert_called_with(
-                "POST", f"/record/{WBS}", bodies[i]
+                "POST", f"/record/{WBS}", posted
             )
-            assert ret == response["record"]
+            assert ret == unrealistic_hardcoded_resp["record"]
 
     @staticmethod
     @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
@@ -421,6 +432,8 @@ class TestTableConfig:
     @staticmethod
     def test_table_config(mock_rest: Any) -> None:
         """Test TableConfig()."""
+        # pylint: disable=R0915,R0912
+
         # nonsense data, but correctly typed
         resp: tc.TableConfigParser.CacheType = {
             WBS: {
@@ -536,6 +549,7 @@ class TestTableConfig:
         # Error handling methods
         for col, wid in resp[WBS]["widths"].items():
             assert table_config.get_column_width(col) == wid
+        tc.TableConfigParser._cached_get_configs.cache_clear()  # clear the cache!
         mock_rest.return_value.request_seq.return_value = {}
         table_config = tc.TableConfigParser(WBS)
         for col, wid in resp[WBS]["widths"].items():
