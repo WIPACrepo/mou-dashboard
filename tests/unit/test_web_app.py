@@ -9,7 +9,7 @@ import itertools
 import sys
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Final, Iterator
+from typing import Any, Final, Iterator, List, TypedDict
 from unittest.mock import patch
 
 import pytest
@@ -25,6 +25,15 @@ from web_app.data_source import (  # isort:skip  # noqa # pylint: disable=E0401,
 )
 
 WBS = "mo"
+
+
+@pytest.fixture(autouse=True)
+def clear_all_cachetools_func_caches() -> Iterator[None]:
+    """Clear all `cachetools.func` caches, everywhere"""
+    yield
+    institution_info._cached_get_institutions_infos.cache_clear()  # type: ignore[attr-defined]
+    tc.TableConfigParser._cached_get_configs.cache_clear()  # type: ignore[attr-defined]
+    web_app.utils.oidc_tools.CurrentUser._cached_get_info.cache_clear()  # type: ignore[attr-defined]
 
 
 @pytest.fixture
@@ -50,16 +59,6 @@ def tconfig() -> Iterator[tc.TableConfigParser]:
     ) as mock_cgc:
         mock_cgc.return_value = tconfig_cache
         yield tc.TableConfigParser(WBS)
-
-
-@pytest.fixture(autouse=True)
-def clear_all_cachetools_func_caches() -> Iterator[None]:
-    """Clear all `cachetools.func` caches, everywhere"""
-    yield
-    # type: ignore[attr-defined]
-    institution_info._cached_get_institutions_infos.cache_clear()
-    tc.TableConfigParser._cached_get_configs.cache_clear()
-    web_app.utils.oidc_tools.CurrentUser._cached_get_info.cache_clear()
 
 
 class TestPrivateDataSource:
@@ -281,7 +280,14 @@ class TestDataSource:
             "record": {"x": "foo", "y": 22, "z": "z"},
             # "editor": "t.hanks",
         }
-        bodies = [
+
+        class _Body(TypedDict, total=False):
+            record: web_app.utils.types.Record
+            institution: str
+            labor: str
+            editor: str
+
+        bodies: List[_Body] = [
             # Default values
             {"record": {"BAR": 23}, "editor": "t.hanks"},
             # Other values
@@ -298,15 +304,15 @@ class TestDataSource:
             mock_rest.return_value.request_seq.return_value = unrealistic_hardcoded_resp
             # Default values
             if i == 0:
-                ret = src.push_record(WBS, bodies[0]["record"], tconfig)  # type: ignore[arg-type]
+                ret = src.push_record(WBS, bodies[0]["record"], tconfig)
             # Other values
             else:
                 ret = src.push_record(
                     WBS,
-                    bodies[i]["record"],  # type: ignore[arg-type]
+                    bodies[i]["record"],
                     tconfig,
-                    labor=bodies[i]["labor"],  # type: ignore[arg-type]
-                    institution=bodies[i]["institution"],  # type: ignore[arg-type]
+                    labor=bodies[i]["labor"],
+                    institution=bodies[i]["institution"],
                 )
 
             # Assert
@@ -550,8 +556,10 @@ class TestTableConfig:
         # Error handling methods
         for col, wid in resp[WBS]["widths"].items():
             assert table_config.get_column_width(col) == wid
-        tc.TableConfigParser._cached_get_configs.cache_clear()  # clear the cache!
+        # reset
+        tc.TableConfigParser._cached_get_configs.cache_clear()  # type: ignore[attr-defined]
         mock_rest.return_value.request_seq.return_value = {}
+        # call
         table_config = tc.TableConfigParser(WBS)
         for col, wid in resp[WBS]["widths"].items():
             default = (
