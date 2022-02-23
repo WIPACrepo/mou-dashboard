@@ -10,7 +10,7 @@ import sys
 from copy import deepcopy
 from enum import Enum
 from typing import Any, Final
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 import requests
@@ -29,7 +29,7 @@ WBS = "mo"
 @pytest.fixture
 def tconfig() -> Any:
     """Provide a TableConfigParser instance."""
-    return tc.TableConfigParser(WBS, MagicMock())
+    return tc.TableConfigParser(WBS)
 
 
 class TestPrivateDataSource:
@@ -89,7 +89,8 @@ class TestPrivateDataSource:
         assert record_out == record_orig
 
     @staticmethod
-    def test_remove_invalid_data() -> None:  # pylint: disable=R0915,R0912
+    @patch("web_app.data_source.table_config.TableConfigParser._cached_get_configs")
+    def test_remove_invalid_data(mock_cgc: Any) -> None:  # pylint: disable=R0915,R0912
         """Test _remove_invalid_data() & _convert_record_dash_to_rest()."""
         tconfig_cache: tc.TableConfigParser.CacheType = {
             WBS: {  # type: ignore[typeddict-item]
@@ -106,8 +107,9 @@ class TestPrivateDataSource:
                 "columns": ["Alpha", "Dish", "F1", "Beta"],
             }
         }
+        mock_cgc.return_value = tconfig_cache
 
-        tconfig = tc.TableConfigParser(WBS, cache=tconfig_cache)
+        tconfig = tc.TableConfigParser(WBS)
 
         def _assert(_orig: types.Record, _good: types.Record) -> None:
             assert (
@@ -409,7 +411,6 @@ class TestTableConfig:
                     "a": ["1", "2", "3"],
                     "c": ["4", "44", "444"],
                 },
-                "institutions": sorted([("foo", "F"), ("bar", "B")]),
                 "labor_categories": sorted([("foobar", "FB"), ("baz", "BZ")]),
                 "conditional_dropdown_menus": {
                     "column1": (
@@ -450,7 +451,6 @@ class TestTableConfig:
 
         # no-argument methods
         assert table_config.get_table_columns() == resp[WBS]["columns"]
-        assert table_config.get_institutions_w_abbrevs() == resp[WBS]["institutions"]
         assert (
             table_config.get_labor_categories_w_abbrevs()
             == resp[WBS]["labor_categories"]

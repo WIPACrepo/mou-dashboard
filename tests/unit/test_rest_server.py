@@ -24,7 +24,7 @@ from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0
     types,
     mongo_tools,
 )
-from rest_server.databases import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
+from rest_server.data_sources import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
     mou_db,
     table_config_cache as tcc,
     columns,

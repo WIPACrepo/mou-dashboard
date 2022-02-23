@@ -11,8 +11,9 @@ import pytest
 from .. import institution_list
 
 sys.path.append(".")
-from rest_server.utils import types  # isort:skip  # noqa # pylint: disable=E0401,C0413
-from rest_server.databases import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
+# pylint: disable=E0401,C0413,C0411
+from rest_server.utils import types  # isort:skip  # noqa
+from rest_server.data_sources import (  # isort:skip  # noqa
     table_config_cache,
     columns,
 )
