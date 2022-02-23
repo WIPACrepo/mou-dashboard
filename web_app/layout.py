@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-"""MoU Dashboard application."""
+"""Layout root and high-level callbacks."""
 
 import logging
 from typing import Tuple
@@ -12,7 +11,7 @@ from dash import no_update  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore
 
 from .config import AUTO_RELOAD_MINS, REDIRECT_WBS, app
-from .tabs import wbs_generic_layout
+from .contents import wbs_generic_layout
 from .utils import dash_utils as du
 from .utils import utils
 from .utils.oidc_tools import CurrentUser

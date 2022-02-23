@@ -6,7 +6,6 @@ import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 import dash_table  # type: ignore[import]
 
-from ..data_source import table_config as tc
 from ..utils import dash_utils as du
 
 
