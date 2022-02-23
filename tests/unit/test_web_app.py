@@ -29,7 +29,26 @@ WBS = "mo"
 @pytest.fixture
 def tconfig() -> Any:
     """Provide a TableConfigParser instance."""
-    return tc.TableConfigParser(WBS)
+    tconfig_cache: tc.TableConfigParser.CacheType = {
+        WBS: {  # type: ignore[typeddict-item]
+            "simple_dropdown_menus": {"Alpha": ["A1", "A2"], "Beta": []},
+            "conditional_dropdown_menus": {
+                "Dish": (
+                    "Alpha",
+                    {
+                        "A1": ["chicken", "beef", "pork", "fish", "shrimp", "goat"],
+                        "A2": [],
+                    },
+                ),
+            },
+            "columns": ["Alpha", "Dish", "F1", "Beta"],
+        }
+    }
+    with patch(
+        "web_app.data_source.table_config.TableConfigParser._cached_get_configs"
+    ) as mock_cgc:
+        mock_cgc.return_value = tconfig_cache
+        yield tc.TableConfigParser(WBS)
 
 
 class TestPrivateDataSource:
@@ -90,26 +109,10 @@ class TestPrivateDataSource:
 
     @staticmethod
     @patch("web_app.data_source.table_config.TableConfigParser._cached_get_configs")
-    def test_remove_invalid_data(mock_cgc: Any) -> None:  # pylint: disable=R0915,R0912
+    def test_remove_invalid_data(
+        mock_cgc: Any, tconfig: tc.TableConfigParser
+    ) -> None:  # pylint: disable=R0915,R0912
         """Test _remove_invalid_data() & _convert_record_dash_to_rest()."""
-        tconfig_cache: tc.TableConfigParser.CacheType = {
-            WBS: {  # type: ignore[typeddict-item]
-                "simple_dropdown_menus": {"Alpha": ["A1", "A2"], "Beta": []},
-                "conditional_dropdown_menus": {
-                    "Dish": (
-                        "Alpha",
-                        {
-                            "A1": ["chicken", "beef", "pork", "fish", "shrimp", "goat"],
-                            "A2": [],
-                        },
-                    ),
-                },
-                "columns": ["Alpha", "Dish", "F1", "Beta"],
-            }
-        }
-        mock_cgc.return_value = tconfig_cache
-
-        tconfig = tc.TableConfigParser(WBS)
 
         def _assert(
             _orig: web_app.utils.types.Record, _good: web_app.utils.types.Record
