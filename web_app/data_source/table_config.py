@@ -2,11 +2,11 @@
 
 
 import logging
-from functools import lru_cache
 from typing import Dict, Final, List, Tuple, TypedDict, cast
 
+import cachetools.func  # type: ignore[import]
+
 from ..config import MAX_CACHE_MINS
-from ..utils.utils import get_epoch_mins
 from .utils import mou_request
 
 
@@ -62,26 +62,16 @@ class TableConfigParser:  # pylint: disable=R0904
         Use the parser functions to access configurations.
         """
         self._wbs_l1 = wbs_l1
-        self._configs = TableConfigParser._cached_get_configs(
-            get_epoch_mins(MAX_CACHE_MINS),  # make cache hit expire <= X mins
-        )
+        self._configs = cast(TableConfigParser.CacheType, self._cached_get_configs())
 
         # set up constants for quick reference
         self.const = TableConfigParser._Constants()
 
     @staticmethod
-    @lru_cache()
-    def _cached_get_configs(timeframe: int) -> "TableConfigParser.CacheType":
-        """Get the `_configs` dict for caching.
-
-        Cache is keyed by an int.
-
-        The int is used to auto-expire/regenerate cache results.
-        """
-        logging.warning(
-            f"Cache Miss: TableConfigParser._cached_get_configs({timeframe=})"
-        )
-        return cast(TableConfigParser.CacheType, mou_request("GET", "/table/config"))
+    @cachetools.func.ttl_cache(ttl=MAX_CACHE_MINS * 60)  # type: ignore[misc]
+    def _cached_get_configs() -> "TableConfigParser.CacheType":
+        logging.warning("Cache Miss: TableConfigParser._cached_get_configs()")
+        return mou_request("GET", "/table/config")
 
     def get_table_columns(self) -> List[str]:
         """Get table column's names."""

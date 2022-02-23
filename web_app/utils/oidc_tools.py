@@ -3,14 +3,13 @@
 import logging
 import re
 from dataclasses import dataclass
-from functools import lru_cache
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
+import cachetools.func  # type: ignore[import]
 import flask  # type: ignore[import]
 
 from ..config import MAX_CACHE_MINS, oidc
 from ..data_source import institution_info
-from .utils import get_epoch_mins
 
 
 @dataclass(frozen=True)
@@ -27,30 +26,21 @@ class CurrentUser:
     """Wrap oidc's user info requests."""
 
     @staticmethod
-    @lru_cache()
-    def _cached_get_info(oidc_csrf_token: str, timeframe: int) -> UserInfo:
-        """Cache is keyed by the oidc session token and an int.
-
-        The int is used to auto-expire/regenerate cache results,
-        before a session ends.
-        """
+    @cachetools.func.ttl_cache(ttl=MAX_CACHE_MINS * 60)  # type: ignore[misc]
+    def _cached_get_info(oidc_csrf_token: str) -> UserInfo:
+        """Cache is keyed by the oidc session token."""
         # pylint:disable=unused-argument
-        logging.warning(
-            f"Cache Miss: CurrentUser._cached_get_info({oidc_csrf_token=}, {timeframe=})"
-        )
-
+        logging.warning(f"Cache Miss: CurrentUser._cached_get_info({oidc_csrf_token=})")
         resp: Dict[str, Any] = oidc.user_getinfo(
             ["preferred_username", "email", "name", "groups"]
         )
-
         return UserInfo(**resp)
 
     @staticmethod
     def _get_info() -> UserInfo:
         """Query OIDC."""
-        return CurrentUser._cached_get_info(
-            flask.session["oidc_csrf_token"],
-            get_epoch_mins(MAX_CACHE_MINS),  # make cache hit expire <= X mins
+        return cast(
+            UserInfo, CurrentUser._cached_get_info(flask.session["oidc_csrf_token"])
         )
 
     @staticmethod

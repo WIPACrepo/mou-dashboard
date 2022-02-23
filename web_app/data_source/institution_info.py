@@ -2,11 +2,11 @@
 
 import logging
 from dataclasses import dataclass
-from functools import lru_cache
 from typing import Any, Dict, cast
 
+import cachetools.func  # type: ignore[import]
+
 from ..config import MAX_CACHE_MINS
-from ..utils.utils import get_epoch_mins
 from .utils import mou_request
 
 
@@ -21,23 +21,13 @@ class Institution:
     institution_lead_uid: str
 
 
-@lru_cache()
-def _cached_get_institutions_infos(timeframe: int) -> Dict[str, Institution]:
-    """Cache is keyed by an int.
-
-    The int is used to auto-expire/regenerate cache results.
-    """
-    # pylint:disable=unused-argument
-    logging.warning(f"Cache Miss: _cached_get_institutions_infos({timeframe=})")
-
+@cachetools.func.ttl_cache(ttl=MAX_CACHE_MINS * 60)  # type: ignore[misc]
+def _cached_get_institutions_infos() -> Dict[str, Institution]:
+    logging.warning("Cache Miss: _cached_get_institutions_infos()")
     resp = cast(Dict[str, Dict[str, Any]], mou_request("GET", "/institution/today"))
-
     return {k: Institution(**v) for k, v in resp.items()}
 
 
 def get_institutions_infos() -> Dict[str, Institution]:
     """Get a dict of all institutions with their info."""
-
-    return _cached_get_institutions_infos(
-        get_epoch_mins(MAX_CACHE_MINS),  # make cache hit expire <= X mins
-    )
+    return cast(Dict[str, Institution], _cached_get_institutions_infos())
