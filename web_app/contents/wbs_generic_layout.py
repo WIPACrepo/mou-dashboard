@@ -6,7 +6,6 @@ import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 import dash_table  # type: ignore[import]
 
-from ..data_source import table_config as tc
 from ..utils import dash_utils as du
 
 
@@ -175,7 +174,10 @@ def layout() -> html.Div:
                             for _id, _label in [
                                 ("wbs-phds-authors", "PhDs/Authors"),
                                 ("wbs-faculty", "Faculty"),
-                                ("wbs-scientists-post-docs", "Scientists/Post-Docs",),
+                                (
+                                    "wbs-scientists-post-docs",
+                                    "Scientists/Post-Docs",
+                                ),
                                 ("wbs-grad-students", "Grad Students"),
                             ]
                         ],
@@ -448,12 +450,6 @@ def layout() -> html.Div:
             #
             #
             # Data Stores aka Cookies
-            # - for caching the table config, to limit REST calls
-            dcc.Store(
-                id="wbs-table-config-cache",
-                storage_type="memory",
-                data=tc.TableConfigParser.get_configs(),  # get all tables' configs
-            ),
             # - for fagging whether the institution values were changed
             dcc.Store(
                 id="wbs-institution-values-first-time-flag",

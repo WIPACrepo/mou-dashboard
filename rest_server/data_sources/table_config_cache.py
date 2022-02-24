@@ -3,15 +3,9 @@
 
 import logging
 import time
-from dataclasses import dataclass
-from distutils.util import strtobool
 from typing import Any, Dict, Final, List, Tuple, TypedDict, Union
 
-from krs import institutions as krs_institutions  # type: ignore[import]
-from krs import token
-
-from .. import wbs
-from . import columns
+from . import columns, todays_institutions, wbs
 
 US = "US"
 NON_US = "Non-US"
@@ -53,40 +47,6 @@ _LABOR_CATEGORY_DICTIONARY: Dict[str, str] = {
 MAX_CACHE_AGE = 60 * 60  # seconds
 
 
-@dataclass(frozen=True)
-class Institution:
-    """Hold minimal institution data."""
-
-    short_name: str
-    long_name: str
-    is_us: bool
-    has_mou: bool
-
-
-def convert_krs_institutions(response: Dict[str, Any]) -> List[Institution]:
-    """Convert from krs response data to List[Institution]."""
-    insts: List[Institution] = []
-    for inst, attrs in response.items():
-        insts.append(
-            Institution(
-                short_name=inst,
-                long_name=attrs["name"],
-                is_us=bool(strtobool(attrs["is_US"])),
-                has_mou=bool(strtobool(attrs["has_mou"])),
-            )
-        )
-    return insts
-
-
-async def request_krs_institutions() -> List[Institution]:
-    """Grab the master list of institutions along with their details."""
-    rc = token.get_rest_client()
-
-    response = await krs_institutions.list_insts_flat(rest_client=rc)
-
-    return convert_krs_institutions(response)
-
-
 class TableConfigCache:
     """Manage the collection and parsing of the table config."""
 
@@ -101,7 +61,7 @@ class TableConfigCache:
     def __init__(
         self,
         _column_configs: Dict[str, _ColumnConfigTypedDict],
-        _institutions: List[Institution],
+        _institutions: List[todays_institutions.Institution],
     ) -> None:
         self.column_configs, self.institutions = _column_configs, _institutions
         self._timestamp = int(time.time())
@@ -114,14 +74,16 @@ class TableConfigCache:
         self._timestamp = int(time.time())
 
     @staticmethod
-    async def _build() -> Tuple[Dict[str, _ColumnConfigTypedDict], List[Institution]]:
+    async def _build() -> Tuple[
+        Dict[str, _ColumnConfigTypedDict], List[todays_institutions.Institution]
+    ]:
         """Build the table config."""
         tooltip_funding_source_value: Final[str] = (
             "This number is dependent on the Funding Source and FTE. "
             "Changing those values will affect this number."
         )
 
-        institutions = await request_krs_institutions()
+        institutions = await todays_institutions.request_krs_institutions()
         logging.debug(f"KRS responded with {len(institutions)} institutions")
 
         # build column-configs
@@ -275,10 +237,6 @@ class TableConfigCache:
     def get_columns(self) -> List[str]:
         """Get the columns."""
         return list(self.column_configs.keys())
-
-    def get_institution_long_and_short(self) -> List[Tuple[str, str]]:
-        """Get the institutions' long-names and (regular/short) names."""
-        return [(inst.long_name, inst.short_name) for inst in self.institutions]
 
     def get_labor_categories_and_abbrevs(
         self,

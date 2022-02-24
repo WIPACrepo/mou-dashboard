@@ -8,14 +8,15 @@ from typing import Dict, Final, List, Optional, Tuple, TypedDict, cast
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
-from flask_login import current_user  # type: ignore[import]
 
 from ..config import app
 from ..data_source import data_source as src
+from ..data_source import institution_info
 from ..data_source import table_config as tc
 from ..data_source.utils import DataSourceException
 from ..utils import dash_utils as du
 from ..utils import types, utils
+from ..utils.oidc_tools import CurrentUser
 
 _CHANGES_COL: Final[str] = "Changes"
 
@@ -101,7 +102,7 @@ def handle_xlsx(  # pylint: disable=R0911
     """Manage uploading a new xlsx document as the new live table."""
     logging.warning(f"'{du.triggered()}' -> handle_xlsx()")
 
-    if not current_user.is_authenticated or not current_user.is_admin:
+    if not CurrentUser.is_loggedin_with_permissions() or not CurrentUser.is_admin():
         logging.error("Cannot handle xlsx since user is not admin.")
         return False, "", "", True, None, False, []
 
@@ -146,7 +147,6 @@ def handle_xlsx(  # pylint: disable=R0911
     [Input("wbs-summary-table-recalculate", "n_clicks")],  # user-only
     [
         State("url", "pathname"),
-        State("wbs-table-config-cache", "data"),
         State("wbs-current-snapshot-ts", "value"),
     ],
     prevent_initial_call=True,
@@ -156,7 +156,6 @@ def summarize(
     _: int,
     # state(s)
     s_urlpath: str,
-    s_tconfig_cache: tc.TableConfigParser.CacheType,
     s_snap_ts: types.DashVal,
 ) -> Tuple[types.Table, List[Dict[str, str]]]:
     """Manage uploading a new xlsx document as the new live table."""
@@ -165,12 +164,14 @@ def summarize(
     assert not s_snap_ts
 
     wbs_l1 = du.get_wbs_l1(s_urlpath)
-    tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
+    tconfig = tc.TableConfigParser(wbs_l1)
 
     try:
         data_table = src.pull_data_table(wbs_l1, tconfig)
     except DataSourceException:
         return [], []
+
+    insts_infos = institution_info.get_institutions_infos()
 
     column_names = ["Institution", "Institutional Lead"]
     if wbs_l1 == "mo":
@@ -206,13 +207,14 @@ def summarize(
         )
 
     summary_table: types.Table = []
-    for inst_full, abbrev in tconfig.get_institutions_w_abbrevs():
+    for short_name, inst_info in insts_infos.items():
         row: Dict[str, types.StrNum] = {
-            "Institution": inst_full,
+            "Institution": inst_info.long_name,
+            "Institutional Lead": inst_info.institution_lead_uid,
         }
 
         if wbs_l1 == "mo":
-            ret = src.pull_institution_values(wbs_l1, s_snap_ts, abbrev)
+            ret = src.pull_institution_values(wbs_l1, s_snap_ts, short_name)
             (phds, faculty, sci, grad, cpus, gpus, __, hc_conf, comp_conf) = ret
             row.update(
                 {
@@ -228,16 +230,12 @@ def summarize(
             )
             row["Headcount Total"] = sum(
                 cast(float, row.get(hc))
-                for hc in [
-                    "Faculty",
-                    "Scientists / Post Docs",
-                    "Ph.D. Students",
-                ]
+                for hc in ["Faculty", "Scientists / Post Docs", "Ph.D. Students"]
             )
 
-        row.update({l2: _sum_it(abbrev, l2) for l2 in tconfig.get_l2_categories()})
+        row.update({l2: _sum_it(short_name, l2) for l2 in tconfig.get_l2_categories()})
 
-        row["FTE Total"] = _sum_it(abbrev)
+        row["FTE Total"] = _sum_it(short_name)
 
         if wbs_l1 == "mo":
             try:
@@ -381,7 +379,6 @@ def _blame_style_cell_conditional(column_names: List[str]) -> types.TSCCond:
     [Input("wbs-blame-table-button", "n_clicks")],  # user-only
     [
         State("url", "pathname"),
-        State("wbs-table-config-cache", "data"),
         State("wbs-current-snapshot-ts", "value"),
     ],
     prevent_initial_call=True,
@@ -391,7 +388,6 @@ def blame(
     _: int,
     # state(s)
     s_urlpath: str,
-    s_tconfig_cache: tc.TableConfigParser.CacheType,
     s_snap_ts: types.DashVal,
 ) -> Tuple[types.Table, List[Dict[str, str]], types.TSCCond]:
     """Manage uploading a new xlsx document as the new live table."""
@@ -401,7 +397,7 @@ def blame(
 
     # setup
     wbs_l1 = du.get_wbs_l1(s_urlpath)
-    tconfig = tc.TableConfigParser(wbs_l1, cache=s_tconfig_cache)
+    tconfig = tc.TableConfigParser(wbs_l1)
 
     try:
         data_table = src.pull_data_table(wbs_l1, tconfig, raw=True)

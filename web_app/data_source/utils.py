@@ -65,7 +65,7 @@ def mou_request(method: str, url: str, body: Any = None) -> Dict[str, Any]:
 
     logging.info(f"RESPONSE ({method} @ {url}, body: {log_body}) ::")
     for key, val in response.items():
-        logging.info(f"> {key}")
+        logging.debug(f"> {key}")
         logging.debug(f"-> {str(type(val).__name__)}")
         logging.debug(f"-> {log_it(key, val)}")
 

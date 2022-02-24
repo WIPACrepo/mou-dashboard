@@ -5,7 +5,7 @@ from typing import Any, Callable, Dict
 
 from bson.objectid import ObjectId  # type: ignore[import]
 
-from ..databases import columns
+from ..data_sources import columns
 
 
 class DocumentNotFoundError(Exception):

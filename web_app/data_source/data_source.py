@@ -1,11 +1,10 @@
 """REST interface for reading and writing MoU data."""
 
 
-from typing import Any, cast, Dict, Final, List, Optional, Tuple, TypedDict, Union
-
-from flask_login import current_user  # type: ignore[import]
+from typing import Any, Dict, Final, List, Optional, Tuple, TypedDict, Union, cast
 
 from ..utils import types, utils
+from ..utils.oidc_tools import CurrentUser
 from . import table_config as tc
 from .utils import mou_request
 
@@ -225,7 +224,7 @@ def _validate(
 
 
 # --------------------------------------------------------------------------------------
-# Data/types.Table Functions
+# Table/Record Functions
 
 
 def pull_data_table(  # pylint: disable=R0913
@@ -274,7 +273,8 @@ def pull_data_table(  # pylint: disable=R0913
     }
 
     response = cast(
-        _RespTableData, mou_request("GET", f"/table/data/{wbs_l1}", body=body),
+        _RespTableData,
+        mou_request("GET", f"/table/data/{wbs_l1}", body=body),
     )
     # get & convert
     if raw:
@@ -315,7 +315,7 @@ def push_record(  # pylint: disable=R0913
     # request
     body: Dict[str, Any] = {
         "record": _convert_record_dash_to_rest(record, tconfig),
-        "editor": current_user.name,
+        "editor": CurrentUser.get_username(),
     }
     if institution:
         body["institution"] = institution
@@ -335,9 +335,13 @@ def delete_record(wbs_l1: str, record_id: str) -> None:
 
     body = {
         "record_id": record_id,
-        "editor": current_user.name,
+        "editor": CurrentUser.get_username(),
     }
     mou_request("DELETE", f"/record/{wbs_l1}", body=body)
+
+
+# --------------------------------------------------------------------------------------
+# Snapshot Functions
 
 
 def list_snapshots(wbs_l1: str) -> List[types.SnapshotInfo]:
@@ -348,7 +352,8 @@ def list_snapshots(wbs_l1: str) -> List[types.SnapshotInfo]:
         snapshots: List[types.SnapshotInfo]
 
     body = {
-        "is_admin": current_user.is_authenticated and current_user.is_admin,
+        "is_admin": CurrentUser.is_loggedin_with_permissions()
+        and CurrentUser.is_admin()
     }
     response = cast(
         _RespSnapshots, mou_request("GET", f"/snapshots/list/{wbs_l1}", body)
@@ -363,11 +368,15 @@ def create_snapshot(wbs_l1: str, name: str) -> types.SnapshotInfo:
     _validate(name, str)
 
     body = {
-        "creator": current_user.name,
+        "creator": CurrentUser.get_username(),
         "name": name,
     }
     response = mou_request("POST", f"/snapshots/make/{wbs_l1}", body=body)
     return cast(types.SnapshotInfo, response)
+
+
+# --------------------------------------------------------------------------------------
+# Table-Override Functions
 
 
 def override_table(
@@ -396,16 +405,21 @@ def override_table(
     body = {
         "base64_file": base64_file,
         "filename": filename,
-        "creator": current_user.name,
+        "creator": CurrentUser.get_username(),
     }
     response = cast(
-        _RespTableData, mou_request("POST", f"/table/data/{wbs_l1}", body=body),
+        _RespTableData,
+        mou_request("POST", f"/table/data/{wbs_l1}", body=body),
     )
     return (
         response["n_records"],
         response["previous_snapshot"],
         response["current_snapshot"],
     )
+
+
+# --------------------------------------------------------------------------------------
+# Institution-Value Functions
 
 
 def pull_institution_values(

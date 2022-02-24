@@ -3,7 +3,7 @@
 from decimal import Decimal
 from typing import cast
 
-from ..databases import columns, table_config_cache
+from ..data_sources import columns, table_config_cache
 from . import types
 from .mongo_tools import Mongofier
 

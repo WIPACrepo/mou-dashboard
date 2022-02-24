@@ -1,10 +1,28 @@
 """Integration test web_app module."""
 
+# pylint: disable=W0212,W0621
+
 
 import sys
+from typing import Iterator
+
+import pytest
 
 sys.path.append(".")
-import web_app.data_source.table_config as tc  # isort:skip  # noqa # pylint: disable=E0401,C0413
+import web_app.utils  # isort:skip  # noqa # pylint: disable=E0401,C0413
+from web_app.data_source import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
+    table_config as tc,
+    institution_info,
+)
+
+
+@pytest.fixture(autouse=True)
+def clear_all_cachetools_func_caches() -> Iterator[None]:
+    """Clear all `cachetools.func` caches, everywhere"""
+    yield
+    institution_info._cached_get_institutions_infos.cache_clear()  # type: ignore[attr-defined]
+    tc.TableConfigParser._cached_get_configs.cache_clear()  # type: ignore[attr-defined]
+    web_app.utils.oidc_tools.CurrentUser._cached_get_info.cache_clear()  # type: ignore[attr-defined]
 
 
 class TestTableConfig:

@@ -9,35 +9,64 @@ import itertools
 import sys
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Final
-from unittest.mock import MagicMock, patch
+from typing import Any, Final, Iterator, List, TypedDict
+from unittest.mock import patch
 
 import pytest
 import requests
 
 sys.path.append(".")
-from web_app.utils import types  # isort:skip  # noqa # pylint: disable=E0401,C0413
+import web_app.utils  # isort:skip  # noqa # pylint: disable=E0401,C0413
 from web_app.data_source import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
     data_source as src,
     table_config as tc,
     utils,
+    institution_info,
 )
 
 WBS = "mo"
 
 
+@pytest.fixture(autouse=True)
+def clear_all_cachetools_func_caches() -> Iterator[None]:
+    """Clear all `cachetools.func` caches, everywhere"""
+    yield
+    institution_info._cached_get_institutions_infos.cache_clear()  # type: ignore[attr-defined]
+    tc.TableConfigParser._cached_get_configs.cache_clear()  # type: ignore[attr-defined]
+    web_app.utils.oidc_tools.CurrentUser._cached_get_info.cache_clear()  # type: ignore[attr-defined]
+
+
 @pytest.fixture
-def tconfig() -> Any:
+def tconfig() -> Iterator[tc.TableConfigParser]:
     """Provide a TableConfigParser instance."""
-    return tc.TableConfigParser(WBS, MagicMock())
+    tconfig_cache: tc.TableConfigParser.CacheType = {
+        WBS: {  # type: ignore[typeddict-item]
+            "simple_dropdown_menus": {"Alpha": ["A1", "A2"], "Beta": []},
+            "conditional_dropdown_menus": {
+                "Dish": (
+                    "Alpha",
+                    {
+                        "A1": ["chicken", "beef", "pork", "fish", "shrimp", "goat"],
+                        "A2": [],
+                    },
+                ),
+            },
+            "columns": ["Alpha", "Dish", "F1", "Beta"],
+        }
+    }
+    with patch(
+        "web_app.data_source.table_config.TableConfigParser._cached_get_configs"
+    ) as mock_cgc:
+        mock_cgc.return_value = tconfig_cache
+        yield tc.TableConfigParser(WBS)
 
 
 class TestPrivateDataSource:
     """Test private functions in dash_source.py."""
 
-    RECORD: Final[types.Record] = {"a": "AA", "b": "BB", "c": "CC"}
+    RECORD: Final[web_app.utils.types.Record] = {"a": "AA", "b": "BB", "c": "CC"}
 
-    def _get_new_record(self) -> types.Record:
+    def _get_new_record(self) -> web_app.utils.types.Record:
         return deepcopy(self.RECORD)
 
     def test_add_original_copies_to_record(self, tconfig: tc.TableConfigParser) -> None:
@@ -89,27 +118,13 @@ class TestPrivateDataSource:
         assert record_out == record_orig
 
     @staticmethod
-    def test_remove_invalid_data() -> None:  # pylint: disable=R0915,R0912
+    def test_remove_invalid_data(tconfig: tc.TableConfigParser) -> None:
         """Test _remove_invalid_data() & _convert_record_dash_to_rest()."""
-        tconfig_cache: tc.TableConfigParser.CacheType = {
-            WBS: {  # type: ignore[typeddict-item]
-                "simple_dropdown_menus": {"Alpha": ["A1", "A2"], "Beta": []},
-                "conditional_dropdown_menus": {
-                    "Dish": (
-                        "Alpha",
-                        {
-                            "A1": ["chicken", "beef", "pork", "fish", "shrimp", "goat"],
-                            "A2": [],
-                        },
-                    ),
-                },
-                "columns": ["Alpha", "Dish", "F1", "Beta"],
-            }
-        }
+        # pylint: disable=R0915,R0912
 
-        tconfig = tc.TableConfigParser(WBS, cache=tconfig_cache)
-
-        def _assert(_orig: types.Record, _good: types.Record) -> None:
+        def _assert(
+            _orig: web_app.utils.types.Record, _good: web_app.utils.types.Record
+        ) -> None:
             assert (
                 _good
                 == src._remove_invalid_data(_orig, tconfig)
@@ -121,7 +136,7 @@ class TestPrivateDataSource:
 
         # Test every combination of a simple-dropdown-type & a conditional-dropdown type
         for alpha, dish in itertools.product(list(Scenario), list(Scenario)):
-            record: types.Record = {"F1": 0}
+            record: web_app.utils.types.Record = {"F1": 0}
 
             if alpha != Scenario.MISSING:
                 record["Alpha"] = {
@@ -252,56 +267,70 @@ class TestDataSource:
             assert ret == response["table"]
 
     @staticmethod
-    @patch("flask_login.utils._get_user")
+    @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
     def test_push_record(
         current_user: Any, mock_rest: Any, tconfig: tc.TableConfigParser
     ) -> None:
         """Test push_record()."""
-        current_user.return_value.name = "Hank"
-        response = {
+        current_user.return_value = web_app.utils.oidc_tools.UserInfo(
+            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
+        )
+        unrealistic_hardcoded_resp = {
             "foo": 0,
             "record": {"x": "foo", "y": 22, "z": "z"},
-            # "editor": "Hank",
+            # "editor": "t.hanks",
         }
-        bodies = [
+
+        class _Body(TypedDict, total=False):
+            record: web_app.utils.types.Record
+            institution: str
+            labor: str
+            editor: str
+
+        bodies: List[_Body] = [
             # Default values
-            {"record": {"BAR": 23}, "editor": "Hank"},
+            {"record": {"BAR": 23}, "editor": "t.hanks"},
             # Other values
             {
                 "institution": "foo",
                 "labor": "bar",
                 "record": {"a": 1},
-                "editor": "Hank",
+                "editor": "t.hanks",
             },
         ]
 
         for i, _ in enumerate(bodies):
             # Call
-            mock_rest.return_value.request_seq.return_value = response
+            mock_rest.return_value.request_seq.return_value = unrealistic_hardcoded_resp
             # Default values
             if i == 0:
-                ret = src.push_record(WBS, bodies[0]["record"], tconfig)  # type: ignore[arg-type]
+                ret = src.push_record(WBS, bodies[0]["record"], tconfig)
             # Other values
             else:
                 ret = src.push_record(
                     WBS,
-                    bodies[i]["record"],  # type: ignore[arg-type]
+                    bodies[i]["record"],
                     tconfig,
-                    labor=bodies[i]["labor"],  # type: ignore[arg-type]
-                    institution=bodies[i]["institution"],  # type: ignore[arg-type]
+                    labor=bodies[i]["labor"],
+                    institution=bodies[i]["institution"],
                 )
 
             # Assert
+            posted = deepcopy(bodies[i])
+            # fields not included in `push_record()` are added as blanks
+            posted["record"].update({"Alpha": "", "Dish": "", "F1": "", "Beta": ""})
             mock_rest.return_value.request_seq.assert_called_with(
-                "POST", f"/record/{WBS}", bodies[i]
+                "POST", f"/record/{WBS}", posted
             )
-            assert ret == response["record"]
+            assert ret == unrealistic_hardcoded_resp["record"]
 
     @staticmethod
-    @patch("flask_login.utils._get_user")
+    @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
     def test_delete_record(current_user: Any, mock_rest: Any) -> None:
         """Test delete_record()."""
-        current_user.return_value.name = "Hank"
+        current_user.return_value = web_app.utils.oidc_tools.UserInfo(
+            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
+        )
         record_id = "23"
 
         # Call
@@ -309,7 +338,7 @@ class TestDataSource:
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
-            "DELETE", f"/record/{WBS}", {"record_id": record_id, "editor": "Hank"}
+            "DELETE", f"/record/{WBS}", {"record_id": record_id, "editor": "t.hanks"}
         )
 
         # Fail Test #
@@ -321,15 +350,20 @@ class TestDataSource:
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
-            "DELETE", f"/record/{WBS}", {"record_id": record_id, "editor": "Hank"}
+            "DELETE", f"/record/{WBS}", {"record_id": record_id, "editor": "t.hanks"}
         )
 
     @staticmethod
-    @patch("flask_login.utils._get_user")
-    def test_list_snapshot_timestamps(current_user: Any, mock_rest: Any) -> None:
+    @patch("web_app.utils.oidc_tools.CurrentUser.is_loggedin")
+    @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
+    def test_list_snapshot_timestamps(
+        current_user: Any, mock_ili: Any, mock_rest: Any
+    ) -> None:
         """Test list_snapshot_timestamps()."""
-        current_user.return_value.is_authenticated = True
-        current_user.return_value.is_admin = True
+        current_user.return_value = web_app.utils.oidc_tools.UserInfo(
+            "t.hanks", ["/tokens/mou-dashboard-admin"]
+        )
+        mock_ili.return_value = True
         response = {
             "snapshots": [
                 {"timestamp": "a", "name": "aye", "creator": "George"},
@@ -350,10 +384,12 @@ class TestDataSource:
         assert sorted(ret, key=lambda k: k["timestamp"]) == response["snapshots"]
 
     @staticmethod
-    @patch("flask_login.utils._get_user")
+    @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
     def test_create_snapshot(current_user: Any, mock_rest: Any) -> None:
         """Test create_snapshot()."""
-        current_user.return_value.name = "Hank"
+        current_user.return_value = web_app.utils.oidc_tools.UserInfo(
+            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
+        )
         response = {"timestamp": "a", "foo": "bar"}
 
         # Call
@@ -362,7 +398,9 @@ class TestDataSource:
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
-            "POST", f"/snapshots/make/{WBS}", {"creator": "Hank", "name": "snap_name"}
+            "POST",
+            f"/snapshots/make/{WBS}",
+            {"creator": "t.hanks", "name": "snap_name"},
         )
         assert ret == response
 
@@ -401,6 +439,8 @@ class TestTableConfig:
     @staticmethod
     def test_table_config(mock_rest: Any) -> None:
         """Test TableConfig()."""
+        # pylint: disable=R0915,R0912
+
         # nonsense data, but correctly typed
         resp: tc.TableConfigParser.CacheType = {
             WBS: {
@@ -409,7 +449,6 @@ class TestTableConfig:
                     "a": ["1", "2", "3"],
                     "c": ["4", "44", "444"],
                 },
-                "institutions": sorted([("foo", "F"), ("bar", "B")]),
                 "labor_categories": sorted([("foobar", "FB"), ("baz", "BZ")]),
                 "conditional_dropdown_menus": {
                     "column1": (
@@ -450,7 +489,6 @@ class TestTableConfig:
 
         # no-argument methods
         assert table_config.get_table_columns() == resp[WBS]["columns"]
-        assert table_config.get_institutions_w_abbrevs() == resp[WBS]["institutions"]
         assert (
             table_config.get_labor_categories_w_abbrevs()
             == resp[WBS]["labor_categories"]
@@ -518,7 +556,10 @@ class TestTableConfig:
         # Error handling methods
         for col, wid in resp[WBS]["widths"].items():
             assert table_config.get_column_width(col) == wid
+        # reset
+        tc.TableConfigParser._cached_get_configs.cache_clear()  # type: ignore[attr-defined]
         mock_rest.return_value.request_seq.return_value = {}
+        # call
         table_config = tc.TableConfigParser(WBS)
         for col, wid in resp[WBS]["widths"].items():
             default = (

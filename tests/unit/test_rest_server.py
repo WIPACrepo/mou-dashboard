@@ -24,7 +24,7 @@ from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0
     types,
     mongo_tools,
 )
-from rest_server.databases import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
+from rest_server.data_sources import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
     mou_db,
     table_config_cache as tcc,
     columns,
@@ -37,9 +37,9 @@ nest_asyncio.apply()  # allows nested event loops
 
 KRS_INSTS: Final = "krs.institutions.list_insts_flat"
 KRS_TOKEN: Final = "krs.token.get_rest_client"
-MOU_DB_CLIENT: Final = "rest_server.databases.mou_db.MoUDatabaseClient"
+MOU_DB_CLIENT: Final = "rest_server.data_sources.mou_db.MoUDatabaseClient"
 MOTOR_CLIENT: Final = "motor.motor_tornado.MotorClient"
-TC_CACHE: Final = "rest_server.databases.table_config_cache.TableConfigCache"
+TC_CACHE: Final = "rest_server.data_sources.table_config_cache.TableConfigCache"
 MOU_DATA_ADAPTOR: Final = "rest_server.utils.utils.MoUDataAdaptor"
 WBS: Final = "mo"
 
@@ -609,7 +609,7 @@ class TestTableConfig:
     @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
     @patch(KRS_TOKEN, return_value=Mock())
     @patch(TC_CACHE + "._build")
-    @patch("rest_server.databases.table_config_cache.MAX_CACHE_AGE", 5)
+    @patch("rest_server.data_sources.table_config_cache.MAX_CACHE_AGE", 5)
     async def test_caching(mock_b: Any, _: Any, __: Any) -> None:
         """Test functionality around `MAX_CACHE_AGE`."""
         assert tcc.MAX_CACHE_AGE == 5

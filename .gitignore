@@ -136,3 +136,4 @@ dmypy.json
 
 src/
 test-env-vars.sh
+client_secrets.json

@@ -1,8 +1,12 @@
 """REST interface for get configurations for the table/columns."""
 
 
-from typing import cast, Dict, Final, List, Optional, Tuple, TypedDict
+import logging
+from typing import Dict, Final, List, Tuple, TypedDict, cast
 
+import cachetools.func  # type: ignore[import]
+
+from ..config import MAX_CACHE_MINS
 from .utils import mou_request
 
 
@@ -11,7 +15,6 @@ class _WBSTableCache(TypedDict):  # pylint: disable=R0903
 
     columns: List[str]
     simple_dropdown_menus: Dict[str, List[str]]
-    institutions: List[Tuple[str, str]]
     labor_categories: List[Tuple[str, str]]
     conditional_dropdown_menus: Dict[str, Tuple[str, Dict[str, List[str]]]]
     dropdowns: List[str]
@@ -53,25 +56,22 @@ class TableConfigParser:  # pylint: disable=R0904
             self.TIMESTAMP: Final[str] = "Date & Time of Last Edit"
             self.EDITOR: Final[str] = "Name of Last Editor"
 
-    def __init__(self, wbs_l1: str, cache: Optional[CacheType] = None) -> None:
+    def __init__(self, wbs_l1: str) -> None:
         """Get the dictionary of table configurations.
 
         Use the parser functions to access configurations.
         """
         self._wbs_l1 = wbs_l1
-
-        if cache:
-            self._configs = cache
-        else:
-            self._configs = TableConfigParser.get_configs()
+        self._configs = cast(TableConfigParser.CacheType, self._cached_get_configs())
 
         # set up constants for quick reference
         self.const = TableConfigParser._Constants()
 
     @staticmethod
-    def get_configs() -> CacheType:
-        """Get the `_configs` dict for caching."""
-        return cast(TableConfigParser.CacheType, mou_request("GET", "/table/config"))
+    @cachetools.func.ttl_cache(ttl=MAX_CACHE_MINS * 60)  # type: ignore[misc]
+    def _cached_get_configs() -> "TableConfigParser.CacheType":
+        logging.warning("Cache Miss: TableConfigParser._cached_get_configs()")
+        return mou_request("GET", "/table/config")
 
     def get_table_columns(self) -> List[str]:
         """Get table column's names."""
@@ -107,10 +107,6 @@ class TableConfigParser:  # pylint: disable=R0904
     def get_l2_categories(self) -> List[str]:
         """Get dropdown menu for a column."""
         return self.get_simple_column_dropdown_menu(self.const.WBS_L2)
-
-    def get_institutions_w_abbrevs(self) -> List[Tuple[str, str]]:
-        """Get list of institutions and their abbreviations."""
-        return sorted(self._configs[self._wbs_l1]["institutions"], key=lambda k: k[1])
 
     def get_labor_categories_w_abbrevs(self) -> List[Tuple[str, str]]:
         """Get list of labors  and their abbreviations.."""
