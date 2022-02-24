@@ -34,6 +34,7 @@ class ConfigVarsTypedDict(TypedDict):
     TOKEN: str
     FLASK_SECRET: str
     OIDC_CLIENT_SECRETS: str
+    PREFERRED_URL_SCHEME: str
 
 
 def get_config_vars() -> ConfigVarsTypedDict:
@@ -48,6 +49,7 @@ def get_config_vars() -> ConfigVarsTypedDict:
             "TOKEN": "",
             "FLASK_SECRET": "super-secret-flask-key",
             "OIDC_CLIENT_SECRETS": "client_secrets.json",
+            "PREFERRED_URL_SCHEME": "http",
         }
     )
 
@@ -102,6 +104,8 @@ server.config.update(
         # "OIDC_OPENID_REALM": "flask-demo", # default: None
         # "OIDC_SCOPES": ["openid", "email", "profile"], # default: ["openid", "email"]
         # "OIDC_INTROSPECTION_AUTH_METHOD": "client_secret_post",  # default: client_secret_post
+        # "OVERWRITE_REDIRECT_URI": "http://localhost:8050/",
+        "PREFERRED_URL_SCHEME": get_config_vars()["PREFERRED_URL_SCHEME"],
     }
 )
 oidc = OpenIDConnect(server)
