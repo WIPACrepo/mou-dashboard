@@ -98,7 +98,7 @@ def get_sow_last_updated_label(
     else:
         most_recent = utils.get_human_now()
 
-    return f"SOWs Last Updated: {most_recent}"
+    return most_recent
 
 
 def timecheck_labels(

@@ -335,6 +335,7 @@ def _find_deleted_record(
         Output("wbs-confirm-deletion", "message"),
         Output("wbs-table-update-flag-interior-control", "data"),
         Output("wbs-sow-last-updated", "children"),
+        Output("wbs-sow-last-updated-time", "children"),
     ],
     [Input("wbs-data-table", "data")],  # user/table_data_exterior_controls()
     [
@@ -354,7 +355,7 @@ def table_data_interior_controls(
     s_snap_ts: types.DashVal,
     s_flag_extctrl: bool,
     s_flag_intctrl: bool,
-) -> Tuple[types.Table, List[html.Label], types.Record, bool, str, bool, str]:
+) -> Tuple[types.Table, List[html.Label], types.Record, bool, str, bool, str, str]:
     """Interior control signaled that the table should be updated.
 
     This is either a row deletion or a field edit. The table's view has
@@ -385,6 +386,7 @@ def table_data_interior_controls(
             False,
             "",
             not s_flag_intctrl,
+            "SOWs Last Updated:",
             sows_updated_label,
         )
 
@@ -415,6 +417,7 @@ def table_data_interior_controls(
         bool(deleted_record),
         delete_message,
         s_flag_intctrl,  # preserve flag
+        "SOWs Last Updated:",
         sows_updated_label,
     )
 
