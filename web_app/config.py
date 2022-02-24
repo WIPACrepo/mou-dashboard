@@ -22,7 +22,7 @@ REDIRECT_WBS = "mo"  # which mou to go to by default when ambiguously redirectin
 # configure config_vars
 
 
-class ConfigVarsTypedDict(TypedDict, total=False):
+class ConfigVarsTypedDict(TypedDict):
     """Global configuration-variable types."""
 
     REST_SERVER_URL: str
@@ -32,7 +32,6 @@ class ConfigVarsTypedDict(TypedDict, total=False):
     AUTH_PREFIX: str
     TOKEN_REQUEST_URL: str
     TOKEN: str
-    NO_USER_AUTH_REQ: bool
     FLASK_SECRET: str
     OIDC_CLIENT_SECRETS: str
 
