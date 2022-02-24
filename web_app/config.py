@@ -90,18 +90,18 @@ server.config.update(SECRET_KEY=get_config_vars()["FLASK_SECRET"])
 # --------------------------------------------------------------------------------------
 # configure keycloak login
 
-
+# from https://gist.github.com/thomasdarimont/145dc9aa857b831ff2eff221b79d179a
 server.config.update(
     {
         # "TESTING": True,
         # "DEBUG": True,
         "OIDC_CLIENT_SECRETS": get_config_vars()["OIDC_CLIENT_SECRETS"],
-        "OIDC_ID_TOKEN_COOKIE_SECURE": False,
-        "OIDC_REQUIRE_VERIFIED_EMAIL": False,
-        "OIDC_USER_INFO_ENABLED": True,
-        "OIDC_OPENID_REALM": "flask-demo",
-        "OIDC_SCOPES": ["openid", "email", "profile"],
-        "OIDC_INTROSPECTION_AUTH_METHOD": "client_secret_post",
+        # "OIDC_ID_TOKEN_COOKIE_SECURE": False, # default: True
+        # "OIDC_REQUIRE_VERIFIED_EMAIL": True,  # default: False
+        # "OIDC_USER_INFO_ENABLED": True, # default: True
+        # "OIDC_OPENID_REALM": "flask-demo", # default: None
+        # "OIDC_SCOPES": ["openid", "email", "profile"], # default: ["openid", "email"]
+        # "OIDC_INTROSPECTION_AUTH_METHOD": "client_secret_post",  # default: client_secret_post
     }
 )
 oidc = OpenIDConnect(server)
