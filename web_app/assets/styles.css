@@ -279,10 +279,8 @@ code {
     color: gray;
     font-style: italic;
     font-size: 12px;
-}
-
-.top-corner {
-    margin-top: 0.75rem;
+    text-align: right;
+    margin-right: 2.5px;
 }
 
 .snapshot-icon {

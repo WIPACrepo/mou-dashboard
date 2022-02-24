@@ -65,7 +65,7 @@ def layout() -> html.Div:
                 is_open=False,
             ),
             #
-            # Institution filter dropdown menu
+            # Snapshot / Institution filter dropdown menu / Last Updated label
             dbc.Row(
                 no_gutters=True,
                 children=[
@@ -127,7 +127,6 @@ def layout() -> html.Div:
                     ),
                     dbc.Col(
                         width=4,
-                        className="top-corner",
                         children=[
                             dcc.Loading(
                                 type="default",
@@ -135,12 +134,17 @@ def layout() -> html.Div:
                                 style={
                                     "right": "0px",
                                     "position": "absolute",
-                                    "height": "4rem",
+                                    "height": "2rem",
                                 },
-                                children=html.Div(
-                                    id="wbs-sow-last-updated",
-                                    className="sow-last-updated",
-                                ),
+                                children=[
+                                    html.Div(
+                                        className="sow-last-updated",
+                                        children=[
+                                            html.Div(id="wbs-sow-last-updated"),
+                                            html.Div(id="wbs-sow-last-updated-time"),
+                                        ],
+                                    ),
+                                ],
                             )
                         ],
                     ),
