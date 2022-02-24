@@ -34,6 +34,7 @@ class ConfigVarsTypedDict(TypedDict, total=False):
     TOKEN: str
     NO_USER_AUTH_REQ: bool
     FLASK_SECRET: str
+    OIDC_CLIENT_SECRETS: str
 
 
 def get_config_vars() -> ConfigVarsTypedDict:
@@ -47,6 +48,7 @@ def get_config_vars() -> ConfigVarsTypedDict:
             "AUTH_PREFIX": "mou",
             "TOKEN": "",
             "FLASK_SECRET": "super-secret-flask-key",
+            "OIDC_CLIENT_SECRETS": "client_secrets.json",
         }
     )
 
@@ -94,7 +96,7 @@ server.config.update(
     {
         # "TESTING": True,
         # "DEBUG": True,
-        "OIDC_CLIENT_SECRETS": "client_secrets.json",
+        "OIDC_CLIENT_SECRETS": get_config_vars()["OIDC_CLIENT_SECRETS"],
         "OIDC_ID_TOKEN_COOKIE_SECURE": False,
         "OIDC_REQUIRE_VERIFIED_EMAIL": False,
         "OIDC_USER_INFO_ENABLED": True,
