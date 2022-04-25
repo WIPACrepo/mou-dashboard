@@ -9,6 +9,7 @@ flask-oidc==1.4.0
 Flask==1.1.2
 https://github.com/WIPACrepo/rest-tools/archive/refs/tags/v1.1.20.zip
 itsdangerous==2.0.1
+jinja2<3.1.0
 ldap3==2.8.1
 plotly==4.10.0
 python-dateutil==2.8.1
