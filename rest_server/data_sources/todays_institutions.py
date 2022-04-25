@@ -36,7 +36,7 @@ def convert_krs_institutions(response: Dict[str, Any]) -> List[Institution]:
                 Institution(
                     short_name=inst,
                     long_name=attrs.get("name", inst),
-                    is_us=bool(strtobool(attrs.get("is_US", "false")),
+                    is_us=bool(strtobool(attrs.get("is_US", "false"))),
                     has_mou=has_mou,
                     institution_lead_uid=attrs.get("institutionLeadUid", ""),
                 )
