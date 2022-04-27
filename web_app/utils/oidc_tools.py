@@ -90,7 +90,7 @@ class CurrentUser:
     def get_institutions() -> List[str]:
         """Get the user's editable institutions."""
 
-        # Ex: /institutions/IceCube/UW-Madison/mou-dashboard
+        # Ex: /institutions/IceCube/UW-Madison/mou-dashboard-editor
         # Ex: /institutions/IceCube/UW-Madison/_admin
 
         # also, get rid of duplicates, like
@@ -99,7 +99,9 @@ class CurrentUser:
 
         group_insts = set()
         for user_group in CurrentUser._get_info().groups:
-            pattern = r"/institutions/[^/]+/(?P<inst>[^/]+)/(mou-dashboard|_admin)"
+            pattern = (
+                r"/institutions/[^/]+/(?P<inst>[^/]+)/(mou-dashboard-editor|_admin)"
+            )
             if m := re.match(pattern, user_group):
                 group_insts.add(m.groupdict()["inst"])
 
