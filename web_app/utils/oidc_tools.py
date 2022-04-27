@@ -100,7 +100,7 @@ class CurrentUser:
         group_insts = set()
         for user_group in CurrentUser._get_info().groups:
             pattern = (
-                r"/institutions/[^/]+/(?P<inst>[^/]+)/(mou-dashboard-editor|_admin)"
+                r"/institutions/[^/]+/(?P<inst>[^/]+)/(mou-dashboard-editor|_admin)$"
             )
             if m := re.match(pattern, user_group):
                 group_insts.add(m.groupdict()["inst"])
