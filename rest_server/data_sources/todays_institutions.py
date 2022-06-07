@@ -47,8 +47,13 @@ def convert_krs_institutions(response: Dict[str, Any]) -> List[Institution]:
     return insts
 
 
-def filter_krs_institutions(name: str, attrs: Dict[str, Any]) -> bool:
-    return attrs.get('has_mou', False)
+def filter_krs_institutions(group_path: str, attrs: Dict[str, Any]) -> bool:
+    """Filters for institutions in IceCube or Gen2 experiments"""
+    experiment = group_path.split('/')[2]
+    if experiment in ('IceCube', 'IceCube-Gen2'):
+        return True
+    else:
+        return False
 
 
 async def request_krs_institutions() -> List[Institution]:
