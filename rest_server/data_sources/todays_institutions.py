@@ -47,12 +47,17 @@ def convert_krs_institutions(response: Dict[str, Any]) -> List[Institution]:
     return insts
 
 
+def filter_krs_institutions(name: str, attrs: Dict[str, Any]) -> bool:
+    return attrs.get('has_mou', False)
+
+
 async def request_krs_institutions() -> List[Institution]:
     """Grab the master list of institutions along with their details."""
     rc = token.get_rest_client()
 
     response = await krs_institutions.list_insts_flat(
         rest_client=rc,
+        filter_func=filter_krs_institutions,
         attr_whitelist=["name", "is_US", "has_mou", "institutionLeadUid"],
     )
 
