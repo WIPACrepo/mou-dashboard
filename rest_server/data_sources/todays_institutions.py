@@ -47,7 +47,7 @@ def convert_krs_institutions(response: Dict[str, Any]) -> List[Institution]:
     return insts
 
 
-def filter_krs_institutions(name: str, attrs: Dict[sttr, Any]) -> bool:
+def filter_krs_institutions(name: str, attrs: Dict[str, Any]) -> bool:
     return attrs.get('has_mou', False)
 
 
