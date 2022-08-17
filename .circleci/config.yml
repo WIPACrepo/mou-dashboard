@@ -2,17 +2,6 @@ version: 2.1
 
 jobs:
 
-  unit:
-    docker:
-      - image: circleci/python:3.8
-    steps:
-      - checkout
-      - run: |
-          python3 -m virtualenv -p python3 env && . env/bin/activate && pip install --upgrade pip
-          pip install -r rest_server/requirements.txt -r web_app/requirements.txt -r requirements-dev.txt
-          cp resources/dummy_client_secrets.json client_secrets.json
-          pytest -vvv tests/unit
-
   integrate:
     docker:
       - image: circleci/python:3.8
@@ -69,12 +58,10 @@ jobs:
 workflows:
   build_and_test:
     jobs:
-      - unit
       - integrate
       - docker_test_build:
           context: docker
           requires:
-            - unit
             - integrate
           filters:
             branches:
@@ -82,7 +69,6 @@ workflows:
       - docker_deploy:
           context: docker
           requires:
-            - unit
             - integrate
           filters:
             branches:
