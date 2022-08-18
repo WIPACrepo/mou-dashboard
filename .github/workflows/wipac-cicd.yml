@@ -51,7 +51,7 @@ jobs:
           python-version: ${{ matrix.py3_versions }}
       - run: |
           pip install --upgrade pip wheel setuptools
-          pip install .
+          pip install .[tests]
           cp resources/dummy_client_secrets.json client_secrets.json
           pytest -vvv tests/unit
 
