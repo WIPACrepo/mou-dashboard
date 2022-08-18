@@ -10,7 +10,6 @@ import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 import dash_table  # type: ignore[import]
-from dash import no_update
 
 from ..data_source import data_source as src
 from ..data_source import institution_info
@@ -130,7 +129,7 @@ def counts_saved_label(
     elif not confirmed:  # if it's not confirmed, then don't show anything
         return []
     else:  # it's confirmed but this isn't new, so don't change anything
-        return no_update  # type: ignore[no-any-return]
+        return dash.no_update  # type: ignore[no-any-return]
 
 
 def _figure_counts_confirmation_state(
