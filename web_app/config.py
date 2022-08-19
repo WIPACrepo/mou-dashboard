@@ -8,6 +8,7 @@ from urllib.parse import urljoin
 import dash  # type: ignore
 import dash_bootstrap_components as dbc  # type: ignore
 import flask
+import werkzeug
 from flask_oidc import OpenIDConnect  # type: ignore[import]
 from wipac_dev_tools import from_environment_as_dataclass
 
@@ -102,14 +103,14 @@ oidc = OpenIDConnect(server)
 
 @server.route("/login")  # type: ignore[misc]
 @oidc.require_login  # type: ignore[misc]
-def login() -> flask.Response:
+def login() -> str | werkzeug.wrappers.response.Response:
     """On successful login, redirect to index."""
     logging.critical("/login")
     return flask.redirect("/")
 
 
 @server.route("/logout")  # type: ignore[misc]
-def logout() -> flask.Response:
+def logout() -> str | werkzeug.wrappers.response.Response:
     """Performs local logout by removing the session cookie."""
     logging.critical("/logout")
     oidc.logout()
@@ -117,7 +118,7 @@ def logout() -> flask.Response:
 
 
 @server.route("/invalid-permissions")  # type: ignore[misc]
-def invalid_permissions() -> flask.Response:
+def invalid_permissions() -> str | werkzeug.wrappers.response.Response:
     """Redirected to tell the user they can't do anything other than logout."""
     logging.critical("/invalid-permissions")
     return (

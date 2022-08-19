@@ -47,7 +47,7 @@ A REST server that interfaces with a local MongoDB server *(future: also Smartsh
 A dashboard for managing & reporting MoU tasks
 
 #### 1. Set Up Enivornment
-    python3.8 -m virtualenv -p python3.8 mou-dash-web
+    python3.10 -m virtualenv -p python3.10 mou-dash-web
     . mou-dash-web/bin/activate
     pip install -r web_app/requirements.txt
 
