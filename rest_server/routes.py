@@ -7,7 +7,7 @@ from dataclasses import asdict
 from typing import Any
 
 from motor.motor_tornado import MotorClient  # type: ignore
-from rest_tools.server import RestHandler, handler  # type: ignore
+from rest_tools.server import RestHandler, handler
 
 from .config import AUTH_PREFIX
 from .data_sources import columns, mou_db, table_config_cache, todays_institutions, wbs

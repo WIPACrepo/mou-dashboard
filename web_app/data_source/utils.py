@@ -6,9 +6,9 @@ import logging
 from typing import Any, Dict, Final
 
 import requests
-from rest_tools.client import RestClient  # type: ignore
+from rest_tools.client import RestClient
 
-from ..config import get_config_vars
+from ..config import ENV
 
 
 class DataSourceException(Exception):
@@ -17,15 +17,13 @@ class DataSourceException(Exception):
 
 def _rest_connection() -> RestClient:
     """Return REST Client connection object."""
-    config_vars = get_config_vars()
-
-    if config_vars["TOKEN"]:
-        token = config_vars["TOKEN"]
+    if ENV.TOKEN:
+        token = ENV.TOKEN
     else:
-        token_json = requests.get(config_vars["TOKEN_REQUEST_URL"]).json()
+        token_json = requests.get(ENV.TOKEN_REQUEST_URL).json()
         token = token_json["access"]
 
-    rc = RestClient(config_vars["REST_SERVER_URL"], token=token, timeout=30, retries=0)
+    rc = RestClient(ENV.REST_SERVER_URL, token=token, timeout=30, retries=0)
 
     return rc
 
