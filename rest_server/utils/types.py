@@ -1,9 +1,11 @@
 """Custom type definitions."""
 
-from typing import Dict, List, Optional, TypedDict, Union
+from typing import Dict, List, Optional, TypedDict
+
+from bson.objectid import ObjectId
 
 # Data Source types
-DataEntry = Union[int, float, str]  # just data
+DataEntry = int | float | str | ObjectId  # just data
 Record = Dict[str, DataEntry]
 Table = List[Record]
 

@@ -8,12 +8,12 @@ import pprint
 import sys
 import time
 from decimal import Decimal
-from typing import Any, Final, List
+from typing import Any, Dict, Final, List
 from unittest.mock import ANY, AsyncMock, Mock, patch, sentinel
 
 import nest_asyncio  # type: ignore[import]
 import pytest
-from bson.objectid import ObjectId  # type: ignore[import]
+from bson.objectid import ObjectId
 
 from .. import institution_list
 from . import data
@@ -179,19 +179,34 @@ class TestMongofier:
     def test_mongofy_document() -> None:
         """Test mongofy_document() & demongofy_document()."""
         # Set-Up
-        original_human = {
+        original_human: Dict[str, Any] = {
             "": "",
-            " ": {"xyz": 33, "NESTED.": {"2x NESTED": None}},
+            " ": {
+                "xyz": 33,
+                "NESTED.": {
+                    "2x NESTED": None,
+                },
+            },
             columns.ID: "0123456789ab0123456789ab",
         }
-        mongoed = {
+        mongoed: Dict[str, Any] = {
             "": "",
-            " ": {"xyz": 33, "NESTED;": {"2x NESTED": None}},
+            " ": {
+                "xyz": 33,
+                "NESTED;": {
+                    "2x NESTED": None,
+                },
+            },
             columns.ID: ObjectId("0123456789ab0123456789ab"),
         }
-        rehumaned = {
+        rehumaned: Dict[str, Any] = {
             "": "",
-            " ": {"xyz": 33, "NESTED.": {"2x NESTED": ""}},
+            " ": {
+                "xyz": 33,
+                "NESTED.": {
+                    "2x NESTED": "",
+                },
+            },
             columns.ID: "0123456789ab0123456789ab",
         }
 
@@ -321,14 +336,26 @@ class TestMoUDataAdaptor:
         # Set-Up
         records: List[types.Record] = [
             {},
-            {"a.b": 5, "Foo;Bar": "Baz"},
-            {"_id": "5f725c6af0803660075769ab", "FOO": "bar"},
+            {
+                "a.b": 5,
+                "Foo;Bar": "Baz",
+            },
+            {
+                "_id": "5f725c6af0803660075769ab",
+                "FOO": "bar",
+            },
         ]
 
         mongofied_records: List[types.Record] = [
             {},
-            {"a;b": 5, "Foo;Bar": "Baz"},
-            {"_id": ObjectId("5f725c6af0803660075769ab"), "FOO": "bar"},
+            {
+                "a;b": 5,
+                "Foo;Bar": "Baz",
+            },
+            {
+                "_id": ObjectId("5f725c6af0803660075769ab"),
+                "FOO": "bar",
+            },
         ]
         mock_vrd.side_effect = None
 
