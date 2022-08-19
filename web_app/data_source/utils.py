@@ -6,8 +6,6 @@ import logging
 from typing import Any, Dict, Final
 
 import requests
-
-# local imports
 from rest_tools.client import RestClient  # type: ignore
 
 from ..config import get_config_vars

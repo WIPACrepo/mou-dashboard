@@ -13,9 +13,7 @@ import time
 
 import pytest
 import requests
-
-# local imports
-from rest_tools.client import RestClient  # type: ignore
+from rest_tools.client import RestClient
 
 sys.path.append(".")
 from rest_server import routes  # isort:skip  # noqa # pylint: disable=E0401,C0413

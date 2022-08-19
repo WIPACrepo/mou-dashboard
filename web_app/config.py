@@ -6,11 +6,9 @@ from urllib.parse import urljoin
 
 import dash  # type: ignore
 import dash_bootstrap_components as dbc  # type: ignore
-import flask  # type: ignore
+import flask
 from flask_oidc import OpenIDConnect  # type: ignore[import]
-
-# local imports
-from rest_tools.server.config import from_environment  # type: ignore[import]
+from wipac_dev_tools import from_environment
 
 AUTO_RELOAD_MINS = 30  # how often to auto-reload the page
 MAX_CACHE_MINS = 5  # how often to expire a cache result

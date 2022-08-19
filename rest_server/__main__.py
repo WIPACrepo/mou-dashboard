@@ -9,10 +9,8 @@ from typing import List
 from urllib.parse import quote_plus
 
 import coloredlogs  # type: ignore[import]
-
-# local imports
-from rest_tools.server import RestHandlerSetup, RestServer  # type: ignore
-from rest_tools.server.config import from_environment  # type: ignore[import]
+from rest_tools.server import RestHandlerSetup, RestServer
+from wipac_dev_tools import from_environment
 
 from . import config
 from .data_sources import table_config_cache, todays_institutions
