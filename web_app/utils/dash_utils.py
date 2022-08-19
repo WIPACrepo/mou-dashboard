@@ -3,7 +3,7 @@
 
 import logging
 import urllib
-from typing import Any, Collection, Dict, Final, List, Union, cast
+from typing import Any, Collection, Dict, Final, List, cast
 
 import dash  # type: ignore[import]
 import dash_bootstrap_components as dbc  # type: ignore[import]
@@ -479,7 +479,7 @@ def after_deletion_toast() -> dbc.Toast:
 
 def make_toast(
     header: str,
-    message: Union[str, List[str]],
+    message: str | List[str],
     icon_color: str,
     duration: float = 0,
 ) -> dbc.Toast:

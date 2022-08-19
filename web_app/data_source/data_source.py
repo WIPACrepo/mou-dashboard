@@ -1,7 +1,7 @@
 """REST interface for reading and writing MoU data."""
 
 
-from typing import Any, Dict, Final, List, Optional, Tuple, TypedDict, Union, cast
+from typing import Any, Dict, Final, List, Optional, Tuple, TypedDict, cast
 
 from ..utils import types, utils
 from ..utils.oidc_tools import CurrentUser
@@ -184,19 +184,23 @@ def record_to_strings(record: types.Record, tconfig: tc.TableConfigParser) -> Li
 
 def _validate(
     data: Any,
-    in_type: Union[type, Tuple[type, ...]],
+    in_type: type | Tuple[type, ...],
     falsy_okay: bool = True,
     out: Optional[type] = None,
 ) -> Any:
     """Type-check `data`. Optionally, convert and return.
 
     Arguments:
-        data {Any} -- data to be validated
-        in_type {Union[type, Tuple[type, ...]]} -- allowed type(s)
+        `data`
+            data to be validated
+        `in_type`
+            allowed type(s)
 
     Keyword Arguments:
-        falsy_okay {bool} -- otherwise, raise `TypeError` if `not data` (default: {True})
-        out {Optional[type]} -- assure `data`'s returned type, AND assign `out`'s default falsy value (if `not data`) (default: {None})
+        `falsy_okay`
+            otherwise, raise `TypeError` if `not data` (default: {True})
+        `out`
+            assure `data`'s returned type, AND assign `out`'s default falsy value (if `not data`) (default: {None})
 
     Returns:
         Any -- `data` potentially changed/converted

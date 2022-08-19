@@ -1,10 +1,10 @@
 """Custom type definitions."""
 
 
-from typing import Collection, Dict, Final, List, Optional, Tuple, TypedDict, Union
+from typing import Collection, Dict, Final, List, Optional, Tuple, TypedDict
 
 # Data Source types
-StrNum = Union[int, float, str]  # just data
+StrNum = int | float | str  # just data
 Record = Dict[str, StrNum]
 Table = List[Record]
 
@@ -33,6 +33,6 @@ TColumns = List[Dict[str, object]]  # columns
 TSCCond = List[Dict[str, Collection[str]]]  # style_cell_conditional
 TSDCond = List[Dict[str, Collection[str]]]  # style_data_conditional
 TDDown = Dict[str, Dict[str, List[_StrDict]]]  # dropdown
-TDDownCond = List[Dict[str, Union[_StrDict, List[_StrDict]]]]  # dropdown_conditional
+TDDownCond = List[Dict[str, _StrDict | List[_StrDict]]]  # dropdown_conditional
 TFocus = Optional[Dict[str, int]]  # which cell to focus
 TTooltips = Dict[str, Dict[str, DashVal]]

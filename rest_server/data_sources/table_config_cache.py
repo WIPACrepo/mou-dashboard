@@ -3,7 +3,7 @@
 
 import logging
 import time
-from typing import Any, Dict, Final, List, Tuple, TypedDict, Union
+from typing import Any, Dict, Final, List, Tuple, TypedDict
 
 from . import columns, todays_institutions, wbs
 
@@ -238,9 +238,7 @@ class TableConfigCache:
         """Get the columns."""
         return list(self.column_configs.keys())
 
-    def get_labor_categories_and_abbrevs(
-        self,
-    ) -> List[Tuple[str, str]]:  # pylint:disable=no-self-use
+    def get_labor_categories_and_abbrevs(self) -> List[Tuple[str, str]]:
         """Get the labor categories and their abbreviations."""
         return [(name, abbrev) for abbrev, name in _LABOR_CATEGORY_DICTIONARY.items()]
 
@@ -326,7 +324,7 @@ class TableConfigCache:
             if config.get("border_left")
         ]
 
-    def get_page_size(self) -> int:  # pylint: disable=no-self-use
+    def get_page_size(self) -> int:
         """Get page size."""
         return 19
 
@@ -338,9 +336,9 @@ class TableConfigCache:
             if config.get("on_the_fly")
         ]
 
-    def sort_key(self, k: Dict[str, Union[int, float, str]]) -> Tuple[Any, ...]:
+    def sort_key(self, k: Dict[str, int | float | str]) -> Tuple[Any, ...]:
         """Sort key for the table."""
-        sort_keys: List[Union[int, float, str]] = []
+        sort_keys: List[int | float | str] = []
 
         column_orders = {
             col: config["sort_value"]
