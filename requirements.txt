@@ -62,8 +62,9 @@ idna==3.3
     # via
     #   requests
     #   yarl
-itsdangerous==2.1.2
+itsdangerous==2.0.1
     # via
+    #   UNKNOWN (setup.py)
     #   flask
     #   flask-oidc
 jinja2==3.1.2
