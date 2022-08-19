@@ -31,7 +31,7 @@ class EnvConfig:
     WEB_SERVER_HOST: str = "localhost"
     WEB_SERVER_PORT: int = 8050
     AUTH_PREFIX: str = "mou"
-    TOKEN_REQUEST_URL: str = ""
+    TOKEN_REQUEST_URL: str = dc.field(init=False)
     TOKEN: str = ""
     FLASK_SECRET: str = "super-secret-flask-key"
     OIDC_CLIENT_SECRETS: str = "client_secrets.json"
