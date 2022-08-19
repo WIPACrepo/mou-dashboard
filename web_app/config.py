@@ -41,7 +41,7 @@ class EnvConfig:
         # since our instance is frozen, we need to use `__setattr__`
         object.__setattr__(
             self,
-            "TOKEN_SERVER_URL",
+            "TOKEN_REQUEST_URL",
             urljoin(self.TOKEN_SERVER_URL, f"token?scope={self.AUTH_PREFIX}:admin"),
         )
 
