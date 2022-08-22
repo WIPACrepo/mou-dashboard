@@ -1,9 +1,10 @@
 """Interface for retrieving values for the table config."""
 
 
+import dataclasses as dc
 import logging
 import time
-from typing import Any, Dict, Final, List, Tuple, TypedDict
+from typing import Dict, Final, List, Tuple
 
 from ..utils.types import DataEntry
 from . import columns, todays_institutions, wbs
@@ -12,21 +13,22 @@ US = "US"
 NON_US = "Non-US"
 
 
-class _ColumnConfigTypedDict(TypedDict, total=False):
-    """TypedDict for column configs."""
+@dc.dataclass(frozen=True)
+class _ColumnConfig:
+    """For column configs."""
 
     width: int
-    tooltip: str
-    non_editable: bool
-    hidden: bool
-    options: List[str]
-    sort_value: int
-    conditional_parent: str
-    conditional_options: Dict[str, List[str]]
-    border_left: bool
-    on_the_fly: bool
-    funding_source: bool
-    numeric: bool
+
+    tooltip: str = ""
+    non_editable: bool = False
+    hidden: bool = False
+    options: None | List[str] = None
+    sort_value: None | int = None
+    conditional_parent: None | str = None
+    conditional_options: None | Dict[str, List[str]] = None
+    border_left: bool = False
+    on_the_fly: bool = False
+    numeric: bool = False
 
 
 _LABOR_CATEGORY_DICTIONARY: Dict[str, str] = {
@@ -61,7 +63,7 @@ class TableConfigCache:
 
     def __init__(
         self,
-        _column_configs: Dict[str, _ColumnConfigTypedDict],
+        _column_configs: Dict[str, _ColumnConfig],
         _institutions: List[todays_institutions.Institution],
     ) -> None:
         self.column_configs, self.institutions = _column_configs, _institutions
@@ -76,7 +78,7 @@ class TableConfigCache:
 
     @staticmethod
     async def _build() -> Tuple[
-        Dict[str, _ColumnConfigTypedDict], List[todays_institutions.Institution]
+        Dict[str, _ColumnConfig], List[todays_institutions.Institution]
     ]:
         """Build the table config."""
         tooltip_funding_source_value: Final[str] = (
@@ -88,52 +90,52 @@ class TableConfigCache:
         logging.debug(f"KRS responded with {len(institutions)} institutions")
 
         # build column-configs
-        column_configs: Final[Dict[str, _ColumnConfigTypedDict]] = {
-            columns.WBS_L2: {
-                "width": 115,
-                "sort_value": 70,
-                "tooltip": "WBS Level 2 Category",
-            },
-            columns.WBS_L3: {
-                "width": 115,
-                "sort_value": 60,
-                "tooltip": "WBS Level 3 Category",
-            },
-            columns.US_NON_US: {
-                "width": 50,
-                "non_editable": True,
-                "hidden": True,
-                "border_left": True,
-                "on_the_fly": True,
-                "sort_value": 50,
-                "tooltip": "The institution's region. This cannot be changed.",
-            },
-            columns.INSTITUTION: {
-                "width": 70,
-                "options": sorted(set(inst.short_name for inst in institutions)),
-                "border_left": True,
-                "sort_value": 40,
-                "tooltip": "The institution. This cannot be changed.",
-            },
-            columns.LABOR_CAT: {
-                "width": 50,
-                "options": sorted(_LABOR_CATEGORY_DICTIONARY.keys()),
-                "sort_value": 30,
-                "tooltip": "The labor category",
-            },
-            columns.NAME: {
-                "width": 100,
-                "sort_value": 20,
-                "tooltip": "LastName, FirstName",
-            },
-            columns.TASK_DESCRIPTION: {
-                "width": 300,
-                "tooltip": "A description of the task",
-            },
-            columns.SOURCE_OF_FUNDS_US_ONLY: {
-                "width": 100,
-                "conditional_parent": columns.US_NON_US,
-                "conditional_options": {
+        column_configs: Final[Dict[str, _ColumnConfig]] = {
+            columns.WBS_L2: _ColumnConfig(
+                width=115,
+                sort_value=70,
+                tooltip="WBS Level 2 Category",
+            ),
+            columns.WBS_L3: _ColumnConfig(
+                width=115,
+                sort_value=60,
+                tooltip="WBS Level 3 Category",
+            ),
+            columns.US_NON_US: _ColumnConfig(
+                width=50,
+                non_editable=True,
+                hidden=True,
+                border_left=True,
+                on_the_fly=True,
+                sort_value=50,
+                tooltip="The institution's region. This cannot be changed.",
+            ),
+            columns.INSTITUTION: _ColumnConfig(
+                width=70,
+                options=sorted(set(inst.short_name for inst in institutions)),
+                border_left=True,
+                sort_value=40,
+                tooltip="The institution. This cannot be changed.",
+            ),
+            columns.LABOR_CAT: _ColumnConfig(
+                width=50,
+                options=sorted(_LABOR_CATEGORY_DICTIONARY.keys()),
+                sort_value=30,
+                tooltip="The labor category",
+            ),
+            columns.NAME: _ColumnConfig(
+                width=100,
+                sort_value=20,
+                tooltip="LastName, FirstName",
+            ),
+            columns.TASK_DESCRIPTION: _ColumnConfig(
+                width=300,
+                tooltip="A description of the task",
+            ),
+            columns.SOURCE_OF_FUNDS_US_ONLY: _ColumnConfig(
+                width=100,
+                conditional_parent=columns.US_NON_US,
+                conditional_options={
                     US: [
                         columns.NSF_MO_CORE,
                         columns.NSF_BASE_GRANTS,
@@ -141,87 +143,83 @@ class TableConfigCache:
                     ],
                     NON_US: [columns.NON_US_IN_KIND],
                 },
-                "border_left": True,
-                "sort_value": 10,
-                "tooltip": "The funding source",
-            },
-            columns.FTE: {
-                "width": 50,
-                "numeric": True,
-                "tooltip": "FTE for funding source",
-            },
-            columns.TOTAL_COL: {
-                "width": 100,
-                "non_editable": True,
-                "hidden": True,
-                "border_left": True,
-                "on_the_fly": True,
-                "tooltip": "TOTAL-ROWS ONLY: FTE totals to the right refer to this category.",
-            },
-            columns.NSF_MO_CORE: {
-                "width": 50,
-                "funding_source": True,
-                "non_editable": True,
-                "hidden": True,
-                "numeric": True,
-                "on_the_fly": True,
-                "tooltip": tooltip_funding_source_value,
-            },
-            columns.NSF_BASE_GRANTS: {
-                "width": 50,
-                "funding_source": True,
-                "non_editable": True,
-                "hidden": True,
-                "numeric": True,
-                "on_the_fly": True,
-                "tooltip": tooltip_funding_source_value,
-            },
-            columns.US_IN_KIND: {
-                "width": 50,
-                "funding_source": True,
-                "non_editable": True,
-                "hidden": True,
-                "numeric": True,
-                "on_the_fly": True,
-                "tooltip": tooltip_funding_source_value,
-            },
-            columns.NON_US_IN_KIND: {
-                "width": 50,
-                "funding_source": True,
-                "non_editable": True,
-                "hidden": True,
-                "numeric": True,
-                "on_the_fly": True,
-                "tooltip": tooltip_funding_source_value,
-            },
-            columns.GRAND_TOTAL: {
-                "width": 50,
-                "numeric": True,
-                "non_editable": True,
-                "hidden": True,
-                "border_left": True,
-                "on_the_fly": True,
-                "tooltip": "This is is the total of the four FTEs to the left.",
-            },
-            columns.ID: {
-                "width": 0,
-                "non_editable": True,
-                "border_left": True,
-                "hidden": True,
-            },
-            columns.TIMESTAMP: {
-                "width": 100,
-                "non_editable": True,
-                "border_left": True,
-                "hidden": True,
-                "tooltip": f"{columns.TIMESTAMP} (you may need to refresh to reflect a recent update)",
-            },
-            columns.EDITOR: {
-                "width": 100,
-                "non_editable": True,
-                "hidden": True,
-                "tooltip": f"{columns.EDITOR} (you may need to refresh to reflect a recent update)",
-            },
+                border_left=True,
+                sort_value=10,
+                tooltip="The funding source",
+            ),
+            columns.FTE: _ColumnConfig(
+                width=50,
+                numeric=True,
+                tooltip="FTE for funding source",
+            ),
+            columns.TOTAL_COL: _ColumnConfig(
+                width=100,
+                non_editable=True,
+                hidden=True,
+                border_left=True,
+                on_the_fly=True,
+                tooltip="TOTAL-ROWS ONLY: FTE totals to the right refer to this category.",
+            ),
+            columns.NSF_MO_CORE: _ColumnConfig(
+                width=50,
+                non_editable=True,
+                hidden=True,
+                numeric=True,
+                on_the_fly=True,
+                tooltip=tooltip_funding_source_value,
+            ),
+            columns.NSF_BASE_GRANTS: _ColumnConfig(
+                width=50,
+                non_editable=True,
+                hidden=True,
+                numeric=True,
+                on_the_fly=True,
+                tooltip=tooltip_funding_source_value,
+            ),
+            columns.US_IN_KIND: _ColumnConfig(
+                width=50,
+                non_editable=True,
+                hidden=True,
+                numeric=True,
+                on_the_fly=True,
+                tooltip=tooltip_funding_source_value,
+            ),
+            columns.NON_US_IN_KIND: _ColumnConfig(
+                width=50,
+                non_editable=True,
+                hidden=True,
+                numeric=True,
+                on_the_fly=True,
+                tooltip=tooltip_funding_source_value,
+            ),
+            columns.GRAND_TOTAL: _ColumnConfig(
+                width=50,
+                numeric=True,
+                non_editable=True,
+                hidden=True,
+                border_left=True,
+                on_the_fly=True,
+                tooltip="This is is the total of the four FTEs to the left.",
+            ),
+            columns.ID: _ColumnConfig(
+                width=0,
+                non_editable=True,
+                border_left=True,
+                hidden=True,
+            ),
+            columns.TIMESTAMP: _ColumnConfig(
+                width=100,
+                non_editable=True,
+                border_left=True,
+                hidden=True,
+                tooltip=f"{columns.TIMESTAMP} (you may need to refresh to reflect a recent update)",
+            ),
+            columns.EDITOR: _ColumnConfig(
+                width=100,
+                non_editable=True,
+                hidden=True,
+                tooltip=f"{columns.EDITOR} (you may need to refresh to reflect a recent update)",
+            ),
         }
 
         return column_configs, institutions
@@ -256,9 +254,9 @@ class TableConfigCache:
     def get_simple_dropdown_menus(self, l1: str) -> Dict[str, List[str]]:
         """Get the columns that are simple dropdowns, with their options."""
         ret = {
-            col: config["options"]
+            col: config.options
             for col, config in self.column_configs.items()
-            if "options" in config
+            if config.options
         }
         ret[columns.WBS_L2] = self.get_l2_categories(l1)
         return ret
@@ -272,9 +270,9 @@ class TableConfigCache:
         {'Col-Name-A' : ('Parent-Col-Name-1', {'Parent-Val-I' : ['Option-Alpha', ...] } ) }
         """
         ret = {
-            col: (config["conditional_parent"], config["conditional_options"])
+            col: (config.conditional_parent, config.conditional_options)
             for col, config in self.column_configs.items()
-            if ("conditional_parent" in config) and ("conditional_options" in config)
+            if config.conditional_parent and config.conditional_options
         }
         ret[columns.WBS_L3] = (columns.WBS_L2, wbs.WORK_BREAKDOWN_STRUCTURES[l1])
         return ret
@@ -287,42 +285,34 @@ class TableConfigCache:
 
     def get_numerics(self) -> List[str]:
         """Get the columns that have numeric data."""
-        return [
-            col for col, config in self.column_configs.items() if config.get("numeric")
-        ]
+        return [col for col, config in self.column_configs.items() if config.numeric]
 
     def get_non_editables(self) -> List[str]:
         """Get the columns that are not editable."""
         return [
-            col
-            for col, config in self.column_configs.items()
-            if config.get("non_editable")
+            col for col, config in self.column_configs.items() if config.non_editable
         ]
 
     def get_hiddens(self) -> List[str]:
         """Get the columns that are hidden."""
-        return [
-            col for col, config in self.column_configs.items() if config.get("hidden")
-        ]
+        return [col for col, config in self.column_configs.items() if config.hidden]
 
     def get_widths(self) -> Dict[str, int]:
         """Get the widths of each column."""
-        return {col: config["width"] for col, config in self.column_configs.items()}
+        return {col: config.width for col, config in self.column_configs.items()}
 
     def get_tooltips(self) -> Dict[str, str]:
         """Get the widths of each column."""
         return {
-            col: config["tooltip"]
+            col: config.tooltip
             for col, config in self.column_configs.items()
-            if config.get("tooltip")
+            if config.tooltip
         }
 
     def get_border_left_columns(self) -> List[str]:
         """Get the columns that have a left border."""
         return [
-            col
-            for col, config in self.column_configs.items()
-            if config.get("border_left")
+            col for col, config in self.column_configs.items() if config.border_left
         ]
 
     def get_page_size(self) -> int:
@@ -331,20 +321,16 @@ class TableConfigCache:
 
     def get_on_the_fly_fields(self) -> List[str]:
         """Get names of fields created on-the-fly, data not stored."""
-        return [
-            col
-            for col, config in self.column_configs.items()
-            if config.get("on_the_fly")
-        ]
+        return [col for col, config in self.column_configs.items() if config.on_the_fly]
 
     def sort_key(self, k: Dict[str, DataEntry]) -> Tuple[DataEntry, ...]:
         """Sort key for the table."""
         sort_keys: List[DataEntry] = []
 
         column_orders = {
-            col: config["sort_value"]
+            col: config.sort_value
             for col, config in self.column_configs.items()
-            if "sort_value" in config
+            if config.sort_value
         }
         columns_by_precedence = sorted(
             column_orders.keys(), key=lambda x: column_orders[x], reverse=True

@@ -60,8 +60,9 @@ def _add_new_data(  # pylint: disable=R0913
         TData     -- up-to-date data table
         dbc.Toast -- toast element with confirmation message
     """
-    column_names = [cast(str, c["name"]) for c in columns]
-    new_record: types.Record = {n: "" for n in column_names}
+    new_record: types.Record = {
+        nam: "" for nam in [cast(str, col["name"]) for col in columns]
+    }
 
     # push to data source AND auto-fill labor and/or institution
     try:
@@ -634,25 +635,25 @@ def setup_snapshot_components(
         pass
     snap_options = [
         {
-            "label": f"{s['name']} ({utils.get_human_time(s['timestamp'], short=True)})",
-            "value": s["timestamp"],
+            "label": f"{si.name} ({utils.get_human_time(si.timestamp, short=True)})",
+            "value": si.timestamp,
         }
-        for s in snapshots
+        for si in snapshots
     ]
 
     # This was a tab switch w/ a now non-valid snap ts
-    if s_snap_ts not in [s["timestamp"] for s in snapshots]:
+    if s_snap_ts not in [si.timestamp for si in snapshots]:
         s_snap_ts = ""
 
     # Selected a Snapshot
     if s_snap_ts:
-        snap_info = next(s for s in snapshots if s["timestamp"] == s_snap_ts)
-        human_time = utils.get_human_time(snap_info["timestamp"])
+        snap_info = next(si for si in snapshots if si.timestamp == s_snap_ts)
+        human_time = utils.get_human_time(snap_info.timestamp)
         # get lines
         label_lines = [
-            html.Label(f"{snap_info['name']}"),
+            html.Label(f"{snap_info.name}"),
             html.Label(
-                f"created by {snap_info['creator']} — {human_time}"
+                f"created by {snap_info.creator} — {human_time}"
                 if CurrentUser.is_admin()  # only show creator for admins
                 else human_time,
                 style={"font-size": "75%", "font-style": "italic"},
@@ -777,15 +778,18 @@ def setup_institution_components(
             f"'{du.triggered()}' -> setup_institution_components() ({s_urlpath=} {s_snap_ts=} {CurrentUser.get_summary()=})"
         )
 
-    phds: types.DashVal = 0
-    faculty: types.DashVal = 0
-    sci: types.DashVal = 0
-    grad: types.DashVal = 0
-    cpus: types.DashVal = 0
-    gpus: types.DashVal = 0
-    hc_conf = True
-    comp_conf = True
-    text = ""
+    inst_dc = types.InstitutionValues(
+        phds_authors=0,
+        faculty=0,
+        scientists_post_docs=0,
+        grad_students=0,
+        cpus=0,
+        gpus=0,
+        text="",
+        headcounts_confirmed=True,
+        computing_confirmed=True,
+    )
+
     h2_table = "Collaboration-Wide SOW Table"
     h2_textarea = ""
     h2_computing = ""
@@ -828,19 +832,28 @@ def setup_institution_components(
         h2_textarea = f"{inst}'s Miscellaneous Notes and Descriptions"
         h2_computing = f"{inst}'s Computing Contributions"
         try:
-            ret = src.pull_institution_values(wbs_l1, s_snap_ts, inst)
+            inst_dc = src.pull_institution_values(wbs_l1, s_snap_ts, inst)
         except DataSourceException:
-            ret = (None, None, None, None, None, None, "", True, True)
-        (phds, faculty, sci, grad, cpus, gpus, text, hc_conf, comp_conf) = ret
+            inst_dc = types.InstitutionValues(
+                phds_authors=None,
+                faculty=None,
+                scientists_post_docs=None,
+                grad_students=None,
+                cpus=None,
+                gpus=None,
+                text="",
+                headcounts_confirmed=True,
+                computing_confirmed=True,
+            )
 
     return (
-        phds,
-        faculty,
-        sci,
-        grad,
-        cpus if cpus else 0,  # None (blank) -> 0
-        gpus if gpus else 0,  # None (blank) -> 0
-        text,
+        inst_dc.phds_authors,
+        inst_dc.faculty,
+        inst_dc.scientists_post_docs,
+        inst_dc.grad_students,
+        inst_dc.cpus if inst_dc.cpus else 0,  # None (blank) -> 0
+        inst_dc.gpus if inst_dc.gpus else 0,  # None (blank) -> 0
+        inst_dc.text,
         h2_table,
         h2_textarea,
         h2_computing,
@@ -849,8 +862,8 @@ def setup_institution_components(
         inst,
         sorted(inst_options, key=lambda d: d["label"]),
         labor_options,
-        True if s_snap_ts else hc_conf,
-        True if s_snap_ts else comp_conf,
+        True if s_snap_ts else inst_dc.headcounts_confirmed,
+        True if s_snap_ts else inst_dc.computing_confirmed,
     )
 
 
@@ -972,15 +985,17 @@ def push_institution_values(  # pylint: disable=R0913
         src.push_institution_values(
             du.get_wbs_l1(s_urlpath),
             inst,
-            phds,
-            faculty,
-            sci,
-            grad,
-            cpus,
-            gpus,
-            text,
-            hc_confirmed,
-            comp_confirmed,
+            types.InstitutionValues(
+                phds_authors=phds,  # type: ignore[arg-type]
+                faculty=faculty,  # type: ignore[arg-type]
+                scientists_post_docs=sci,  # type: ignore[arg-type]
+                grad_students=grad,  # type: ignore[arg-type]
+                cpus=cpus,  # type: ignore[arg-type]
+                gpus=gpus,  # type: ignore[arg-type]
+                text=text,
+                headcounts_confirmed=hc_confirmed,
+                computing_confirmed=comp_confirmed,
+            ),
         )
     except DataSourceException:
         assert len(s_table) == 0  # there's no collection to push to

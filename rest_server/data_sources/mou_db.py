@@ -1,13 +1,14 @@
 """Database interface for MoU data."""
 
 import base64
+import dataclasses as dc
 import io
 import logging
 import time
-from typing import Dict, List, Tuple, cast
+from typing import Dict, List, Tuple
 
 import pandas as pd  # type: ignore[import]
-import pymongo.errors  # type: ignore[import]
+import pymongo.errors
 from motor.motor_tornado import MotorClient  # type: ignore
 from tornado import web
 
@@ -135,9 +136,9 @@ class MoUDatabaseClient:
         # ingest
         try:
             doc = await self._get_supplemental_doc(wbs_db, previous_snap)
-            all_insts_values = doc["snapshot_institution_values"]
+            all_insts_values = doc.snapshot_institution_values
         except (DocumentNotFoundError, pymongo.errors.InvalidName):
-            all_insts_values = dict()
+            all_insts_values = {}
         await self._create_live_collection(wbs_db, table, creator, all_insts_values)
 
         # snapshot
@@ -174,13 +175,13 @@ class MoUDatabaseClient:
 
         doc = await self._get_supplemental_doc(wbs_db, snap_coll)
 
-        logging.info(f"Snapshot Name [{doc['name']}] ({wbs_db=}, {snap_coll=})...")
-        return {
-            "name": doc["name"],
-            "creator": doc["creator"],
-            "timestamp": doc["timestamp"],
-            "admin_only": doc["admin_only"],
-        }
+        logging.info(f"Snapshot Name [{doc.name}] ({wbs_db=}, {snap_coll=})...")
+        return types.SnapshotInfo(
+            name=doc.name,
+            creator=doc.creator,
+            timestamp=doc.timestamp,
+            admin_only=doc.admin_only,
+        )
 
     async def upsert_institution_values(
         self, wbs_db: str, institution: str, vals: types.InstitutionValues
@@ -193,7 +194,7 @@ class MoUDatabaseClient:
         await self._check_database_state(wbs_db)
 
         doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
-        doc["snapshot_institution_values"].update({institution: vals})
+        doc.snapshot_institution_values.update({institution: vals})
         await self._set_supplemental_doc(wbs_db, _LIVE_COLLECTION, doc)
 
         logging.info(
@@ -222,17 +223,17 @@ class MoUDatabaseClient:
 
         await self._check_database_state(wbs_db)
 
-        vals: types.InstitutionValues = {
-            "phds_authors": None,
-            "faculty": None,
-            "scientists_post_docs": None,
-            "grad_students": None,
-            "cpus": None,
-            "gpus": None,
-            "text": "",
-            "headcounts_confirmed": False,
-            "computing_confirmed": False,
-        }
+        vals = types.InstitutionValues(
+            phds_authors=None,
+            faculty=None,
+            scientists_post_docs=None,
+            grad_students=None,
+            cpus=None,
+            gpus=None,
+            text="",
+            headcounts_confirmed=False,
+            computing_confirmed=False,
+        )
 
         if not snapshot_timestamp:
             snapshot_timestamp = _LIVE_COLLECTION
@@ -244,7 +245,7 @@ class MoUDatabaseClient:
             return vals
 
         try:
-            vals = doc["snapshot_institution_values"][institution]
+            vals = doc.snapshot_institution_values[institution]
             logging.info(f"Institution's Values [{vals}] ({wbs_db=}, {institution=}).")
             return vals
         except KeyError:
@@ -266,20 +267,20 @@ class MoUDatabaseClient:
                 reason=f"Erroneous supplemental document found: {snap_coll=}, {doc=}",
             )
 
-        return cast(types.SupplementalDoc, doc)
+        return types.SupplementalDoc(**doc)
 
     async def _set_supplemental_doc(
         self, wbs_db: str, snap_coll: str, doc: types.SupplementalDoc
     ) -> None:
         """Insert/update a Supplemental document."""
-        if snap_coll != doc["timestamp"]:
+        if snap_coll != doc.timestamp:
             raise web.HTTPError(
                 400,
                 reason=f"Tried to set erroneous supplemental document: {snap_coll=}, {doc=}",
             )
 
         coll_obj = self._mongo[f"{wbs_db}-supplemental"][snap_coll]
-        await coll_obj.replace_one({"timestamp": doc["timestamp"]}, doc, upsert=True)
+        await coll_obj.replace_one({"timestamp": doc.timestamp}, doc, upsert=True)
 
     async def _create_supplemental_db_document(  # pylint: disable=R0913
         self,
@@ -296,14 +297,19 @@ class MoUDatabaseClient:
         await self._mongo[f"{wbs_db}-supplemental"].drop_collection(snap_coll)
 
         # populate the singleton document
-        doc: types.SupplementalDoc = {
-            "name": name,
-            "timestamp": snap_coll,
-            "creator": creator,
-            "snapshot_institution_values": all_insts_values if all_insts_values else {},
-            "admin_only": admin_only,
-        }
-        await self._set_supplemental_doc(wbs_db, snap_coll, doc)
+        await self._set_supplemental_doc(
+            wbs_db,
+            snap_coll,
+            types.SupplementalDoc(
+                name=name,
+                timestamp=snap_coll,
+                creator=creator,
+                snapshot_institution_values=all_insts_values
+                if all_insts_values
+                else {},
+                admin_only=admin_only,
+            ),
+        )
 
         logging.debug(
             f"Created Supplemental Document ({wbs_db=}, {snap_coll=}): "
@@ -489,22 +495,24 @@ class MoUDatabaseClient:
             table,
             name,
             creator,
-            supplemental_doc["snapshot_institution_values"],
+            supplemental_doc.snapshot_institution_values,
             admin_only,
         )
 
         # set all *_confirmed values to False
-        for inst, vals in supplemental_doc["snapshot_institution_values"].items():
-            vals["headcounts_confirmed"] = False
-            vals["computing_confirmed"] = False
-            await self.upsert_institution_values(wbs_db, inst, vals)
+        for inst, vals in supplemental_doc.snapshot_institution_values.items():
+            await self.upsert_institution_values(
+                wbs_db,
+                inst,
+                dc.replace(vals, headcounts_confirmed=False, computing_confirmed=False),
+            )
 
         logging.info(f"Snapshotted {snap_coll} ({wbs_db=}, {creator=}).")
         return snap_coll
 
     async def _is_snapshot_admin_only(self, wbs_db: str, name: str) -> bool:
         doc = await self._get_supplemental_doc(wbs_db, name)
-        return doc["admin_only"]
+        return doc.admin_only
 
     async def list_snapshot_timestamps(
         self, wbs_db: str, exclude_admin_snaps: bool

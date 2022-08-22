@@ -5,7 +5,7 @@ import logging
 
 import coloredlogs  # type: ignore[import]
 
-from web_app.config import app, ENV, log_config_vars
+from web_app.config import ENV, app, log_config_vars
 
 from . import layout
 

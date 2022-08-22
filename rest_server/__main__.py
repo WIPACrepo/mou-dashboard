@@ -3,6 +3,7 @@
 
 import argparse
 import asyncio
+import dataclasses as dc
 import json
 import logging
 from typing import List
@@ -10,7 +11,7 @@ from urllib.parse import quote_plus
 
 import coloredlogs  # type: ignore[import]
 from rest_tools.server import RestHandlerSetup, RestServer
-from wipac_dev_tools import from_environment
+from wipac_dev_tools import from_environment_as_dataclass
 
 from . import config
 from .data_sources import table_config_cache, todays_institutions
@@ -28,20 +29,18 @@ from .routes import (
 
 async def start(debug: bool = False) -> RestServer:
     """Start a Mad Dash REST service."""
-    config_env = from_environment(config.DEFAULT_ENV_CONFIG)
-    config.log_environment(config_env)
+    env = from_environment_as_dataclass(config.EnvConfig)
+    for field in dc.fields(env):
+        logging.info(
+            f"{field.name}\t{getattr(env, field.name)}\t({type(getattr(env, field.name)).__name__})"
+        )
 
-    mongodb_auth_user = quote_plus(config_env["MOU_MONGODB_AUTH_USER"])
-    mongodb_auth_pass = quote_plus(config_env["MOU_MONGODB_AUTH_PASS"])
-    mongodb_host = config_env["MOU_MONGODB_HOST"]
-    mongodb_port = int(config_env["MOU_MONGODB_PORT"])
-
-    args = RestHandlerSetup(
+    args = RestHandlerSetup(  # type: ignore[no-untyped-call]
         {
             "auth": {
-                "secret": config_env["MOU_AUTH_SECRET"],
-                "issuer": config_env["MOU_AUTH_ISSUER"],
-                "algorithm": config_env["MOU_AUTH_ALGORITHM"],
+                "secret": env.MOU_AUTH_SECRET,
+                "issuer": env.MOU_AUTH_ISSUER,
+                "algorithm": env.MOU_AUTH_ALGORITHM,
             },
             "debug": debug,
         }
@@ -49,9 +48,11 @@ async def start(debug: bool = False) -> RestServer:
     args["tc_cache"] = await table_config_cache.TableConfigCache.create()
 
     # Setup DB URL
-    mongodb_url = f"mongodb://{mongodb_host}:{mongodb_port}"
+    mongodb_auth_user = quote_plus(env.MOU_MONGODB_AUTH_USER)
+    mongodb_auth_pass = quote_plus(env.MOU_MONGODB_AUTH_PASS)
+    mongodb_url = f"mongodb://{env.MOU_MONGODB_HOST}:{env.MOU_MONGODB_PORT}"
     if mongodb_auth_user and mongodb_auth_pass:
-        mongodb_url = f"mongodb://{mongodb_auth_user}:{mongodb_auth_pass}@{mongodb_host}:{mongodb_port}"
+        mongodb_url = f"mongodb://{mongodb_auth_user}:{mongodb_auth_pass}@{env.MOU_MONGODB_HOST}:{env.MOU_MONGODB_PORT}"
     args["mongodb_url"] = mongodb_url
 
     # Configure REST Routes
@@ -69,9 +70,7 @@ async def start(debug: bool = False) -> RestServer:
         InstitutionStaticHandler.ROUTE, InstitutionStaticHandler, args
     )
 
-    server.startup(
-        address=config_env["MOU_REST_HOST"], port=int(config_env["MOU_REST_PORT"])
-    )
+    server.startup(address=env.MOU_REST_HOST, port=env.MOU_REST_PORT)
     return server
 
 

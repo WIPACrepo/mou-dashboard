@@ -1,6 +1,7 @@
 """Routes handlers for the MoU REST API server interface."""
 
 
+import dataclasses as dc
 import json
 import logging
 from dataclasses import asdict
@@ -243,7 +244,7 @@ class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
         )
         snap_info = await self.mou_db_client.get_snapshot_info(wbs_l1, snap_ts)
 
-        self.write(snap_info)
+        self.write(dc.asdict(snap_info))
 
 
 # -----------------------------------------------------------------------------
@@ -264,7 +265,7 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
             wbs_l1, snapshot_timestamp, institution
         )
 
-        self.write(vals)
+        self.write(dc.asdict(vals))
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
@@ -285,17 +286,17 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
             "computing_confirmed", type=bool, default=False
         )
 
-        vals: types.InstitutionValues = {
-            "phds_authors": phds if phds >= 0 else None,
-            "faculty": faculty if faculty >= 0 else None,
-            "scientists_post_docs": sci if sci >= 0 else None,
-            "grad_students": grad if grad >= 0 else None,
-            "cpus": cpus if cpus >= 0 else None,
-            "gpus": gpus if gpus >= 0 else None,
-            "text": text,
-            "headcounts_confirmed": headcounts_confirmed,
-            "computing_confirmed": computing_confirmed,
-        }
+        vals = types.InstitutionValues(
+            phds_authors=phds if phds >= 0 else None,
+            faculty=faculty if faculty >= 0 else None,
+            scientists_post_docs=sci if sci >= 0 else None,
+            grad_students=grad if grad >= 0 else None,
+            cpus=cpus if cpus >= 0 else None,
+            gpus=gpus if gpus >= 0 else None,
+            text=text,
+            headcounts_confirmed=headcounts_confirmed,
+            computing_confirmed=computing_confirmed,
+        )
 
         await self.mou_db_client.upsert_institution_values(wbs_l1, institution, vals)
 

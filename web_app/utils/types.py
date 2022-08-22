@@ -1,7 +1,8 @@
 """Custom type definitions."""
 
 
-from typing import Collection, Dict, Final, List, Optional, Tuple, TypedDict
+import dataclasses as dc
+from typing import Collection, Dict, Final, List, Optional, Tuple
 
 # Data Source types
 StrNum = int | float | str  # just data
@@ -9,8 +10,9 @@ Record = Dict[str, StrNum]
 Table = List[Record]
 
 
-class SnapshotInfo(TypedDict):
-    """The typed dict containing a snapshot's name, timestamp, and creator."""
+@dc.dataclass(frozen=True)
+class SnapshotInfo:
+    """The typed inst containing a snapshot's name, timestamp, and creator."""
 
     timestamp: str
     name: str
@@ -36,3 +38,18 @@ TDDown = Dict[str, Dict[str, List[_StrDict]]]  # dropdown
 TDDownCond = List[Dict[str, _StrDict | List[_StrDict]]]  # dropdown_conditional
 TFocus = Optional[Dict[str, int]]  # which cell to focus
 TTooltips = Dict[str, Dict[str, DashVal]]
+
+
+@dc.dataclass(frozen=True)
+class InstitutionValues:
+    """Values for an institution."""
+
+    phds_authors: Optional[int]
+    faculty: Optional[int]
+    scientists_post_docs: Optional[int]
+    grad_students: Optional[int]
+    cpus: Optional[int]
+    gpus: Optional[int]
+    text: str
+    headcounts_confirmed: bool
+    computing_confirmed: bool

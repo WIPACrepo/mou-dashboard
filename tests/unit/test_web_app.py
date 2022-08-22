@@ -4,6 +4,7 @@
 # pylint: disable=W0212,W0621
 
 
+import dataclasses as dc
 import inspect
 import itertools
 import sys
@@ -31,18 +32,23 @@ WBS = "mo"
 def clear_all_cachetools_func_caches() -> Iterator[None]:
     """Clear all `cachetools.func` caches, everywhere"""
     yield
-    institution_info._cached_get_institutions_infos.cache_clear()  # type: ignore[attr-defined]
-    tc.TableConfigParser._cached_get_configs.cache_clear()  # type: ignore[attr-defined]
-    web_app.utils.oidc_tools.CurrentUser._cached_get_info.cache_clear()  # type: ignore[attr-defined]
+    institution_info._cached_get_institutions_infos.cache_clear()
+    tc.TableConfigParser._cached_get_configs.cache_clear()
+    web_app.utils.oidc_tools.CurrentUser._cached_get_info.cache_clear()
 
 
 @pytest.fixture
 def tconfig() -> Iterator[tc.TableConfigParser]:
     """Provide a TableConfigParser instance."""
-    tconfig_cache: tc.TableConfigParser.CacheType = {
-        WBS: {  # type: ignore[typeddict-item]
-            "simple_dropdown_menus": {"Alpha": ["A1", "A2"], "Beta": []},
-            "conditional_dropdown_menus": {
+    tconfig_cache: tc.CacheType = {
+        WBS: tc._WBSTableCache(
+            columns=["Alpha", "Dish", "F1", "Beta"],
+            simple_dropdown_menus={
+                "Alpha": ["A1", "A2"],
+                "Beta": [],
+            },
+            labor_categories=[],
+            conditional_dropdown_menus={
                 "Dish": (
                     "Alpha",
                     {
@@ -51,8 +57,15 @@ def tconfig() -> Iterator[tc.TableConfigParser]:
                     },
                 ),
             },
-            "columns": ["Alpha", "Dish", "F1", "Beta"],
-        }
+            dropdowns=[],
+            numerics=[],
+            non_editables=[],
+            hiddens=[],
+            tooltips={},
+            widths={},
+            border_left_columns=[],
+            page_size=999,
+        )
     }
     with patch(
         "web_app.data_source.table_config.TableConfigParser._cached_get_configs"
@@ -242,7 +255,7 @@ class TestDataSource:
             },
         ]
 
-        for i, _ in enumerate(bodies):
+        for i, body in enumerate(bodies):
             # Call
             mock_rest.return_value.request_seq.return_value = response
             # Default values
@@ -253,16 +266,16 @@ class TestDataSource:
                 ret = src.pull_data_table(
                     WBS,
                     tconfig,
-                    institution=bodies[i]["institution"],  # type: ignore[arg-type]
-                    labor=bodies[i]["labor"],  # type: ignore[arg-type]
-                    with_totals=bodies[i]["total_rows"],  # type: ignore[arg-type]
-                    snapshot_ts=bodies[i]["snapshot"],  # type: ignore[arg-type]
-                    restore_id=bodies[i]["restore_id"],  # type: ignore[arg-type]
+                    institution=body["institution"],  # type: ignore[arg-type]
+                    labor=body["labor"],  # type: ignore[arg-type]
+                    with_totals=body["total_rows"],  # type: ignore[arg-type]
+                    snapshot_ts=body["snapshot"],  # type: ignore[arg-type]
+                    restore_id=body["restore_id"],  # type: ignore[arg-type]
                 )
 
             # Assert
             mock_rest.return_value.request_seq.assert_called_with(
-                "GET", f"/table/data/{WBS}", bodies[i]
+                "GET", f"/table/data/{WBS}", body
             )
             assert ret == response["table"]
 
@@ -299,7 +312,7 @@ class TestDataSource:
             },
         ]
 
-        for i, _ in enumerate(bodies):
+        for i, body in enumerate(bodies):
             # Call
             mock_rest.return_value.request_seq.return_value = unrealistic_hardcoded_resp
             # Default values
@@ -309,14 +322,14 @@ class TestDataSource:
             else:
                 ret = src.push_record(
                     WBS,
-                    bodies[i]["record"],
+                    body["record"],
                     tconfig,
-                    labor=bodies[i]["labor"],
-                    institution=bodies[i]["institution"],
+                    labor=body["labor"],
+                    institution=body["institution"],
                 )
 
             # Assert
-            posted = deepcopy(bodies[i])
+            posted = deepcopy(body)
             # fields not included in `push_record()` are added as blanks
             posted["record"].update({"Alpha": "", "Dish": "", "F1": "", "Beta": ""})
             mock_rest.return_value.request_seq.assert_called_with(
@@ -366,10 +379,18 @@ class TestDataSource:
         mock_ili.return_value = True
         response = {
             "snapshots": [
-                {"timestamp": "a", "name": "aye", "creator": "George"},
-                {"timestamp": "b", "name": "bee", "creator": "Ringo"},
-                {"timestamp": "c", "name": "see", "creator": "John"},
-                {"timestamp": "d", "name": "dee", "creator": "Paul"},
+                web_app.utils.types.SnapshotInfo(
+                    timestamp="a", name="aye", creator="George"
+                ),
+                web_app.utils.types.SnapshotInfo(
+                    timestamp="b", name="bee", creator="Ringo"
+                ),
+                web_app.utils.types.SnapshotInfo(
+                    timestamp="c", name="see", creator="John"
+                ),
+                web_app.utils.types.SnapshotInfo(
+                    timestamp="d", name="dee", creator="Paul"
+                ),
             ],
         }
 
@@ -381,7 +402,7 @@ class TestDataSource:
         mock_rest.return_value.request_seq.assert_called_with(
             "GET", f"/snapshots/list/{WBS}", {"is_admin": True}
         )
-        assert sorted(ret, key=lambda k: k["timestamp"]) == response["snapshots"]
+        assert sorted(ret, key=lambda si: si.timestamp) == response["snapshots"]
 
     @staticmethod
     @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
@@ -390,10 +411,12 @@ class TestDataSource:
         current_user.return_value = web_app.utils.oidc_tools.UserInfo(
             "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
         )
-        response = {"timestamp": "a", "foo": "bar"}
+        response = web_app.utils.types.SnapshotInfo(
+            timestamp="a", name="not necessarily snap_name", creator="you"
+        )
 
         # Call
-        mock_rest.return_value.request_seq.return_value = response
+        mock_rest.return_value.request_seq.return_value = dc.asdict(response)
         ret = src.create_snapshot(WBS, "snap_name")
 
         # Assert
@@ -442,15 +465,15 @@ class TestTableConfig:
         # pylint: disable=R0915,R0912
 
         # nonsense data, but correctly typed
-        resp: tc.TableConfigParser.CacheType = {
-            WBS: {
-                "columns": ["a", "b", "c", "d"],
-                "simple_dropdown_menus": {
+        resp: tc.CacheType = {
+            WBS: tc._WBSTableCache(
+                columns=["a", "b", "c", "d"],
+                simple_dropdown_menus={
                     "a": ["1", "2", "3"],
                     "c": ["4", "44", "444"],
                 },
-                "labor_categories": sorted([("foobar", "FB"), ("baz", "BZ")]),
-                "conditional_dropdown_menus": {
+                labor_categories=sorted([("foobar", "FB"), ("baz", "BZ")]),
+                conditional_dropdown_menus={
                     "column1": (
                         "parent_of_1",
                         {
@@ -466,15 +489,15 @@ class TestTableConfig:
                         },
                     ),
                 },
-                "dropdowns": ["gamma", "mu"],
-                "numerics": ["foobarbaz"],
-                "non_editables": ["alpha", "beta"],
-                "hiddens": ["z", "y", "x"],
-                "widths": {"Zetta": 888, "Yotta": -50},
-                "border_left_columns": ["ee", "e"],
-                "page_size": 55,
-                "tooltips": {"ham": "blah"},
-            }
+                dropdowns=["gamma", "mu"],
+                numerics=["foobarbaz"],
+                non_editables=["alpha", "beta"],
+                hiddens=["z", "y", "x"],
+                widths={"Zetta": 888, "Yotta": -50},
+                border_left_columns=["ee", "e"],
+                page_size=55,
+                tooltips={"ham": "blah"},
+            )
         }
 
         # Call
@@ -488,47 +511,46 @@ class TestTableConfig:
         assert table_config._configs == resp
 
         # no-argument methods
-        assert table_config.get_table_columns() == resp[WBS]["columns"]
+        assert table_config.get_table_columns() == resp[WBS].columns
         assert (
-            table_config.get_labor_categories_w_abbrevs()
-            == resp[WBS]["labor_categories"]
+            table_config.get_labor_categories_w_abbrevs() == resp[WBS].labor_categories
         )
-        assert table_config.get_hidden_columns() == resp[WBS]["hiddens"]
-        assert table_config.get_dropdown_columns() == resp[WBS]["dropdowns"]
-        assert table_config.get_page_size() == resp[WBS]["page_size"]
+        assert table_config.get_hidden_columns() == resp[WBS].hiddens
+        assert table_config.get_dropdown_columns() == resp[WBS].dropdowns
+        assert table_config.get_page_size() == resp[WBS].page_size
 
         # is_column_*()
-        for col in resp[WBS]["dropdowns"]:
+        for col in resp[WBS].dropdowns:
             assert table_config.is_column_dropdown(col)
             assert not table_config.is_column_dropdown(col + "!")
-        for col in resp[WBS]["numerics"]:
+        for col in resp[WBS].numerics:
             assert table_config.is_column_numeric(col)
             assert not table_config.is_column_numeric(col + "!")
-        for col in resp[WBS]["non_editables"]:
+        for col in resp[WBS].non_editables:
             assert not table_config.is_column_editable(col)
             assert table_config.is_column_editable(col + "!")
-        for col in resp[WBS]["simple_dropdown_menus"]:
+        for col in resp[WBS].simple_dropdown_menus:
             assert table_config.is_simple_dropdown(col)
             assert not table_config.is_simple_dropdown(col + "!")
-        for col in resp[WBS]["conditional_dropdown_menus"]:
+        for col in resp[WBS].conditional_dropdown_menus:
             assert table_config.is_conditional_dropdown(col)
             assert not table_config.is_conditional_dropdown(col + "!")
-        for col in resp[WBS]["border_left_columns"]:
+        for col in resp[WBS].border_left_columns:
             assert table_config.has_border_left(col)
             assert not table_config.has_border_left(col + "!")
 
         # tooltips
-        for col, tooltip in resp[WBS]["tooltips"].items():
+        for col, tooltip in resp[WBS].tooltips.items():
             assert tooltip == table_config.get_column_tooltip(col)
 
         # get_simple_column_dropdown_menu()
-        for col, menu in resp[WBS]["simple_dropdown_menus"].items():
+        for col, menu in resp[WBS].simple_dropdown_menus.items():
             assert table_config.get_simple_column_dropdown_menu(col) == menu
             with pytest.raises(KeyError):
                 table_config.get_simple_column_dropdown_menu(col + "!")
 
         # get_conditional_column_parent()
-        for col, par_opts in resp[WBS]["conditional_dropdown_menus"].items():
+        for col, par_opts in resp[WBS].conditional_dropdown_menus.items():
             assert table_config.get_conditional_column_parent_and_options(col) == (
                 par_opts[0],  # parent
                 list(par_opts[1].keys()),  # options
@@ -537,7 +559,7 @@ class TestTableConfig:
                 table_config.get_conditional_column_parent_and_options(col + "!")
 
         # get_conditional_column_dropdown_menu()
-        for col, par_opts in resp[WBS]["conditional_dropdown_menus"].items():
+        for col, par_opts in resp[WBS].conditional_dropdown_menus.items():
             for parent_col_option, menu in par_opts[1].items():
                 assert (
                     table_config.get_conditional_column_dropdown_menu(
@@ -554,14 +576,14 @@ class TestTableConfig:
                     )
 
         # Error handling methods
-        for col, wid in resp[WBS]["widths"].items():
+        for col, wid in resp[WBS].widths.items():
             assert table_config.get_column_width(col) == wid
         # reset
-        tc.TableConfigParser._cached_get_configs.cache_clear()  # type: ignore[attr-defined]
+        tc.TableConfigParser._cached_get_configs.cache_clear()
         mock_rest.return_value.request_seq.return_value = {}
         # call
         table_config = tc.TableConfigParser(WBS)
-        for col, wid in resp[WBS]["widths"].items():
+        for col, wid in resp[WBS].widths.items():
             default = (
                 inspect.signature(table_config.get_column_width)
                 .parameters["default"]

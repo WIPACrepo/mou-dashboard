@@ -33,8 +33,7 @@ class TableConfigDataAdaptor:
         record = self.remove_on_the_fly_fields(record)
 
         def _get_fte_subcolumn(record: types.Record) -> str:
-            source = record[columns.SOURCE_OF_FUNDS_US_ONLY]
-            return cast(str, source)
+            return cast(str, record[columns.SOURCE_OF_FUNDS_US_ONLY])
 
         # FTE fields
         if columns.FTE in record.keys():

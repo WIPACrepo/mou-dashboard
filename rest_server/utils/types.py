@@ -1,6 +1,7 @@
 """Custom type definitions."""
 
-from typing import Dict, List, Optional, TypedDict
+import dataclasses as dc
+from typing import Dict, List, Optional
 
 from bson.objectid import ObjectId
 
@@ -10,7 +11,8 @@ Record = Dict[str, DataEntry]
 Table = List[Record]
 
 
-class SnapshotInfo(TypedDict):
+@dc.dataclass(frozen=True)
+class SnapshotInfo:
     """The typed dict containing a snapshot's name, timestamp, and creator.
 
     Not a mongo schema. A subset of `SupplementalDoc` for REST calls.
@@ -22,7 +24,8 @@ class SnapshotInfo(TypedDict):
     admin_only: bool
 
 
-class InstitutionValues(TypedDict):
+@dc.dataclass(frozen=True)
+class InstitutionValues:
     """Values for an institution."""
 
     phds_authors: Optional[int]
@@ -36,7 +39,8 @@ class InstitutionValues(TypedDict):
     computing_confirmed: bool
 
 
-class SupplementalDoc(TypedDict):
+@dc.dataclass(frozen=True)
+class SupplementalDoc:
     """Fields for an Supplemental document, which supplements a snapshot."""
 
     name: str

@@ -1,9 +1,10 @@
 """Admin-only callbacks for a specified WBS layout."""
 
+import dataclasses as dc
 import logging
 from collections import OrderedDict as ODict
 from decimal import Decimal
-from typing import Dict, Final, List, Optional, Tuple, TypedDict, cast
+from typing import Dict, Final, List, Optional, Tuple, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -21,7 +22,8 @@ from ..utils.oidc_tools import CurrentUser
 _CHANGES_COL: Final[str] = "Changes"
 
 
-class _SnapshotBundle(TypedDict):
+@dc.dataclass(frozen=True)
+class _SnapshotBundle:
     table: types.Table
     info: types.SnapshotInfo
 
@@ -34,10 +36,10 @@ def _get_upload_success_modal_body(
 ) -> List[dcc.Markdown]:
     """Make the message for the ingest confirmation toast."""
 
-    def _pseudonym(_snap: types.SnapshotInfo) -> str:
-        if _snap["name"]:
-            return f"\"{_snap['name']}\""
-        return utils.get_human_time(_snap["timestamp"])
+    def _pseudonym(snapinfo: types.SnapshotInfo) -> str:
+        if snapinfo.name:
+            return f'"{snapinfo.name}"'
+        return utils.get_human_time(snapinfo.timestamp)
 
     body: List[dcc.Markdown] = [
         dcc.Markdown(f'Uploaded {n_records} rows from "{filename}".'),
@@ -214,18 +216,27 @@ def summarize(
         }
 
         if wbs_l1 == "mo":
-            ret = src.pull_institution_values(wbs_l1, s_snap_ts, short_name)
-            (phds, faculty, sci, grad, cpus, gpus, __, hc_conf, comp_conf) = ret
+            inst_dc = src.pull_institution_values(wbs_l1, s_snap_ts, short_name)
             row.update(
                 {
-                    "Ph.D. Authors": phds if phds else 0,
-                    "Faculty": faculty if faculty else 0,
-                    "Scientists / Post Docs": sci if sci else 0,
-                    "Ph.D. Students": grad if grad else 0,
-                    "Headcounts Confirmed?": "Yes" if hc_conf else "No",
-                    "CPU": cpus if cpus else 0,
-                    "GPU": gpus if gpus else 0,
-                    "Computing Confirmed?": "Yes" if comp_conf else "No",
+                    "Ph.D. Authors": inst_dc.phds_authors
+                    if inst_dc.phds_authors
+                    else 0,
+                    "Faculty": inst_dc.faculty if inst_dc.faculty else 0,
+                    "Scientists / Post Docs": inst_dc.scientists_post_docs
+                    if inst_dc.scientists_post_docs
+                    else 0,
+                    "Ph.D. Students": inst_dc.grad_students
+                    if inst_dc.grad_students
+                    else 0,
+                    "Headcounts Confirmed?": "Yes"
+                    if inst_dc.headcounts_confirmed
+                    else "No",
+                    "CPU": inst_dc.cpus if inst_dc.cpus else 0,
+                    "GPU": inst_dc.gpus if inst_dc.gpus else 0,
+                    "Computing Confirmed?": "Yes"
+                    if inst_dc.computing_confirmed
+                    else "No",
                 }
             )
             row["Headcount Total"] = sum(
@@ -275,7 +286,7 @@ def _blame_row(
     field_changes = ODict({k: ODict({MOST_RECENT_VALUE: record[k]}) for k in record})
     brand_new, never_changed, oldest_snap_ts = True, True, ""
     for snap_ts, bundle in snap_bundles.items():
-        if snap_record := _find_record_in_snap(bundle["table"]):
+        if snap_record := _find_record_in_snap(bundle.table):
             brand_new = False
         for field in record:
             if field in ["", tconfig.const.GRAND_TOTAL, tconfig.const.US_NON_US]:
@@ -302,7 +313,7 @@ def _blame_row(
         markdown = "***row is brand new***"
     elif never_changed:
         markdown = "**no changes since original snapshot:**\n"
-        markdown += f"- {snap_bundles[oldest_snap_ts]['info']['name']} ({utils.get_human_time(str(oldest_snap_ts), short=True)})"
+        markdown += f"- {snap_bundles[oldest_snap_ts].info.name} ({utils.get_human_time(str(oldest_snap_ts), short=True)})"
     else:
         for field, changes in field_changes.items():
             if not changes:
@@ -329,7 +340,7 @@ def _blame_row(
                     )
                 # a historical value
                 else:
-                    markdown += f"    + Snapshot: {snap_bundles[snap_ts]['info']['name']} ({utils.get_human_time(str(snap_ts), short=True)})\n"
+                    markdown += f"    + Snapshot: {snap_bundles[snap_ts].info.name} ({utils.get_human_time(str(snap_ts), short=True)})\n"
 
     blame_row = {k: v for k, v in record.items() if k in column_names}
     blame_row[_CHANGES_COL] = markdown
@@ -419,16 +430,16 @@ def blame(
 
     # populate blame table
     snap_bundles: Dict[str, _SnapshotBundle] = {
-        info["timestamp"]: {
-            "table": src.pull_data_table(
+        si.timestamp: _SnapshotBundle(
+            table=src.pull_data_table(
                 wbs_l1,
                 tconfig,
-                snapshot_ts=info["timestamp"],
+                snapshot_ts=si.timestamp,
                 raw=True,
             ),
-            "info": info,
-        }
-        for info in src.list_snapshots(wbs_l1)
+            info=si,
+        )
+        for si in src.list_snapshots(wbs_l1)
     }
     blame_table = [
         _blame_row(r, tconfig, column_names, snap_bundles) for r in data_table

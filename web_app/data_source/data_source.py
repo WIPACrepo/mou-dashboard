@@ -363,7 +363,7 @@ def list_snapshots(wbs_l1: str) -> List[types.SnapshotInfo]:
         _RespSnapshots, mou_request("GET", f"/snapshots/list/{wbs_l1}", body)
     )
 
-    return sorted(response["snapshots"], key=lambda i: i["timestamp"], reverse=True)
+    return sorted(response["snapshots"], key=lambda si: si.timestamp, reverse=True)
 
 
 def create_snapshot(wbs_l1: str, name: str) -> types.SnapshotInfo:
@@ -376,7 +376,7 @@ def create_snapshot(wbs_l1: str, name: str) -> types.SnapshotInfo:
         "name": name,
     }
     response = mou_request("POST", f"/snapshots/make/{wbs_l1}", body=body)
-    return cast(types.SnapshotInfo, response)
+    return types.SnapshotInfo(**response)
 
 
 # --------------------------------------------------------------------------------------
@@ -428,17 +428,7 @@ def override_table(
 
 def pull_institution_values(
     wbs_l1: str, snapshot_ts: types.DashVal, institution: types.DashVal
-) -> Tuple[
-    Optional[int],
-    Optional[int],
-    Optional[int],
-    Optional[int],
-    Optional[int],
-    Optional[int],
-    str,
-    bool,
-    bool,
-]:
+) -> types.InstitutionValues:
     """Get the institution's values."""
     _validate(wbs_l1, str, falsy_okay=False)
     snapshot_ts = _validate(snapshot_ts, types.DashVal_types, out=str)
@@ -449,60 +439,33 @@ def pull_institution_values(
         "snapshot_timestamp": snapshot_ts,
     }
     response = mou_request("GET", f"/institution/values/{wbs_l1}", body=body)
-    return (
-        cast(Optional[int], response.get("phds_authors")),
-        cast(Optional[int], response.get("faculty")),
-        cast(Optional[int], response.get("scientists_post_docs")),
-        cast(Optional[int], response.get("grad_students")),
-        cast(Optional[int], response.get("cpus")),
-        cast(Optional[int], response.get("gpus")),
-        cast(str, response.get("text", "")),
-        cast(bool, response.get("headcounts_confirmed", False)),
-        cast(bool, response.get("computing_confirmed", False)),
-    )
+    return types.InstitutionValues(**response)
 
 
 def push_institution_values(  # pylint: disable=R0913
     wbs_l1: str,
     institution: types.DashVal,
-    phds: types.DashVal,
-    faculty: types.DashVal,
-    sci: types.DashVal,
-    grad: types.DashVal,
-    cpus: types.DashVal,
-    gpus: types.DashVal,
-    text: str,
-    hc_confirmed: bool,
-    comp_confirmed: bool,
+    inst_dc: types.InstitutionValues,
 ) -> None:
     """Push the institution's values."""
     _validate(wbs_l1, str, falsy_okay=False)
     institution = _validate(institution, types.DashVal_types)
-    phds = _validate(phds, types.DashVal_types)
-    faculty = _validate(faculty, types.DashVal_types)
-    sci = _validate(sci, types.DashVal_types)
-    grad = _validate(grad, types.DashVal_types)
-    cpus = _validate(cpus, types.DashVal_types)
-    gpus = _validate(gpus, types.DashVal_types)
-    _validate(text, str)
-    _validate(hc_confirmed, bool)
-    _validate(comp_confirmed, bool)
 
     body = {"institution": institution}
-    if phds or phds == 0:
-        body["phds_authors"] = phds
-    if faculty or faculty == 0:
-        body["faculty"] = faculty
-    if sci or sci == 0:
-        body["scientists_post_docs"] = sci
-    if grad or grad == 0:
-        body["grad_students"] = grad
-    if cpus or cpus == 0:
-        body["cpus"] = cpus
-    if gpus or gpus == 0:
-        body["gpus"] = gpus
-    body["text"] = text
-    body["headcounts_confirmed"] = hc_confirmed
-    body["computing_confirmed"] = comp_confirmed
+    if inst_dc.phds_authors or inst_dc.phds_authors == 0:
+        body["phds_authors"] = inst_dc.phds_authors
+    if inst_dc.faculty or inst_dc.faculty == 0:
+        body["faculty"] = inst_dc.faculty
+    if inst_dc.scientists_post_docs or inst_dc.scientists_post_docs == 0:
+        body["scientists_post_docs"] = inst_dc.scientists_post_docs
+    if inst_dc.grad_students or inst_dc.grad_students == 0:
+        body["grad_students"] = inst_dc.grad_students
+    if inst_dc.cpus or inst_dc.cpus == 0:
+        body["cpus"] = inst_dc.cpus
+    if inst_dc.gpus or inst_dc.gpus == 0:
+        body["gpus"] = inst_dc.gpus
+    body["text"] = inst_dc.text
+    body["headcounts_confirmed"] = inst_dc.headcounts_confirmed
+    body["computing_confirmed"] = inst_dc.computing_confirmed
 
     _ = mou_request("POST", f"/institution/values/{wbs_l1}", body=body)
