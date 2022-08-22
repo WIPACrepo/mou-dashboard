@@ -119,8 +119,8 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
         self.write(
             {
                 "n_records": len(await self.mou_db_client.get_table(wbs_l1)),
-                "previous_snapshot": prev_snap_info,
-                "current_snapshot": curr_snap_info,
+                "previous_snapshot": dc.asdict(prev_snap_info),
+                "current_snapshot": dc.asdict(curr_snap_info),
             }
         )
 
