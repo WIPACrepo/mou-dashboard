@@ -280,7 +280,9 @@ class MoUDatabaseClient:
             )
 
         coll_obj = self._mongo[f"{wbs_db}-supplemental"][snap_coll]
-        await coll_obj.replace_one({"timestamp": doc.timestamp}, doc, upsert=True)
+        await coll_obj.replace_one(
+            {"timestamp": doc.timestamp}, dc.asdict(doc), upsert=True
+        )
 
     async def _create_supplemental_db_document(  # pylint: disable=R0913
         self,
