@@ -136,7 +136,7 @@ class TestNoArgumentRoutes:
                 f"/snapshots/make/{WBS_L1}",
                 {"name": f"#{i}", "creator": "Hank"},
             )
-            assert list(resp.keys()) == ["name", "creator", "timestamp", "admin_only"]
+            assert set(resp.keys()) == {"name", "creator", "timestamp", "admin_only"}
             assert resp["name"] == f"#{i}"
             assert resp["creator"] == "Hank"
             now = time.time()
