@@ -1,22 +1,12 @@
 """Testing data."""
 
-import pprint
-import random
+
 import sys
-from typing import Any, Final
-from unittest.mock import AsyncMock, Mock, patch
-
-import pytest
-
-from .. import institution_list
+from typing import Final
 
 sys.path.append(".")
 # pylint: disable=E0401,C0413,C0411
 from rest_server.utils import types  # isort:skip  # noqa
-from rest_server.data_sources import (  # isort:skip  # noqa
-    table_config_cache,
-    columns,
-)
 
 
 WBS: Final[str] = "mo"
