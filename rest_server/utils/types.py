@@ -48,3 +48,4 @@ class SupplementalDoc:
     creator: str
     snapshot_institution_values: Dict[str, InstitutionValues]
     admin_only: bool
+    _id: Optional[ObjectId] = None
