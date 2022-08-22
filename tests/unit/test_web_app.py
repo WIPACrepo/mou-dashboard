@@ -501,7 +501,9 @@ class TestTableConfig:
         }
 
         # Call
-        mock_rest.return_value.request_seq.return_value = resp
+        mock_rest.return_value.request_seq.return_value = {
+            k: dc.asdict(v) for k, v in resp.items()
+        }
         table_config = tc.TableConfigParser(WBS)
 
         # Assert
