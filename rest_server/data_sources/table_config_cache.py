@@ -5,6 +5,7 @@ import logging
 import time
 from typing import Any, Dict, Final, List, Tuple, TypedDict
 
+from ..utils.types import DataEntry
 from . import columns, todays_institutions, wbs
 
 US = "US"
@@ -336,9 +337,9 @@ class TableConfigCache:
             if config.get("on_the_fly")
         ]
 
-    def sort_key(self, k: Dict[str, int | float | str]) -> Tuple[Any, ...]:
+    def sort_key(self, k: Dict[str, DataEntry]) -> Tuple[DataEntry, ...]:
         """Sort key for the table."""
-        sort_keys: List[int | float | str] = []
+        sort_keys: List[DataEntry] = []
 
         column_orders = {
             col: config["sort_value"]

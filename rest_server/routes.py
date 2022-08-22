@@ -19,10 +19,10 @@ _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
 # -----------------------------------------------------------------------------
 
 
-class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
+class BaseMoUHandler(RestHandler):  # pylint: disable=W0223
     """BaseMoUHandler is a RestHandler for all MoU routes."""
 
-    def initialize(  # pylint: disable=W0221
+    def initialize(  # type: ignore[override]  # pylint: disable=W0221
         self,
         mongodb_url: str,
         tc_cache: table_config_cache.TableConfigCache,
@@ -30,7 +30,7 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
         **kwargs: Any,
     ) -> None:
         """Initialize a BaseMoUHandler object."""
-        super().initialize(*args, **kwargs)
+        super().initialize(*args, **kwargs)  # type: ignore[no-untyped-call]
         # pylint: disable=W0201
         self.tc_cache = tc_cache
         self.mou_db_client = mou_db.MoUDatabaseClient(
