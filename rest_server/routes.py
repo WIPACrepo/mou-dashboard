@@ -222,7 +222,7 @@ class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
             await self.mou_db_client.get_snapshot_info(wbs_l1, ts) for ts in timestamps
         ]
 
-        self.write({"snapshots": snapshots})
+        self.write({"snapshots": [dc.asdict(si) for si in snapshots]})
 
 
 # -----------------------------------------------------------------------------
