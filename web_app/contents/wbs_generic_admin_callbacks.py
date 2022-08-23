@@ -175,7 +175,7 @@ def summarize(
 
     insts_infos = institution_info.get_institutions_infos()
 
-    column_names = ["Institution", "Institutional Lead"]
+    column_names = ["Institution", "Institutional Lead", "SOW Table Confirmed?"]
     if wbs_l1 == "mo":
         column_names.extend(
             [
@@ -210,13 +210,19 @@ def summarize(
 
     summary_table: types.Table = []
     for short_name, inst_info in insts_infos.items():
+        inst_dc = src.pull_institution_values(wbs_l1, s_snap_ts, short_name)
+
         row: Dict[str, types.StrNum] = {
             "Institution": inst_info.long_name,
             "Institutional Lead": inst_info.institution_lead_uid,
+            "SOW Table Confirmed?": utils.get_human_time(
+                str(inst_dc.table_confirmed_ts), short=True
+            )
+            if inst_dc.table_confirmed_ts
+            else "No",
         }
 
         if wbs_l1 == "mo":
-            inst_dc = src.pull_institution_values(wbs_l1, s_snap_ts, short_name)
             row.update(
                 {
                     "Ph.D. Authors": inst_dc.phds_authors
@@ -229,13 +235,17 @@ def summarize(
                     "Ph.D. Students": inst_dc.grad_students
                     if inst_dc.grad_students
                     else 0,
-                    "Headcounts Confirmed?": "Yes"
-                    if inst_dc.headcounts_confirmed
+                    "Headcounts Confirmed?": utils.get_human_time(
+                        str(inst_dc.headcounts_confirmed_ts), short=True
+                    )
+                    if inst_dc.headcounts_confirmed_ts
                     else "No",
                     "CPU": inst_dc.cpus if inst_dc.cpus else 0,
                     "GPU": inst_dc.gpus if inst_dc.gpus else 0,
-                    "Computing Confirmed?": "Yes"
-                    if inst_dc.computing_confirmed
+                    "Computing Confirmed?": utils.get_human_time(
+                        str(inst_dc.computing_confirmed_ts), short=True
+                    )
+                    if inst_dc.computing_confirmed_ts
                     else "No",
                 }
             )

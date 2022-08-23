@@ -726,16 +726,22 @@ def handle_make_snapshot(
         Output("wbs-cpus", "value"),
         Output("wbs-gpus", "value"),
         Output("wbs-textarea", "value"),
+        #
         Output("wbs-h2-sow-table", "children"),
         Output("wbs-h2-inst-textarea", "children"),
         Output("wbs-h2-inst-computing", "children"),
+        #
         Output("institution-headcounts-container", "hidden"),
         Output("institution-values-below-table-container", "hidden"),
+        #
         Output("wbs-dropdown-institution", "value"),
         Output("wbs-dropdown-institution", "options"),
+        #
         Output("wbs-filter-labor", "options"),
-        Output("wbs-headcounts-confirm-initial-state", "data"),
-        Output("wbs-computing-confirm-initial-state", "data"),
+        #
+        Output("wbs-headcounts-confirm-timestamp", "data"),
+        Output("wbs-table-confirm-timestamp", "data"),
+        Output("wbs-computing-confirm-timestamp", "data"),
     ],
     [Input("dummy-input-for-setup", "hidden")],  # never triggered
     [
@@ -756,16 +762,22 @@ def setup_institution_components(
     types.DashVal,
     types.DashVal,
     str,
+    #
     str,
     str,
     str,
+    #
     bool,
     bool,
+    #
     types.DashVal,
     List[Dict[str, str]],
+    #
     List[Dict[str, str]],
-    bool,
-    bool,
+    #
+    int,
+    int,
+    int,
 ]:
     """Set up institution-related components."""
     try:
@@ -786,8 +798,9 @@ def setup_institution_components(
         cpus=0,
         gpus=0,
         text="",
-        headcounts_confirmed=True,
-        computing_confirmed=True,
+        headcounts_confirmed_ts=0,
+        table_confirmed_ts=0,
+        computing_confirmed_ts=0,
     )
 
     h2_table = "Collaboration-Wide SOW Table"
@@ -842,8 +855,9 @@ def setup_institution_components(
                 cpus=None,
                 gpus=None,
                 text="",
-                headcounts_confirmed=True,
-                computing_confirmed=True,
+                headcounts_confirmed_ts=0,
+                table_confirmed_ts=0,
+                computing_confirmed_ts=0,
             )
 
     return (
@@ -862,8 +876,9 @@ def setup_institution_components(
         inst,
         sorted(inst_options, key=lambda d: d["label"]),
         labor_options,
-        True if s_snap_ts else inst_dc.headcounts_confirmed,
-        True if s_snap_ts else inst_dc.computing_confirmed,
+        inst_dc.headcounts_confirmed_ts,
+        inst_dc.table_confirmed_ts,
+        inst_dc.computing_confirmed_ts,
     )
 
 
@@ -890,12 +905,16 @@ def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
 @app.callback(  # type: ignore[misc]
     [
         Output("wbs-institution-values-first-time-flag", "data"),
+        #
         Output("wbs-headcounts-timecheck-container", "children"),
         Output("wbs-institution-textarea-timecheck-container", "children"),
         Output("wbs-computing-timecheck-container", "children"),
-        Output("wbs-headcounts-confirm-container", "hidden"),
-        Output("wbs-computing-confirm-container", "hidden"),
+        #
         Output("wbs-headcounts-confirm-container-container", "hidden"),
+        #
+        Output("wbs-headcounts-confirm-timestamp", "data"),
+        Output("wbs-table-confirm-timestamp", "data"),
+        Output("wbs-computing-confirm-timestamp", "data"),
     ],
     [
         Input("wbs-phds-authors", "value"),  # user/setup_institution_components()
@@ -905,18 +924,22 @@ def select_dropdown_institution(inst: types.DashVal, s_urlpath: str) -> str:
         Input("wbs-cpus", "value"),  # user/setup_institution_components()
         Input("wbs-gpus", "value"),  # user/setup_institution_components()
         Input("wbs-textarea", "value"),  # user/setup_institution_components()
+        #
         Input("wbs-headcounts-confirm-yes", "n_clicks"),  # user-only
+        Input("wbs-table-confirm-yes", "n_clicks"),  # user-only
         Input("wbs-computing-confirm-yes", "n_clicks"),  # user-only
     ],
     [
         State("url", "pathname"),
         State("wbs-current-snapshot-ts", "value"),
+        #
         State("wbs-data-table", "data"),
+        #
         State("wbs-institution-values-first-time-flag", "data"),
-        State("wbs-headcounts-confirm-container", "hidden"),
-        State("wbs-computing-confirm-container", "hidden"),
-        State("wbs-headcounts-confirm-initial-state", "data"),
-        State("wbs-computing-confirm-initial-state", "data"),
+        #
+        State("wbs-headcounts-confirm-timestamp", "data"),
+        State("wbs-table-confirm-timestamp", "data"),
+        State("wbs-computing-confirm-timestamp", "data"),
     ],
     prevent_initial_call=True,
 )
@@ -925,22 +948,37 @@ def push_institution_values(  # pylint: disable=R0913
     faculty: types.DashVal,
     sci: types.DashVal,
     grad: types.DashVal,
+    #
     cpus: types.DashVal,
     gpus: types.DashVal,
     text: str,
+    #
     _: int,
     __: int,
+    ___: int,
     # state(s)
     s_urlpath: str,
     s_snap_ts: types.DashVal,
+    #
     s_table: types.Table,
+    #
     s_first_time: bool,
-    s_hc_confirm_hidden: bool,
-    s_comp_confirm_hidden: bool,
-    s_hc_orig_conf: bool,
-    s_comp_orig_conf: bool,
+    #
+    s_hc_conf_ts: int,
+    s_table_conf_ts: int,
+    s_comp_conf_ts: int,
 ) -> Tuple[
-    bool, List[html.Label], List[html.Label], List[html.Label], bool, bool, bool
+    bool,
+    #
+    List[html.Label],
+    List[html.Label],
+    List[html.Label],
+    #
+    bool,
+    #
+    int,
+    int,
+    int,
 ]:
     """Push the institution's values."""
     logging.warning(
@@ -949,15 +987,51 @@ def push_institution_values(  # pylint: disable=R0913
 
     # Is there an institution selected?
     if not (inst := du.get_inst(s_urlpath)):  # pylint: disable=C0325
-        return False, [], [], [], no_update, no_update, no_update
+        return (
+            False,
+            #
+            [],
+            [],
+            [],
+            #
+            no_update,
+            #
+            no_update,
+            no_update,
+            no_update,
+        )
 
     # Are the fields editable?
     if not CurrentUser.is_loggedin_with_permissions():
-        return False, [], [], [], no_update, no_update, True
+        return (
+            False,
+            #
+            [],
+            [],
+            [],
+            #
+            True,
+            #
+            no_update,
+            no_update,
+            no_update,
+        )
 
     # Is this a snapshot?
     if s_snap_ts:
-        return False, [], [], [], no_update, no_update, True
+        return (
+            False,
+            #
+            [],
+            [],
+            [],
+            #
+            True,
+            #
+            no_update,
+            no_update,
+            no_update,
+        )
 
     # check if headcounts are filled out
     hide_hc_btn = None in [phds, faculty, sci, grad]
@@ -966,20 +1040,23 @@ def push_institution_values(  # pylint: disable=R0913
     if s_first_time:
         return (
             False,
+            #
             du.HEADCOUNTS_REQUIRED if hide_hc_btn else [],  # don't show saved at first
             du.timecheck_labels("Notes & Descriptions", "Autosaved"),
             [],  # don't show saved at first
-            s_hc_orig_conf,
-            s_comp_orig_conf,
+            #
             hide_hc_btn,
+            #
+            no_update,
+            no_update,
+            no_update,
         )
 
-    # what're the confirmation states of the counts?
-    hc_new_conf, comp_new_conf = False, False
-    if hc_confirmed := du.figure_headcounts_confirmation_state(s_hc_confirm_hidden):
-        hc_new_conf = du.triggered_id() == "wbs-headcounts-confirm-yes"
-    if comp_confirmed := du.figure_computing_confirmation_state(s_comp_confirm_hidden):
-        comp_new_conf = du.triggered_id() == "wbs-computing-confirm-yes"
+    # what're the confirmation timestamps?
+    hc_confirmed_ts = du.figure_headcounts_confirmation_ts(s_hc_conf_ts)
+    table_conf_ts = du.figure_computing_confirmation_ts(s_table_conf_ts)
+    comp_confirmed_ts = du.figure_computing_confirmation_ts(s_comp_conf_ts)
+
     # push
     try:
         src.push_institution_values(
@@ -993,26 +1070,31 @@ def push_institution_values(  # pylint: disable=R0913
                 cpus=cpus,  # type: ignore[arg-type]
                 gpus=gpus,  # type: ignore[arg-type]
                 text=text,
-                headcounts_confirmed=hc_confirmed,
-                computing_confirmed=comp_confirmed,
+                headcounts_confirmed_ts=hc_confirmed_ts,
+                table_confirmed_ts=table_conf_ts,
+                computing_confirmed_ts=comp_confirmed_ts,
             ),
         )
     except DataSourceException:
         assert len(s_table) == 0  # there's no collection to push to
 
-    hc_label = (
-        du.HEADCOUNTS_REQUIRED
-        if hide_hc_btn
-        else du.counts_saved_label(hc_confirmed, hc_new_conf, "Headcounts")
-    )
     return (
         False,
-        hc_label,
+        #
+        du.confirmation_saved_label(
+            hc_confirmed_ts,
+            "Headcounts",
+            override=hide_hc_btn,
+            override_label=du.HEADCOUNTS_REQUIRED,
+        ),
         du.timecheck_labels("Notes & Descriptions", "Autosaved"),
-        du.counts_saved_label(comp_confirmed, comp_new_conf, "Computing Contributions"),
-        hc_confirmed,
-        comp_confirmed,
+        du.confirmation_saved_label(comp_confirmed_ts, "Computing Contributions"),
+        #
         hide_hc_btn,
+        #
+        hc_confirmed_ts,
+        table_conf_ts,
+        comp_confirmed_ts,
     )
 
 

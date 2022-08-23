@@ -186,9 +186,8 @@ def layout() -> html.Div:
                             ]
                         ],
                     ),
-                    # Autosaved
+                    # Autosaved & Confirm
                     du.make_timecheck_container("wbs-headcounts-timecheck-container"),
-                    # Confirm
                     html.Div(
                         id="wbs-headcounts-confirm-container-container",
                         children=du.make_confirm_container(
@@ -311,6 +310,7 @@ def layout() -> html.Div:
             #
             # Table Autosaved
             du.make_timecheck_container("wbs-table-timecheck-container", loading=True),
+            du.make_confirm_container("table", "Submit SOWs"),
             #
             html.Div(
                 id="institution-values-below-table-container",
@@ -347,12 +347,11 @@ def layout() -> html.Div:
                             ]
                         ],
                     ),
-                    # Autosaved
+                    # Autosaved & Confirm
                     du.make_timecheck_container("wbs-computing-timecheck-container"),
-                    # Confirm
                     du.make_confirm_container("computing", "Submit Counts"),
                     #
-                    # Free Text
+                    # Free Text & Autosaved
                     html.H2(
                         className="section-header",
                         id="wbs-h2-inst-textarea",
@@ -363,7 +362,6 @@ def layout() -> html.Div:
                         className="institution-text-area",
                         disabled=True,
                     ),
-                    # Autosaved
                     du.make_timecheck_container(
                         "wbs-institution-textarea-timecheck-container", loading=True
                     ),
@@ -438,6 +436,19 @@ def layout() -> html.Div:
                     #
                     html.Hr(),
                     #
+                    # Reset Confirmations
+                    dbc.Button(
+                        "Reset Institution Confirmations",
+                        id="wbs-reset-inst-confirmations-button",
+                        block=True,
+                        n_clicks=0,
+                        color=du.Color.SUCCESS,
+                        disabled=False,
+                        style={"margin-bottom": "1rem"},
+                    ),
+                    #
+                    html.Hr(),
+                    #
                     # Upload/Override XLSX
                     dbc.Button(
                         "Override All Institutions' SOW Tables with .xlsx",
@@ -445,7 +456,7 @@ def layout() -> html.Div:
                         block=True,
                         n_clicks=0,
                         color=du.Color.WARNING,
-                        disabled=False,
+                        disabled=True,  # this isn't needed anymore
                         style={"margin-bottom": "1rem"},
                     ),
                 ],
@@ -460,9 +471,10 @@ def layout() -> html.Div:
                 storage_type="memory",
                 data=True,
             ),
-            # - for fagging the initial count-confirmation states
-            dcc.Store(id="wbs-headcounts-confirm-initial-state", storage_type="memory"),
-            dcc.Store(id="wbs-computing-confirm-initial-state", storage_type="memory"),
+            # - for storing the initial confirmation timestamps
+            dcc.Store(id="wbs-headcounts-confirm-timestamp", storage_type="memory"),
+            dcc.Store(id="wbs-table-confirm-timestamp", storage_type="memory"),
+            dcc.Store(id="wbs-computing-confirm-timestamp", storage_type="memory"),
             # - for storing the last deleted record's id
             dcc.Store(id="wbs-last-deleted-record", storage_type="memory"),
             # - for discerning whether the table update was by the user vs automated

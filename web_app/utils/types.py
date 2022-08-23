@@ -51,5 +51,6 @@ class InstitutionValues:
     cpus: Optional[int]
     gpus: Optional[int]
     text: str
-    headcounts_confirmed: bool
-    computing_confirmed: bool
+    headcounts_confirmed_ts: int  # timestamp
+    table_confirmed_ts: int  # timestamp
+    computing_confirmed_ts: int  # timestamp

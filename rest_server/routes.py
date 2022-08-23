@@ -279,11 +279,14 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
         cpus = self.get_argument("cpus", type=int, default=-1)
         gpus = self.get_argument("gpus", type=int, default=-1)
         text = self.get_argument("text", default="")
-        headcounts_confirmed = self.get_argument(
-            "headcounts_confirmed", type=bool, default=False
+        headcounts_confirmed_ts = self.get_argument(
+            "headcounts_confirmed_ts", type=int, default=0
         )
-        computing_confirmed = self.get_argument(
-            "computing_confirmed", type=bool, default=False
+        table_confirmed_ts = self.get_argument(
+            "table_confirmed_ts", type=int, default=0
+        )
+        computing_confirmed_ts = self.get_argument(
+            "computing_confirmed_ts", type=int, default=0
         )
 
         vals = types.InstitutionValues(
@@ -294,8 +297,9 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
             cpus=cpus if cpus >= 0 else None,
             gpus=gpus if gpus >= 0 else None,
             text=text,
-            headcounts_confirmed=headcounts_confirmed,
-            computing_confirmed=computing_confirmed,
+            headcounts_confirmed_ts=headcounts_confirmed_ts,
+            table_confirmed_ts=table_confirmed_ts,
+            computing_confirmed_ts=computing_confirmed_ts,
         )
 
         await self.mou_db_client.upsert_institution_values(wbs_l1, institution, vals)

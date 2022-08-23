@@ -2,6 +2,7 @@
 
 
 import logging
+import time
 import urllib
 from typing import Any, Collection, Dict, Final, List, cast
 
@@ -120,37 +121,44 @@ HEADCOUNTS_REQUIRED = [
 ]
 
 
-def counts_saved_label(
-    confirmed: bool, just_now_confirmed: bool, label: str
+def confirmation_saved_label(
+    confirmed_ts: int,
+    label: str,
+    override: bool = False,
+    override_label: None | List[html.Label] = None,
 ) -> List[html.Label]:
-    """Get a counts saved-label."""
+    """Get a confirmation-saved label."""
+    if override:
+        return override_label if override_label else []
+
+    # TODO - detect if recent change
     if just_now_confirmed:  # show saved label if count was just now confirmed
         return timecheck_labels(label, "Submitted")
-    elif not confirmed:  # if it's not confirmed, then don't show anything
+    elif not confirmed_ts:  # if it's not confirmed, then don't show anything
         return []
     else:  # it's confirmed but this isn't new, so don't change anything
         return dash.no_update  # type: ignore[no-any-return]
 
 
-def _figure_counts_confirmation_state(
-    confirm_trigger_id: str, prev_state: bool, causal_fields: List[str]
-) -> bool:
+def _figure_confirmation_ts(
+    confirm_trigger_id: str, prev_ts: int, causal_fields: List[str]
+) -> int:
     if triggered_id() == confirm_trigger_id:
         # the user is confirming the count
-        return True
+        return int(time.time())
     elif triggered_id() in causal_fields:
         # if a casual-field value changed, then the count is no longer confirmed
-        return False
+        return 0
     else:
-        # an unrelated value changed, so maintain previous state
-        return prev_state
+        # an unrelated value changed, so maintain previous timestamp
+        return prev_ts
 
 
-def figure_headcounts_confirmation_state(prev_state: bool) -> bool:
-    """Figure the confirmation states for the headcounts."""
-    return _figure_counts_confirmation_state(
+def figure_headcounts_confirmation_ts(prev_ts: int) -> int:
+    """Figure the confirmation timestamp for the headcounts."""
+    return _figure_confirmation_ts(
         "wbs-headcounts-confirm-yes",
-        prev_state,
+        prev_ts,
         [
             "wbs-phds-authors",
             "wbs-faculty",
@@ -160,10 +168,26 @@ def figure_headcounts_confirmation_state(prev_state: bool) -> bool:
     )
 
 
-def figure_computing_confirmation_state(prev_state: bool) -> bool:
-    """Figure the confirmation states for the computing counts."""
-    return _figure_counts_confirmation_state(
-        "wbs-computing-confirm-yes", prev_state, ["wbs-cpus", "wbs-gpus"]
+def figure_table_confirmation_ts(prev_ts: int) -> int:
+    """Figure the confirmation timestamp for the table."""
+    return _figure_confirmation_ts(
+        "wbs-table-confirm-yes",
+        prev_ts,
+        [
+            # TODO
+        ],
+    )
+
+
+def figure_computing_confirmation_ts(prev_ts: int) -> int:
+    """Figure the confirmation timestamp for the computing counts."""
+    return _figure_confirmation_ts(
+        "wbs-computing-confirm-yes",
+        prev_ts,
+        [
+            "wbs-cpus",
+            "wbs-gpus",
+        ],
     )
 
 

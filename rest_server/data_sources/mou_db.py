@@ -231,8 +231,9 @@ class MoUDatabaseClient:
             cpus=None,
             gpus=None,
             text="",
-            headcounts_confirmed=False,
-            computing_confirmed=False,
+            headcounts_confirmed_ts=0,
+            table_confirmed_ts=0,
+            computing_confirmed_ts=0,
         )
 
         if not snapshot_timestamp:
@@ -500,14 +501,6 @@ class MoUDatabaseClient:
             supplemental_doc.snapshot_institution_values,
             admin_only,
         )
-
-        # set all *_confirmed values to False
-        for inst, vals in supplemental_doc.snapshot_institution_values.items():
-            await self.upsert_institution_values(
-                wbs_db,
-                inst,
-                dc.replace(vals, headcounts_confirmed=False, computing_confirmed=False),
-            )
 
         logging.info(f"Snapshotted {snap_coll} ({wbs_db=}, {creator=}).")
         return snap_coll

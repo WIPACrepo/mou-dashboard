@@ -451,6 +451,8 @@ def push_institution_values(  # pylint: disable=R0913
     _validate(wbs_l1, str, falsy_okay=False)
     institution = _validate(institution, types.DashVal_types)
 
+    # TODO - use asdict()
+
     body = {"institution": institution}
     if inst_dc.phds_authors or inst_dc.phds_authors == 0:
         body["phds_authors"] = inst_dc.phds_authors
@@ -465,7 +467,8 @@ def push_institution_values(  # pylint: disable=R0913
     if inst_dc.gpus or inst_dc.gpus == 0:
         body["gpus"] = inst_dc.gpus
     body["text"] = inst_dc.text
-    body["headcounts_confirmed"] = inst_dc.headcounts_confirmed
-    body["computing_confirmed"] = inst_dc.computing_confirmed
+    body["headcounts_confirmed_ts"] = inst_dc.headcounts_confirmed_ts
+    body["table_confirmed_ts"] = inst_dc.table_confirmed_ts
+    body["computing_confirmed_ts"] = inst_dc.computing_confirmed_ts
 
     _ = mou_request("POST", f"/institution/values/{wbs_l1}", body=body)
