@@ -3,17 +3,12 @@
 # pylint: disable=W0212,W0621
 
 
-import sys
 from typing import Iterator
 
 import pytest
-
-sys.path.append(".")
-import web_app.utils  # isort:skip  # noqa # pylint: disable=E0401,C0413
-from web_app.data_source import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
-    table_config as tc,
-    institution_info,
-)
+import web_app.utils
+from web_app.data_source import institution_info
+from web_app.data_source import table_config as tc
 
 
 @pytest.fixture(autouse=True)

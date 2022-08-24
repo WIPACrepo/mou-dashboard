@@ -5,7 +5,6 @@
 
 import copy
 import pprint
-import sys
 import time
 from decimal import Decimal
 from typing import Any, Dict, Final, List
@@ -13,24 +12,15 @@ from unittest.mock import ANY, AsyncMock, Mock, patch, sentinel
 
 import nest_asyncio  # type: ignore[import]
 import pytest
+import universal_utils.types as uut
 from bson.objectid import ObjectId
+from rest_server import config
+from rest_server.data_sources import columns, mou_db
+from rest_server.data_sources import table_config_cache as tcc
+from rest_server.utils import mongo_tools, utils
 
 from .. import institution_list
 from . import data
-
-sys.path.append(".")
-from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
-    utils,
-    types,
-    mongo_tools,
-)
-from rest_server.data_sources import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
-    mou_db,
-    table_config_cache as tcc,
-    columns,
-)
-from rest_server import config  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
-
 
 nest_asyncio.apply()  # allows nested event loops
 
@@ -260,7 +250,7 @@ class TestMoUDataAdaptor:
         }
 
         # Test good records
-        good_records: List[types.Record] = [
+        good_records: List[uut.DBRecord] = [
             {
                 "F.o.o": "foo-2",
                 "B.a.r": "bar-1",
@@ -303,7 +293,7 @@ class TestMoUDataAdaptor:
             mou_data_adaptor._validate_record_data(WBS, record)
 
         # Test bad records
-        bad_records: List[types.Record] = [
+        bad_records: List[uut.DBRecord] = [
             {"F.o.o": "foo-2", "Ham": 357},  # bad conditional column
             {
                 "F.o.o": "pork",
@@ -334,7 +324,7 @@ class TestMoUDataAdaptor:
         mou_data_adaptor = utils.MoUDataAdaptor(await tcc.TableConfigCache.create())
 
         # Set-Up
-        records: List[types.Record] = [
+        records: List[uut.DBRecord] = [
             {},
             {
                 "a.b": 5,
@@ -346,7 +336,7 @@ class TestMoUDataAdaptor:
             },
         ]
 
-        mongofied_records: List[types.Record] = [
+        mongofied_records: List[uut.DBRecord] = [
             {},
             {
                 "a;b": 5,
@@ -367,7 +357,7 @@ class TestMoUDataAdaptor:
     def test_demongofy_record() -> None:
         """Test _demongofy_record()."""
         # Set-Up
-        records: List[types.Record] = [
+        records: List[uut.DBRecord] = [
             {"_id": ANY},
             {"_id": ANY, utils.MoUDataAdaptor.IS_DELETED: True},
             {"_id": ANY, utils.MoUDataAdaptor.IS_DELETED: False},
@@ -375,7 +365,7 @@ class TestMoUDataAdaptor:
             {"_id": ObjectId("5f725c6af0803660075769ab"), "FOO": "bar"},
         ]
 
-        demongofied_records: List[types.Record] = [
+        demongofied_records: List[uut.DBRecord] = [
             {"_id": ANY},
             {"_id": ANY},
             {"_id": ANY},
@@ -407,13 +397,13 @@ class TestTableConfigDataAdaptor:
         )
 
         # Set-Up
-        before_records: List[types.Record] = [
+        before_records: List[uut.DBRecord] = [
             {"_id": ANY},
             {"Grand Total": 999.99, "FTE": 50},
             {"NSF M&O Core": 100},
             {"_id": ANY, "a;b": 5, "Foo;Bar": "Baz", "Grand Total": 999.99},
         ]
-        after_records: List[types.Record] = [
+        after_records: List[uut.DBRecord] = [
             {"_id": ANY},
             {"FTE": 50},
             {},
@@ -437,7 +427,7 @@ class TestTableConfigDataAdaptor:
         )
 
         # Set-Up
-        before_records: List[types.Record] = [
+        before_records: List[uut.DBRecord] = [
             {
                 "_id": ANY,
                 "Institution": "Stony-Brook",
@@ -465,7 +455,7 @@ class TestTableConfigDataAdaptor:
                 "Grand Total": 5555555555,  # will get overwritten w/ FTE
             },
         ]
-        after_records: List[types.Record] = [
+        after_records: List[uut.DBRecord] = [
             {
                 "_id": ANY,
                 "Institution": "Stony-Brook",
@@ -538,7 +528,7 @@ class TestTableConfigDataAdaptor:
         tc_cache = await tcc.TableConfigCache.create()
         tc_data_adaptor = utils.TableConfigDataAdaptor(tc_cache)
 
-        def _assert_funds_totals(_rows: types.Table, _total_row: types.Record) -> None:
+        def _assert_funds_totals(_rows: uut.DBTable, _total_row: uut.DBRecord) -> None:
             print("\n-----------------------------------------------------\n")
             pprint.pprint(_rows)
             pprint.pprint(_total_row)
@@ -560,7 +550,7 @@ class TestTableConfigDataAdaptor:
                 )
 
         # Test example table and empty table
-        test_tables: Final[List[types.Table]] = [copy.deepcopy(data.FTE_ROWS), []]
+        test_tables: Final[List[uut.DBTable]] = [copy.deepcopy(data.FTE_ROWS), []]
         for table in test_tables:
             # Call
             totals = tc_data_adaptor.get_total_rows(WBS, table)

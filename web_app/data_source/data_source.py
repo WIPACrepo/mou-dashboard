@@ -3,6 +3,8 @@
 
 from typing import Any, Dict, Final, List, Tuple, TypedDict, cast
 
+import universal_utils.types as uut
+
 from ..utils import types, utils
 from ..utils.oidc_tools import CurrentUser
 from . import table_config as tc
@@ -13,7 +15,7 @@ _OC_SUFFIX: Final[str] = "_original"
 
 
 # --------------------------------------------------------------------------------------
-# Data/types.Table-Conversion Functions
+# Data/uut.WebTable-Conversion Functions
 
 
 def get_touchstone_name(column: str) -> str:
@@ -30,21 +32,21 @@ def _is_touchstone_column(column: str) -> bool:
 
 
 def _convert_record_rest_to_dash(
-    record: types.Record, tconfig: tc.TableConfigParser, novel: bool = False
-) -> types.Record:
+    record: uut.WebRecord, tconfig: tc.TableConfigParser, novel: bool = False
+) -> uut.WebRecord:
     """Convert a record to be added to Dash's datatable.
 
     Make a copy of each field in an new column to detect changed values.
     These columns aren't meant to be seen by the user.
 
     Arguments:
-        record {types.Record} -- the record, that will be updated
+        record {uut.WebRecord} -- the record, that will be updated
 
     Keyword Arguments:
         novel {bool} -- if True, don't copy values, just set as '' (default: {False})
 
     Returns:
-        types.Record -- the argument value
+        uut.WebRecord -- the argument value
     """
     if ts := record.get(tconfig.const.TIMESTAMP):
         record[tconfig.const.TIMESTAMP] = utils.get_iso(str(ts))
@@ -66,8 +68,8 @@ def _convert_record_rest_to_dash(
 
 
 def _convert_table_rest_to_dash(
-    table: types.Table, tconfig: tc.TableConfigParser
-) -> types.Table:
+    table: uut.WebTable, tconfig: tc.TableConfigParser
+) -> uut.WebTable:
     """Convert a table to be added as Dash's datatable.
 
     Make a copy of each column to detect changed values (aka the
@@ -81,7 +83,7 @@ def _convert_table_rest_to_dash(
 
 
 def _is_valid_simple_dropdown(
-    parser: tc.TableConfigParser, record: types.Record, field: str
+    parser: tc.TableConfigParser, record: uut.WebRecord, field: str
 ) -> bool:
     if not parser.is_simple_dropdown(field):
         raise Exception(f"not simple dropdown: {field} ({record})")
@@ -93,7 +95,7 @@ def _is_valid_simple_dropdown(
 
 
 def _is_valid_conditional_dropdown(
-    parser: tc.TableConfigParser, record: types.Record, field: str
+    parser: tc.TableConfigParser, record: uut.WebRecord, field: str
 ) -> bool:
     if not parser.is_conditional_dropdown(field):
         raise Exception(f"not conditional dropdown: {field} ({record})")
@@ -112,11 +114,11 @@ def _is_valid_conditional_dropdown(
 
 
 def _remove_invalid_data(
-    record: types.Record, tconfig: tc.TableConfigParser
-) -> types.Record:
+    record: uut.WebRecord, tconfig: tc.TableConfigParser
+) -> uut.WebRecord:
     """Remove items whose data aren't valid."""
 
-    def _remove_orphans(_record: types.Record) -> types.Record:
+    def _remove_orphans(_record: uut.WebRecord) -> uut.WebRecord:
         """Remove orphaned child fields."""
         return {
             k: v
@@ -154,8 +156,8 @@ def _remove_invalid_data(
 
 
 def _convert_record_dash_to_rest(
-    record: types.Record, tconfig: tc.TableConfigParser | None = None
-) -> types.Record:
+    record: uut.WebRecord, tconfig: tc.TableConfigParser | None = None
+) -> uut.WebRecord:
     """Convert a record from Dash's datatable to be sent to the rest server.
 
     Copy but leave out the touchstone columns used to detect changed
@@ -169,7 +171,9 @@ def _convert_record_dash_to_rest(
     return out_record
 
 
-def record_to_strings(record: types.Record, tconfig: tc.TableConfigParser) -> List[str]:
+def record_to_strings(
+    record: uut.WebRecord, tconfig: tc.TableConfigParser
+) -> List[str]:
     """Get a string representation of the record."""
     strings = []
     for field, value in _convert_record_dash_to_rest(record).items():
@@ -240,7 +244,7 @@ def pull_data_table(  # pylint: disable=R0913
     snapshot_ts: types.DashVal = "",
     restore_id: str = "",
     raw: bool = False,
-) -> types.Table:
+) -> uut.WebTable:
     """Get table, optionally filtered by institution and/or labor.
 
     Grab a snapshot table, if `snapshot_ts` is given ("" gives live table).
@@ -255,7 +259,7 @@ def pull_data_table(  # pylint: disable=R0913
         raw -- {bool} -- True if data isn't for datatable display (default: {False})
 
     Returns:
-        types.Table -- the returned table
+        uut.WebTable -- the returned table
     """
     _validate(wbs_l1, str, falsy_okay=False)
     institution = _validate(institution, types.DashVal_types, out=str)
@@ -265,7 +269,7 @@ def pull_data_table(  # pylint: disable=R0913
     _validate(restore_id, str)
 
     class _RespTableData(TypedDict):
-        table: types.Table
+        table: uut.WebTable
 
     # request
     body = {
@@ -288,13 +292,13 @@ def pull_data_table(  # pylint: disable=R0913
 
 def push_record(  # pylint: disable=R0913
     wbs_l1: str,
-    record: types.Record,
+    record: uut.WebRecord,
     tconfig: tc.TableConfigParser,
     task: str = "",
     labor: types.DashVal = "",
     institution: types.DashVal = "",
     novel: bool = False,
-) -> types.Record:
+) -> uut.WebRecord:
     """Push new/changed record to source.
 
     Keyword Arguments:
@@ -303,7 +307,7 @@ def push_record(  # pylint: disable=R0913
         novel {bool} -- whether the record is new (default: {False})
 
     Returns:
-        types.Record -- the returned record
+        uut.WebRecord -- the returned record
     """
     _validate(wbs_l1, str, falsy_okay=False)
     _validate(record, dict)
@@ -314,7 +318,7 @@ def push_record(  # pylint: disable=R0913
     _validate(tconfig, tc.TableConfigParser)
 
     class _RespRecord(TypedDict):
-        record: types.Record
+        record: uut.WebRecord
 
     # request
     body: Dict[str, Any] = {
@@ -348,12 +352,12 @@ def delete_record(wbs_l1: str, record_id: str) -> None:
 # Snapshot Functions
 
 
-def list_snapshots(wbs_l1: str) -> List[types.SnapshotInfo]:
+def list_snapshots(wbs_l1: str) -> List[uut.SnapshotInfo]:
     """Get the list of snapshots."""
     _validate(wbs_l1, str, falsy_okay=False)
 
     class _RespSnapshots(TypedDict):
-        snapshots: List[types.SnapshotInfo]
+        snapshots: List[uut.SnapshotInfo]
 
     body = {
         "is_admin": CurrentUser.is_loggedin_with_permissions()
@@ -366,7 +370,7 @@ def list_snapshots(wbs_l1: str) -> List[types.SnapshotInfo]:
     return sorted(response["snapshots"], key=lambda si: si.timestamp, reverse=True)
 
 
-def create_snapshot(wbs_l1: str, name: str) -> types.SnapshotInfo:
+def create_snapshot(wbs_l1: str, name: str) -> uut.SnapshotInfo:
     """Create a snapshot."""
     _validate(wbs_l1, str, falsy_okay=False)
     _validate(name, str)
@@ -376,7 +380,7 @@ def create_snapshot(wbs_l1: str, name: str) -> types.SnapshotInfo:
         "name": name,
     }
     response = mou_request("POST", f"/snapshots/make/{wbs_l1}", body=body)
-    return types.SnapshotInfo(**response)
+    return uut.SnapshotInfo(**response)
 
 
 # --------------------------------------------------------------------------------------
@@ -385,7 +389,7 @@ def create_snapshot(wbs_l1: str, name: str) -> types.SnapshotInfo:
 
 def override_table(
     wbs_l1: str, base64_file: str, filename: str
-) -> Tuple[int, types.SnapshotInfo | None, types.SnapshotInfo | None]:
+) -> Tuple[int, uut.SnapshotInfo | None, uut.SnapshotInfo | None]:
     """Ingest .xlsx file as the new live collection.
 
     Arguments:
@@ -403,8 +407,8 @@ def override_table(
 
     class _RespTableData(TypedDict):
         n_records: int
-        previous_snapshot: types.SnapshotInfo
-        current_snapshot: types.SnapshotInfo
+        previous_snapshot: uut.SnapshotInfo
+        current_snapshot: uut.SnapshotInfo
 
     body = {
         "base64_file": base64_file,
@@ -428,7 +432,7 @@ def override_table(
 
 def pull_institution_values(
     wbs_l1: str, snapshot_ts: types.DashVal, institution: types.DashVal
-) -> types.InstitutionValues:
+) -> uut.InstitutionValues:
     """Get the institution's values."""
     _validate(wbs_l1, str, falsy_okay=False)
     snapshot_ts = _validate(snapshot_ts, types.DashVal_types, out=str)
@@ -439,13 +443,13 @@ def pull_institution_values(
         "snapshot_timestamp": snapshot_ts,
     }
     response = mou_request("GET", f"/institution/values/{wbs_l1}", body=body)
-    return types.InstitutionValues(**response)
+    return uut.InstitutionValues(**response)
 
 
 def push_institution_values(  # pylint: disable=R0913
     wbs_l1: str,
     institution: types.DashVal,
-    inst_dc: types.InstitutionValues,
+    inst_dc: uut.InstitutionValues,
 ) -> None:
     """Push the institution's values."""
     _validate(wbs_l1, str, falsy_okay=False)

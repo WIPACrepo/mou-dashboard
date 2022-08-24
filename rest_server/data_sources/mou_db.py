@@ -9,6 +9,7 @@ from typing import Dict, List, Tuple
 
 import pandas as pd  # type: ignore[import]
 import pymongo.errors
+import universal_utils.types as uut
 from motor.motor_tornado import MotorClient  # type: ignore
 from tornado import web
 
@@ -32,9 +33,9 @@ class MoUDatabaseClient:
     async def _create_live_collection(  # pylint: disable=R0913
         self,
         wbs_db: str,
-        table: types.Table,
+        table: uut.DBTable,
         creator: str,
-        all_insts_values: Dict[str, types.InstitutionValues],
+        all_insts_values: Dict[str, uut.InstitutionValues],
     ) -> None:
         """Create the live collection."""
         logging.debug(f"Creating Live Collection ({wbs_db=})...")
@@ -57,7 +58,7 @@ class MoUDatabaseClient:
         """
         logging.info(f"Ingesting xlsx {filename} ({wbs_db=})...")
 
-        def _is_a_total_row(row: types.Record) -> bool:
+        def _is_a_total_row(row: uut.DBRecord) -> bool:
             # check L2, L3, Inst., & US/Non-US  columns for "total" substring
             for key in [
                 columns.WBS_L2,
@@ -70,7 +71,7 @@ class MoUDatabaseClient:
                     return True
             return False
 
-        def _row_has_data(row: types.Record) -> bool:
+        def _row_has_data(row: uut.DBRecord) -> bool:
             # check purely blank rows
             if not any(row.values()):  # purely blank rows
                 return False
@@ -111,7 +112,7 @@ class MoUDatabaseClient:
         # mongofy table -- and verify data
         try:
             tc_adaptor = TableConfigDataAdaptor(self.data_adaptor.tc_cache)
-            table: types.Table = [
+            table: uut.DBTable = [
                 self.data_adaptor.mongofy_record(
                     wbs_db,
                     tc_adaptor.remove_on_the_fly_fields(row),
@@ -165,9 +166,7 @@ class MoUDatabaseClient:
             if n not in EXCLUDE_COLLECTIONS
         ]
 
-    async def get_snapshot_info(
-        self, wbs_db: str, snap_coll: str
-    ) -> types.SnapshotInfo:
+    async def get_snapshot_info(self, wbs_db: str, snap_coll: str) -> uut.SnapshotInfo:
         """Get the name of the snapshot."""
         logging.debug(f"Getting Snapshot Name ({wbs_db=}, {snap_coll=})...")
 
@@ -176,7 +175,7 @@ class MoUDatabaseClient:
         doc = await self._get_supplemental_doc(wbs_db, snap_coll)
 
         logging.info(f"Snapshot Name [{doc.name}] ({wbs_db=}, {snap_coll=})...")
-        return types.SnapshotInfo(
+        return uut.SnapshotInfo(
             name=doc.name,
             creator=doc.creator,
             timestamp=doc.timestamp,
@@ -184,7 +183,7 @@ class MoUDatabaseClient:
         )
 
     async def upsert_institution_values(
-        self, wbs_db: str, institution: str, vals: types.InstitutionValues
+        self, wbs_db: str, institution: str, vals: uut.InstitutionValues
     ) -> None:
         """Upsert the values for an institution."""
         logging.debug(
@@ -217,13 +216,13 @@ class MoUDatabaseClient:
         wbs_db: str,
         snapshot_timestamp: str,
         institution: str,
-    ) -> types.InstitutionValues:
+    ) -> uut.InstitutionValues:
         """Get the values for an institution."""
         logging.debug(f"Getting Institution's Values ({wbs_db=}, {institution=})...")
 
         await self._check_database_state(wbs_db)
 
-        vals = types.InstitutionValues(
+        vals = uut.InstitutionValues(
             phds_authors=None,
             faculty=None,
             scientists_post_docs=None,
@@ -291,7 +290,7 @@ class MoUDatabaseClient:
         snap_coll: str,
         name: str,
         creator: str,
-        all_insts_values: Dict[str, types.InstitutionValues],
+        all_insts_values: Dict[str, uut.InstitutionValues],
         admin_only: bool,
     ) -> None:
         logging.debug(f"Creating Supplemental DB/Document ({wbs_db=}, {snap_coll=})...")
@@ -323,10 +322,10 @@ class MoUDatabaseClient:
         self,
         wbs_db: str,
         snap_coll: str,
-        table: types.Table,
+        table: uut.DBTable,
         name: str,
         creator: str,
-        all_insts_values: Dict[str, types.InstitutionValues],
+        all_insts_values: Dict[str, uut.InstitutionValues],
         admin_only: bool,
     ) -> None:
         """Add table to a new collection.
@@ -384,7 +383,7 @@ class MoUDatabaseClient:
 
     async def get_table(
         self, wbs_db: str, snap_coll: str = "", labor: str = "", institution: str = ""
-    ) -> types.Table:
+    ) -> uut.DBTable:
         """Return the table from the collection name."""
         if not snap_coll:
             snap_coll = _LIVE_COLLECTION
@@ -401,7 +400,7 @@ class MoUDatabaseClient:
             query[Mongofier.mongofy_key_name(columns.INSTITUTION)] = institution
 
         # build demongofied table
-        table: types.Table = []
+        table: uut.DBTable = []
         i, dels = 0, 0
         async for record in self._mongo[wbs_db][snap_coll].find(query):
             if record.get(self.data_adaptor.IS_DELETED):
@@ -418,8 +417,8 @@ class MoUDatabaseClient:
         return table
 
     async def upsert_record(
-        self, wbs_db: str, record: types.Record, editor: str
-    ) -> types.Record:
+        self, wbs_db: str, record: uut.DBRecord, editor: str
+    ) -> uut.DBRecord:
         """Insert a record.
 
         Update if it already exists.
@@ -452,13 +451,13 @@ class MoUDatabaseClient:
 
     async def _set_is_deleted_status(
         self, wbs_db: str, record_id: str, is_deleted: bool, editor: str = ""
-    ) -> types.Record:
+    ) -> uut.DBRecord:
         """Mark the record as deleted/not-deleted."""
         query = self.data_adaptor.mongofy_record(
             wbs_db,
             {columns.ID: record_id},
         )
-        record: types.Record = await self._mongo[wbs_db][_LIVE_COLLECTION].find_one(
+        record: uut.DBRecord = await self._mongo[wbs_db][_LIVE_COLLECTION].find_one(
             query
         )
 
@@ -469,7 +468,7 @@ class MoUDatabaseClient:
 
     async def delete_record(
         self, wbs_db: str, record_id: str, editor: str
-    ) -> types.Record:
+    ) -> uut.DBRecord:
         """Mark the record as deleted."""
         logging.debug(f"Deleting {record_id} ({wbs_db=})...")
 

@@ -7,7 +7,6 @@
 import dataclasses as dc
 import inspect
 import itertools
-import sys
 from copy import deepcopy
 from enum import Enum
 from typing import Any, Final, Iterator, List, TypedDict
@@ -15,15 +14,12 @@ from unittest.mock import patch
 
 import pytest
 import requests
-
-sys.path.append(".")
-import web_app.utils  # isort:skip  # noqa # pylint: disable=E0401,C0413
-from web_app.data_source import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
-    data_source as src,
-    table_config as tc,
-    utils,
-    institution_info,
-)
+import universal_utils.types as uut
+import web_app.utils
+from web_app.data_source import data_source as src
+from web_app.data_source import institution_info
+from web_app.data_source import table_config as tc
+from web_app.data_source import utils
 
 WBS = "mo"
 
@@ -77,9 +73,9 @@ def tconfig() -> Iterator[tc.TableConfigParser]:
 class TestPrivateDataSource:
     """Test private functions in dash_source.py."""
 
-    RECORD: Final[web_app.utils.types.Record] = {"a": "AA", "b": "BB", "c": "CC"}
+    RECORD: Final[uut.WebRecord] = {"a": "AA", "b": "BB", "c": "CC"}
 
-    def _get_new_record(self) -> web_app.utils.types.Record:
+    def _get_new_record(self) -> uut.WebRecord:
         return deepcopy(self.RECORD)
 
     def test_add_original_copies_to_record(self, tconfig: tc.TableConfigParser) -> None:
@@ -135,9 +131,7 @@ class TestPrivateDataSource:
         """Test _remove_invalid_data() & _convert_record_dash_to_rest()."""
         # pylint: disable=R0915,R0912
 
-        def _assert(
-            _orig: web_app.utils.types.Record, _good: web_app.utils.types.Record
-        ) -> None:
+        def _assert(_orig: uut.WebRecord, _good: uut.WebRecord) -> None:
             assert (
                 _good
                 == src._remove_invalid_data(_orig, tconfig)
@@ -149,7 +143,7 @@ class TestPrivateDataSource:
 
         # Test every combination of a simple-dropdown-type & a conditional-dropdown type
         for alpha, dish in itertools.product(list(Scenario), list(Scenario)):
-            record: web_app.utils.types.Record = {"F1": 0}
+            record: uut.WebRecord = {"F1": 0}
 
             if alpha != Scenario.MISSING:
                 record["Alpha"] = {
@@ -295,7 +289,7 @@ class TestDataSource:
         }
 
         class _Body(TypedDict, total=False):
-            record: web_app.utils.types.Record
+            record: uut.WebRecord
             institution: str
             labor: str
             editor: str
@@ -379,17 +373,17 @@ class TestDataSource:
         mock_ili.return_value = True
         response = {
             "snapshots": [
-                web_app.utils.types.SnapshotInfo(
-                    timestamp="a", name="aye", creator="George"
+                uut.SnapshotInfo(
+                    timestamp="a", name="aye", creator="George", admin_only=False
                 ),
-                web_app.utils.types.SnapshotInfo(
-                    timestamp="b", name="bee", creator="Ringo"
+                uut.SnapshotInfo(
+                    timestamp="b", name="bee", creator="Ringo", admin_only=False
                 ),
-                web_app.utils.types.SnapshotInfo(
-                    timestamp="c", name="see", creator="John"
+                uut.SnapshotInfo(
+                    timestamp="c", name="see", creator="John", admin_only=False
                 ),
-                web_app.utils.types.SnapshotInfo(
-                    timestamp="d", name="dee", creator="Paul"
+                uut.SnapshotInfo(
+                    timestamp="d", name="dee", creator="Paul", admin_only=False
                 ),
             ],
         }
@@ -411,8 +405,11 @@ class TestDataSource:
         current_user.return_value = web_app.utils.oidc_tools.UserInfo(
             "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
         )
-        response = web_app.utils.types.SnapshotInfo(
-            timestamp="a", name="not necessarily snap_name", creator="you"
+        response = uut.SnapshotInfo(
+            timestamp="a",
+            name="not necessarily snap_name",
+            creator="you",
+            admin_only=False,
         )
 
         # Call

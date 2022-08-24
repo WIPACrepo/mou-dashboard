@@ -8,6 +8,7 @@ from typing import Dict, Final, List, Tuple, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
+import universal_utils.types as uut
 from dash.dependencies import Input, Output, State  # type: ignore[import]
 
 from ..config import app
@@ -24,19 +25,19 @@ _CHANGES_COL: Final[str] = "Changes"
 
 @dc.dataclass(frozen=True)
 class _SnapshotBundle:
-    table: types.Table
-    info: types.SnapshotInfo
+    table: uut.WebTable
+    info: uut.SnapshotInfo
 
 
 def _get_upload_success_modal_body(
     filename: str,
     n_records: int,
-    prev_snap_info: types.SnapshotInfo | None,
-    curr_snap_info: types.SnapshotInfo | None,
+    prev_snap_info: uut.SnapshotInfo | None,
+    curr_snap_info: uut.SnapshotInfo | None,
 ) -> List[dcc.Markdown]:
     """Make the message for the ingest confirmation toast."""
 
-    def _pseudonym(snapinfo: types.SnapshotInfo) -> str:
+    def _pseudonym(snapinfo: uut.SnapshotInfo) -> str:
         if snapinfo.name:
             return f'"{snapinfo.name}"'
         return utils.get_human_time(snapinfo.timestamp)
@@ -159,7 +160,7 @@ def summarize(
     # state(s)
     s_urlpath: str,
     s_snap_ts: types.DashVal,
-) -> Tuple[types.Table, List[Dict[str, str]]]:
+) -> Tuple[uut.WebTable, List[Dict[str, str]]]:
     """Manage uploading a new xlsx document as the new live table."""
     logging.warning(f"'{du.triggered()}' -> summarize()")
 
@@ -208,11 +209,11 @@ def summarize(
             )
         )
 
-    summary_table: types.Table = []
+    summary_table: uut.WebTable = []
     for short_name, inst_info in insts_infos.items():
         inst_dc = src.pull_institution_values(wbs_l1, s_snap_ts, short_name)
 
-        row: Dict[str, types.StrNum] = {
+        row: Dict[str, uut.StrNum] = {
             "Institution": inst_info.long_name,
             "Institutional Lead": inst_info.institution_lead_uid,
             "SOW Table Confirmed?": utils.get_human_time(
@@ -272,18 +273,18 @@ def summarize(
 
 
 def _blame_row(
-    record: types.Record,
+    record: uut.WebRecord,
     tconfig: tc.TableConfigParser,
     column_names: List[str],
     snap_bundles: Dict[str, _SnapshotBundle],
-) -> types.Record:
+) -> uut.WebRecord:
     """Get the blame row for a record."""
     logging.info(f"Blaming {record[tconfig.const.ID]}...")
 
     NA: Final[str] = "n/a"  # pylint: disable=C0103
     MOST_RECENT_VALUE: Final[str] = "today"  # pylint: disable=C0103
 
-    def _find_record_in_snap(table: types.Table) -> types.Record | None:
+    def _find_record_in_snap(table: uut.WebTable) -> uut.WebRecord | None:
         try:
             return next(
                 r for r in table if r[tconfig.const.ID] == record[tconfig.const.ID]
@@ -292,7 +293,7 @@ def _blame_row(
             return None
 
     # get each field's history; Schema: { <field>: {<snap_ts>:<field_value>} }
-    field_changes: Dict[str, Dict[str, types.StrNum]] = {}
+    field_changes: Dict[str, Dict[str, uut.StrNum]] = {}
     field_changes = ODict({k: ODict({MOST_RECENT_VALUE: record[k]}) for k in record})
     brand_new, never_changed, oldest_snap_ts = True, True, ""
     for snap_ts, bundle in snap_bundles.items():
@@ -410,7 +411,7 @@ def blame(
     # state(s)
     s_urlpath: str,
     s_snap_ts: types.DashVal,
-) -> Tuple[types.Table, List[Dict[str, str]], types.TSCCond]:
+) -> Tuple[uut.WebTable, List[Dict[str, str]], types.TSCCond]:
     """Manage uploading a new xlsx document as the new live table."""
     logging.warning(f"'{du.triggered()}' -> summarize()")
 

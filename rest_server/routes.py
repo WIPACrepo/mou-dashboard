@@ -7,12 +7,13 @@ import logging
 from dataclasses import asdict
 from typing import Any
 
+import universal_utils.types as uut
 from motor.motor_tornado import MotorClient  # type: ignore
 from rest_tools.server import RestHandler, handler
 
 from .config import AUTH_PREFIX
 from .data_sources import columns, mou_db, table_config_cache, todays_institutions, wbs
-from .utils import types, utils
+from .utils import utils
 
 _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
 
@@ -289,7 +290,7 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
             "computing_confirmed_ts", type=int, default=0
         )
 
-        vals = types.InstitutionValues(
+        vals = uut.InstitutionValues(
             phds_authors=phds if phds >= 0 else None,
             faculty=faculty if faculty >= 0 else None,
             scientists_post_docs=sci if sci >= 0 else None,

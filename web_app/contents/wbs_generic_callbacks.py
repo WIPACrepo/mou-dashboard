@@ -5,6 +5,7 @@ from typing import Dict, List, Tuple, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
+import universal_utils.types as uut
 from dash import no_update  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
 
@@ -48,19 +49,19 @@ def _totals_button_logic(
 
 def _add_new_data(  # pylint: disable=R0913
     wbs_l1: str,
-    table: types.Table,
+    table: uut.WebTable,
     columns: types.TColumns,
     labor: types.DashVal,
     institution: types.DashVal,
     tconfig: tc.TableConfigParser,
-) -> Tuple[types.Table, dbc.Toast]:
+) -> Tuple[uut.WebTable, dbc.Toast]:
     """Push new record to data source; add to table.
 
     Returns:
         TData     -- up-to-date data table
         dbc.Toast -- toast element with confirmation message
     """
-    new_record: types.Record = {
+    new_record: uut.WebRecord = {
         nam: "" for nam in [cast(str, col["name"]) for col in columns]
     }
 
@@ -104,7 +105,7 @@ def confirm_deletion(
     __: int,
     # state(s)
     s_urlpath: str,
-    s_record: types.Record,
+    s_record: uut.WebRecord,
 ) -> Tuple[dbc.Toast, int, bool, List[html.Div]]:
     """Handle deleting the record chosen ."""
     logging.warning(f"'{du.triggered()}' -> confirm_deletion()")
@@ -171,11 +172,13 @@ def table_data_exterior_controls(
     # state(s)
     s_urlpath: str,
     s_snap_ts: types.DashVal,
-    s_table: types.Table,
+    s_table: uut.WebTable,
     s_all_cols: int,
-    s_deleted_record: types.Record,
+    s_deleted_record: uut.WebRecord,
     s_flag_extctrl: bool,
-) -> Tuple[types.Table, int, dbc.Toast, str, str, bool, int, bool, int, Dict[str, str]]:
+) -> Tuple[
+    uut.WebTable, int, dbc.Toast, str, str, bool, int, bool, int, Dict[str, str]
+]:
     """Exterior control signaled that the table should be updated.
 
     This is either a filter, "add new", refresh, or "show totals". Only
@@ -189,7 +192,7 @@ def table_data_exterior_controls(
 
     assert columns
 
-    table: types.Table = []
+    table: uut.WebTable = []
     toast: dbc.Toast = None
     wbs_l1 = du.get_wbs_l1(s_urlpath)
     inst = du.get_inst(s_urlpath)
@@ -212,7 +215,7 @@ def table_data_exterior_controls(
                 tconfig,  # s_new_task
             )
 
-    # OR Restore a types.Record and Pull types.Table (optionally filtered)
+    # OR Restore a uut.WebRecord and Pull uut.WebTable (optionally filtered)
     elif du.triggered_id() == "wbs-undo-last-delete-hidden-button":
         if not s_snap_ts:  # are we looking at a snapshot?
             try:
@@ -238,7 +241,7 @@ def table_data_exterior_controls(
             except DataSourceException:
                 table = []
 
-    # OR Just Pull types.Table (optionally filtered)
+    # OR Just Pull uut.WebTable (optionally filtered)
     else:
         try:
             table = src.pull_data_table(
@@ -279,10 +282,10 @@ def table_data_exterior_controls(
 
 def _push_modified_records(
     wbs_l1: str,
-    current_table: types.Table,
-    previous_table: types.Table,
+    current_table: uut.WebTable,
+    previous_table: uut.WebTable,
     tconfig: tc.TableConfigParser,
-) -> Tuple[List[types.StrNum], types.Record]:
+) -> Tuple[List[uut.StrNum], uut.WebRecord]:
     """For each row that changed, push the record to the DS."""
     modified_records = [
         r
@@ -302,11 +305,11 @@ def _push_modified_records(
 
 
 def _find_deleted_record(
-    current_table: types.Table,
-    previous_table: types.Table,
-    keeps: List[types.StrNum],
+    current_table: uut.WebTable,
+    previous_table: uut.WebTable,
+    keeps: List[uut.StrNum],
     tconfig: tc.TableConfigParser,
-) -> Tuple[types.Record, str]:
+) -> Tuple[uut.WebRecord, str]:
     """If a row was deleted by the user, find it."""
     delete_these = [
         r
@@ -349,14 +352,14 @@ def _find_deleted_record(
     prevent_initial_call=True,
 )  # pylint: disable=R0913,R0914
 def table_data_interior_controls(
-    current_table: types.Table,
+    current_table: uut.WebTable,
     # state(s)
     s_urlpath: str,
-    s_previous_table: types.Table,
+    s_previous_table: uut.WebTable,
     s_snap_ts: types.DashVal,
     s_flag_extctrl: bool,
     s_flag_intctrl: bool,
-) -> Tuple[types.Table, List[html.Label], types.Record, bool, str, bool, str, str]:
+) -> Tuple[uut.WebTable, List[html.Label], uut.WebRecord, bool, str, bool, str, str]:
     """Interior control signaled that the table should be updated.
 
     This is either a row deletion or a field edit. The table's view has
@@ -626,7 +629,7 @@ def setup_snapshot_components(
 
     snap_options: List[Dict[str, str]] = []
     label_lines: List[html.Label] = []
-    snapshots: List[types.SnapshotInfo] = []
+    snapshots: List[uut.SnapshotInfo] = []
 
     # Populate List of Snapshots
     try:
@@ -790,7 +793,7 @@ def setup_institution_components(
             f"'{du.triggered()}' -> setup_institution_components() ({s_urlpath=} {s_snap_ts=} {CurrentUser.get_summary()=})"
         )
 
-    inst_dc = types.InstitutionValues(
+    inst_dc = uut.InstitutionValues(
         phds_authors=0,
         faculty=0,
         scientists_post_docs=0,
@@ -847,7 +850,7 @@ def setup_institution_components(
         try:
             inst_dc = src.pull_institution_values(wbs_l1, s_snap_ts, inst)
         except DataSourceException:
-            inst_dc = types.InstitutionValues(
+            inst_dc = uut.InstitutionValues(
                 phds_authors=None,
                 faculty=None,
                 scientists_post_docs=None,
@@ -960,7 +963,7 @@ def push_institution_values(  # pylint: disable=R0913
     s_urlpath: str,
     s_snap_ts: types.DashVal,
     #
-    s_table: types.Table,
+    s_table: uut.WebTable,
     #
     s_first_time: bool,
     #
@@ -1062,7 +1065,7 @@ def push_institution_values(  # pylint: disable=R0913
         src.push_institution_values(
             du.get_wbs_l1(s_urlpath),
             inst,
-            types.InstitutionValues(
+            uut.InstitutionValues(
                 phds_authors=phds,  # type: ignore[arg-type]
                 faculty=faculty,  # type: ignore[arg-type]
                 scientists_post_docs=sci,  # type: ignore[arg-type]

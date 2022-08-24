@@ -11,6 +11,7 @@ import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
 import dash_table  # type: ignore[import]
+import universal_utils.types as uut
 
 from ..data_source import data_source as src
 from ..data_source import institution_info
@@ -81,7 +82,7 @@ def flags_agree(one: bool, two: bool) -> bool:
 
 
 def get_sow_last_updated_label(
-    table: types.Table, looking_at_snap: bool, tconfig: tc.TableConfigParser
+    table: uut.WebTable, looking_at_snap: bool, tconfig: tc.TableConfigParser
 ) -> str:
     """Get the placeholder for the snapshots dropdown."""
     if looking_at_snap:

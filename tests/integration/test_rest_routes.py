@@ -8,25 +8,16 @@ NOTE: THESE TESTS NEED TO RUN IN ORDER -- STATE DEPENDENT
 
 
 import base64
-import sys
 import time
 
 import pytest
 import requests
+import universal_utils.types as uut
+import web_app.config
+import web_app.data_source.utils
+from rest_server import routes
+from rest_server.data_sources import todays_institutions
 from rest_tools.client import RestClient
-
-sys.path.append(".")
-from rest_server import routes  # isort:skip  # noqa # pylint: disable=E0401,C0413
-from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
-    types,
-)
-from rest_server.data_sources import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
-    todays_institutions,
-)
-
-import web_app.data_source.utils  # isort:skip  # noqa # pylint: disable=E0401,C0413
-import web_app.config  # isort:skip  # noqa # pylint: disable=E0401,C0413
-
 
 WBS_L1 = "mo"
 
@@ -224,7 +215,7 @@ class TestTableHandler:
         _ = ds_rc.request_seq("GET", f"/table/data/{WBS_L1}")
 
     @staticmethod
-    def _assert_schema(record: types.Record, has_total_rows: bool = False) -> None:
+    def _assert_schema(record: uut.DBRecord, has_total_rows: bool = False) -> None:
         # pprint.pprint(record)
         assert record
         required_keys = [

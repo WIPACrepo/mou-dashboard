@@ -6,7 +6,8 @@ import logging
 import time
 from typing import Dict, Final, List, Tuple
 
-from ..utils.types import DataEntry
+import universal_utils.types as uut
+
 from . import columns, todays_institutions, wbs
 
 US = "US"
@@ -323,9 +324,9 @@ class TableConfigCache:
         """Get names of fields created on-the-fly, data not stored."""
         return [col for col, config in self.column_configs.items() if config.on_the_fly]
 
-    def sort_key(self, k: Dict[str, DataEntry]) -> Tuple[DataEntry, ...]:
+    def sort_key(self, k: Dict[str, uut.DataEntry]) -> Tuple[uut.DataEntry, ...]:
         """Sort key for the table."""
-        sort_keys: List[DataEntry] = []
+        sort_keys: List[uut.DataEntry] = []
 
         column_orders = {
             col: config.sort_value

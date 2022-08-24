@@ -3,8 +3,9 @@
 from decimal import Decimal
 from typing import cast
 
+import universal_utils.types as uut
+
 from ..data_sources import columns, table_config_cache
-from . import types
 from .mongo_tools import Mongofier
 
 
@@ -14,7 +15,7 @@ class TableConfigDataAdaptor:
     def __init__(self, tc_cache: table_config_cache.TableConfigCache) -> None:
         self.tc_cache = tc_cache
 
-    def remove_on_the_fly_fields(self, record: types.Record) -> types.Record:
+    def remove_on_the_fly_fields(self, record: uut.DBRecord) -> uut.DBRecord:
         """Remove (del) any fields that are only to be calculated on-the-fly."""
         for field in record.copy().keys():
             if field in self.tc_cache.get_on_the_fly_fields():
@@ -28,11 +29,11 @@ class TableConfigDataAdaptor:
 
         return record
 
-    def add_on_the_fly_fields(self, record: types.Record) -> types.Record:
+    def add_on_the_fly_fields(self, record: uut.DBRecord) -> uut.DBRecord:
         """Add fields that are only to be calculated on-the-fly."""
         record = self.remove_on_the_fly_fields(record)
 
-        def _get_fte_subcolumn(record: types.Record) -> str:
+        def _get_fte_subcolumn(record: uut.DBRecord) -> str:
             return cast(str, record[columns.SOURCE_OF_FUNDS_US_ONLY])
 
         # FTE fields
@@ -54,22 +55,22 @@ class TableConfigDataAdaptor:
     def get_total_rows(
         self,
         wbs_l1: str,
-        table: types.Table,
+        table: uut.DBTable,
         only_totals_w_data: bool = False,
         with_us_non_us: bool = True,
-    ) -> types.Table:
+    ) -> uut.DBTable:
         """Calculate rows with totals of each category (cascadingly).
 
         Arguments:
-            table {types.Table} -- table with records (only read)
+            table {uut.DBTable} -- table with records (only read)
 
         Keyword Arguments:
             only_totals_w_data {bool} -- exclude totals that only have 0s (default: {False})
 
         Returns:
-            types.Table -- a new table of rows with totals
+            uut.DBTable -- a new table of rows with totals
         """
-        totals: types.Table = []
+        totals: uut.DBTable = []
 
         def grab_a_total(  # pylint: disable=C0103
             l2: str = "", l3: str = "", fund_src: str = "", region: str = ""
@@ -204,7 +205,7 @@ class MoUDataAdaptor:
     def __init__(self, tc_cache: table_config_cache.TableConfigCache) -> None:
         self.tc_cache = tc_cache
 
-    def _validate_record_data(self, wbs_db: str, record: types.Record) -> None:
+    def _validate_record_data(self, wbs_db: str, record: uut.DBRecord) -> None:
         """Check that each value in a dropdown-type column is valid.
 
         If not, raise Exception.
@@ -250,9 +251,9 @@ class MoUDataAdaptor:
     def mongofy_record(
         self,
         wbs_db: str,
-        record: types.Record,
+        record: uut.DBRecord,
         assert_data: bool = True,
-    ) -> types.Record:
+    ) -> uut.DBRecord:
         """Transform record to mongo-friendly and validate data."""
         # assert data is valid
         if assert_data:
@@ -263,7 +264,7 @@ class MoUDataAdaptor:
         return record
 
     @staticmethod
-    def demongofy_record(record: types.Record) -> types.Record:
+    def demongofy_record(record: uut.DBRecord) -> uut.DBRecord:
         """Transform mongo-friendly record into a usable record."""
         record = Mongofier.demongofy_document(record)
 

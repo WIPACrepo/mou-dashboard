@@ -1,18 +1,14 @@
 """Testing data."""
 
 
-import sys
 from typing import Final
 
-sys.path.append(".")
-# pylint: disable=E0401,C0413,C0411
-from rest_server.utils import types  # isort:skip  # noqa
-
+import universal_utils.types as uut
 
 WBS: Final[str] = "mo"
 
 
-FTE_ROWS: Final[types.Table] = [
+FTE_ROWS: Final[uut.DBTable] = [
     {
         "FTE": 0.49982416070757496,
         "Source of Funds (U.S. Only)": "Non-US In-Kind",
