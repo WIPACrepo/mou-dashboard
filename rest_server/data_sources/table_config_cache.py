@@ -22,10 +22,10 @@ class _ColumnConfig:
     tooltip: str = ""
     non_editable: bool = False
     hidden: bool = False
-    options: None | List[str] = None
-    sort_value: None | int = None
-    conditional_parent: None | str = None
-    conditional_options: None | Dict[str, List[str]] = None
+    options: List[str] | None = None
+    sort_value: int | None = None
+    conditional_parent: str | None = None
+    conditional_options: Dict[str, List[str]] | None = None
     border_left: bool = False
     on_the_fly: bool = False
     numeric: bool = False

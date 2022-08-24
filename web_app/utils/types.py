@@ -36,7 +36,7 @@ TSCCond = List[Dict[str, Collection[str]]]  # style_cell_conditional
 TSDCond = List[Dict[str, Collection[str]]]  # style_data_conditional
 TDDown = Dict[str, Dict[str, List[_StrDict]]]  # dropdown
 TDDownCond = List[Dict[str, _StrDict | List[_StrDict]]]  # dropdown_conditional
-TFocus = Optional[Dict[str, int]]  # which cell to focus
+TFocus = Dict[str, int] | None  # which cell to focus
 TTooltips = Dict[str, Dict[str, DashVal]]
 
 
@@ -44,12 +44,12 @@ TTooltips = Dict[str, Dict[str, DashVal]]
 class InstitutionValues:
     """Values for an institution."""
 
-    phds_authors: Optional[int]
-    faculty: Optional[int]
-    scientists_post_docs: Optional[int]
-    grad_students: Optional[int]
-    cpus: Optional[int]
-    gpus: Optional[int]
+    phds_authors: int | None
+    faculty: int | None
+    scientists_post_docs: int | None
+    grad_students: int | None
+    cpus: int | None
+    gpus: int | None
     text: str
     headcounts_confirmed_ts: int  # timestamp
     table_confirmed_ts: int  # timestamp

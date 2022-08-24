@@ -3,7 +3,7 @@
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, cast
 
 import cachetools.func  # type: ignore[import]
 import flask  # type: ignore[import]
@@ -40,7 +40,7 @@ class CurrentUser:
         )
 
     @staticmethod
-    def get_summary() -> Optional[Dict[str, Any]]:
+    def get_summary() -> Dict[str, Any] | None:
         """Query OIDC."""
         if not CurrentUser.is_loggedin():
             return None

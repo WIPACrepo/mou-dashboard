@@ -1,7 +1,7 @@
 """REST interface for reading and writing MoU data."""
 
 
-from typing import Any, Dict, Final, List, Optional, Tuple, TypedDict, cast
+from typing import Any, Dict, Final, List, Tuple, TypedDict, cast
 
 from ..utils import types, utils
 from ..utils.oidc_tools import CurrentUser
@@ -154,7 +154,7 @@ def _remove_invalid_data(
 
 
 def _convert_record_dash_to_rest(
-    record: types.Record, tconfig: Optional[tc.TableConfigParser] = None
+    record: types.Record, tconfig: tc.TableConfigParser | None = None
 ) -> types.Record:
     """Convert a record from Dash's datatable to be sent to the rest server.
 
@@ -186,7 +186,7 @@ def _validate(
     data: Any,
     in_type: type | Tuple[type, ...],
     falsy_okay: bool = True,
-    out: Optional[type] = None,
+    out: type | None = None,
 ) -> Any:
     """Type-check `data`. Optionally, convert and return.
 
@@ -385,7 +385,7 @@ def create_snapshot(wbs_l1: str, name: str) -> types.SnapshotInfo:
 
 def override_table(
     wbs_l1: str, base64_file: str, filename: str
-) -> Tuple[int, Optional[types.SnapshotInfo], Optional[types.SnapshotInfo]]:
+) -> Tuple[int, types.SnapshotInfo | None, types.SnapshotInfo | None]:
     """Ingest .xlsx file as the new live collection.
 
     Arguments:

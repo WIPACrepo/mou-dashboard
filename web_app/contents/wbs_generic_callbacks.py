@@ -1,7 +1,7 @@
 """Callbacks for a specified WBS layout."""
 
 import logging
-from typing import Dict, List, Optional, Tuple, cast
+from typing import Dict, List, Tuple, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_html_components as html  # type: ignore[import]
@@ -492,7 +492,7 @@ def _table_dropdown(
     prevent_initial_call=True,
 )
 def load_table_tooltips(
-    page_current: Optional[int],
+    page_current: int | None,
     # state(s)
     s_urlpath: str,
 ) -> types.TTooltips:

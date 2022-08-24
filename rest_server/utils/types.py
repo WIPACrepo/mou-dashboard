@@ -1,7 +1,7 @@
 """Custom type definitions."""
 
 import dataclasses as dc
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from bson.objectid import ObjectId
 
@@ -28,12 +28,12 @@ class SnapshotInfo:
 class InstitutionValues:
     """Values for an institution."""
 
-    phds_authors: Optional[int]
-    faculty: Optional[int]
-    scientists_post_docs: Optional[int]
-    grad_students: Optional[int]
-    cpus: Optional[int]
-    gpus: Optional[int]
+    phds_authors: int | None
+    faculty: int | None
+    scientists_post_docs: int | None
+    grad_students: int | None
+    cpus: int | None
+    gpus: int | None
     text: str
     headcounts_confirmed_ts: int  # timestamp
     table_confirmed_ts: int  # timestamp
@@ -49,4 +49,4 @@ class SupplementalDoc:
     creator: str
     snapshot_institution_values: Dict[str, InstitutionValues]
     admin_only: bool
-    _id: Optional[ObjectId] = None
+    _id: ObjectId | None = None

@@ -125,7 +125,7 @@ def confirmation_saved_label(
     confirmed_ts: int,
     label: str,
     override: bool = False,
-    override_label: None | List[html.Label] = None,
+    override_label: List[html.Label] | None = None,
 ) -> List[html.Label]:
     """Get a confirmation-saved label."""
     if override:

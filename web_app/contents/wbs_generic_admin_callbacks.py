@@ -4,7 +4,7 @@ import dataclasses as dc
 import logging
 from collections import OrderedDict as ODict
 from decimal import Decimal
-from typing import Dict, Final, List, Optional, Tuple, cast
+from typing import Dict, Final, List, Tuple, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import dash_core_components as dcc  # type: ignore[import]
@@ -31,8 +31,8 @@ class _SnapshotBundle:
 def _get_upload_success_modal_body(
     filename: str,
     n_records: int,
-    prev_snap_info: Optional[types.SnapshotInfo],
-    curr_snap_info: Optional[types.SnapshotInfo],
+    prev_snap_info: types.SnapshotInfo | None,
+    curr_snap_info: types.SnapshotInfo | None,
 ) -> List[dcc.Markdown]:
     """Make the message for the ingest confirmation toast."""
 
@@ -283,7 +283,7 @@ def _blame_row(
     NA: Final[str] = "n/a"  # pylint: disable=C0103
     MOST_RECENT_VALUE: Final[str] = "today"  # pylint: disable=C0103
 
-    def _find_record_in_snap(table: types.Table) -> Optional[types.Record]:
+    def _find_record_in_snap(table: types.Table) -> types.Record | None:
         try:
             return next(
                 r for r in table if r[tconfig.const.ID] == record[tconfig.const.ID]
