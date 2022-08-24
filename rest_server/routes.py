@@ -4,7 +4,6 @@
 import dataclasses as dc
 import json
 import logging
-from dataclasses import asdict
 from typing import Any
 
 import universal_utils.types as uut
@@ -320,6 +319,6 @@ class InstitutionStaticHandler(BaseMoUHandler):  # pylint: disable=W0223
     async def get(self) -> None:
         """Handle GET."""
         institutions = await todays_institutions.request_krs_institutions()
-        vals = {i.short_name: asdict(i) for i in institutions}
+        vals = {i.short_name: dc.asdict(i) for i in institutions}
 
         self.write(vals)
