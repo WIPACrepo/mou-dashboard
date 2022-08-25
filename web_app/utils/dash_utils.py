@@ -6,12 +6,15 @@ import time
 import urllib
 from typing import Any, Collection, Dict, Final, List, cast
 
-import dash  # type: ignore[import]
 import dash_bootstrap_components as dbc  # type: ignore[import]
-import dash_core_components as dcc  # type: ignore[import]
-import dash_html_components as html  # type: ignore[import]
-import dash_table  # type: ignore[import]
 import universal_utils.types as uut
+from dash import (  # type: ignore[import]
+    callback_context,
+    dash_table,
+    dcc,
+    html,
+    no_update,
+)
 
 from ..data_source import data_source as src
 from ..data_source import institution_info
@@ -54,7 +57,7 @@ def triggered() -> str:
 
     https://dash.plotly.com/advanced-callbacks
     """
-    trig = dash.callback_context.triggered[0]["prop_id"]
+    trig = callback_context.triggered[0]["prop_id"]
     return cast(str, trig)
 
 
@@ -138,7 +141,7 @@ def confirmation_saved_label(
     elif not confirmed_ts:  # if it's not confirmed, then don't show anything
         return []
     else:  # it's confirmed but this isn't new, so don't change anything
-        return dash.no_update  # type: ignore[no-any-return]
+        return no_update  # type: ignore[no-any-return]
 
 
 def _figure_confirmation_ts(

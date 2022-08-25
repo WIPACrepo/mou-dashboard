@@ -4,10 +4,8 @@ import logging
 from typing import Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
-import dash_core_components as dcc  # type: ignore
-import dash_html_components as html  # type: ignore
 import visdcc  # type: ignore[import]
-from dash import no_update  # type: ignore[import]
+from dash import dcc, html, no_update
 from dash.dependencies import Input, Output, State  # type: ignore
 
 from .config import AUTO_RELOAD_MINS, REDIRECT_WBS, app

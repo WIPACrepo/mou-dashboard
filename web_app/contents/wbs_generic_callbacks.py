@@ -4,9 +4,8 @@ import logging
 from typing import Dict, List, Tuple, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
-import dash_html_components as html  # type: ignore[import]
 import universal_utils.types as uut
-from dash import no_update  # type: ignore[import]
+from dash import html, no_update  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
 
 from ..config import app

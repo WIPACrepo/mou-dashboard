@@ -7,8 +7,8 @@ from decimal import Decimal
 from typing import Dict, Final, List, Tuple, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
-import dash_core_components as dcc  # type: ignore[import]
 import universal_utils.types as uut
+from dash import dcc
 from dash.dependencies import Input, Output, State  # type: ignore[import]
 
 from ..config import app

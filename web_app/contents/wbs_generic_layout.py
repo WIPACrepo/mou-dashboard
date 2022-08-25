@@ -2,9 +2,7 @@
 
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
-import dash_core_components as dcc  # type: ignore[import]
-import dash_html_components as html  # type: ignore[import]
-import dash_table  # type: ignore[import]
+from dash import dash_table, dcc, html  # type: ignore[import]
 
 from ..utils import dash_utils as du
 
