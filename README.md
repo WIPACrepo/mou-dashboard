@@ -30,7 +30,7 @@ You will need to launch four servers:
 1. `./rest_server/resources/token_test_server.sh`
 
 ### REST Server
-A REST server that interfaces with a local MongoDB server *(future: also Smartsheet)*
+A REST server that interfaces with a local MongoDB server
 
 #### 1. Set Up Environment
     <activate virtual env with python 3.10+>
