@@ -32,10 +32,11 @@ You will need to launch four servers:
 ### REST Server
 A REST server that interfaces with a local MongoDB server *(future: also Smartsheet)*
 
-#### 1. Set Up Enivornment
-    python3 -m virtualenv -p python3 mou-dash-rest
-    . mou-dash-rest/bin/activate
-    pip install -r rest_server/requirements.txt
+#### 1. Set Up Environment
+    <activate virtual env with python 3.10+>
+    pip install .
+    export KEYCLOAK_CLIENT_SECRET=[...]
+    . resources/keycloak-test-env-vars.sh
 
 #### 2. Start the Server
     python -m rest_server
@@ -46,10 +47,12 @@ A REST server that interfaces with a local MongoDB server *(future: also Smartsh
 ### Web App
 A dashboard for managing & reporting MoU tasks
 
-#### 1. Set Up Enivornment
-    python3.10 -m virtualenv -p python3.10 mou-dash-web
-    . mou-dash-web/bin/activate
-    pip install -r web_app/requirements.txt
+#### 1. Set Up Environment
+    <activate virtual env with python 3.10+>
+    pip install .
+    export KEYCLOAK_CLIENT_SECRET=[...]
+    . resources/keycloak-test-env-vars.sh
+    python resources/client_secrets_json.py  # this will make a client_secrets.json file at $PWD
 
 #### 2. Start the Server
     python -m web_app
@@ -59,18 +62,3 @@ A dashboard for managing & reporting MoU tasks
 
 #### 3. View Webpage
 Go to http://localhost:8050/
-
-
-## Testing
-
-### Local / Manual Testing
-#### Unit
-1. `pytest tests/unit`
-#### Integration
-1. Set up and start servers (see above)
-1. `pytest tests/integration`
-
-### Automated Testing
-[![CircleCI](https://circleci.com/gh/WIPACrepo/mou-dashboard/tree/master.svg?style=shield)](https://circleci.com/gh/WIPACrepo/mou-dashboard/tree/master)
-
-
