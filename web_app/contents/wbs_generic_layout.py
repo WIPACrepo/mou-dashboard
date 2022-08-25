@@ -368,7 +368,7 @@ def layout() -> html.Div:
             html.Div(
                 id="wbs-admin-zone-div",
                 hidden=True,
-                className="d-grid gap-2 col-6 mx-auto",  # "col-6" -> width; "mx-auto" -> centered
+                className="d-grid gap-2 mx-auto",  # "col-#" -> width; "mx-auto" -> centered
                 children=[
                     #
                     html.H2(className="section-header", children="Admin Zone"),
