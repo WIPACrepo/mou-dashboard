@@ -299,13 +299,12 @@ def new_data_button(id_num: int) -> html.Div:
         children=dbc.Button(
             "+ Add New Data",
             id=f"wbs-new-data-button-{id_num}",
-            block=True,
             n_clicks=0,
             color=Color.DARK,
             disabled=False,
         ),
         hidden=True,
-        className="table-tool-large",
+        className="table-tool-large d-grid gap-2",
     )
 
 
@@ -618,12 +617,14 @@ def upload_success_modal() -> dbc.Modal:
             html.Div("Table Overridden", className="caps section-header"),
             dbc.ModalBody(id="wbs-upload-success-modal-body"),
             dbc.ModalFooter(
-                dbc.Button(
-                    "View Updated SOWs",
-                    id="wbs-upload-success-view-new-table-button",
-                    n_clicks=0,
-                    block=True,
-                    color=Color.SUCCESS,
+                html.Div(
+                    className="d-grid gap-2",
+                    children=dbc.Button(
+                        "View Updated SOWs",
+                        id="wbs-upload-success-view-new-table-button",
+                        n_clicks=0,
+                        color=Color.SUCCESS,
+                    ),
                 )
             ),
         ],

@@ -368,6 +368,7 @@ def layout() -> html.Div:
             html.Div(
                 id="wbs-admin-zone-div",
                 hidden=True,
+                className="d-grid gap-2 col-6 mx-auto",  # "col-6" -> width; "mx-auto" -> centered
                 children=[
                     #
                     html.H2(className="section-header", children="Admin Zone"),
@@ -384,7 +385,6 @@ def layout() -> html.Div:
                                     dbc.Button(
                                         id="wbs-summary-table-recalculate",
                                         n_clicks=0,
-                                        block=True,
                                         children="Recalculate Institution Summary",
                                     ),
                                 ],
@@ -407,7 +407,6 @@ def layout() -> html.Div:
                                     dbc.Button(
                                         id="wbs-blame-table-button",
                                         n_clicks=0,
-                                        block=True,
                                         color=du.Color.DARK,
                                         children="View How SOWs Have Changed",
                                     ),
@@ -423,7 +422,6 @@ def layout() -> html.Div:
                     dbc.Button(
                         "Make Collaboration-Wide Snapshot",
                         id="wbs-make-snapshot-button",
-                        block=True,
                         n_clicks=0,
                         color=du.Color.SUCCESS,
                         disabled=False,
@@ -436,7 +434,6 @@ def layout() -> html.Div:
                     dbc.Button(
                         "Reset Institution Confirmations",
                         id="wbs-reset-inst-confirmations-button",
-                        block=True,
                         n_clicks=0,
                         color=du.Color.SUCCESS,
                         disabled=False,
@@ -449,7 +446,6 @@ def layout() -> html.Div:
                     dbc.Button(
                         "Override All Institutions' SOW Tables with .xlsx",
                         id="wbs-upload-xlsx-launch-modal-button",
-                        block=True,
                         n_clicks=0,
                         color=du.Color.WARNING,
                         disabled=True,  # this isn't needed anymore
