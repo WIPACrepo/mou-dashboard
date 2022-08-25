@@ -4,6 +4,7 @@
 import dash_bootstrap_components as dbc  # type: ignore[import]
 from dash import dash_table, dcc, html  # type: ignore[import]
 
+from ..config import ENV
 from ..utils import dash_utils as du
 
 
@@ -448,7 +449,7 @@ def layout() -> html.Div:
                         id="wbs-upload-xlsx-launch-modal-button",
                         n_clicks=0,
                         color=du.Color.WARNING,
-                        disabled=True,  # this isn't needed anymore
+                        disabled=not ENV.DEBUG,  # only for local testing
                         style={"margin-bottom": "1rem"},
                     ),
                 ],

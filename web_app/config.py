@@ -37,6 +37,7 @@ class EnvConfig:
     FLASK_SECRET: str = "super-secret-flask-key"
     OIDC_CLIENT_SECRETS: str = "client_secrets.json"
     OVERWRITE_REDIRECT_URI: str = ""
+    DEBUG: bool = False
 
     def __post_init__(self) -> None:
         # since our instance is frozen, we need to use `__setattr__`

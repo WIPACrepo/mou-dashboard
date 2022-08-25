@@ -37,6 +37,7 @@ A REST server that interfaces with a local MongoDB server
     pip install .
     export KEYCLOAK_CLIENT_SECRET=[...]
     . resources/keycloak-test-env-vars.sh
+    export DEBUG=yes
 
 #### 2. Start the Server
     python -m rest_server
@@ -53,6 +54,7 @@ A dashboard for managing & reporting MOU tasks
     export KEYCLOAK_CLIENT_SECRET=[...]
     . resources/keycloak-test-env-vars.sh
     python resources/client_secrets_json.py  # this will make a client_secrets.json file at $PWD
+    export DEBUG=yes
 
 #### 2. Start the Server
     python -m web_app
