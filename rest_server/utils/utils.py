@@ -197,8 +197,8 @@ class TableConfigDataAdaptor:
         return totals
 
 
-class MoUDataAdaptor:
-    """Augments MoU data using a `TableConfigCache` instance."""
+class MOUDataAdaptor:
+    """Augments MOU data using a `TableConfigCache` instance."""
 
     IS_DELETED = "deleted"
 
@@ -268,7 +268,7 @@ class MoUDataAdaptor:
         """Transform mongo-friendly record into a usable record."""
         record = Mongofier.demongofy_document(record)
 
-        if MoUDataAdaptor.IS_DELETED in record.keys():
-            record.pop(MoUDataAdaptor.IS_DELETED)
+        if MOUDataAdaptor.IS_DELETED in record.keys():
+            record.pop(MOUDataAdaptor.IS_DELETED)
 
         return record

@@ -1,4 +1,4 @@
-"""Root python script for MoU Dashboard web application."""
+"""Root python script for MOU Dashboard web application."""
 
 import argparse
 import logging

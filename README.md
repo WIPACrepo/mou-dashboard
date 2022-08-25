@@ -6,10 +6,10 @@
 [![CircleCI](https://circleci.com/gh/WIPACrepo/mou-dashboard/tree/master.svg?style=shield)](https://circleci.com/gh/WIPACrepo/mou-dashboard/tree/master)
 
 A front-end to allow PIs to easily report to the ICC their
-Statements of Work in accordance with MoUs:
+Statements of Work in accordance with MOUs:
 [mou.icecube.aq](https://mou.icecube.aq/)
 
-*Active MoUs:*
+*Active MOUs:*
 - IceCube M&O
 - IceCube Upgrade
 
@@ -45,7 +45,7 @@ A REST server that interfaces with a local MongoDB server
     ./resources/start-rest-server-wipactel-local.sh
 
 ### Web App
-A dashboard for managing & reporting MoU tasks
+A dashboard for managing & reporting MOU tasks
 
 #### 1. Set Up Environment
     <activate virtual env with python 3.10+>

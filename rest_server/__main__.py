@@ -1,4 +1,4 @@
-"""Root python script for MoU REST API server interface."""
+"""Root python script for MOU REST API server interface."""
 
 
 import argparse
@@ -75,7 +75,7 @@ async def start(debug: bool = False) -> RestServer:
 
 
 def main() -> None:
-    """Configure logging and start a MoU data service."""
+    """Configure logging and start a MOU data service."""
     loop = asyncio.get_event_loop()
     loop.run_until_complete(start(debug=True))
     loop.run_forever()

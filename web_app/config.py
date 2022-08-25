@@ -122,5 +122,5 @@ def invalid_permissions() -> str | werkzeug.wrappers.response.Response:
     """Redirected to tell the user they can't do anything other than logout."""
     logging.critical("/invalid-permissions")
     return (
-        'You don\'t have valid permissions to edit MoUs. <a href="/logout">Logout</a>'
+        'You don\'t have valid permissions to edit MOUs. <a href="/logout">Logout</a>'
     )

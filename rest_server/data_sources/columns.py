@@ -1,4 +1,4 @@
-"""The MoU Table column names."""
+"""The MOU Table column names."""
 
 ID = "_id"
 WBS_L2 = "WBS L2"

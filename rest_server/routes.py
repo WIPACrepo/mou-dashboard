@@ -1,4 +1,4 @@
-"""Routes handlers for the MoU REST API server interface."""
+"""Routes handlers for the MOU REST API server interface."""
 
 
 import dataclasses as dc
@@ -20,8 +20,8 @@ _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
 # -----------------------------------------------------------------------------
 
 
-class BaseMoUHandler(RestHandler):  # pylint: disable=W0223
-    """BaseMoUHandler is a RestHandler for all MoU routes."""
+class BaseMOUHandler(RestHandler):  # pylint: disable=W0223
+    """BaseMOUHandler is a RestHandler for all MOU routes."""
 
     def initialize(  # type: ignore[override]  # pylint: disable=W0221
         self,
@@ -30,12 +30,12 @@ class BaseMoUHandler(RestHandler):  # pylint: disable=W0223
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Initialize a BaseMoUHandler object."""
+        """Initialize a BaseMOUHandler object."""
         super().initialize(*args, **kwargs)  # type: ignore[no-untyped-call]
         # pylint: disable=W0201
         self.tc_cache = tc_cache
-        self.mou_db_client = mou_db.MoUDatabaseClient(
-            MotorClient(mongodb_url), utils.MoUDataAdaptor(self.tc_cache)
+        self.mou_db_client = mou_db.MOUDatabaseClient(
+            MotorClient(mongodb_url), utils.MOUDataAdaptor(self.tc_cache)
         )
         self.tc_data_adaptor = utils.TableConfigDataAdaptor(self.tc_cache)
 
@@ -43,8 +43,8 @@ class BaseMoUHandler(RestHandler):  # pylint: disable=W0223
 # -----------------------------------------------------------------------------
 
 
-class MainHandler(BaseMoUHandler):  # pylint: disable=W0223
-    """MainHandler is a BaseMoUHandler that handles the root route."""
+class MainHandler(BaseMOUHandler):  # pylint: disable=W0223
+    """MainHandler is a BaseMOUHandler that handles the root route."""
 
     ROUTE = r"/$"
 
@@ -56,7 +56,7 @@ class MainHandler(BaseMoUHandler):  # pylint: disable=W0223
 # -----------------------------------------------------------------------------
 
 
-class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
+class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
     """Handle requests for a table."""
 
     ROUTE = rf"/table/data/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
@@ -128,7 +128,7 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
 # -----------------------------------------------------------------------------
 
 
-class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
+class RecordHandler(BaseMOUHandler):  # pylint: disable=W0223
     """Handle requests for a record."""
 
     ROUTE = rf"/record/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
@@ -166,7 +166,7 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
 # -----------------------------------------------------------------------------
 
 
-class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
+class TableConfigHandler(BaseMOUHandler):  # pylint: disable=W0223
     """Handle requests for the table config dict."""
 
     ROUTE = r"/table/config$"
@@ -203,7 +203,7 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
 # -----------------------------------------------------------------------------
 
 
-class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
+class SnapshotsHandler(BaseMOUHandler):  # pylint: disable=W0223
     """Handle requests for listing the snapshots."""
 
     ROUTE = rf"/snapshots/list/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
@@ -228,7 +228,7 @@ class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
 # -----------------------------------------------------------------------------
 
 
-class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
+class MakeSnapshotHandler(BaseMOUHandler):  # pylint: disable=W0223
     """Handle requests for making snapshots."""
 
     ROUTE = rf"/snapshots/make/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
@@ -250,7 +250,7 @@ class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
 # -----------------------------------------------------------------------------
 
 
-class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
+class InstitutionValuesHandler(BaseMOUHandler):  # pylint: disable=W0223
     """Handle requests for managing an institution's values, possibly for a snapshot."""
 
     ROUTE = rf"/institution/values/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
@@ -310,7 +310,7 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
 # -----------------------------------------------------------------------------
 
 
-class InstitutionStaticHandler(BaseMoUHandler):  # pylint: disable=W0223
+class InstitutionStaticHandler(BaseMOUHandler):  # pylint: disable=W0223
     """Handle requests for querying current-day info about the institutions."""
 
     ROUTE = r"/institution/today$"

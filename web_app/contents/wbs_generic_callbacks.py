@@ -181,7 +181,7 @@ def table_data_exterior_controls(
     """Exterior control signaled that the table should be updated.
 
     This is either a filter, "add new", refresh, or "show totals". Only
-    "add new" changes MoU DS data. The others simply change what's
+    "add new" changes MOU DS data. The others simply change what's
     visible to the user.
     """
     logging.warning(f"'{du.triggered()}' -> table_data_exterior_controls()")

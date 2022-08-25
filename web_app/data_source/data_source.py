@@ -1,4 +1,4 @@
-"""REST interface for reading and writing MoU data."""
+"""REST interface for reading and writing MOU data."""
 
 
 from typing import Any, Dict, Final, List, Tuple, TypedDict, cast

@@ -17,7 +17,7 @@ from .utils.oidc_tools import CurrentUser
 
 def layout() -> None:
     """Serve the layout to `app`."""
-    app.title = "MoU Dashboard"
+    app.title = "MOU Dashboard"
 
     # Layout
     app.layout = html.Div(

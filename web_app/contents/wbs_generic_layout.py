@@ -26,8 +26,8 @@ def layout() -> html.Div:
                 },
                 children=html.A(
                     "Download User Guide PDF",
-                    download="MoU_Dashboard_Getting_Started.pdf",
-                    href="/assets/MoU_Dashboard_Getting_Started.pdf",
+                    download="MOU_Dashboard_Getting_Started.pdf",
+                    href="/assets/MOU_Dashboard_Getting_Started.pdf",
                 ),
             ),
             #

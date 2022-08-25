@@ -1,4 +1,4 @@
-"""Database interface for MoU data."""
+"""Database interface for MOU data."""
 
 import base64
 import dataclasses as dc
@@ -21,11 +21,11 @@ from . import columns
 _LIVE_COLLECTION = "LIVE_COLLECTION"
 
 
-class MoUDatabaseClient:
-    """MotorClient with additional guardrails for MoU things."""
+class MOUDatabaseClient:
+    """MotorClient with additional guardrails for MOU things."""
 
     def __init__(
-        self, motor_client: MotorClient, data_adaptor: utils.MoUDataAdaptor
+        self, motor_client: MotorClient, data_adaptor: utils.MOUDataAdaptor
     ) -> None:
         self.data_adaptor = data_adaptor
         self._mongo = motor_client

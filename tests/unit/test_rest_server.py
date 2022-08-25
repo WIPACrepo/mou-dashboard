@@ -27,10 +27,10 @@ nest_asyncio.apply()  # allows nested event loops
 
 KRS_INSTS: Final = "krs.institutions.list_insts_flat"
 KRS_TOKEN: Final = "krs.token.get_rest_client"
-MOU_DB_CLIENT: Final = "rest_server.data_sources.mou_db.MoUDatabaseClient"
+MOU_DB_CLIENT: Final = "rest_server.data_sources.mou_db.MOUDatabaseClient"
 MOTOR_CLIENT: Final = "motor.motor_tornado.MotorClient"
 TC_CACHE: Final = "rest_server.data_sources.table_config_cache.TableConfigCache"
-MOU_DATA_ADAPTOR: Final = "rest_server.utils.utils.MoUDataAdaptor"
+MOU_DATA_ADAPTOR: Final = "rest_server.utils.utils.MOUDataAdaptor"
 WBS: Final = "mo"
 
 
@@ -48,7 +48,7 @@ def mock_mongo(mocker: Any) -> Any:
     return mock_mongo
 
 
-class TestMoUDB:  # pylint: disable=R0904
+class TestMOUDB:  # pylint: disable=R0904
     """Test private methods in mou_db.py."""
 
     @staticmethod
@@ -57,13 +57,13 @@ class TestMoUDB:  # pylint: disable=R0904
     @patch(KRS_TOKEN, return_value=Mock())
     @patch(MOU_DB_CLIENT + "._ensure_all_db_indexes")
     async def test_init(mock_eadi: Any, _: Any, __: Any) -> None:
-        """Test MoUDatabaseClient.__init__()."""
+        """Test MOUDatabaseClient.__init__()."""
         # Setup & Mock
 
         # Call
-        mou_db_client = mou_db.MoUDatabaseClient(
+        mou_db_client = mou_db.MOUDatabaseClient(
             sentinel.mongo,
-            utils.MoUDataAdaptor(await tcc.TableConfigCache.create()),
+            utils.MOUDataAdaptor(await tcc.TableConfigCache.create()),
         )
 
         # Assert
@@ -74,9 +74,9 @@ class TestMoUDB:  # pylint: disable=R0904
         reset_mock(mock_eadi)
 
         # Call
-        mou_db_client = mou_db.MoUDatabaseClient(
+        mou_db_client = mou_db.MOUDatabaseClient(
             sentinel.mongo,
-            utils.MoUDataAdaptor(await tcc.TableConfigCache.create()),
+            utils.MOUDataAdaptor(await tcc.TableConfigCache.create()),
         )
 
         # Assert
@@ -90,9 +90,9 @@ class TestMoUDB:  # pylint: disable=R0904
         """Test _list_database_names()."""
         # Setup & Mock
         dbs = ["foo", "bar", "baz"] + config.EXCLUDE_DBS[:3]
-        mou_db_client = mou_db.MoUDatabaseClient(
+        mou_db_client = mou_db.MOUDatabaseClient(
             mock_mongo,
-            utils.MoUDataAdaptor(await tcc.TableConfigCache.create()),
+            utils.MOUDataAdaptor(await tcc.TableConfigCache.create()),
         )
         mock_mongo.list_database_names.side_effect = AsyncMock(return_value=dbs)
 
@@ -210,8 +210,8 @@ class TestMongofier:
         assert into != rehumaned  # assert in-place change
 
 
-class TestMoUDataAdaptor:
-    """Test utils.MoUDataAdaptor."""
+class TestMOUDataAdaptor:
+    """Test utils.MOUDataAdaptor."""
 
     @staticmethod
     @pytest.mark.asyncio
@@ -224,7 +224,7 @@ class TestMoUDataAdaptor:
     ) -> None:
         """Test _validate_record_data()."""
         # Setup & Mock
-        mou_data_adaptor = utils.MoUDataAdaptor(await tcc.TableConfigCache.create())
+        mou_data_adaptor = utils.MOUDataAdaptor(await tcc.TableConfigCache.create())
 
         mock_gsdm.return_value = {
             "F.o.o": ["foo-1", "foo-2"],
@@ -321,7 +321,7 @@ class TestMoUDataAdaptor:
     async def test_mongofy_record(mock_vrd: Any, _: Any, __: Any) -> None:
         """Test _mongofy_record()."""
         # Setup & Mock
-        mou_data_adaptor = utils.MoUDataAdaptor(await tcc.TableConfigCache.create())
+        mou_data_adaptor = utils.MOUDataAdaptor(await tcc.TableConfigCache.create())
 
         # Set-Up
         records: List[uut.DBRecord] = [
@@ -359,8 +359,8 @@ class TestMoUDataAdaptor:
         # Set-Up
         records: List[uut.DBRecord] = [
             {"_id": ANY},
-            {"_id": ANY, utils.MoUDataAdaptor.IS_DELETED: True},
-            {"_id": ANY, utils.MoUDataAdaptor.IS_DELETED: False},
+            {"_id": ANY, utils.MOUDataAdaptor.IS_DELETED: True},
+            {"_id": ANY, utils.MOUDataAdaptor.IS_DELETED: False},
             {"_id": ANY, "a;b": 5, "Foo;Bar": "Baz"},
             {"_id": ObjectId("5f725c6af0803660075769ab"), "FOO": "bar"},
         ]
@@ -375,11 +375,11 @@ class TestMoUDataAdaptor:
 
         # Call & Assert
         for record, drecord in zip(records, demongofied_records):
-            assert utils.MoUDataAdaptor.demongofy_record(record) == drecord
+            assert utils.MOUDataAdaptor.demongofy_record(record) == drecord
 
         # Error Case
         with pytest.raises(KeyError):
-            utils.MoUDataAdaptor.demongofy_record({"a;b": 5, "Foo;Bar": "Baz"})
+            utils.MOUDataAdaptor.demongofy_record({"a;b": 5, "Foo;Bar": "Baz"})
 
 
 class TestTableConfigDataAdaptor:

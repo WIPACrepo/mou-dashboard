@@ -1,4 +1,4 @@
-"""Utilities for MoU REST interfaces."""
+"""Utilities for MOU REST interfaces."""
 
 
 import copy
@@ -42,7 +42,7 @@ def _get_log_body(method: str, url: str, body: Any) -> str:
 
 
 def mou_request(method: str, url: str, body: Any = None) -> Dict[str, Any]:
-    """Make a request to the MoU REST server."""
+    """Make a request to the MOU REST server."""
     log_body = _get_log_body(method, url, body)
     logging.info(f"REQUEST :: {method} @ {url}, body: {log_body}")
 
