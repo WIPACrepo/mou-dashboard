@@ -37,17 +37,11 @@ dash==2.6.1
 dash-bootstrap-components==1.2.1
     # via UNKNOWN (setup.py)
 dash-core-components==2.0.0
-    # via
-    #   UNKNOWN (setup.py)
-    #   dash
+    # via dash
 dash-html-components==2.0.0
-    # via
-    #   UNKNOWN (setup.py)
-    #   dash
+    # via dash
 dash-table==5.0.0
-    # via
-    #   UNKNOWN (setup.py)
-    #   dash
+    # via dash
 deprecated==1.2.13
     # via opentelemetry-api
 et-xmlfile==1.1.0
