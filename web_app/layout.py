@@ -46,13 +46,19 @@ def layout() -> None:
                     dbc.Row(
                         className="logo-container",
                         children=[
-                            html.Label("MoU", className="logo-mou"),
-                            html.Label("Dash", className="logo-dashboard logo-dash"),
-                            html.Label("board", className="logo-dashboard logo-board"),
-                            html.Label(
-                                "– IceCube MoUs",
-                                id="mou-title",
-                                className="logo-mou-current",
+                            dbc.Col(
+                                html.Img(
+                                    src="/assets/mou_dash.png",
+                                    alt="MOU Dashboard",
+                                    width="300rem",
+                                )
+                            ),
+                            dbc.Col(
+                                html.Label(
+                                    "– IceCube",
+                                    id="mou-title",
+                                    className="logo-mou-current",
+                                )
                             ),
                         ],
                     ),

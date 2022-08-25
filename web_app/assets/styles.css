@@ -128,67 +128,21 @@ code {
 /* Site Title */
 
 .logo-container {
+    padding-top: 0.25rem;
     padding-left: 2rem;
 }
 
-.logo-mou {
-    font-family: Sarpanch, sans-serif;
-    font-weight: bold;
-    font-size: 55px;
-    letter-spacing: 0.25rem;
-    line-height: 1;
-    color: #cacaca;
-    align-self: flex-end;
-    margin-top: -0.25rem;
-    margin-bottom: -0.5rem;
-}
-
-.logo-dashboard {
-    font-weight: bold;
-    font-family: Arial;
-    text-transform: uppercase;
-    font-size: 19px;
-    letter-spacing: 0.25rem;
-    line-height: 1.35;
-    align-self: flex-end;
-    margin-bottom: 0.4rem;
-    display: flex;
-    height: 2.85rem;
-}
-
-.logo-dash {
-    color: black;
-    background-color: #cacaca;
-    border-top: 2.5px solid #cacaca;
-    border-top-left-radius: .5rem;
-    border-left: 2.5px solid #cacaca;
-    border-bottom-left-radius: .5rem;
-    border-bottom: 2.5px solid #cacaca;
-    padding-left: 0.4rem;
-    margin-left: 0.5rem;
-}
-
-.logo-board {
-    color: #cacaca;
-    border-top: 2.5px solid #cacaca;
-    border-top-right-radius: .5rem;
-    border-right: 2.5px solid #cacaca;
-    border-bottom-right-radius: .5rem;
-    border-bottom: 2.5px solid #cacaca;
-    padding-left: 0.3rem;
-    padding-right: 0.05rem;
-}
-
 .logo-mou-current {
-    color: #17a2b8;
+    /*color: #17a2b8;*/
+    color:  #cacaca;
     font-family: serif;
     font-family: Kanit, sans-serif;
     font-size: 30px;
     letter-spacing: 0.3rem;
-    line-height: 1.35;
+    line-height: 1.65;
     align-self: flex-end;
-    margin-bottom: 0.25rem;
-    margin-left: 1.5rem;
+    /*margin-bottom: 0.25rem;*/
+    /*margin-left: 1.5rem;*/
     display: flex;
     height: 3.75rem;
 }
