@@ -490,7 +490,6 @@ def after_deletion_toast() -> dbc.Toast:
         is_open=False,
         dismissable=True,
         duration=0,  # 0 = forever
-        fade=False,
         icon=Color.DARK,
         # top: 66 positions the toast below the navbar
         style={
