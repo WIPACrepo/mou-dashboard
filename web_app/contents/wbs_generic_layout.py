@@ -65,7 +65,7 @@ def layout() -> html.Div:
             #
             # Snapshot / Institution filter dropdown menu / Last Updated label
             dbc.Row(
-                no_gutters=True,
+                className="g-0",  # "g-0" -> no gutters
                 children=[
                     dbc.Col(
                         width=4,
@@ -158,7 +158,7 @@ def layout() -> html.Div:
                     # Inputs
                     dbc.Row(
                         justify="center",
-                        no_gutters=True,
+                        className="g-0",  # "g-0" -> no gutters
                         children=[
                             dbc.Col(
                                 className="institution-headcount",
@@ -199,8 +199,7 @@ def layout() -> html.Div:
             #
             # Top Tools
             dbc.Row(
-                className="wbs-table-top-toolbar",
-                no_gutters=True,
+                className="g-0 wbs-table-top-toolbar",  # "g-0" -> no gutters
                 children=[
                     # Add Button
                     du.new_data_button(1),
@@ -274,8 +273,7 @@ def layout() -> html.Div:
             du.fullscreen_loading(
                 children=[
                     dbc.Row(
-                        className="wbs-table-bottom-toolbar",
-                        no_gutters=True,
+                        className="g-0 wbs-table-bottom-toolbar",  # "g-0" -> no gutters
                         children=[
                             #
                             # New Data
@@ -324,7 +322,7 @@ def layout() -> html.Div:
                     # Inputs
                     dbc.Row(
                         justify="center",
-                        no_gutters=True,
+                        className="g-0",  # "g-0" -> no gutters
                         children=[
                             dbc.Col(
                                 className="institution-headcount",
