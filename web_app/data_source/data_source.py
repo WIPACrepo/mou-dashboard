@@ -1,9 +1,11 @@
 """REST interface for reading and writing MOU data."""
 
 
+import dataclasses as dc
 from typing import Any, Dict, Final, List, Tuple, TypedDict, cast
 
 import universal_utils.types as uut
+from dacite import from_dict
 
 from ..utils import types, utils
 from ..utils.oidc_tools import CurrentUser
@@ -443,7 +445,7 @@ def pull_institution_values(
         "snapshot_timestamp": snapshot_ts,
     }
     response = mou_request("GET", f"/institution/values/{wbs_l1}", body=body)
-    return uut.InstitutionValues(**response)
+    return from_dict(uut.InstitutionValues, response)  # type: ignore[no-any-return] # fixed in future release
 
 
 def push_institution_values(  # pylint: disable=R0913
@@ -455,24 +457,6 @@ def push_institution_values(  # pylint: disable=R0913
     _validate(wbs_l1, str, falsy_okay=False)
     institution = _validate(institution, types.DashVal_types)
 
-    # TODO - use asdict()
-
-    body = {"institution": institution}
-    if inst_dc.phds_authors or inst_dc.phds_authors == 0:
-        body["phds_authors"] = inst_dc.phds_authors
-    if inst_dc.faculty or inst_dc.faculty == 0:
-        body["faculty"] = inst_dc.faculty
-    if inst_dc.scientists_post_docs or inst_dc.scientists_post_docs == 0:
-        body["scientists_post_docs"] = inst_dc.scientists_post_docs
-    if inst_dc.grad_students or inst_dc.grad_students == 0:
-        body["grad_students"] = inst_dc.grad_students
-    if inst_dc.cpus or inst_dc.cpus == 0:
-        body["cpus"] = inst_dc.cpus
-    if inst_dc.gpus or inst_dc.gpus == 0:
-        body["gpus"] = inst_dc.gpus
-    body["text"] = inst_dc.text
-    body["headcounts_confirmed_ts"] = inst_dc.headcounts_confirmed_ts
-    body["table_confirmed_ts"] = inst_dc.table_confirmed_ts
-    body["computing_confirmed_ts"] = inst_dc.computing_confirmed_ts
-
-    _ = mou_request("POST", f"/institution/values/{wbs_l1}", body=body)
+    body = dc.asdict(inst_dc)
+    body.update({"institution": institution})
+    mou_request("POST", f"/institution/values/{wbs_l1}", body=body)

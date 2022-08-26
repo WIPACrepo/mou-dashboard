@@ -30,6 +30,23 @@ class SnapshotInfo:
 
 
 @dc.dataclass(frozen=True)
+class InstitutionAttributeMetadata:
+    """Metadata for an `InstitutionValues` attribute/attributes."""
+
+    last_edit_ts: int = 0
+    confirmation_ts: int = 0
+    confirmation_touchstone_ts: int = 0
+
+    def has_valid_confirmation(self) -> bool:
+        """Return whether the confirmation is valid."""
+        # using `>=` will pass the null-case where everything=0
+        return (
+            self.confirmation_ts >= self.last_edit_ts
+            and self.confirmation_ts >= self.confirmation_touchstone_ts
+        )
+
+
+@dc.dataclass(frozen=True)
 class InstitutionValues:
     """Values for an institution."""
 
@@ -40,6 +57,6 @@ class InstitutionValues:
     cpus: int | None
     gpus: int | None
     text: str
-    headcounts_confirmed_ts: int  # timestamp
-    table_confirmed_ts: int  # timestamp
-    computing_confirmed_ts: int  # timestamp
+    headcounts_metadata: InstitutionAttributeMetadata
+    table_metadata: InstitutionAttributeMetadata
+    computing_metadata: InstitutionAttributeMetadata
