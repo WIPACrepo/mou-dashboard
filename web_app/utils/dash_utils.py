@@ -217,7 +217,10 @@ def get_inst(urlpath: str) -> str:
 
 
 def build_urlpath(wbs_l1: str, inst: str = "") -> str:
-    """Return a url pathname built from it pieces."""
+    """Return a url pathname built from it pieces.
+
+    url: [<WBS_L1>[/<INST>]]
+    """
     if wbs_l1:
         if inst:
             return f"{wbs_l1}/{inst}"

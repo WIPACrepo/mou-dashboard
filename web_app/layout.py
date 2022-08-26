@@ -145,7 +145,7 @@ def interval(_: int) -> str:
         Output("tab-content", "hidden"),  # update to call view_live_table()
         Output("logged-in-user", "children"),
     ],
-    [Input("url-404-redirect", "refresh")],  # never triggered
+    [Input("url-404-redirect", "refresh")],  # `refresh` is never triggered
     [State("url", "pathname")],
 )
 def main_redirect(_: bool, s_urlpath: str) -> Tuple[str, bool, str]:
@@ -156,10 +156,12 @@ def main_redirect(_: bool, s_urlpath: str) -> Tuple[str, bool, str]:
 
     # is the user logged-in?
     if not CurrentUser.is_loggedin():
+        logging.warning("Redirecting to '/login' ...")
         return "login", True, ""
 
     # does the user have permissions?
     if not CurrentUser.is_loggedin_with_permissions():
+        logging.warning("Redirecting to '/invalid-permissions' ...")
         return "invalid-permissions", True, ""
 
     if CurrentUser.is_admin():
@@ -176,13 +178,16 @@ def main_redirect(_: bool, s_urlpath: str) -> Tuple[str, bool, str]:
             root = du.get_wbs_l1(s_urlpath)
         # redirect
         if CurrentUser.is_admin():
-            return root, False, user_label
+            url = root
         else:
-            return f"{root}/{CurrentUser.get_institutions()[0]}", False, user_label
+            url = f"{root}/{CurrentUser.get_institutions()[0]}"
+        logging.warning(f"Redirecting to '/{url}' ...")
+        return url, False, user_label
 
     # is this a known page?
     if du.root_is_not_wbs(s_urlpath):
-        logging.error(f"User viewing {s_urlpath=}. Redirecting to '{REDIRECT_WBS}'...")
+        logging.error(f"User viewing {s_urlpath=}")
+        logging.warning(f"Redirecting to '/{REDIRECT_WBS}' ...")
         return REDIRECT_WBS, False, user_label
 
     return no_update, False, user_label
