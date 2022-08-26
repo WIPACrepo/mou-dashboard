@@ -137,14 +137,14 @@ code {
     color:  #cacaca;
     font-family: serif;
     font-family: Kanit, sans-serif;
-    font-size: 30px;
+    font-size: 32px;
     letter-spacing: 0.3rem;
-    line-height: 1.65;
+    line-height: 1;
     align-self: flex-end;
     /*margin-bottom: 0.25rem;*/
     /*margin-left: 1.5rem;*/
     display: flex;
-    height: 3.75rem;
+    height: 3.5rem;
 }
 
 
