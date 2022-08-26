@@ -20,7 +20,7 @@ def main() -> None:
 
     # Run Server
     app.run_server(
-        debug=bool(ENV.DEBUG),
+        debug=ENV.DEBUG,
         host=ENV.WEB_SERVER_HOST,
         port=ENV.WEB_SERVER_PORT,
         # useful dev settings (these are enabled automatically when debug=True)
