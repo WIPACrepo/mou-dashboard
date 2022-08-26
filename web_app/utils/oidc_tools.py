@@ -63,14 +63,18 @@ class CurrentUser:
     def is_loggedin_with_permissions() -> bool:
         """Is the user authenticated (logged-in w/ permissions)?"""
         if not CurrentUser.is_loggedin():
+            logging.debug("[USER_INFO] User is not logged in")
             return False
 
         if CurrentUser.is_admin():
+            logging.debug("[USER_INFO] User is admin")
             return True
 
-        if CurrentUser.get_institutions():
+        if insts := CurrentUser.get_institutions():
+            logging.debug(f"[USER_INFO] User has {len(insts)} institution(s)")
             return True
 
+        logging.debug("[USER_INFO] User has no institutions, but is logged in")
         return False
 
     @staticmethod
