@@ -216,7 +216,7 @@ def get_inst(urlpath: str) -> str:
         return ""
 
 
-def build_urlpath(wbs_l1: str, inst: str = "") -> str:
+def build_urlpath(wbs_l1: str, inst: str | None = "") -> str:
     """Return a url pathname built from it pieces.
 
     url: [<WBS_L1>[/<INST>]]
@@ -250,7 +250,7 @@ class CallbackAbortException(Exception):
 
 
 def precheck_setup_callback(s_urlpath: str) -> None:
-    """Return whether to abort a dash setup callback."""
+    """Return whether to abort a dash setup callback based on url & user permissions."""
     if triggered_id():  # Guarantee this is the initial call
         raise Exception(f"Setup-callback was called after setup ({triggered_id()=})")
 
