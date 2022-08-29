@@ -302,9 +302,11 @@ class InstitutionValuesHandler(BaseMOUHandler):  # pylint: disable=W0223
             computing_confirmed_ts=computing_confirmed_ts,
         )
 
-        await self.mou_db_client.upsert_institution_values(wbs_l1, institution, vals)
+        vals = await self.mou_db_client.upsert_institution_values(
+            wbs_l1, institution, vals
+        )
 
-        self.write({})
+        self.write(dc.asdict(vals))
 
 
 # -----------------------------------------------------------------------------

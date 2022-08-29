@@ -184,13 +184,19 @@ class MOUDatabaseClient:
 
     async def upsert_institution_values(
         self, wbs_db: str, institution: str, vals: uut.InstitutionValues
-    ) -> None:
+    ) -> uut.InstitutionValues:
         """Upsert the values for an institution."""
         logging.debug(
             f"Upserting Institution's Values ({wbs_db=}, {institution=}, {vals=})..."
         )
 
         await self._check_database_state(wbs_db)
+
+        # update "last edit"s by diffing
+        before = await self.get_institution_values(
+            wbs_db, _LIVE_COLLECTION, institution
+        )
+        vals = before.update_anew(vals)
 
         doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
         doc.snapshot_institution_values.update({institution: vals})
@@ -199,6 +205,7 @@ class MOUDatabaseClient:
         logging.info(
             f"Upserted Institution's Values ({wbs_db=}, {institution=}, {vals=})."
         )
+        return vals
 
     async def _check_database_state(self, wbs_db: str) -> None:
         """Raise 422 if there are no collections."""

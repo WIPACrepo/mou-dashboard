@@ -2,6 +2,7 @@
 
 import dataclasses as dc
 import logging
+import time
 from typing import Dict, List, Tuple, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
@@ -45,8 +46,10 @@ class SelectInstitutionValueOutput:
     # LABOR
     labor_opts: List[Dict[str, str]] = no_update
     # INST-VAL STATE
-    instval_conf_init: str = no_update
-    instval_conf: str = no_update
+    # instval_conf_init: dict = no_update
+    instval_conf_headcounts: dict = no_update
+    instval_conf_table: dict = no_update
+    instval_conf_computing: dict = no_update
 
     def update_institution_values(self, inst_vals: uut.InstitutionValues) -> None:
         """Updated fields using an `InstitutionValues` instance."""
@@ -57,11 +60,23 @@ class SelectInstitutionValueOutput:
         self.cpus_val = inst_vals.cpus if inst_vals.cpus else 0  # None (blank) -> 0
         self.gpus_val = inst_vals.gpus if inst_vals.gpus else 0  # None (blank) -> 0
         self.textarea_val = inst_vals.text
-        self.instval_conf = {
-            "headcounts": inst_vals.headcounts_metadata,
-            "table": inst_vals.table_metadata,
-            "computing": inst_vals.computing_metadata,
-        }
+        self.instval_conf_headcounts = dc.asdict(inst_vals.headcounts_metadata)
+        self.instval_conf_table = dc.asdict(inst_vals.table_metadata)
+        self.instval_conf_computing = dc.asdict(inst_vals.computing_metadata)
+
+
+@dc.dataclass(frozen=True)
+class SelectInstitutionValueState:
+    """States for select_institution_value()."""
+
+    s_urlpath: str
+    s_snap_ts: str
+    s_table: list
+    # INST-VAL STATE
+    # s_instval_conf_init: dict
+    s_instval_conf_headcounts: dict
+    s_instval_conf_table: dict
+    s_instval_conf_computing: dict
 
 
 @dc.dataclass(frozen=True)
@@ -84,8 +99,40 @@ class SelectInstitutionValueInputs:
     comfirm_table_click: int
     comfirm_computing_click: int
 
-    def get_institution_values(self) -> uut.InstitutionValues:
-        """Get an `InstitutionValues` instance from fields."""
+    def get_institution_values(
+        self, state: SelectInstitutionValueState
+    ) -> uut.InstitutionValues:
+        """Get an `InstitutionValues` instance from fields and `state`."""
+
+        headcounts_metadata = uut.InstitutionAttributeMetadata(
+            **state.s_instval_conf_headcounts,
+        )
+        table_metadata = uut.InstitutionAttributeMetadata(
+            **state.s_instval_conf_table,
+        )
+        computing_metadata = uut.InstitutionAttributeMetadata(
+            **state.s_instval_conf_computing,
+        )
+
+        # Update Confirmations
+        # similar logic to `InstitutionValues.update_anew()`
+        match du.triggered_id():
+            case "wbs-headcounts-confirm-yes.n_clicks":
+                headcounts_metadata = dc.replace(
+                    headcounts_metadata,
+                    confirmation_ts=int(time.time()),
+                )
+            case "wbs-table-confirm-yes.n_clicks":
+                table_metadata = dc.replace(
+                    table_metadata,
+                    confirmation_ts=int(time.time()),
+                )
+            case "wbs-computing-confirm-yes.n_clicks":
+                computing_metadata = dc.replace(
+                    computing_metadata,
+                    confirmation_ts=int(time.time()),
+                )
+
         return uut.InstitutionValues(
             phds_authors=self.phds_val,
             faculty=self.faculty_val,
@@ -94,20 +141,10 @@ class SelectInstitutionValueInputs:
             cpus=self.cpus_val,
             gpus=self.gpus_val,
             text=self.textarea_val,
-            # TODO
-            # headcounts_metadata=,
-            # table_metadata=,
-            # computing_metadata=,
+            headcounts_metadata=headcounts_metadata,
+            table_metadata=table_metadata,
+            computing_metadata=computing_metadata,
         )
-
-
-@dc.dataclass(frozen=True)
-class SelectInstitutionValueStates:
-    """States for select_institution_value()."""
-
-    s_urlpath: str
-    s_snap_ts: str
-    s_table: list
 
 
 @app.callback(  # type: ignore[misc]
@@ -140,7 +177,7 @@ class SelectInstitutionValueStates:
             # LABOR
             labor_opts=Output("wbs-filter-labor", "options"),
             # INST-VAL STATE
-            instval_conf_init=Output("wbs-state-instvals-confirm-initial", "data"),
+            # instval_conf_init=Output("wbs-state-instvals-confirm-initial", "data"),
             instval_conf=Output("wbs-state-instvals-confirm", "data"),
         )
     ),
@@ -171,10 +208,12 @@ class SelectInstitutionValueStates:
     ),
     state=dict(
         state=dc.asdict(
-            SelectInstitutionValueStates(
+            SelectInstitutionValueState(
                 s_urlpath=State("url", "pathname"),
                 s_snap_ts=State("wbs-current-snapshot-ts", "value"),
                 s_table=State("wbs-data-table", "data"),
+                # s_instval_conf_init=Output("wbs-state-instvals-confirm-initial", "data"),
+                s_instval_conf=Output("wbs-state-instvals-confirm", "data"),
             )
         )
     ),
@@ -186,16 +225,16 @@ def select_institution_value(
 ) -> dict:
     """For all things institution values"""
     return dc.asdict(
-        _select_institution_value_typed(
+        _select_institution_value_dc(
             SelectInstitutionValueInputs(**inputs),
-            SelectInstitutionValueStates(**state),
+            SelectInstitutionValueState(**state),
         )
     )
 
 
-def _select_institution_value_typed(
+def _select_institution_value_dc(
     inputs: SelectInstitutionValueInputs,
-    state: SelectInstitutionValueStates,
+    state: SelectInstitutionValueState,
 ) -> SelectInstitutionValueOutput:
     logging.warning(
         f"'{du.triggered()}' -> select_institution_value() {inputs.inst_val=} {CurrentUser.get_institutions()=})"
@@ -235,11 +274,11 @@ def _select_institution_value_typed(
         case "wbs-textarea.value":
             return push_institution_values(inputs, state)
         # CLICKS
-        case "wbs-headcounts-confirm-yes", "n_clicks":
+        case "wbs-headcounts-confirm-yes.n_clicks":
             return push_institution_values(inputs, state)
-        case "wbs-table-confirm-yes", "n_clicks":
+        case "wbs-table-confirm-yes.n_clicks":
             return push_institution_values(inputs, state)
-        case "wbs-computing-confirm-yes", "n_clicks":
+        case "wbs-computing-confirm-yes.n_clicks":
             return push_institution_values(inputs, state)
 
     raise ValueError(f"Unaccounted for trigger: {du.triggered()}")
@@ -247,7 +286,7 @@ def _select_institution_value_typed(
 
 def changed_institution(
     inputs: SelectInstitutionValueInputs,
-    state: SelectInstitutionValueStates,
+    state: SelectInstitutionValueState,
 ) -> SelectInstitutionValueOutput:
     """Refresh if the user selected a different institution."""
     # did anything change?
@@ -263,7 +302,7 @@ def changed_institution(
 
 def pull_institution_values(
     inputs: SelectInstitutionValueInputs,
-    state: SelectInstitutionValueStates,
+    state: SelectInstitutionValueState,
 ) -> SelectInstitutionValueOutput:
     output = SelectInstitutionValueOutput()
     tconfig = tc.TableConfigParser(du.get_wbs_l1(state.s_urlpath))
@@ -519,7 +558,7 @@ def pull_institution_values(
 
 def push_institution_values(
     inputs: SelectInstitutionValueInputs,
-    state: SelectInstitutionValueStates,
+    state: SelectInstitutionValueState,
 ) -> SelectInstitutionValueOutput:
 
     # Is there an institution selected?
@@ -534,21 +573,25 @@ def push_institution_values(
     if state.s_snap_ts:
         return SelectInstitutionValueOutput()
 
+    output = SelectInstitutionValueOutput()
+
     # TODO - use du.HEADCOUNTS_REQUIRED
+
+    # set confirmation timestamps
 
     # push
     try:
-        src.push_institution_values(
-            du.get_wbs_l1(state.s_urlpath),
-            inst,
-            inputs.get_institution_values(),
+        output.update_institution_values(
+            src.push_institution_values(
+                du.get_wbs_l1(state.s_urlpath),
+                inst,
+                inputs.get_institution_values(state),
+            )
         )
     except DataSourceException:
         assert len(state.s_table) == 0  # there's no collection to push to
 
-    # TODO - figure confirmations
-
-    return SelectInstitutionValueOutput()
+    return output
 
 
 # @app.callback(  # type: ignore[misc]
