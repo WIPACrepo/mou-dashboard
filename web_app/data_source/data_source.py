@@ -359,7 +359,7 @@ def list_snapshots(wbs_l1: str) -> List[uut.SnapshotInfo]:
     _validate(wbs_l1, str, falsy_okay=False)
 
     class _RespSnapshots(TypedDict):
-        snapshots: List[uut.SnapshotInfo]
+        snapshots: List[dict]  # to be List[uut.SnapshotInfo]
 
     body = {
         "is_admin": CurrentUser.is_loggedin_with_permissions()
@@ -369,7 +369,11 @@ def list_snapshots(wbs_l1: str) -> List[uut.SnapshotInfo]:
         _RespSnapshots, mou_request("GET", f"/snapshots/list/{wbs_l1}", body)
     )
 
-    return sorted(response["snapshots"], key=lambda si: si.timestamp, reverse=True)
+    return sorted(
+        [uut.SnapshotInfo(**s) for s in response["snapshots"]],
+        key=lambda si: si.timestamp,
+        reverse=True,
+    )
 
 
 def create_snapshot(wbs_l1: str, name: str) -> uut.SnapshotInfo:
@@ -391,7 +395,7 @@ def create_snapshot(wbs_l1: str, name: str) -> uut.SnapshotInfo:
 
 def override_table(
     wbs_l1: str, base64_file: str, filename: str
-) -> Tuple[int, uut.SnapshotInfo | None, uut.SnapshotInfo | None]:
+) -> Tuple[int, uut.SnapshotInfo | None, uut.SnapshotInfo]:
     """Ingest .xlsx file as the new live collection.
 
     Arguments:
@@ -409,7 +413,7 @@ def override_table(
 
     class _RespTableData(TypedDict):
         n_records: int
-        previous_snapshot: dict  # to be uut.SnapshotInfo
+        previous_snapshot: dict | None  # to be uut.SnapshotInfo
         current_snapshot: dict  # to be uut.SnapshotInfo
 
     body = {
@@ -423,7 +427,9 @@ def override_table(
     )
     return (
         response["n_records"],
-        uut.SnapshotInfo(**response["previous_snapshot"]),
+        None
+        if not response["previous_snapshot"]
+        else uut.SnapshotInfo(**response["previous_snapshot"]),
         uut.SnapshotInfo(**response["current_snapshot"]),
     )
 
