@@ -117,21 +117,27 @@ class SelectInstitutionValueInputs:
         # Update Confirmations
         # similar logic to `InstitutionValues.update_anew()`
         match du.triggered_id():
+            # Confirm Headcounts
             case "wbs-headcounts-confirm-yes.n_clicks":
                 headcounts_metadata = dc.replace(
                     headcounts_metadata,
                     confirmation_ts=int(time.time()),
                 )
+                logging.debug(f"Confirming headcounts_metadata: {headcounts_metadata}")
+            # Confirm Table
             case "wbs-table-confirm-yes.n_clicks":
                 table_metadata = dc.replace(
                     table_metadata,
                     confirmation_ts=int(time.time()),
                 )
+                logging.debug(f"Confirming table_metadata: {table_metadata}")
+            # Confirm Computing
             case "wbs-computing-confirm-yes.n_clicks":
                 computing_metadata = dc.replace(
                     computing_metadata,
                     confirmation_ts=int(time.time()),
                 )
+                logging.debug(f"Confirming computing_metadata: {computing_metadata}")
 
         return uut.InstitutionValues(
             phds_authors=self.phds_val,
@@ -289,6 +295,8 @@ def changed_institution(
     state: SelectInstitutionValueState,
 ) -> SelectInstitutionValueOutput:
     """Refresh if the user selected a different institution."""
+    logging.info("changed_institution")
+
     # did anything change?
     if inputs.inst_val is None and du.get_inst(state.s_urlpath) == "":
         return SelectInstitutionValueOutput()
@@ -304,6 +312,8 @@ def pull_institution_values(
     inputs: SelectInstitutionValueInputs,
     state: SelectInstitutionValueState,
 ) -> SelectInstitutionValueOutput:
+    logging.info("pull_institution_values")
+
     output = SelectInstitutionValueOutput()
     tconfig = tc.TableConfigParser(du.get_wbs_l1(state.s_urlpath))
 
@@ -560,6 +570,7 @@ def push_institution_values(
     inputs: SelectInstitutionValueInputs,
     state: SelectInstitutionValueState,
 ) -> SelectInstitutionValueOutput:
+    logging.info("push_institution_values")
 
     # Is there an institution selected?
     if not (inst := du.get_inst(state.s_urlpath)):  # pylint: disable=C0325
