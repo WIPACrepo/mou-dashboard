@@ -409,8 +409,8 @@ def override_table(
 
     class _RespTableData(TypedDict):
         n_records: int
-        previous_snapshot: uut.SnapshotInfo
-        current_snapshot: uut.SnapshotInfo
+        previous_snapshot: dict  # to be uut.SnapshotInfo
+        current_snapshot: dict  # to be uut.SnapshotInfo
 
     body = {
         "base64_file": base64_file,
@@ -423,8 +423,8 @@ def override_table(
     )
     return (
         response["n_records"],
-        response["previous_snapshot"],
-        response["current_snapshot"],
+        uut.SnapshotInfo(**response["previous_snapshot"]),
+        uut.SnapshotInfo(**response["current_snapshot"]),
     )
 
 
