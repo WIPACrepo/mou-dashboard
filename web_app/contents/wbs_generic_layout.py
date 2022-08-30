@@ -465,9 +465,13 @@ def layout() -> html.Div:
                 data=True,
             ),
             # - for storing the initial confirmation timestamps
-            dcc.Store(id="wbs-headcounts-confirm-timestamp", storage_type="memory"),
-            dcc.Store(id="wbs-table-confirm-timestamp", storage_type="memory"),
-            dcc.Store(id="wbs-computing-confirm-timestamp", storage_type="memory"),
+            # dcc.Store(id="wbs-headcounts-confirm-timestamp", storage_type="memory"),
+            # dcc.Store(id="wbs-table-confirm-timestamp", storage_type="memory"),
+            # dcc.Store(id="wbs-computing-confirm-timestamp", storage_type="memory"),
+            # - for storing confirmation info
+            dcc.Store(id="wbs-store-confirm-headcounts", storage_type="memory"),
+            dcc.Store(id="wbs-store-confirm-table", storage_type="memory"),
+            dcc.Store(id="wbs-store-confirm-computing", storage_type="memory"),
             # - for storing the last deleted record's id
             dcc.Store(id="wbs-last-deleted-record", storage_type="memory"),
             # - for discerning whether the table update was by the user vs automated

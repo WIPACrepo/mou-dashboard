@@ -198,8 +198,11 @@ class SelectInstitutionValueInputs:
             # LABOR
             labor_opts=Output("wbs-filter-labor", "options"),
             # INST-VAL STATE
-            # instval_conf_init=Output("wbs-state-instvals-confirm-initial", "data"),
-            instval_conf=Output("wbs-state-instvals-confirm", "data"),
+            # instval_conf_init=Output("wbs-store-confirm-initial", "data"),
+            # instval_conf=Output("wbs-store-confirm", "data"),
+            instval_conf_headcounts=Output("wbs-store-confirm-headcounts", "data"),
+            instval_conf_table=Output("wbs-store-confirm-table", "data"),
+            instval_conf_computing=Output("wbs-store-confirm-computing", "data"),
         )
     ),
     inputs=dict(
@@ -233,17 +236,17 @@ class SelectInstitutionValueInputs:
                 s_urlpath=State("url", "pathname"),
                 s_snap_ts=State("wbs-current-snapshot-ts", "value"),
                 s_table=State("wbs-data-table", "data"),
-                # s_instval_conf_init=Output("wbs-state-instvals-confirm-initial", "data"),
-                s_instval_conf=Output("wbs-state-instvals-confirm", "data"),
+                # s_instval_conf_init=Output("wbs-store-confirm-initial", "data"),
+                # s_instval_conf=Output("wbs-store-confirm", "data"),
+                s_instval_conf_headcounts=State("wbs-store-confirm-headcounts", "data"),
+                s_instval_conf_table=State("wbs-store-confirm-table", "data"),
+                s_instval_conf_computing=State("wbs-store-confirm-computing", "data"),
             )
         )
     ),
     # prevent_initial_call=True,
 )
-def select_institution_value(
-    inputs: dict,  # SelectInstitutionValueInputs
-    state: dict,  # SelectInstitutionValueStates
-) -> dict:
+def select_institution_value(inputs: dict, state: dict) -> dict:
     """For all things institution values"""
     return dc.asdict(
         _select_institution_value_dc(
@@ -419,8 +422,8 @@ def pull_institution_values(
 #         #
 #         Output("wbs-filter-labor", "options"),
 #         #
-#         Output("wbs-state-instvals-confirm-initial", "data"),
-#         Output("wbs-state-instvals-confirm", "data"),
+#         Output("wbs-store-confirm-initial", "data"),
+#         Output("wbs-store-confirm", "data"),
 #     ],
 #     [Input("dummy-input-for-setup", "hidden")],  # never triggered
 #     [
@@ -630,8 +633,8 @@ def push_institution_values(
 #         #
 #         Output("wbs-headcounts-confirm-container-container", "hidden"),
 #         #
-#         Output("wbs-state-instvals-confirm-initial", "data"),
-#         Output("wbs-state-instvals-confirm", "data"),
+#         Output("wbs-store-confirm-initial", "data"),
+#         Output("wbs-store-confirm", "data"),
 #     ],
 #     [
 #         Input("wbs-phds-authors", "value"),  # user/setup_institution_components()
@@ -654,8 +657,8 @@ def push_institution_values(
 #         #
 #         State("wbs-institution-values-first-time-flag", "data"),
 #         #
-#         State("wbs-state-instvals-confirm-initial", "data"),
-#         State("wbs-state-instvals-confirm", "data"),
+#         State("wbs-store-confirm-initial", "data"),
+#         State("wbs-store-confirm", "data"),
 #     ],
 #     prevent_initial_call=True,
 # )
