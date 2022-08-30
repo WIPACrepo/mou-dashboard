@@ -124,29 +124,29 @@ def layout() -> html.Div:
                             ),
                         ],
                     ),
-                    dbc.Col(
-                        width=4,
-                        children=[
-                            dcc.Loading(
-                                type="default",
-                                color=du.TEAL,
-                                style={
-                                    "right": "0px",
-                                    "position": "absolute",
-                                    "height": "2rem",
-                                },
-                                children=[
-                                    html.Div(
-                                        className="sow-last-updated",
-                                        children=[
-                                            html.Div(id="wbs-sow-last-updated"),
-                                            html.Div(id="wbs-sow-last-updated-time"),
-                                        ],
-                                    ),
-                                ],
-                            )
-                        ],
-                    ),
+                    # dbc.Col(
+                    #     width=4,
+                    #     children=[
+                    #         dcc.Loading(
+                    #             type="default",
+                    #             color=du.TEAL,
+                    #             style={
+                    #                 "right": "0px",
+                    #                 "position": "absolute",
+                    #                 "height": "2rem",
+                    #             },
+                    #             children=[
+                    #                 html.Div(
+                    #                     className="sow-last-updated",
+                    #                     children=[
+                    #                         html.Div(id="wbs-sow-last-updated"),
+                    #                         html.Div(id="wbs-sow-last-updated-time"),
+                    #                     ],
+                    #                 ),
+                    #             ],
+                    #         )
+                    #     ],
+                    # ),
                 ],
             ),
             #
@@ -186,7 +186,7 @@ def layout() -> html.Div:
                         ],
                     ),
                     # Autosaved & Confirm
-                    du.make_timecheck_container("wbs-headcounts-timecheck-container"),
+                    # du.make_timecheck_container("wbs-headcounts-timecheck-container"),
                     html.Div(
                         id="wbs-headcounts-confirm-container-container",
                         children=du.make_confirm_container(
@@ -306,7 +306,7 @@ def layout() -> html.Div:
             ),
             #
             # Table Autosaved
-            du.make_timecheck_container("wbs-table-timecheck-container", loading=True),
+            # du.make_timecheck_container("wbs-table-timecheck-container", loading=True),
             du.make_confirm_container("table", "Submit SOWs"),
             #
             html.Div(
@@ -345,7 +345,7 @@ def layout() -> html.Div:
                         ],
                     ),
                     # Autosaved & Confirm
-                    du.make_timecheck_container("wbs-computing-timecheck-container"),
+                    # du.make_timecheck_container("wbs-computing-timecheck-container"),
                     du.make_confirm_container("computing", "Submit Counts"),
                     #
                     # Free Text & Autosaved
@@ -359,9 +359,9 @@ def layout() -> html.Div:
                         className="institution-text-area",
                         disabled=True,
                     ),
-                    du.make_timecheck_container(
-                        "wbs-institution-textarea-timecheck-container", loading=True
-                    ),
+                    # du.make_timecheck_container(
+                    #     "wbs-institution-textarea-timecheck-container", loading=True
+                    # ),
                 ],
             ),
             #

@@ -332,13 +332,13 @@ def _find_deleted_record(
 @app.callback(  # type: ignore[misc]
     [
         Output("wbs-data-table", "data_previous"),
-        Output("wbs-table-timecheck-container", "children"),
+        # Output("wbs-table-timecheck-container", "children"),
         Output("wbs-last-deleted-record", "data"),
         Output("wbs-confirm-deletion", "displayed"),
         Output("wbs-confirm-deletion", "message"),
         Output("wbs-table-update-flag-interior-control", "data"),
-        Output("wbs-sow-last-updated", "children"),
-        Output("wbs-sow-last-updated-time", "children"),
+        # Output("wbs-sow-last-updated", "children"),
+        # Output("wbs-sow-last-updated-time", "children"),
     ],
     [Input("wbs-data-table", "data")],  # user/table_data_exterior_controls()
     [
@@ -358,7 +358,16 @@ def table_data_interior_controls(
     s_snap_ts: types.DashVal,
     s_flag_extctrl: bool,
     s_flag_intctrl: bool,
-) -> Tuple[uut.WebTable, List[html.Label], uut.WebRecord, bool, str, bool, str, str]:
+) -> Tuple[
+    uut.WebTable,
+    # List[html.Label],
+    uut.WebRecord,
+    bool,
+    str,
+    bool,
+    # str,
+    # str,
+]:
     """Interior control signaled that the table should be updated.
 
     This is either a row deletion or a field edit. The table's view has
@@ -373,10 +382,12 @@ def table_data_interior_controls(
     tconfig = tc.TableConfigParser(wbs_l1)
 
     # Make labels
-    timecheck_labels = du.timecheck_labels("Table", "Autosaved", s_snap_ts)
-    sows_updated_label = du.get_sow_last_updated_label(
-        current_table, bool(s_snap_ts), tconfig
-    )
+    # timecheck_labels = du.timecheck_labels("Table", "Autosaved", s_snap_ts)
+    # sows_updated_label = du.get_sow_last_updated_label(
+    #     current_table, bool(s_snap_ts), tconfig
+    # )
+
+    # TODO - update instval table confirmation meta info
 
     # Was table just updated via exterior controls? -- if so, toggle flag
     # flags will agree only after table_data_exterior_controls() triggers this function
@@ -384,13 +395,13 @@ def table_data_interior_controls(
         logging.warning("table_data_interior_controls() :: aborted callback")
         return (
             current_table,
-            timecheck_labels,
+            # timecheck_labels,
             {},
             False,
             "",
             not s_flag_intctrl,
-            "SOWs Last Updated:",
-            sows_updated_label,
+            # "SOWs Last Updated:",
+            # sows_updated_label,
         )
 
     assert not s_snap_ts  # should not be a snapshot
@@ -406,22 +417,22 @@ def table_data_interior_controls(
         current_table, s_previous_table, mod_ids, tconfig
     )
 
-    # get the last updated label (make an ad hoc pseudo-table just to find the max time)
-    if pushed_record or deleted_record:
-        sows_updated_label = du.get_sow_last_updated_label(
-            [pushed_record, deleted_record], bool(s_snap_ts), tconfig
-        )
+    # # get the last updated label (make an ad hoc pseudo-table just to find the max time)
+    # if pushed_record or deleted_record:
+    #     sows_updated_label = du.get_sow_last_updated_label(
+    #         [pushed_record, deleted_record], bool(s_snap_ts), tconfig
+    #     )
 
     # Update data_previous
     return (
         current_table,
-        timecheck_labels,
+        # timecheck_labels,
         deleted_record,
         bool(deleted_record),
         delete_message,
         s_flag_intctrl,  # preserve flag
-        "SOWs Last Updated:",
-        sows_updated_label,
+        # "SOWs Last Updated:",
+        # sows_updated_label,
     )
 
 

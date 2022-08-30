@@ -105,16 +105,16 @@ def get_sow_last_updated_label(
     return most_recent
 
 
-def timecheck_labels(
-    subject: str, verbage: str, snap_ts: types.DashVal = None
-) -> List[html.Label]:
-    """Return labels with datetime and a checkmark for saved/submitted/etc."""
-    if snap_ts:
-        return []
-    return [
-        html.Label(f"{subject} {verbage} ✔", className="timecheck-label"),
-        html.Label(utils.get_human_now(), className="timecheck-datetime"),
-    ]
+# def timecheck_labels(
+#     subject: str, verbage: str, snap_ts: types.DashVal = None
+# ) -> List[html.Label]:
+#     """Return labels with datetime and a checkmark for saved/submitted/etc."""
+#     if snap_ts:
+#         return []
+#     return [
+#         html.Label(f"{subject} {verbage} ✔", className="timecheck-label"),
+#         html.Label(utils.get_human_now(), className="timecheck-datetime"),
+#     ]
 
 
 HEADCOUNTS_REQUIRED = [
@@ -270,19 +270,19 @@ def precheck_setup_callback(s_urlpath: str) -> None:
 # Component/Attribute-Constructor Functions
 
 
-def make_timecheck_container(id_: str, loading: bool = False) -> html.Div:
-    """Create a container for the timecheck container.
+# def make_timecheck_container(id_: str, loading: bool = False) -> html.Div:
+#     """Create a container for the timecheck container.
 
-    Optionally, wrapped in a `dcc.Loading`.
-    """
-    if loading:
-        return dcc.Loading(
-            type="default",
-            color=TEAL,
-            children=html.Div(className="timecheck-container", id=id_),
-        )
-    else:
-        return html.Div(className="timecheck-container", id=id_)
+#     Optionally, wrapped in a `dcc.Loading`.
+#     """
+#     if loading:
+#         return dcc.Loading(
+#             type="default",
+#             color=TEAL,
+#             children=html.Div(className="timecheck-container", id=id_),
+#         )
+#     else:
+#         return html.Div(className="timecheck-container", id=id_)
 
 
 def make_confirm_container(id_subject: str, button_label: str) -> html.Div:
@@ -290,7 +290,7 @@ def make_confirm_container(id_subject: str, button_label: str) -> html.Div:
     return html.Div(
         id=f"wbs-{id_subject}-confirm-container",
         hidden=True,
-        className="timecheck-container",
+        # className="timecheck-container",
         children=dbc.Button(button_label, id=f"wbs-{id_subject}-confirm-yes"),
     )
 
