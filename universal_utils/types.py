@@ -78,13 +78,8 @@ class InstitutionValues:
         else:
             headcounts_metadata = newer.headcounts_metadata
 
-        # Update "last edit"?
-        if False:  # TODO
-            table_metadata = dc.replace(
-                newer.table_metadata, last_edit_ts=int(time.time())
-            )
-        else:
-            table_metadata = newer.table_metadata
+        # Just copy over `newer.table_metadata` since table values live elsewhere
+        table_metadata = newer.table_metadata
 
         # Update "last edit"?
         if self.cpus != newer.cpus or self.gpus != newer.gpus:

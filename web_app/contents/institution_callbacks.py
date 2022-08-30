@@ -71,7 +71,7 @@ class SelectInstitutionValueState:
 
     s_urlpath: str
     s_snap_ts: str
-    s_table: list
+    s_table: uut.WebTable
     # INST-VAL STATE
     # s_instval_conf_init: dict
     s_instval_conf_headcounts: dict
@@ -138,6 +138,21 @@ class SelectInstitutionValueInputs:
                     confirmation_ts=int(time.time()),
                 )
                 logging.debug(f"Confirming computing_metadata: {computing_metadata}")
+
+        # Set Table's Last Edit
+        tconfig = tc.TableConfigParser(du.get_wbs_l1(state.s_urlpath))
+        # TODO - what about when a record was just deleted? that's an edit, but it won't be here
+        # - could change table's last-edit on the backend when record is updated...
+        # -- then always use that? and skip all this logic here?
+        if timestamps := list(
+            filter(
+                None, [cast(int, r.get(tconfig.const.TIMESTAMP)) for r in state.s_table]
+            )
+        ):
+            table_metadata = dc.replace(
+                table_metadata,
+                last_edit_ts=int(max(timestamps)),
+            )
 
         return uut.InstitutionValues(
             phds_authors=self.phds_val,
