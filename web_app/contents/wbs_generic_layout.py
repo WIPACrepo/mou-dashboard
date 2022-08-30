@@ -71,11 +71,25 @@ def layout() -> html.Div:
                     dbc.Col(
                         width=4,
                         children=[
-                            html.I(
+                            html.Div(
                                 id="wbs-view-snapshots",
                                 n_clicks=0,
-                                className="fa fa-calendar-alt snapshot-icon top-corner",
                                 hidden=True,
+                                className="snapshot-icon caps btn btn-outline-secondary",
+                                children=[
+                                    html.Div(
+                                        html.I(
+                                            className="fa-solid fa-clock-rotate-left cursor-pointer",
+                                        ),
+                                        style={"float": "left", "width": "2rem"},
+                                    ),
+                                    html.Div(
+                                        html.Label(
+                                            "View Snapshot", className="cursor-pointer"
+                                        ),
+                                        style={"text-align": "right", "float": "right"},
+                                    ),
+                                ],
                             ),
                             dbc.Tooltip(
                                 "click to select and view past statements of work",
