@@ -270,6 +270,44 @@ def precheck_setup_callback(s_urlpath: str) -> None:
 # Component/Attribute-Constructor Functions
 
 
+def make_icon_label_tooltip(
+    parent_id: str,
+    hidden: bool,
+    icon_class: str,
+    label_text: str,
+    tooltip_text: str,
+) -> html.Div:
+    """Make a button comprising of an icon and label, with a tooltip bubble."""
+    return html.Div(
+        id=parent_id,
+        n_clicks=0,
+        hidden=hidden,
+        className="snapshot-icon caps btn btn-outline-secondary",
+        children=[
+            html.Div(
+                html.I(
+                    className=icon_class + " cursor-pointer",
+                ),
+                style={"float": "left", "width": "2rem"},
+            ),
+            html.Div(
+                html.Label(label_text, className="cursor-pointer"),
+                style={"float": "right", "text-align": "right"},
+            ),
+            dbc.Tooltip(
+                tooltip_text,
+                target=parent_id,
+                placement="top",
+                style={
+                    "font-size": 12,
+                    "maxWidth": 600,
+                    "width": 350,
+                },
+            ),
+        ],
+    )
+
+
 # def make_timecheck_container(id_: str, loading: bool = False) -> html.Div:
 #     """Create a container for the timecheck container.
 
