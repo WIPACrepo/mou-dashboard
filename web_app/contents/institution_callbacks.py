@@ -144,11 +144,11 @@ class SelectInstitutionValueInputs:
         # TODO - what about when a record was just deleted? that's an edit, but it won't be here
         # - could change table's last-edit on the backend when record is updated...
         # -- then always use that? and skip all this logic here?
-        if timestamps := list(
-            filter(
-                None, [cast(int, r.get(tconfig.const.TIMESTAMP)) for r in state.s_table]
-            )
-        ):
+        if timestamps := [
+            utils.iso_to_epoch(cast(str, r[tconfig.const.TIMESTAMP]))
+            for r in state.s_table
+            if r.get(tconfig.const.TIMESTAMP)
+        ]:
             table_metadata = dc.replace(
                 table_metadata,
                 last_edit_ts=int(max(timestamps)),

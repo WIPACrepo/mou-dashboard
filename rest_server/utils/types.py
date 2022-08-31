@@ -1,9 +1,8 @@
 """Custom type definitions."""
 
 import dataclasses as dc
-from typing import Dict
+from typing import Any, Dict
 
-import universal_utils.types as uut
 from bson.objectid import ObjectId
 
 
@@ -14,6 +13,6 @@ class SupplementalDoc:
     name: str
     timestamp: str
     creator: str
-    snapshot_institution_values: Dict[str, uut.InstitutionValues]
+    snapshot_institution_values: Dict[str, Dict[str, Any]]
     admin_only: bool
     _id: ObjectId | None = None

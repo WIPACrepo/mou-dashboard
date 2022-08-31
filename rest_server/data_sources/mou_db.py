@@ -137,7 +137,10 @@ class MOUDatabaseClient:
         # ingest
         try:
             doc = await self._get_supplemental_doc(wbs_db, previous_snap)
-            all_insts_values = doc.snapshot_institution_values
+            all_insts_values = {
+                k: uut.InstitutionValues(**v)
+                for k, v in doc.snapshot_institution_values.items()
+            }
         except (DocumentNotFoundError, pymongo.errors.InvalidName):
             all_insts_values = {}
         await self._create_live_collection(wbs_db, table, creator, all_insts_values)
@@ -199,7 +202,7 @@ class MOUDatabaseClient:
         vals = before.update_anew(vals)
 
         doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
-        doc.snapshot_institution_values.update({institution: vals})
+        doc.snapshot_institution_values.update({institution: dc.asdict(vals)})
         await self._set_supplemental_doc(wbs_db, _LIVE_COLLECTION, doc)
 
         logging.info(
@@ -239,7 +242,9 @@ class MOUDatabaseClient:
             return uut.InstitutionValues()
 
         try:
-            vals = doc.snapshot_institution_values[institution]
+            vals = uut.InstitutionValues(
+                **doc.snapshot_institution_values[institution]
+            )
             logging.info(f"Institution's Values [{vals}] ({wbs_db=}, {institution=}).")
             return vals
         except KeyError:
@@ -300,7 +305,7 @@ class MOUDatabaseClient:
                 name=name,
                 timestamp=snap_coll,
                 creator=creator,
-                snapshot_institution_values=all_insts_values
+                snapshot_institution_values=dc.asdict(all_insts_values)
                 if all_insts_values
                 else {},
                 admin_only=admin_only,
@@ -491,7 +496,10 @@ class MOUDatabaseClient:
             table,
             name,
             creator,
-            supplemental_doc.snapshot_institution_values,
+            {
+                k: uut.InstitutionValues(**v)
+                for k, v in supplemental_doc.snapshot_institution_values.items()
+            },
             admin_only,
         )
 
