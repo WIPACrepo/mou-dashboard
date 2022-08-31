@@ -261,22 +261,17 @@ def _select_institution_value_dc(
     state: SelectInstitutionValueState,
 ) -> SelectInstitutionValueOutput:
     logging.warning(
-        f"'{du.triggered()}' -> select_institution_value() {inputs.inst_val=} {CurrentUser.get_institutions()=})"
+        f"'{du.triggered()}' -> select_institution_value() ({state.s_urlpath=} {state.s_snap_ts=} {CurrentUser.get_summary()=})"
     )
-
-    try:
-        du.precheck_setup_callback(state.s_urlpath)
-    except du.CallbackAbortException as e:
-        logging.critical(f"ABORTED: select_institution_value() [{e}]")
-        return tuple(no_update for _ in range(17))  # type: ignore[return-value]
-    else:
-        logging.warning(
-            f"'{du.triggered()}' -> select_institution_value() ({state.s_urlpath=} {state.s_snap_ts=} {CurrentUser.get_summary()=})"
-        )
 
     match du.triggered():
         # initial_call
         case ".":
+            try:
+                du.precheck_setup_callback(state.s_urlpath)
+            except du.CallbackAbortException as e:
+                logging.critical(f"ABORTED: select_institution_value() [{e}]")
+                return SelectInstitutionValueOutput()
             return pull_institution_values(inputs, state)
         # INST DROPDOWN
         case "wbs-dropdown-institution.value":

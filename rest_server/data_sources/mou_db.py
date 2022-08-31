@@ -229,19 +229,6 @@ class MOUDatabaseClient:
 
         await self._check_database_state(wbs_db)
 
-        vals = uut.InstitutionValues(
-            phds_authors=None,
-            faculty=None,
-            scientists_post_docs=None,
-            grad_students=None,
-            cpus=None,
-            gpus=None,
-            text="",
-            headcounts_confirmed_ts=0,
-            table_confirmed_ts=0,
-            computing_confirmed_ts=0,
-        )
-
         if not snapshot_timestamp:
             snapshot_timestamp = _LIVE_COLLECTION
 
@@ -249,7 +236,7 @@ class MOUDatabaseClient:
             doc = await self._get_supplemental_doc(wbs_db, snapshot_timestamp)
         except DocumentNotFoundError as e:
             logging.warning(str(e))
-            return vals
+            return uut.InstitutionValues()
 
         try:
             vals = doc.snapshot_institution_values[institution]
@@ -257,7 +244,7 @@ class MOUDatabaseClient:
             return vals
         except KeyError:
             logging.info(f"Institution has no values ({wbs_db=}, {institution=}).")
-            return vals
+            return uut.InstitutionValues()
 
     async def _get_supplemental_doc(
         self, wbs_db: str, snap_coll: str

@@ -463,7 +463,6 @@ def push_institution_values(  # pylint: disable=R0913
     _validate(wbs_l1, str, falsy_okay=False)
     institution = _validate(institution, types.DashVal_types)
 
-    body = dc.asdict(inst_dc)
-    body.update({"institution": institution})
+    body = {"institution": institution, "institution_values": dc.asdict(inst_dc)}
     response = mou_request("POST", f"/institution/values/{wbs_l1}", body=body)
     return from_dict(uut.InstitutionValues, response)  # type: ignore[no-any-return] # fixed in future release

@@ -51,16 +51,16 @@ class InstitutionAttributeMetadata:
 class InstitutionValues:
     """Values for an institution."""
 
-    phds_authors: int | None
-    faculty: int | None
-    scientists_post_docs: int | None
-    grad_students: int | None
-    cpus: int | None
-    gpus: int | None
-    text: str
-    headcounts_metadata: InstitutionAttributeMetadata
-    table_metadata: InstitutionAttributeMetadata
-    computing_metadata: InstitutionAttributeMetadata
+    phds_authors: int | None = None
+    faculty: int | None = None
+    scientists_post_docs: int | None = None
+    grad_students: int | None = None
+    cpus: int | None = None
+    gpus: int | None = None
+    text: str = ""
+    headcounts_metadata: InstitutionAttributeMetadata = InstitutionAttributeMetadata()
+    table_metadata: InstitutionAttributeMetadata = InstitutionAttributeMetadata()
+    computing_metadata: InstitutionAttributeMetadata = InstitutionAttributeMetadata()
 
     def update_anew(self, newer: "InstitutionValues") -> "InstitutionValues":
         """Copy all fields from `newer`, and update all metadata `last_edit_ts` values by diffing with `self`."""
