@@ -120,7 +120,18 @@ def layout() -> html.Div:
                             ),
                         ],
                     ),
-                    dbc.Col(width=4),  # for spacing
+                    dbc.Col(
+                        width=4,
+                        children=du.make_icon_label_tooltip(
+                            parent_id="wbs-cloud-saved",
+                            icon_class="fa-solid fa-cloud",
+                            label_text="Saved",
+                            tooltip_text="your work is automatically being saved to the cloud",
+                            float_right=True,
+                            no_outline=True,
+                            interval_loading="interval-cloud-saved",
+                        ),
+                    ),
                 ],
             ),
             #

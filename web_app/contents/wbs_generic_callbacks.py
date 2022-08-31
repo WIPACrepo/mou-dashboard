@@ -1,6 +1,8 @@
 """Callbacks for a specified WBS layout."""
 
 import logging
+import random
+import time
 from typing import Dict, List, Tuple, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
@@ -893,3 +895,15 @@ def toggle_hidden_columns(
 
     always_hidden_columns = tconfig.get_always_hidden_columns()
     return "Show Default Columns", du.Color.DARK, False, always_hidden_columns
+
+
+@app.callback(  # type: ignore[misc]
+    Output("interval-cloud-saved", "interval"),
+    Input("interval-cloud-saved", "n_intervals"),  # auto-triggered
+    # prevent_initial_call=True,
+)
+def interval_cloud_saved(_: int) -> int:
+    """Automatically "reload" cloud-saved "button" on interval."""
+    # logging.debug(f"'{du.triggered()}' -> interval_cloud_saved()")
+    time.sleep(1)
+    return random.choice([30, 60, 90, 120]) * 1000  # fake it 'til you make it

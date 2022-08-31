@@ -272,17 +272,27 @@ def precheck_setup_callback(s_urlpath: str) -> None:
 
 def make_icon_label_tooltip(
     parent_id: str,
-    hidden: bool,
     icon_class: str,
     label_text: str,
     tooltip_text: str,
+    hidden: bool = False,
+    float_right: bool = False,
+    no_outline: bool = False,
+    interval_loading: str = "",
 ) -> html.Div:
     """Make a button comprising of an icon and label, with a tooltip bubble."""
-    return html.Div(
+    style: Dict[str, uut.StrNum] = {}
+    if float_right:
+        style["float"] = "right"
+    if no_outline:
+        style["border"] = 0
+
+    div = html.Div(
         id=parent_id,
         n_clicks=0,
         hidden=hidden,
         className="snapshot-icon caps btn btn-outline-secondary",
+        style=style,
         children=[
             html.Div(
                 html.I(
@@ -297,15 +307,23 @@ def make_icon_label_tooltip(
             dbc.Tooltip(
                 tooltip_text,
                 target=parent_id,
-                placement="top",
-                style={
-                    "font-size": 12,
-                    "maxWidth": 600,
-                    "width": 350,
-                },
+                placement="auto",
+                style={"font-size": 12},
             ),
         ],
     )
+
+    if interval_loading:
+        return dcc.Loading(
+            type="circle",
+            parent_style=style,
+            color="#6c757d",
+            children=[
+                dcc.Interval(id=interval_loading, interval=1 * 60 * 1000),
+                div,
+            ],
+        )
+    return div
 
 
 # def make_timecheck_container(id_: str, loading: bool = False) -> html.Div:

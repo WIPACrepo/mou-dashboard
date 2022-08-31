@@ -23,7 +23,8 @@ def layout() -> None:
     app.layout = html.Div(
         children=[
             dcc.Interval(
-                id="interval", interval=AUTO_RELOAD_MINS * 60 * 1000  # milliseconds
+                id="interval-page-reload",
+                interval=AUTO_RELOAD_MINS * 60 * 1000,  # milliseconds
             ),
             #
             # To change URLs without necessarily refreshing
@@ -123,10 +124,10 @@ def layout() -> None:
 
 @app.callback(  # type: ignore[misc]
     Output("refresh-for-interval", "run"),
-    Input("interval", "n_intervals"),  # dummy input
+    Input("interval-page-reload", "n_intervals"),  # dummy input
     prevent_initial_call=True,
 )
-def interval(_: int) -> str:
+def interval_page_reload(_: int) -> str:
     """Automatically refresh/reload page on interval.
 
     This will help re-check for login credentials in case of an expired
@@ -134,7 +135,7 @@ def interval(_: int) -> str:
     need to log in again.
     """
     logging.critical(
-        f"'{du.triggered()}' -> interval() {AUTO_RELOAD_MINS=} {CurrentUser.get_summary()=}"
+        f"'{du.triggered()}' -> interval_page_reload() {AUTO_RELOAD_MINS=} {CurrentUser.get_summary()=}"
     )
     return du.RELOAD
 

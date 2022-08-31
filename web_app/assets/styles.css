@@ -247,13 +247,13 @@ code {
     line-height: 3 !important;
     height: 38px;
 }
-
+/*
 .snapshot-icon:hover {
     background-color: #17a2b8;
     border-color: #17a2b8;
     color: whitesmoke;
 }
-
+*/
 .snapshot-dropdown > .Select-control {
     width: 35rem;
     height: 4rem;
