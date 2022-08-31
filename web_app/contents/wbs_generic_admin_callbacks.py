@@ -109,13 +109,13 @@ def handle_xlsx(  # pylint: disable=R0911
         logging.error("Cannot handle xlsx since user is not admin.")
         return False, "", "", True, None, False, []
 
-    if du.triggered_id() == "wbs-upload-xlsx-launch-modal-button":
+    if du.triggered() == "wbs-upload-xlsx-launch-modal-button.n_clicks":
         return True, "", "", True, None, False, []
 
-    if du.triggered_id() == "wbs-upload-xlsx-cancel":
+    if du.triggered() == "wbs-upload-xlsx-cancel.n_clicks":
         return False, "", "", True, None, False, []
 
-    if du.triggered_id() == "wbs-upload-xlsx":
+    if du.triggered() == "wbs-upload-xlsx.contents":
         if not s_filename.endswith(".xlsx"):
             return (
                 True,
@@ -128,7 +128,7 @@ def handle_xlsx(  # pylint: disable=R0911
             )
         return True, f'Staged "{s_filename}"', du.Color.SUCCESS, False, None, False, []
 
-    if du.triggered_id() == "wbs-upload-xlsx-override-table":
+    if du.triggered() == "wbs-upload-xlsx-override-table.n_clicks":
         base64_file = contents.split(",")[1]
         try:
             n_records, prev_snap_info, curr_snap_info = src.override_table(

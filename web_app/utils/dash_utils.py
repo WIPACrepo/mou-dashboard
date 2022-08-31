@@ -61,16 +61,6 @@ def triggered() -> str:
     return cast(str, trig)
 
 
-def triggered_id() -> str:
-    """Return the component id that triggered the callback."""
-    return triggered().split(".")[0]
-
-
-def triggered_property() -> str:
-    """Return the component property that triggered the callback."""
-    return triggered().split(".")[1]
-
-
 def flags_agree(one: bool, two: bool) -> bool:
     """Check if flags are the same (XNOR)."""
     if one == two:
@@ -144,55 +134,55 @@ def confirmation_saved_label(
         return no_update  # type: ignore[no-any-return]
 
 
-def _figure_confirmation_ts(
-    confirm_trigger_id: str, prev_ts: int, causal_fields: List[str]
-) -> int:
-    if triggered_id() == confirm_trigger_id:
-        # the user is confirming the count
-        return int(time.time())
-    elif triggered_id() in causal_fields:
-        # if a casual-field value changed, then the count is no longer confirmed
-        return 0
-    else:
-        # an unrelated value changed, so maintain previous timestamp
-        return prev_ts
+# def _figure_confirmation_ts(
+#     confirm_trigger_id: str, prev_ts: int, causal_fields: List[str]
+# ) -> int:
+#     if triggered_id() == confirm_trigger_id:
+#         # the user is confirming the count
+#         return int(time.time())
+#     elif triggered_id() in causal_fields:
+#         # if a casual-field value changed, then the count is no longer confirmed
+#         return 0
+#     else:
+#         # an unrelated value changed, so maintain previous timestamp
+#         return prev_ts
 
 
-def figure_headcounts_confirmation_ts(prev_ts: int) -> int:
-    """Figure the confirmation timestamp for the headcounts."""
-    return _figure_confirmation_ts(
-        "wbs-headcounts-confirm-yes",
-        prev_ts,
-        [
-            "wbs-phds-authors",
-            "wbs-faculty",
-            "wbs-scientists-post-docs",
-            "wbs-grad-students",
-        ],
-    )
+# def figure_headcounts_confirmation_ts(prev_ts: int) -> int:
+#     """Figure the confirmation timestamp for the headcounts."""
+#     return _figure_confirmation_ts(
+#         "wbs-headcounts-confirm-yes",
+#         prev_ts,
+#         [
+#             "wbs-phds-authors",
+#             "wbs-faculty",
+#             "wbs-scientists-post-docs",
+#             "wbs-grad-students",
+#         ],
+#     )
 
 
-def figure_table_confirmation_ts(prev_ts: int) -> int:
-    """Figure the confirmation timestamp for the table."""
-    return _figure_confirmation_ts(
-        "wbs-table-confirm-yes",
-        prev_ts,
-        [
-            # TODO
-        ],
-    )
+# def figure_table_confirmation_ts(prev_ts: int) -> int:
+#     """Figure the confirmation timestamp for the table."""
+#     return _figure_confirmation_ts(
+#         "wbs-table-confirm-yes",
+#         prev_ts,
+#         [
+#             # TODO
+#         ],
+#     )
 
 
-def figure_computing_confirmation_ts(prev_ts: int) -> int:
-    """Figure the confirmation timestamp for the computing counts."""
-    return _figure_confirmation_ts(
-        "wbs-computing-confirm-yes",
-        prev_ts,
-        [
-            "wbs-cpus",
-            "wbs-gpus",
-        ],
-    )
+# def figure_computing_confirmation_ts(prev_ts: int) -> int:
+#     """Figure the confirmation timestamp for the computing counts."""
+#     return _figure_confirmation_ts(
+#         "wbs-computing-confirm-yes",
+#         prev_ts,
+#         [
+#             "wbs-cpus",
+#             "wbs-gpus",
+#         ],
+#     )
 
 
 # --------------------------------------------------------------------------------------
@@ -251,8 +241,8 @@ class CallbackAbortException(Exception):
 
 def precheck_setup_callback(s_urlpath: str) -> None:
     """Return whether to abort a dash setup callback based on url & user permissions."""
-    if triggered_id():  # Guarantee this is the initial call
-        raise Exception(f"Setup-callback was called after setup ({triggered_id()=})")
+    if triggered() != ".":  # Guarantee this is the initial call
+        raise Exception(f"Setup-callback was called after setup ({triggered()=})")
 
     # Check if legit full-fledged path (otherwise a redirect is happening soon)
     if root_is_not_wbs(s_urlpath):

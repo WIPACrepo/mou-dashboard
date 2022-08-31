@@ -116,7 +116,7 @@ class SelectInstitutionValueInputs:
 
         # Update Confirmations
         # similar logic to `InstitutionValues.update_anew()`
-        match du.triggered_id():
+        match du.triggered():
             # Confirm Headcounts
             case "wbs-headcounts-confirm-yes.n_clicks":
                 headcounts_metadata = dc.replace(

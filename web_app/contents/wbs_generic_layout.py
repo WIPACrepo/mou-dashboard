@@ -64,7 +64,7 @@ def layout() -> html.Div:
                 is_open=False,
             ),
             #
-            # Snapshot / Institution filter dropdown menu / Last Updated label
+            # Snapshot / Institution filter dropdown menu / Cloud Saved
             dbc.Row(
                 className="g-0",  # "g-0" -> no gutters
                 children=[

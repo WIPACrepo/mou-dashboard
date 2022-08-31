@@ -36,12 +36,11 @@ def _totals_button_logic(
         int  -- auto n_clicks for "wbs-show-all-columns-button"
     """
     on = n_clicks % 2 == 1  # pylint: disable=C0103
-    triggered = du.triggered_id() == "wbs-show-totals-button"
-
     if not on:  # off -> don't trigger "show-all-columns"
         return False, "Show Totals", du.Color.SECONDARY, True, all_cols
 
-    if triggered:  # on and triggered -> trigger "show-all-columns"
+    # on and triggered -> trigger "show-all-columns"
+    if du.triggered() == "wbs-show-totals-button.n_clicks":
         return True, "Hide Totals", du.Color.DARK, False, 1
 
     # on and not triggered, AKA already on -> don't trigger "show-all-columns"
@@ -112,11 +111,11 @@ def confirm_deletion(
     logging.warning(f"'{du.triggered()}' -> confirm_deletion()")
 
     # Don't delete record
-    if du.triggered_property() == "cancel_n_clicks":
+    if du.triggered() == "wbs-confirm-deletion.cancel_n_clicks":
         return None, 1, no_update, []
 
     # Delete record
-    elif du.triggered_property() == "submit_n_clicks":
+    elif du.triggered() == "wbs-confirm-deletion.submit_n_clicks":
         try:
             wbs_l1 = du.get_wbs_l1(s_urlpath)
             tconfig = tc.TableConfigParser(wbs_l1)
@@ -205,7 +204,10 @@ def table_data_exterior_controls(
     )
 
     # Add New Data
-    if du.triggered_id() in ["wbs-new-data-button-1", "wbs-new-data-button-2"]:
+    if du.triggered() in [
+        "wbs-new-data-button-1.n_clicks",
+        "wbs-new-data-button-2.n_clicks",
+    ]:
         if not s_snap_ts:  # are we looking at a snapshot?
             table, toast = _add_new_data(
                 wbs_l1,
@@ -217,7 +219,7 @@ def table_data_exterior_controls(
             )
 
     # OR Restore a uut.WebRecord and Pull uut.WebTable (optionally filtered)
-    elif du.triggered_id() == "wbs-undo-last-delete-hidden-button":
+    elif du.triggered() == "wbs-undo-last-delete-hidden-button.n_clicks":
         if not s_snap_ts:  # are we looking at a snapshot?
             try:
                 table = src.pull_data_table(
@@ -585,7 +587,7 @@ def show_snapshot_dropdown(_: int, s_snap_ts: types.DashVal) -> Tuple[bool, bool
     if s_snap_ts:  # show "View Live"
         return True, True, False
 
-    if du.triggered_id() == "wbs-view-snapshots":  # show dropdown
+    if du.triggered() == "wbs-view-snapshots.n_clicks":  # show dropdown
         return False, True, True
 
     return True, False, True  # show "View Snapshots"
@@ -712,10 +714,13 @@ def handle_make_snapshot(
     if s_snap_ts:  # are we looking at a snapshot?
         return False, None, "", ""
 
-    if du.triggered_id() == "wbs-make-snapshot-button":
+    if du.triggered() == "wbs-make-snapshot-button.n_clicks":
         return True, None, "", ""
 
-    if du.triggered_id() in ["wbs-name-snapshot-btn", "wbs-name-snapshot-input"]:
+    if du.triggered() in [
+        "wbs-name-snapshot-btn.n_clicks",
+        "wbs-name-snapshot-input.n_submit",
+    ]:
         try:
             src.create_snapshot(du.get_wbs_l1(s_urlpath), s_name)
             return False, "", "", du.RELOAD
