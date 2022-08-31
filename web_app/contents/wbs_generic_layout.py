@@ -106,6 +106,7 @@ def layout() -> html.Div:
                     ),
                     dbc.Col(
                         className="large-dropdown-container",
+                        width=4,
                         children=[
                             dcc.Dropdown(
                                 id="wbs-dropdown-institution",
@@ -119,29 +120,7 @@ def layout() -> html.Div:
                             ),
                         ],
                     ),
-                    # dbc.Col(
-                    #     width=4,
-                    #     children=[
-                    #         dcc.Loading(
-                    #             type="default",
-                    #             color=du.TEAL,
-                    #             style={
-                    #                 "right": "0px",
-                    #                 "position": "absolute",
-                    #                 "height": "2rem",
-                    #             },
-                    #             children=[
-                    #                 html.Div(
-                    #                     className="sow-last-updated",
-                    #                     children=[
-                    #                         html.Div(id="wbs-sow-last-updated"),
-                    #                         html.Div(id="wbs-sow-last-updated-time"),
-                    #                     ],
-                    #                 ),
-                    #             ],
-                    #         )
-                    #     ],
-                    # ),
+                    dbc.Col(width=4),  # for spacing
                 ],
             ),
             #
