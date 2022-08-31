@@ -360,6 +360,7 @@ def layout() -> html.Div:
                                     dbc.Button(
                                         id="wbs-summary-table-recalculate",
                                         n_clicks=0,
+                                        color=du.Color.SECONDARY,
                                         children="Recalculate Institution Summary",
                                         style={"width": "100%"},
                                     ),
@@ -394,39 +395,45 @@ def layout() -> html.Div:
                     ),
                     #
                     html.Hr(),
-                    #
-                    # Make Snapshot
-                    dbc.Button(
-                        "Make Collaboration-Wide Snapshot",
-                        id="wbs-make-snapshot-button",
-                        n_clicks=0,
-                        color=du.Color.SUCCESS,
-                        disabled=False,
-                        style={"margin-bottom": "1rem"},
-                    ),
-                    #
-                    html.Hr(),
-                    #
-                    # Reset Confirmations
-                    dbc.Button(
-                        "Reset Institution Confirmations",
-                        id="wbs-reset-inst-confirmations-button",
-                        n_clicks=0,
-                        color=du.Color.SUCCESS,
-                        disabled=False,
-                        style={"margin-bottom": "1rem"},
-                    ),
-                    #
-                    html.Hr(),
-                    #
-                    # Upload/Override XLSX
-                    dbc.Button(
-                        "Override All Institutions' SOW Tables with .xlsx",
-                        id="wbs-upload-xlsx-launch-modal-button",
-                        n_clicks=0,
-                        color=du.Color.WARNING,
-                        disabled=not ENV.DEBUG,  # only for local testing
-                        style={"margin-bottom": "1rem"},
+                    dbc.Row(
+                        children=[
+                            # Make Snapshot
+                            dbc.Col(
+                                width=4,
+                                children=dbc.Button(
+                                    "Make Collaboration-Wide Snapshot",
+                                    id="wbs-make-snapshot-button",
+                                    n_clicks=0,
+                                    color=du.Color.SUCCESS,
+                                    disabled=False,
+                                    style={"width": "100%"},
+                                ),
+                            ),
+                            # Reset Confirmations
+                            dbc.Col(
+                                width=4,
+                                children=dbc.Button(
+                                    "Reset Institution Confirmations",
+                                    id="wbs-reset-inst-confirmations-button",
+                                    n_clicks=0,
+                                    color=du.Color.WARNING,
+                                    disabled=False,
+                                    style={"width": "100%"},
+                                ),
+                            ),
+                            # Upload/Override XLSX
+                            dbc.Col(
+                                width=4,
+                                children=dbc.Button(
+                                    "Override All Institutions' SOW Tables with .xlsx",
+                                    id="wbs-upload-xlsx-launch-modal-button",
+                                    n_clicks=0,
+                                    color=du.Color.DANGER,
+                                    disabled=not ENV.DEBUG,  # only for local testing
+                                    style={"width": "100%"},
+                                ),
+                            ),
+                        ]
                     ),
                 ],
             ),
