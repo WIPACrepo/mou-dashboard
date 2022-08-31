@@ -278,7 +278,7 @@ def _select_institution_value_dc(
     match du.triggered():
         # initial_call
         case ".":
-            pull_institution_values(inputs, state)
+            return pull_institution_values(inputs, state)
         # INST DROPDOWN
         case "wbs-dropdown-institution.value":
             return changed_institution(inputs, state)
