@@ -325,7 +325,7 @@ def _find_deleted_record(
 
     record = delete_these[0]
     record_fields = "\n".join(src.record_to_strings(record, tconfig))
-    message = f"Are you sure you want to DELETE THIS ROW?\n\n{record_fields}"
+    message = f"Are you sure you want to DELETE THIS ROW?\nIt will be irrevocably lost.\n\n{record_fields}"
     return record, message
 
 
