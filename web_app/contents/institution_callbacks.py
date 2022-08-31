@@ -274,7 +274,6 @@ def _select_institution_value_dc(
             f"'{du.triggered()}' -> select_institution_value() ({state.s_urlpath=} {state.s_snap_ts=} {CurrentUser.get_summary()=})"
         )
 
-    # INPUT CASES
     match du.triggered():
         # initial_call
         case ".":
@@ -282,27 +281,21 @@ def _select_institution_value_dc(
         # INST DROPDOWN
         case "wbs-dropdown-institution.value":
             return changed_institution(inputs, state)
-        # INST VALUES
-        case "wbs-phds-authors.value":
-            return push_institution_values(inputs, state)
-        case "wbs-faculty.value":
-            return push_institution_values(inputs, state)
-        case "wbs-scientists-post-docs.value":
-            return push_institution_values(inputs, state)
-        case "wbs-grad-students.value":
-            return push_institution_values(inputs, state)
-        case "wbs-cpus.value":
-            return push_institution_values(inputs, state)
-        case "wbs-gpus.value":
-            return push_institution_values(inputs, state)
-        case "wbs-textarea.value":
-            return push_institution_values(inputs, state)
-        # CLICKS
-        case "wbs-headcounts-confirm-yes.n_clicks":
-            return push_institution_values(inputs, state)
-        case "wbs-table-confirm-yes.n_clicks":
-            return push_institution_values(inputs, state)
-        case "wbs-computing-confirm-yes.n_clicks":
+        # push some data
+        case (
+            # INST VALUES
+            "wbs-phds-authors.value"
+            | "wbs-faculty.value"
+            | "wbs-scientists-post-docs.value"
+            | "wbs-grad-students.value"
+            | "wbs-cpus.value"
+            | "wbs-gpus.value"
+            | "wbs-textarea.value"
+            # CLICKS
+            | "wbs-headcounts-confirm-yes.n_clicks"
+            | "wbs-table-confirm-yes.n_clicks"
+            | "wbs-computing-confirm-yes.n_clicks"
+        ):
             return push_institution_values(inputs, state)
 
     raise ValueError(f"Unaccounted for trigger: {du.triggered()}")

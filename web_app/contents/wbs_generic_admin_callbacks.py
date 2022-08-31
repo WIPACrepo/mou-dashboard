@@ -109,38 +109,48 @@ def handle_xlsx(  # pylint: disable=R0911
         logging.error("Cannot handle xlsx since user is not admin.")
         return False, "", "", True, None, False, []
 
-    if du.triggered() == "wbs-upload-xlsx-launch-modal-button.n_clicks":
-        return True, "", "", True, None, False, []
-
-    if du.triggered() == "wbs-upload-xlsx-cancel.n_clicks":
-        return False, "", "", True, None, False, []
-
-    if du.triggered() == "wbs-upload-xlsx.contents":
-        if not s_filename.endswith(".xlsx"):
+    match du.triggered():
+        # Launch xlsx
+        case "wbs-upload-xlsx-launch-modal-button.n_clicks":
+            return True, "", "", True, None, False, []
+        # Cancel upload xlsx
+        case "wbs-upload-xlsx-cancel.n_clicks":
+            return False, "", "", True, None, False, []
+        # Upload xlsx
+        case "wbs-upload-xlsx.contents":
+            if not s_filename.endswith(".xlsx"):
+                return (
+                    True,
+                    f'"{s_filename}" is not an .xlsx file',
+                    du.Color.DANGER,
+                    True,
+                    None,
+                    False,
+                    [],
+                )
             return (
                 True,
-                f'"{s_filename}" is not an .xlsx file',
-                du.Color.DANGER,
-                True,
+                f'Staged "{s_filename}"',
+                du.Color.SUCCESS,
+                False,
                 None,
                 False,
                 [],
             )
-        return True, f'Staged "{s_filename}"', du.Color.SUCCESS, False, None, False, []
-
-    if du.triggered() == "wbs-upload-xlsx-override-table.n_clicks":
-        base64_file = contents.split(",")[1]
-        try:
-            n_records, prev_snap_info, curr_snap_info = src.override_table(
-                du.get_wbs_l1(s_urlpath), base64_file, s_filename
-            )
-            msg = _get_upload_success_modal_body(
-                s_filename, n_records, prev_snap_info, curr_snap_info
-            )
-            return False, "", "", True, None, True, msg
-        except DataSourceException as e:
-            error_message = f'Error overriding "{s_filename}" ({e})'
-            return True, error_message, du.Color.DANGER, True, None, False, []
+        # Override xlsx
+        case "wbs-upload-xlsx-override-table.n_clicks":
+            base64_file = contents.split(",")[1]
+            try:
+                n_records, prev_snap_info, curr_snap_info = src.override_table(
+                    du.get_wbs_l1(s_urlpath), base64_file, s_filename
+                )
+                msg = _get_upload_success_modal_body(
+                    s_filename, n_records, prev_snap_info, curr_snap_info
+                )
+                return False, "", "", True, None, True, msg
+            except DataSourceException as e:
+                error_message = f'Error overriding "{s_filename}" ({e})'
+                return True, error_message, du.Color.DANGER, True, None, False, []
 
     raise Exception(f"Unaccounted for trigger {du.triggered()}")
 

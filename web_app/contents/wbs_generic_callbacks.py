@@ -110,25 +110,24 @@ def confirm_deletion(
     """Handle deleting the record chosen ."""
     logging.warning(f"'{du.triggered()}' -> confirm_deletion()")
 
-    # Don't delete record
-    if du.triggered() == "wbs-confirm-deletion.cancel_n_clicks":
-        return None, 1, no_update, []
+    match du.triggered():
+        # Don't delete record
+        case "wbs-confirm-deletion.cancel_n_clicks":
+            return None, 1, no_update, []
+        # Delete record
+        case "wbs-confirm-deletion.submit_n_clicks":
+            try:
+                wbs_l1 = du.get_wbs_l1(s_urlpath)
+                tconfig = tc.TableConfigParser(wbs_l1)
+                src.delete_record(wbs_l1, cast(str, s_record[tconfig.const.ID]))
+                lines = [html.Div(s) for s in src.record_to_strings(s_record, tconfig)]
+                return None, no_update, True, lines
+            except DataSourceException:
+                msg = "Failed to Delete Row"
+                toast = du.make_toast(msg, du.REFRESH_MSG, du.Color.DANGER)
+                return toast, no_update, False, []
 
-    # Delete record
-    elif du.triggered() == "wbs-confirm-deletion.submit_n_clicks":
-        try:
-            wbs_l1 = du.get_wbs_l1(s_urlpath)
-            tconfig = tc.TableConfigParser(wbs_l1)
-            src.delete_record(wbs_l1, cast(str, s_record[tconfig.const.ID]))
-            lines = [html.Div(s) for s in src.record_to_strings(s_record, tconfig)]
-            return None, no_update, True, lines
-        except DataSourceException:
-            msg = "Failed to Delete Row"
-            toast = du.make_toast(msg, du.REFRESH_MSG, du.Color.DANGER)
-            return toast, no_update, False, []
-
-    else:
-        raise Exception(f"Unaccounted for trigger {du.triggered()}")
+    raise Exception(f"Unaccounted for trigger {du.triggered()}")
 
 
 @app.callback(  # type: ignore[misc]
@@ -203,24 +202,45 @@ def table_data_exterior_controls(
         tot_n_clicks, s_all_cols
     )
 
-    # Add New Data
-    if du.triggered() in [
-        "wbs-new-data-button-1.n_clicks",
-        "wbs-new-data-button-2.n_clicks",
-    ]:
-        if not s_snap_ts:  # are we looking at a snapshot?
-            table, toast = _add_new_data(
-                wbs_l1,
-                s_table,
-                columns,
-                labor,
-                inst,
-                tconfig,  # s_new_task
-            )
-
-    # OR Restore a uut.WebRecord and Pull uut.WebTable (optionally filtered)
-    elif du.triggered() == "wbs-undo-last-delete-hidden-button.n_clicks":
-        if not s_snap_ts:  # are we looking at a snapshot?
+    match du.triggered():
+        # Add New Data
+        case "wbs-new-data-button-1.n_clicks" | "wbs-new-data-button-2.n_clicks":
+            if not s_snap_ts:  # are we looking at a snapshot?
+                table, toast = _add_new_data(
+                    wbs_l1,
+                    s_table,
+                    columns,
+                    labor,
+                    inst,
+                    tconfig,  # s_new_task
+                )
+        # OR Restore a uut.WebRecord and Pull uut.WebTable (optionally filtered)
+        case "wbs-undo-last-delete-hidden-button.n_clicks":
+            if not s_snap_ts:  # are we looking at a snapshot?
+                try:
+                    table = src.pull_data_table(
+                        wbs_l1,
+                        tconfig,
+                        institution=inst,
+                        labor=labor,
+                        with_totals=show_totals,
+                        restore_id=cast(str, s_deleted_record[tconfig.const.ID]),
+                    )
+                    restored = next(
+                        r
+                        for r in table
+                        if r[tconfig.const.ID] == s_deleted_record[tconfig.const.ID]
+                    )
+                    toast = du.make_toast(
+                        "Row Restored",
+                        [html.Div(s) for s in src.record_to_strings(restored, tconfig)],
+                        du.Color.SUCCESS,
+                        du.GOOD_WAIT,
+                    )
+                except DataSourceException:
+                    table = []
+        # OR Just Pull uut.WebTable (optionally filtered)
+        case _:
             try:
                 table = src.pull_data_table(
                     wbs_l1,
@@ -228,35 +248,10 @@ def table_data_exterior_controls(
                     institution=inst,
                     labor=labor,
                     with_totals=show_totals,
-                    restore_id=cast(str, s_deleted_record[tconfig.const.ID]),
-                )
-                restored = next(
-                    r
-                    for r in table
-                    if r[tconfig.const.ID] == s_deleted_record[tconfig.const.ID]
-                )
-                toast = du.make_toast(
-                    "Row Restored",
-                    [html.Div(s) for s in src.record_to_strings(restored, tconfig)],
-                    du.Color.SUCCESS,
-                    du.GOOD_WAIT,
+                    snapshot_ts=s_snap_ts,
                 )
             except DataSourceException:
                 table = []
-
-    # OR Just Pull uut.WebTable (optionally filtered)
-    else:
-        try:
-            table = src.pull_data_table(
-                wbs_l1,
-                tconfig,
-                institution=inst,
-                labor=labor,
-                with_totals=show_totals,
-                snapshot_ts=s_snap_ts,
-            )
-        except DataSourceException:
-            table = []
 
     # Figure pagination
     do_paginate = (
@@ -714,21 +709,20 @@ def handle_make_snapshot(
     if s_snap_ts:  # are we looking at a snapshot?
         return False, None, "", ""
 
-    if du.triggered() == "wbs-make-snapshot-button.n_clicks":
-        return True, None, "", ""
-
-    if du.triggered() in [
-        "wbs-name-snapshot-btn.n_clicks",
-        "wbs-name-snapshot-input.n_submit",
-    ]:
-        try:
-            src.create_snapshot(du.get_wbs_l1(s_urlpath), s_name)
-            return False, "", "", du.RELOAD
-        except DataSourceException:
-            fail_toast = du.make_toast(
-                "Failed to Make Snapshot", du.REFRESH_MSG, du.Color.DANGER
-            )
-            return False, fail_toast, du.Color.SUCCESS, ""
+    match du.triggered():
+        # Make snapshot
+        case "wbs-make-snapshot-button.n_clicks":
+            return True, None, "", ""
+        # Name snapshot (click or enter)
+        case "wbs-name-snapshot-btn.n_clicks" | "wbs-name-snapshot-input.n_submit":
+            try:
+                src.create_snapshot(du.get_wbs_l1(s_urlpath), s_name)
+                return False, "", "", du.RELOAD
+            except DataSourceException:
+                fail_toast = du.make_toast(
+                    "Failed to Make Snapshot", du.REFRESH_MSG, du.Color.DANGER
+                )
+                return False, fail_toast, du.Color.SUCCESS, ""
 
     raise Exception(f"Unaccounted trigger {du.triggered()}")
 
