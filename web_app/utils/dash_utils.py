@@ -562,7 +562,6 @@ def make_toast(
         is_open=True,
         dismissable=True,
         duration=duration * 1000,  # 0 = forever
-        fade=False,
         icon=icon_color,
         # top: 66 positions the toast below the navbar
         style={
