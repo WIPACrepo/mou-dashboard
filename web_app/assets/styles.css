@@ -364,7 +364,7 @@ code {
 
 .wbs-table-top-toolbar {
     height: 38px;
-    margin-right: 26rem;
+    margin-right: 30rem;
 }
 
 .wbs-table-bottom-toolbar {
@@ -374,13 +374,14 @@ code {
 }
 
 .table-tool-large {
-    height: 38px;
+    height: 38px !important;
     width: 27rem;
     margin-right: 1rem;
     padding: 0 !important;
 }
 
 .table-tool-large > .Select-control {
+    height: 38px !important;
     text-transform: uppercase;
     letter-spacing: 0.1rem;
     font: 10px Arial;

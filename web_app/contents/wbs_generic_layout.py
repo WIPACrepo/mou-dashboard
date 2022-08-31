@@ -177,15 +177,21 @@ def layout() -> html.Div:
                 className="g-0 wbs-table-top-toolbar",  # "g-0" -> no gutters
                 children=[
                     # Add Button
-                    du.new_data_button(1),
+                    dbc.Col(
+                        width=3,
+                        children=du.new_data_button(1),
+                    ),
                     # Labor Category filter dropdown menu
-                    dcc.Dropdown(
-                        id="wbs-filter-labor",
-                        placeholder="Filter by Labor Category",
-                        className="table-tool-large",
-                        # options set in callback
-                        # vale set in callback
-                        optionHeight=30,
+                    dbc.Col(
+                        width=3,
+                        children=dcc.Dropdown(
+                            id="wbs-filter-labor",
+                            placeholder="Filter by Labor Category",
+                            className="table-tool-large",
+                            # options set in callback
+                            # value set in callback
+                            optionHeight=30,
+                        ),
                     ),
                 ],
             ),
