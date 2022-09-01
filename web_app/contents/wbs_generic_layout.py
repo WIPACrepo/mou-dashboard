@@ -255,6 +255,7 @@ def layout() -> html.Div:
                                 color=du.Color.SUCCESS,
                             ),
                             height="25.53px",
+                            hidden=True,
                         ),
                     ),
                     # Labor Category filter dropdown menu

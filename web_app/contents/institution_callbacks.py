@@ -38,6 +38,7 @@ class SelectInstitutionValueOutput:
     h2_computing: str = no_update
     # CONTAINERS FOR HIDING
     headcounts_container_hidden: bool = no_update
+    conf_table_hidden: bool = no_update
     below_table_container_hidden: bool = no_update
     # INST DROPDOWN
     ddown_inst_val: str = no_update
@@ -250,6 +251,7 @@ class SelectInstitutionValueInputs:
             headcounts_container_hidden=Output(
                 "institution-headcounts-container", "hidden"
             ),
+            conf_table_hidden=Output("wbs-table-confirm-yes", "hidden"),
             below_table_container_hidden=Output(
                 "institution-values-below-table-container", "hidden"
             ),
@@ -463,9 +465,11 @@ def to_pull_institution_values(
     # hide inst-vals if not M&O
     if not inst or du.get_wbs_l1(state.s_urlpath) != "mo":
         output.headcounts_container_hidden = True
+        output.conf_table_hidden = True
         output.below_table_container_hidden = True
     else:
         output.headcounts_container_hidden = False
+        output.conf_table_hidden = False
         output.below_table_container_hidden = False
 
     return output
