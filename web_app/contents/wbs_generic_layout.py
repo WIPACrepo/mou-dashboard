@@ -78,6 +78,7 @@ def layout() -> html.Div:
                                 label_text="View a Snapshot",
                                 tooltip_text="click to select and view past statements of work",
                                 width=17,
+                                height=3.8,
                                 outline=True,
                             ),
                             html.Div(
@@ -133,6 +134,7 @@ def layout() -> html.Div:
                             outline=True,
                             interval_loading="interval-cloud-saved",
                             border_width=0,
+                            height=3.8,
                         ),
                     ),
                 ],
@@ -202,6 +204,7 @@ def layout() -> html.Div:
                                     "headcounts need to be confirmed before each collaboration meeting",
                                     outline=True,
                                     color=du.Color.SUCCESS,
+                                    height=3.8,
                                 ),
                             ),
                         ],
@@ -215,7 +218,7 @@ def layout() -> html.Div:
             #
             # Top Tools
             dbc.Row(
-                # className="g-0 wbs-table-top-toolbar",  # "g-0" -> no gutters
+                style={"padding-left": "1em"},
                 children=[
                     # Add Button
                     dbc.Col(
@@ -227,6 +230,7 @@ def layout() -> html.Div:
                             tooltip_text="click to add a new statement of work",
                             color=du.Color.DARK,
                             outline=True,
+                            extra_class="table-tool-large",
                         ),
                     ),
                     # Confirm Table
@@ -239,6 +243,7 @@ def layout() -> html.Div:
                             "SOWs need to be confirmed before each collaboration meeting",
                             outline=True,
                             color=du.Color.SUCCESS,
+                            extra_class="table-tool-large",
                         ),
                     ),
                     # Labor Category filter dropdown menu
@@ -247,7 +252,7 @@ def layout() -> html.Div:
                         children=dcc.Dropdown(
                             id="wbs-filter-labor",
                             placeholder="Filter by Labor Category",
-                            className="caps table-tool-large",
+                            className="table-tool-large caps",
                             # options set in callback
                             # value set in callback
                             optionHeight=30,
@@ -257,64 +262,69 @@ def layout() -> html.Div:
             ),
             #
             # Table
-            dash_table.DataTable(
-                id="wbs-data-table",
-                editable=False,
-                # sort_action="native",
-                # sort_mode="multi",
-                # filter_action="native",  # the UI for native filtering isn't there yet
-                sort_action="native",
-                # Styles
-                style_table={
-                    # "overflowX": "auto",  # setting to auto causes the dropdown-cell overlap bug
-                    # "overflowY": "auto",  # setting to auto causes the dropdown-cell overlap bug
-                    "padding-left": "1em",
-                },
-                style_header={
-                    "backgroundColor": "black",
-                    "color": "whitesmoke",
-                    "whiteSpace": "normal",
-                    "fontWeight": "normal",
-                    "height": "auto",
-                    "lineHeight": "11px",
-                },
-                style_cell={
-                    "textAlign": "left",
-                    "fontSize": 11,
-                    "font-family": "sans-serif",
-                    "padding-left": "0.5em",
-                    # these widths will make it obvious if there's a new/extra column
-                    "minWidth": "10px",
-                    "width": "10px",
-                    "maxWidth": "10px",
-                },
-                # style_cell_conditional set in callback
-                style_data={
-                    "whiteSpace": "normal",
-                    "height": "auto",
-                    "lineHeight": "12px",
-                    "wordBreak": "normal",
-                },
-                # style_data_conditional set in callback
-                # tooltip set in callback
-                row_deletable=False,  # toggled in callback
-                # hidden_columns set in callback
-                page_size=0,  # 0 -> *HUGE* performance gains # toggled in callback
-                # data set in callback
-                # columns set in callback
-                # dropdown set in callback
-                # dropdown_conditional set in callback
-                export_format="xlsx",
-                export_headers="display",
-                merge_duplicate_headers=True,
-                # fixed_rows={"headers": True, "data": 0},
+            html.Div(
+                className="data-table-outer",
+                children=dash_table.DataTable(
+                    id="wbs-data-table",
+                    editable=False,
+                    # sort_action="native",
+                    # sort_mode="multi",
+                    # filter_action="native",  # the UI for native filtering isn't there yet
+                    sort_action="native",
+                    # Styles
+                    style_table={
+                        # "overflowX": "auto",  # setting to auto causes the dropdown-cell overlap bug
+                        # "overflowY": "auto",  # setting to auto causes the dropdown-cell overlap bug
+                        "padding-left": "1em",
+                    },
+                    style_header={
+                        "backgroundColor": "black",
+                        "color": "whitesmoke",
+                        "whiteSpace": "normal",
+                        "fontWeight": "normal",
+                        "height": "auto",
+                        "lineHeight": "11px",
+                    },
+                    style_cell={
+                        "textAlign": "left",
+                        "fontSize": 11,
+                        "font-family": "sans-serif",
+                        "padding-left": "0.5em",
+                        # these widths will make it obvious if there's a new/extra column
+                        "minWidth": "10px",
+                        "width": "10px",
+                        "maxWidth": "10px",
+                    },
+                    # style_cell_conditional set in callback
+                    style_data={
+                        "whiteSpace": "normal",
+                        "height": "auto",
+                        "lineHeight": "12px",
+                        "wordBreak": "normal",
+                    },
+                    # style_data_conditional set in callback
+                    # tooltip set in callback
+                    row_deletable=False,  # toggled in callback
+                    # hidden_columns set in callback
+                    page_size=0,  # 0 -> *HUGE* performance gains # toggled in callback
+                    # data set in callback
+                    # columns set in callback
+                    # dropdown set in callback
+                    # dropdown_conditional set in callback
+                    export_format="xlsx",
+                    export_headers="display",
+                    merge_duplicate_headers=True,
+                    # fixed_rows={"headers": True, "data": 0},
+                ),
             ),
             #
             # Bottom Buttons
             du.fullscreen_loading(
                 children=[
                     dbc.Row(
+                        id="wbs-table-bottom-toolbar",
                         className="g-0 wbs-table-bottom-toolbar",  # "g-0" -> no gutters
+                        # style={}, # updated by callback
                         children=[
                             #
                             # New Data
@@ -396,6 +406,7 @@ def layout() -> html.Div:
                                     "computing contributions need to be confirmed before each collaboration meeting",
                                     outline=True,
                                     color=du.Color.SUCCESS,
+                                    height=3.8,
                                 ),
                             ),
                         ],
@@ -434,10 +445,7 @@ def layout() -> html.Div:
                     du.fullscreen_loading(
                         children=[
                             html.Div(
-                                style={
-                                    "margin-right": "10rem",
-                                    "width": "calc(100% - 10rem)",
-                                },
+                                className="admin-table-button",
                                 children=[
                                     dbc.Button(
                                         id="wbs-summary-table-recalculate",
@@ -448,7 +456,10 @@ def layout() -> html.Div:
                                     ),
                                 ],
                             ),
-                            du.simple_table("wbs-summary-table"),
+                            html.Div(
+                                className="admin-table",
+                                children=du.simple_table("wbs-summary-table"),
+                            ),
                         ]
                     ),
                     #
@@ -458,10 +469,7 @@ def layout() -> html.Div:
                     du.fullscreen_loading(
                         children=[
                             html.Div(
-                                style={
-                                    "margin-right": "10rem",
-                                    "width": "calc(100% - 10rem)",
-                                },
+                                className="admin-table-button",
                                 children=[
                                     dbc.Button(
                                         id="wbs-blame-table-button",
@@ -472,7 +480,10 @@ def layout() -> html.Div:
                                     ),
                                 ],
                             ),
-                            du.simple_table("wbs-blame-table"),
+                            html.Div(
+                                className="admin-table",
+                                children=du.simple_table("wbs-blame-table"),
+                            ),
                         ],
                     ),
                     #

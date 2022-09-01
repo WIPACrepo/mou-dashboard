@@ -175,7 +175,16 @@ def table_data_exterior_controls(
     s_deleted_record: uut.WebRecord,
     s_flag_extctrl: bool,
 ) -> Tuple[
-    uut.WebTable, int, dbc.Toast, str, str, bool, int, bool, int, Dict[str, str]
+    uut.WebTable,
+    int,
+    dbc.Toast,
+    str,
+    str,
+    bool,
+    int,
+    bool,
+    int,
+    Dict[str, str],
 ]:
     """Exterior control signaled that the table should be updated.
 
@@ -829,6 +838,7 @@ def setup_user_dependent_components(
         Output("wbs-show-all-rows-button", "outline"),
         Output("wbs-data-table", "page_size"),
         Output("wbs-data-table", "page_action"),
+        Output("wbs-table-bottom-toolbar", "style"),
     ],
     [
         # user/table_data_exterior_controls
@@ -841,7 +851,7 @@ def toggle_pagination(
     n_clicks: int,
     # state(s)
     s_urlpath: str,
-) -> Tuple[str, str, bool, int, str]:
+) -> Tuple[str, str, bool, int, str, Dict[str, str]]:
     """Toggle whether the table is paginated."""
     logging.warning(f"'{du.triggered()}' -> toggle_pagination({n_clicks=})")
 
@@ -853,9 +863,17 @@ def toggle_pagination(
             True,
             tconfig.get_page_size(),
             "native",
+            {"margin-top": "-3.75rem", "padding-left": "1em"},
         )
     # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
-    return "Collapse Rows to Pages", du.Color.DARK, False, 9999999999, "none"
+    return (
+        "Collapse Rows to Pages",
+        du.Color.DARK,
+        False,
+        9999999999,
+        "none",
+        {"margin-top": "1rem", "padding-left": "1em"},
+    )
 
 
 @app.callback(  # type: ignore[misc]

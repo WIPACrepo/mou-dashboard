@@ -269,9 +269,11 @@ def make_icon_label_tooltip(
     float_right: bool = False,
     outline: bool = False,
     interval_loading: str = "",
-    width: int | None = None,
+    width: float | None = None,
+    height: float | None = None,
     color: str = Color.SECONDARY,
     border_width: int | None = None,
+    extra_class: str = "",
 ) -> html.Div:
     """Make a button comprising of an icon and label, with a tooltip bubble."""
     div_style: Dict[str, uut.StrNum] = {
@@ -284,6 +286,8 @@ def make_icon_label_tooltip(
         div_style["border"] = border_width
     if width:
         div_style["width"] = f"{width}rem"
+    if height:
+        div_style["height"] = f"{height}rem"
 
     if outline:
         btn_class = f"btn-outline-{color}"
@@ -294,7 +298,7 @@ def make_icon_label_tooltip(
         id=parent_id,
         n_clicks=0,
         hidden=hidden,
-        className=f"snapshot-icon caps btn {btn_class}",
+        className=f"button-icon-label caps btn {btn_class} {extra_class}",
         style=div_style,
         children=[
             html.Div(
