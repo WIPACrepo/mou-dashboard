@@ -77,6 +77,8 @@ def layout() -> html.Div:
                                 icon_class="fa-solid fa-clock-rotate-left",
                                 label_text="View a Snapshot",
                                 tooltip_text="click to select and view past statements of work",
+                                width=17,
+                                outline=True,
                             ),
                             html.Div(
                                 id="wbs-snapshot-dropdown-div",
@@ -128,8 +130,9 @@ def layout() -> html.Div:
                             label_text="Saved",
                             tooltip_text="your work is automatically being saved to the cloud",
                             float_right=True,
-                            no_outline=True,
+                            outline=True,
                             interval_loading="interval-cloud-saved",
+                            border_width=0,
                         ),
                     ),
                 ],
@@ -144,40 +147,67 @@ def layout() -> html.Div:
                     # Inputs
                     dbc.Row(
                         justify="center",
-                        className="g-0",  # "g-0" -> no gutters
+                        # className="g-0",  # "g-0" -> no gutters
                         children=[
-                            dbc.Col(
-                                className="institution-headcount",
-                                children=[
-                                    html.Div(_label, className="caps"),
-                                    dcc.Input(
-                                        id=_id,
-                                        className="institution-headcount-input",
-                                        type="number",
-                                        min=0,
-                                        disabled=True,
-                                    ),
-                                ],
-                            )
-                            for _id, _label in [
-                                ("wbs-phds-authors", "PhDs/Authors"),
-                                ("wbs-faculty", "Faculty"),
-                                (
-                                    "wbs-scientists-post-docs",
-                                    "Scientists/Post-Docs",
+                            du.make_stacked_label_component_float_left(
+                                width=18,
+                                label="PhDs & Authors",
+                                component=dcc.Input(
+                                    id="wbs-phds-authors",
+                                    className="institution-headcount-input",
+                                    type="number",
+                                    min=0,
+                                    disabled=True,
                                 ),
-                                ("wbs-grad-students", "Grad Students"),
-                            ]
+                            ),
+                            du.make_stacked_label_component_float_left(
+                                width=18,
+                                label="Faculty",
+                                component=dcc.Input(
+                                    id="wbs-faculty",
+                                    className="institution-headcount-input",
+                                    type="number",
+                                    min=0,
+                                    disabled=True,
+                                ),
+                            ),
+                            du.make_stacked_label_component_float_left(
+                                width=18,
+                                label="Scientists/Post-Docs",
+                                component=dcc.Input(
+                                    id="wbs-scientists-post-docs",
+                                    className="institution-headcount-input",
+                                    type="number",
+                                    min=0,
+                                    disabled=True,
+                                ),
+                            ),
+                            du.make_stacked_label_component_float_left(
+                                width=18,
+                                label="Graduate Students",
+                                component=dcc.Input(
+                                    id="wbs-grad-students",
+                                    className="institution-headcount-input",
+                                    type="number",
+                                    min=0,
+                                    disabled=True,
+                                ),
+                            ),
+                            du.make_stacked_label_component_float_left(
+                                width=13,
+                                component=du.make_icon_label_tooltip(
+                                    "wbs-headcounts-confirm-yes",
+                                    "fa-solid fa-right-to-bracket",
+                                    "Confirm",
+                                    "headcounts need to be confirmed before each collaboration meeting",
+                                    outline=True,
+                                    color=du.Color.SUCCESS,
+                                ),
+                            ),
                         ],
                     ),
                     # Autosaved & Confirm
                     # du.make_timecheck_container("wbs-headcounts-timecheck-container"),
-                    html.Div(
-                        id="wbs-headcounts-confirm-container-container",
-                        children=du.make_confirm_container(
-                            "headcounts", "Submit Headcounts"
-                        ),
-                    ),
                 ],
             ),
             #
@@ -185,20 +215,39 @@ def layout() -> html.Div:
             #
             # Top Tools
             dbc.Row(
-                className="g-0 wbs-table-top-toolbar",  # "g-0" -> no gutters
+                # className="g-0 wbs-table-top-toolbar",  # "g-0" -> no gutters
                 children=[
                     # Add Button
                     dbc.Col(
                         width=3,
-                        children=du.new_data_button(1),
+                        children=du.make_icon_label_tooltip(
+                            "wbs-new-data-button",
+                            icon_class="fa-solid fa-pen-to-square",
+                            label_text="Create New Statement of Work",
+                            tooltip_text="click to add a new statement of work",
+                            color=du.Color.DARK,
+                            outline=True,
+                        ),
+                    ),
+                    # Confirm Table
+                    dbc.Col(
+                        width=3,
+                        children=du.make_icon_label_tooltip(
+                            "wbs-table-confirm-yes",
+                            "fa-solid fa-right-to-bracket",
+                            "Confirm All Statements of Work",
+                            "SOWs need to be confirmed before each collaboration meeting",
+                            outline=True,
+                            color=du.Color.SUCCESS,
+                        ),
                     ),
                     # Labor Category filter dropdown menu
                     dbc.Col(
-                        width=3,
+                        width=2,
                         children=dcc.Dropdown(
                             id="wbs-filter-labor",
                             placeholder="Filter by Labor Category",
-                            className="table-tool-large",
+                            className="caps table-tool-large",
                             # options set in callback
                             # value set in callback
                             optionHeight=30,
@@ -269,7 +318,7 @@ def layout() -> html.Div:
                         children=[
                             #
                             # New Data
-                            du.new_data_button(2),
+                            # du.new_data_button(2),
                             #
                             # Show Totals
                             dbc.Button(
@@ -298,7 +347,7 @@ def layout() -> html.Div:
             #
             # Table Autosaved
             # du.make_timecheck_container("wbs-table-timecheck-container", loading=True),
-            du.make_confirm_container("table", "Submit SOWs"),
+            # du.make_confirm_container("table", ""),
             #
             html.Div(
                 id="institution-values-below-table-container",
@@ -314,30 +363,46 @@ def layout() -> html.Div:
                     # Inputs
                     dbc.Row(
                         justify="center",
-                        className="g-0",  # "g-0" -> no gutters
+                        # className="g-0",  # "g-0" -> no gutters
                         children=[
-                            dbc.Col(
-                                className="institution-headcount",
-                                children=[
-                                    html.Div(_label, className="caps"),
-                                    dcc.Input(
-                                        id=_id,
-                                        className="institution-headcount-input",
-                                        type="number",
-                                        min=0,
-                                        disabled=True,
-                                    ),
-                                ],
-                            )
-                            for _id, _label in [
-                                ("wbs-cpus", "CPU"),
-                                ("wbs-gpus", "GPU"),
-                            ]
+                            du.make_stacked_label_component_float_left(
+                                width=15,
+                                label="Number of CPUs",
+                                component=dcc.Input(
+                                    id="wbs-cpus",
+                                    className="institution-headcount-input",
+                                    type="number",
+                                    min=0,
+                                    disabled=True,
+                                ),
+                            ),
+                            du.make_stacked_label_component_float_left(
+                                width=15,
+                                label="Number of GPUs",
+                                component=dcc.Input(
+                                    id="wbs-gpus",
+                                    className="institution-headcount-input",
+                                    type="number",
+                                    min=0,
+                                    disabled=True,
+                                ),
+                            ),
+                            du.make_stacked_label_component_float_left(
+                                width=13,
+                                component=du.make_icon_label_tooltip(
+                                    "wbs-computing-confirm-yes",
+                                    "fa-solid fa-right-to-bracket",
+                                    "Confirm",
+                                    "computing contributions need to be confirmed before each collaboration meeting",
+                                    outline=True,
+                                    color=du.Color.SUCCESS,
+                                ),
+                            ),
                         ],
                     ),
                     # Autosaved & Confirm
                     # du.make_timecheck_container("wbs-computing-timecheck-container"),
-                    du.make_confirm_container("computing", "Submit Counts"),
+                    # du.make_confirm_container("computing", "Submit Counts"),
                     #
                     # Free Text & Autosaved
                     html.H2(
@@ -442,7 +507,7 @@ def layout() -> html.Div:
                             dbc.Col(
                                 width=4,
                                 children=dbc.Button(
-                                    "Override All Institutions' SOW Tables with .xlsx",
+                                    "Override All Institutions' Statements of Work with .xlsx",
                                     id="wbs-upload-xlsx-launch-modal-button",
                                     n_clicks=0,
                                     color=du.Color.DANGER,

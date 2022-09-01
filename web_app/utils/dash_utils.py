@@ -267,32 +267,51 @@ def make_icon_label_tooltip(
     tooltip_text: str,
     hidden: bool = False,
     float_right: bool = False,
-    no_outline: bool = False,
+    outline: bool = False,
     interval_loading: str = "",
+    width: int | None = None,
+    color: str = Color.SECONDARY,
+    border_width: int | None = None,
 ) -> html.Div:
     """Make a button comprising of an icon and label, with a tooltip bubble."""
-    style: Dict[str, uut.StrNum] = {}
+    div_style: Dict[str, uut.StrNum] = {
+        "display": "flex",
+        "justify-content": "center",
+    }
     if float_right:
-        style["float"] = "right"
-    if no_outline:
-        style["border"] = 0
+        div_style["float"] = "right"
+    if border_width is not None:
+        div_style["border"] = border_width
+    if width:
+        div_style["width"] = f"{width}rem"
+
+    if outline:
+        btn_class = f"btn-outline-{color}"
+    else:
+        btn_class = f"btn-{color}"
 
     div = html.Div(
         id=parent_id,
         n_clicks=0,
         hidden=hidden,
-        className="snapshot-icon caps btn btn-outline-secondary",
-        style=style,
+        className=f"snapshot-icon caps btn {btn_class}",
+        style=div_style,
         children=[
             html.Div(
                 html.I(
                     className=icon_class + " cursor-pointer",
                 ),
-                style={"float": "left", "width": "2rem"},
+                style={
+                    # "float": "left",
+                    "width": "2rem",
+                },
             ),
             html.Div(
                 html.Label(label_text, className="cursor-pointer"),
-                style={"float": "right", "text-align": "right"},
+                style={
+                    # "float": "left",
+                    "text-align": "left",
+                },
             ),
             dbc.Tooltip(
                 tooltip_text,
@@ -306,7 +325,7 @@ def make_icon_label_tooltip(
     if interval_loading:
         return dcc.Loading(
             type="circle",
-            parent_style=style,
+            parent_style=div_style,
             color="#6c757d",
             children=[
                 dcc.Interval(id=interval_loading, interval=1 * 60 * 1000),
@@ -316,45 +335,65 @@ def make_icon_label_tooltip(
     return div
 
 
-# def make_timecheck_container(id_: str, loading: bool = False) -> html.Div:
-#     """Create a container for the timecheck container.
+def make_stacked_label_component_float_left(
+    component: Any, width: int = 0, label: str | None = None
+) -> html.Div:
+    """Stack a label on top of a component and put it in a html.Div floating left."""
+    label_style = {}
+    if not label:
+        label = "."
+        label_style = {"opacity": 0}
 
-#     Optionally, wrapped in a `dcc.Loading`.
-#     """
-#     if loading:
-#         return dcc.Loading(
-#             type="default",
-#             color=TEAL,
-#             children=html.Div(className="timecheck-container", id=id_),
-#         )
-#     else:
-#         return html.Div(className="timecheck-container", id=id_)
-
-
-def make_confirm_container(id_subject: str, button_label: str) -> html.Div:
-    """Create a container for confirming `subject`."""
     return html.Div(
-        id=f"wbs-{id_subject}-confirm-container",
-        hidden=True,
-        # className="timecheck-container",
-        children=dbc.Button(button_label, id=f"wbs-{id_subject}-confirm-yes"),
+        style={"float": "left", "width": f"{width}rem"},
+        children=[
+            html.Div(
+                label,
+                className="caps",
+                style=label_style,
+            ),
+            component,
+        ],
     )
 
+    # def make_timecheck_container(id_: str, loading: bool = False) -> html.Div:
+    #     """Create a container for the timecheck container.
 
-def new_data_button(id_num: int) -> html.Div:
+    #     Optionally, wrapped in a `dcc.Loading`.
+    #     """
+    #     if loading:
+    #         return dcc.Loading(
+    #             type="default",
+    #             color=TEAL,
+    #             children=html.Div(className="timecheck-container", id=id_),
+    #         )
+    #     else:
+    #         return html.Div(className="timecheck-container", id=id_)
+
+    # def make_confirm_container(id_subject: str, button_label: str) -> html.Div:
+    #     """Create a container for confirming `subject`."""
+    #     return html.Div(
+    #         id=f"wbs-{id_subject}-confirm-container",
+    #         hidden=True,
+    #         # className="timecheck-container",
+    #         children=dbc.Button(button_label, id=f"wbs-{id_subject}-confirm-yes"),
+    #     )
+
+    # def new_data_button(id_num: int) -> html.Div:
     """Get a button for triggering adding of new data."""
-    return html.Div(
-        id=f"wbs-new-data-div-{id_num}",
-        children=dbc.Button(
-            "+ Add New Data",
-            id=f"wbs-new-data-button-{id_num}",
-            n_clicks=0,
-            color=Color.DARK,
-            disabled=False,
-        ),
-        hidden=True,
-        className="table-tool-large d-grid gap-2",
-    )
+    # return
+    # return html.Div(
+    #     id=,
+    #     children=dbc.Button(
+    #         ,
+    #         id=f"wbs-new-data-button-{id_num}",
+    #         n_clicks=0,
+    #         color=Color.DARK,
+    #         disabled=False,
+    #     ),
+    #     hidden=True,
+    #     className="table-tool-large d-grid gap-2",
+    # )
 
 
 def table_columns(
@@ -592,7 +631,7 @@ def upload_modal() -> dbc.Modal:
         backdrop="static",
         children=[
             html.Div(
-                "Override All Institutions' SOW Tables with .xlsx",
+                "Override All Institutions' Statements of Work with .xlsx",
                 className="caps section-header",
             ),
             dbc.ModalBody(

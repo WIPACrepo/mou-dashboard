@@ -71,7 +71,7 @@ app = dash.Dash(
         "https://fonts.googleapis.com/css2?family=Syncopate",
         "https://fonts.googleapis.com/css2?family=Sarpanch",
         "https://fonts.googleapis.com/css2?family=Kanit:ital,wght@1,200",
-        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css",
+        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css",
     ],
 )
 

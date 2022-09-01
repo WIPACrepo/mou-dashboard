@@ -3,11 +3,10 @@
 import dataclasses as dc
 import logging
 import time
-from typing import Dict, List, Tuple, cast
+from typing import Dict, List, cast
 
-import dash_bootstrap_components as dbc  # type: ignore[import]
 import universal_utils.types as uut
-from dash import html, no_update  # type: ignore[import]
+from dash import no_update  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
 
 from ..config import app
@@ -45,7 +44,7 @@ class SelectInstitutionValueOutput:
     ddown_inst_opts: List[Dict[str, str]] = no_update
     # LABOR
     labor_opts: List[Dict[str, str]] = no_update
-    # INST-VAL STATE
+    # INST-VAL STORES
     # instval_conf_init: dict = no_update
     instval_conf_headcounts: dict = no_update
     instval_conf_table: dict = no_update
@@ -72,7 +71,7 @@ class SelectInstitutionValueState:
     s_urlpath: str
     s_snap_ts: str
     s_table: uut.WebTable
-    # INST-VAL STATE
+    # INST-VAL STORES
     # s_instval_conf_init: dict
     s_instval_conf_headcounts: dict
     s_instval_conf_table: dict
@@ -197,7 +196,7 @@ class SelectInstitutionValueInputs:
             ddown_inst_opts=Output("wbs-dropdown-institution", "options"),
             # LABOR
             labor_opts=Output("wbs-filter-labor", "options"),
-            # INST-VAL STATE
+            # INST-VAL STORES
             # instval_conf_init=Output("wbs-store-confirm-initial", "data"),
             # instval_conf=Output("wbs-store-confirm", "data"),
             instval_conf_headcounts=Output("wbs-store-confirm-headcounts", "data"),
@@ -358,7 +357,7 @@ def pull_institution_values(
 
     # are we looking at an institution?
     if inst := du.get_inst(state.s_urlpath):
-        output.h2_table = f"{inst}'s SOW Table"
+        output.h2_table = f"{inst}'s Statements of Work"
         output.h2_textarea = f"{inst}'s Miscellaneous Notes and Descriptions"
         output.h2_computing = f"{inst}'s Computing Contributions"
         try:
@@ -372,7 +371,7 @@ def pull_institution_values(
         except DataSourceException:
             output.update_institution_values(uut.InstitutionValues())
     else:  # we're looking at the collaboration-view
-        output.h2_table = "Collaboration-Wide SOW Table"
+        output.h2_table = "Collaboration-Wide Statements of Work"
         output.h2_textarea = ""
         output.h2_computing = ""
     output.ddown_inst_val = inst

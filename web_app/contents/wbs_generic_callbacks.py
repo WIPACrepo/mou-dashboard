@@ -147,8 +147,7 @@ def confirm_deletion(
         Input("wbs-data-table", "columns"),  # setup_table()-only
         Input("wbs-filter-labor", "value"),  # user
         Input("wbs-show-totals-button", "n_clicks"),  # user-only
-        Input("wbs-new-data-button-1", "n_clicks"),  # user-only
-        Input("wbs-new-data-button-2", "n_clicks"),  # user-only
+        Input("wbs-new-data-button", "n_clicks"),  # user-only
         Input("wbs-undo-last-delete-hidden-button", "n_clicks"),  # confirm_deletion()
     ],
     [
@@ -167,7 +166,7 @@ def table_data_exterior_controls(
     tot_n_clicks: int,
     _: int,
     __: int,
-    ___: int,
+    # ___: int,
     # state(s)
     s_urlpath: str,
     s_snap_ts: types.DashVal,
@@ -204,7 +203,7 @@ def table_data_exterior_controls(
 
     match du.triggered():
         # Add New Data
-        case "wbs-new-data-button-1.n_clicks" | "wbs-new-data-button-2.n_clicks":
+        case "wbs-new-data-button.n_clicks":
             if not s_snap_ts:  # are we looking at a snapshot?
                 table, toast = _add_new_data(
                     wbs_l1,
@@ -734,8 +733,7 @@ def handle_make_snapshot(
 @app.callback(  # type: ignore[misc]
     [
         Output("wbs-data-table", "editable"),
-        Output("wbs-new-data-div-1", "hidden"),
-        Output("wbs-new-data-div-2", "hidden"),
+        Output("wbs-new-data-button", "hidden"),
         Output("wbs-data-table", "row_deletable"),
         Output("wbs-dropdown-institution", "disabled"),
         Output("wbs-admin-zone-div", "hidden"),
@@ -758,7 +756,7 @@ def setup_user_dependent_components(
     s_urlpath: str,
 ) -> Tuple[
     bool,
-    bool,
+    # bool,
     bool,
     bool,
     bool,
@@ -777,7 +775,7 @@ def setup_user_dependent_components(
         du.precheck_setup_callback(s_urlpath)
     except du.CallbackAbortException as e:
         logging.critical(f"ABORTED: setup_user_dependent_components() [{e}]")
-        return tuple(no_update for _ in range(14))  # type: ignore[return-value]
+        return tuple(no_update for _ in range(13))  # type: ignore[return-value]
     else:
         logging.warning(
             f"'{du.triggered()}' -> setup_user_dependent_components({s_snap_ts=}, {s_urlpath=}, {CurrentUser.get_summary()=})"
@@ -791,8 +789,8 @@ def setup_user_dependent_components(
     if s_snap_ts:
         return (
             False,  # data-table NOT editable
-            True,  # new-data-div-1 hidden
-            True,  # new-data-div-2 hidden
+            True,  # new-data-div hidden
+            # True,  # new-data-div-2 hidden
             False,  # row NOT deletable
             dropdown_institution_disabled,
             True,  # wbs-admin-zone-div hidden
@@ -808,8 +806,8 @@ def setup_user_dependent_components(
 
     return (
         True,  # data-table editable
-        False,  # new-data-div-1 NOT hidden
-        False,  # new-data-div-2 NOT hidden
+        False,  # new-data-div NOT hidden
+        # False,  # new-data-div-2 NOT hidden
         True,  # row is deletable
         dropdown_institution_disabled,
         not CurrentUser.is_admin(),  # wbs-admin-zone-div hidden if user is not an admin

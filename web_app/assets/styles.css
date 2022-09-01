@@ -375,8 +375,8 @@ code {
 
 .table-tool-large {
     height: 38px !important;
-    width: 27rem;
-    margin-right: 1rem;
+    /*width: 27rem;*/
+    /*margin-right: 1rem;*/
     padding: 0 !important;
 }
 

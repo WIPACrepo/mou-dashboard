@@ -186,7 +186,7 @@ def summarize(
 
     insts_infos = institution_info.get_institutions_infos()
 
-    column_names = ["Institution", "Institutional Lead", "SOW Table Confirmed?"]
+    column_names = ["Institution", "Institutional Lead", "SOWs Confirmed?"]
     if wbs_l1 == "mo":
         column_names.extend(
             [
