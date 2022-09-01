@@ -62,7 +62,7 @@ googleapis-common-protos==1.56.2
     # via
     #   opentelemetry-exporter-jaeger-proto-grpc
     #   opentelemetry-exporter-otlp-proto-http
-grpcio==1.47.0
+grpcio==1.48.1
     # via opentelemetry-exporter-jaeger-proto-grpc
 httplib2==0.20.4
     # via oauth2client
