@@ -12,7 +12,7 @@ import werkzeug
 from flask_oidc import OpenIDConnect  # type: ignore[import]
 from wipac_dev_tools import from_environment_as_dataclass
 
-AUTO_RELOAD_MINS = 30  # how often to auto-reload the page
+AUTO_RELOAD_MINS = 15  # how often to auto-reload the page
 MAX_CACHE_MINS = 5  # how often to expire a cache result
 
 REDIRECT_WBS = "mo"  # which mou to go to by default when ambiguously redirecting
