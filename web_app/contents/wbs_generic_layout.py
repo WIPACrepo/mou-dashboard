@@ -261,13 +261,17 @@ def layout() -> html.Div:
                     # Labor Category filter dropdown menu
                     dbc.Col(
                         width=2,
-                        children=dcc.Dropdown(
-                            id="wbs-filter-labor",
-                            placeholder="Filter by Labor Category",
-                            className="table-custom-filter caps",
-                            # options set in callback
-                            # value set in callback
-                            optionHeight=30,
+                        children=html.Div(
+                            id="wbs-filter-labor-container",
+                            hidden=True,
+                            children=dcc.Dropdown(
+                                id="wbs-filter-labor",
+                                placeholder="Filter by Labor Category",
+                                className="table-custom-filter caps",
+                                # options set in callback
+                                # value set in callback
+                                optionHeight=30,
+                            ),
                         ),
                     ),
                 ],
@@ -275,6 +279,7 @@ def layout() -> html.Div:
             #
             # Table
             html.Div(
+                id="wbs-data-table-container",
                 className="data-table-outer",
                 children=dash_table.DataTable(
                     id="wbs-data-table",
@@ -331,40 +336,44 @@ def layout() -> html.Div:
             ),
             #
             # Bottom Buttons
-            du.fullscreen_loading(
-                children=[
-                    dbc.Row(
-                        id="wbs-table-bottom-toolbar",
-                        className="g-0 wbs-table-bottom-toolbar",  # "g-0" -> no gutters
-                        # style={}, # updated by callback
-                        children=[
-                            #
-                            # New Data
-                            # du.new_data_button(2),
-                            #
-                            # Show Totals
-                            dbc.Button(
-                                id="wbs-show-totals-button",
-                                n_clicks=0,
-                                className="table-tool-medium",
-                            ),
-                            #
-                            # Show All Columns
-                            dbc.Button(
-                                id="wbs-show-all-columns-button",
-                                n_clicks=0,
-                                className="table-tool-medium",
-                            ),
-                            #
-                            # Show All Rows
-                            dbc.Button(
-                                id="wbs-show-all-rows-button",
-                                n_clicks=0,
-                                className="table-tool-medium",
-                            ),
-                        ],
-                    ),
-                ]
+            html.Div(
+                id="wbs-table-bottom-toolbar-container",
+                hidden=True,
+                children=du.fullscreen_loading(
+                    children=[
+                        dbc.Row(
+                            id="wbs-table-bottom-toolbar",
+                            className="g-0 wbs-table-bottom-toolbar",  # "g-0" -> no gutters
+                            # style={}, # updated by callback
+                            children=[
+                                #
+                                # New Data
+                                # du.new_data_button(2),
+                                #
+                                # Show Totals
+                                dbc.Button(
+                                    id="wbs-show-totals-button",
+                                    n_clicks=0,
+                                    className="table-tool-medium",
+                                ),
+                                #
+                                # Show All Columns
+                                dbc.Button(
+                                    id="wbs-show-all-columns-button",
+                                    n_clicks=0,
+                                    className="table-tool-medium",
+                                ),
+                                #
+                                # Show All Rows
+                                dbc.Button(
+                                    id="wbs-show-all-rows-button",
+                                    n_clicks=0,
+                                    className="table-tool-medium",
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
             ),
             #
             # Table Autosaved

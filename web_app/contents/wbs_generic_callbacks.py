@@ -346,6 +346,11 @@ def _find_deleted_record(
         Output("wbs-table-update-flag-interior-control", "data"),
         # Output("wbs-sow-last-updated", "children"),
         # Output("wbs-sow-last-updated-time", "children"),
+        # CONTAINERS FOR HIDING
+        Output("wbs-filter-labor-container", "hidden"),
+        Output("wbs-data-table-container", "hidden"),
+        Output("wbs-table-bottom-toolbar-container", "hidden"),
+        # Output("wbs-table-confirm-yes-container", "hidden"),
     ],
     [Input("wbs-data-table", "data")],  # user/table_data_exterior_controls()
     [
@@ -374,6 +379,11 @@ def table_data_interior_controls(
     bool,
     # str,
     # str,
+    # CONTAINERS FOR HIDING
+    bool,
+    bool,
+    bool,
+    # bool,
 ]:
     """Interior control signaled that the table should be updated.
 
@@ -409,6 +419,10 @@ def table_data_interior_controls(
             not s_flag_intctrl,
             # "SOWs Last Updated:",
             # sows_updated_label,
+            not current_table,
+            not current_table,
+            not current_table,
+            # not current_table,
         )
 
     assert not s_snap_ts  # should not be a snapshot
@@ -440,6 +454,10 @@ def table_data_interior_controls(
         s_flag_intctrl,  # preserve flag
         # "SOWs Last Updated:",
         # sows_updated_label,
+        not current_table,
+        not current_table,
+        not current_table,
+        # not current_table,
     )
 
 

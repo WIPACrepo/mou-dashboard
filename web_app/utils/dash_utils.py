@@ -147,23 +147,23 @@ HEADCOUNTS_REQUIRED = [
 ]
 
 
-def confirmation_saved_label(
-    confirmed_ts: int,
-    label: str,
-    override: bool = False,
-    override_label: List[html.Label] | None = None,
-) -> List[html.Label]:
-    """Get a confirmation-saved label."""
-    if override:
-        return override_label if override_label else []
+# def confirmation_saved_label(
+#     confirmed_ts: int,
+#     label: str,
+#     override: bool = False,
+#     override_label: List[html.Label] | None = None,
+# ) -> List[html.Label]:
+#     """Get a confirmation-saved label."""
+#     if override:
+#         return override_label if override_label else []
 
-    # TODO - detect if recent change
-    if just_now_confirmed:  # show saved label if count was just now confirmed
-        return timecheck_labels(label, "Submitted")
-    elif not confirmed_ts:  # if it's not confirmed, then don't show anything
-        return []
-    else:  # it's confirmed but this isn't new, so don't change anything
-        return no_update  # type: ignore[no-any-return]
+#     # TODO - detect if recent change
+#     if just_now_confirmed:  # show saved label if count was just now confirmed
+#         return timecheck_labels(label, "Submitted")
+#     elif not confirmed_ts:  # if it's not confirmed, then don't show anything
+#         return []
+#     else:  # it's confirmed but this isn't new, so don't change anything
+#         return no_update  # type: ignore[no-any-return]
 
 
 # def _figure_confirmation_ts(

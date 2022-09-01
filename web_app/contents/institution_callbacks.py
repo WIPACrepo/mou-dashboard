@@ -247,7 +247,7 @@ class SelectInstitutionValueInputs:
             h2_table=Output("wbs-h2-sow-table", "children"),
             h2_textarea=Output("wbs-h2-inst-textarea", "children"),
             h2_computing=Output("wbs-h2-inst-computing", "children"),
-            # CONTAINERS
+            # CONTAINERS FOR HIDING
             headcounts_container_hidden=Output(
                 "institution-headcounts-container", "hidden"
             ),
