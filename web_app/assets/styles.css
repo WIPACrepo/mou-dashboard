@@ -17,6 +17,9 @@ body {
 .cursor-pointer {
     cursor: pointer !important;
 }
+.cursor-default {
+    cursor: default !important;
+}
 
 .section-header {
     text-transform: uppercase !important;
@@ -384,21 +387,21 @@ code {
     position: relative;
 }
 
-.table-tool-large {
+.table-custom-filter {
     height: 25.53px !important;
     /*width: 27rem;*/
     /*margin-right: 1rem;*/
     /*padding: 0 !important;*/
 }
 
-.table-tool-large > .Select-control {
+.table-custom-filter > .Select-control {
     text-transform: uppercase;
     letter-spacing: 0.1rem;
     font: 10px Arial;
 }
-.table-tool-large > .Select-control,
-.table-tool-large > .Select-control > *,
-.table-tool-large > .Select-control > * > * {
+.table-custom-filter > .Select-control,
+.table-custom-filter > .Select-control > *,
+.table-custom-filter > .Select-control > * > * {
     height: calc(25.53px - 4px) !important;
     /*line-height: 2 !important;*/
     /*text-transform: uppercase;*/
@@ -408,7 +411,7 @@ code {
     /*margin-bottom:  auto;*/
     /*padding-top: 12px;*/
 }
-.table-tool-large > .Select-control > * > * {
+.table-custom-filter > .Select-control > * > * {
     /*padding-top: 12px;*/
     line-height:  25.53px !important;
 }
@@ -416,7 +419,7 @@ code {
     visibility:  hidden;
 }
 
-.table-tool-large > .Select-menu-outer {
+.table-custom-filter > .Select-menu-outer {
     text-transform: uppercase;
     letter-spacing: 0.1rem;
     font: 9px Arial;

@@ -913,8 +913,8 @@ def toggle_hidden_columns(
 
 
 @app.callback(  # type: ignore[misc]
-    Output("interval-cloud-saved", "interval"),
-    Input("interval-cloud-saved", "n_intervals"),  # auto-triggered
+    Output("wbs-cloud-saved-interval", "interval"),
+    Input("wbs-cloud-saved-interval", "n_intervals"),  # auto-triggered
     # prevent_initial_call=True,
 )
 def interval_cloud_saved(_: int) -> int:

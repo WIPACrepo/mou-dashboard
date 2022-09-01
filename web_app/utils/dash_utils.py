@@ -47,6 +47,38 @@ class Color:  # pylint: disable=R0903
     LIGHT = "light"  # gray on white
     LINK = "link"  # blue on transparent
 
+    @staticmethod
+    def to_hex(color: str) -> str:
+        """Get hex color for each `Color` color."""
+        match color:
+            case Color.PRIMARY:
+                return "#0d6efd"
+            case Color.SECONDARY:
+                return "#6c757d"
+            case Color.SUCCESS:
+                return "#198754"
+            case Color.INFO:
+                return "#0dcaf0"
+            case Color.WARNING:
+                return "#ffc107"
+            case Color.DANGER:
+                return "#dc3545"
+            case Color.LIGHT:
+                return "#f8f9fa"
+            case Color.DARK:
+                return "#212529"
+        return "black"
+
+
+class IconClassNames:
+    """Icon class names."""
+
+    CLOUD = "fa-solid fa-cloud"
+    CLOCK_ROTATE_LEFT = "fa-solid fa-clock-rotate-left"
+    RIGHT_TO_BRACKET = "fa-solid fa-right-to-bracket"
+    PEN_TO_SQUARE = "fa-solid fa-pen-to-square"
+    CHECK_TO_SLOT = "fa-solid fa-check-to-slot"
+
 
 # --------------------------------------------------------------------------------------
 # Function(s) that really should be in a dash library
@@ -260,83 +292,99 @@ def precheck_setup_callback(s_urlpath: str) -> None:
 # Component/Attribute-Constructor Functions
 
 
-def make_icon_label_tooltip(
-    parent_id: str,
-    icon_class: str,
-    label_text: str,
-    tooltip_text: str,
-    hidden: bool = False,
-    float_right: bool = False,
-    outline: bool = False,
-    interval_loading: str = "",
-    width: float | None = None,
-    height: float | None = None,
-    color: str = Color.SECONDARY,
-    border_width: int | None = None,
-    extra_class: str = "",
-) -> html.Div:
-    """Make a button comprising of an icon and label, with a tooltip bubble."""
-    div_style: Dict[str, uut.StrNum] = {
-        "display": "flex",
-        "justify-content": "center",
-    }
-    if float_right:
-        div_style["float"] = "right"
-    if border_width is not None:
-        div_style["border"] = border_width
-    if width:
-        div_style["width"] = f"{width}rem"
-    if height:
-        div_style["height"] = f"{height}rem"
+class ButtonIconLabelTooltipFactory:
+    """For making a button comprising of an icon and label, with a tooltip bubble."""
 
-    if outline:
-        btn_class = f"btn-outline-{color}"
-    else:
-        btn_class = f"btn-{color}"
+    @staticmethod
+    def build_classname(outline: bool, color: str = Color.SECONDARY) -> str:
 
-    div = html.Div(
-        id=parent_id,
-        n_clicks=0,
-        hidden=hidden,
-        className=f"button-icon-label caps btn {btn_class} {extra_class}",
-        style=div_style,
-        children=[
+        if outline:
+            btn_class = f"btn-outline-{color}"
+        else:
+            btn_class = f"btn-{color}"
+
+        return f"button-icon-label caps btn {btn_class} cursor-pointer"
+
+    @staticmethod
+    def make(
+        parent_id: str,
+        icon_class: str,
+        label_text: str,
+        tooltip_text: str,
+        button_classname: str,
+        hidden: bool = False,
+        float_right: bool = False,
+        add_interval: bool = False,
+        add_loading: bool = False,
+        width: str | None = None,
+        height: str | None = None,
+        loading_color: str = Color.SECONDARY,
+        border_width: int | None = None,
+    ) -> html.Div:
+        """Make a button comprising of an icon and label, with a tooltip bubble."""
+        div_style: Dict[str, uut.StrNum] = {
+            "display": "flex",
+            "justify-content": "center",
+        }
+        if float_right:
+            div_style["float"] = "right"
+        if border_width is not None:
+            div_style["border"] = border_width
+        if width:
+            div_style["width"] = width
+        if height:
+            div_style["height"] = height
+        # div_style["height"] = "100%"
+
+        cursor_class = "cursor-pointer"
+
+        # All the stuff that goes into the button
+        div_children = [
             html.Div(
-                html.I(
-                    className=icon_class + " cursor-pointer",
-                ),
-                style={
-                    # "float": "left",
-                    "width": "2rem",
-                },
+                style={"width": "2rem"},
+                className=cursor_class,
+                children=html.I(id=f"{parent_id}-i", className=icon_class),
             ),
             html.Div(
-                html.Label(label_text, className="cursor-pointer"),
-                style={
-                    # "float": "left",
-                    "text-align": "left",
-                },
+                style={"text-align": "left"},
+                children=html.Label(
+                    id=f"{parent_id}-label",
+                    children=label_text,
+                    className=cursor_class,
+                ),
             ),
             dbc.Tooltip(
-                tooltip_text,
+                id=f"{parent_id}-tooltip",
+                children=tooltip_text,
                 target=parent_id,
                 placement="auto",
                 style={"font-size": 12},
             ),
-        ],
-    )
+        ]
+        if add_interval:
+            div_children.append(
+                dcc.Interval(id=f"{parent_id}-interval", interval=60 * 1000)
+            )
 
-    if interval_loading:
-        return dcc.Loading(
-            type="circle",
-            parent_style=div_style,
-            color="#6c757d",
-            children=[
-                dcc.Interval(id=interval_loading, interval=1 * 60 * 1000),
-                div,
-            ],
+        # Build the button
+        div = html.Div(
+            id=parent_id,
+            n_clicks=0,
+            hidden=hidden,
+            className=button_classname,
+            style=div_style,
+            children=div_children,
         )
-    return div
+
+        # Optionally wrap it in a dcc.Loading
+        if add_loading:
+            return dcc.Loading(
+                type="circle",
+                parent_style=div_style,
+                color=Color.to_hex(loading_color),
+                children=div,
+            )
+        return div
 
 
 def make_stacked_label_component_float_left(
@@ -396,7 +444,7 @@ def make_stacked_label_component_float_left(
     #         disabled=False,
     #     ),
     #     hidden=True,
-    #     className="table-tool-large d-grid gap-2",
+    #     className="table-custom-filter d-grid gap-2",
     # )
 
 

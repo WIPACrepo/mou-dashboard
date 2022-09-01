@@ -71,15 +71,17 @@ def layout() -> html.Div:
                     dbc.Col(
                         width=4,
                         children=[
-                            du.make_icon_label_tooltip(
+                            du.ButtonIconLabelTooltipFactory.make(
                                 parent_id="wbs-view-snapshots",
                                 hidden=True,
-                                icon_class="fa-solid fa-clock-rotate-left",
+                                icon_class=du.IconClassNames.CLOCK_ROTATE_LEFT,
                                 label_text="View a Snapshot",
                                 tooltip_text="click to select and view past statements of work",
-                                width=17,
-                                height=3.8,
-                                outline=True,
+                                button_classname=du.ButtonIconLabelTooltipFactory.build_classname(
+                                    outline=True,
+                                ),
+                                width="17rem",
+                                height="3.8rem",
                             ),
                             html.Div(
                                 id="wbs-snapshot-dropdown-div",
@@ -125,16 +127,19 @@ def layout() -> html.Div:
                     ),
                     dbc.Col(
                         width=4,
-                        children=du.make_icon_label_tooltip(
+                        children=du.ButtonIconLabelTooltipFactory.make(
                             parent_id="wbs-cloud-saved",
-                            icon_class="fa-solid fa-cloud",
+                            icon_class=du.IconClassNames.CLOUD,
                             label_text="Saved",
                             tooltip_text="your work is automatically being saved to the cloud",
+                            button_classname=du.ButtonIconLabelTooltipFactory.build_classname(
+                                outline=True,
+                            ),
                             float_right=True,
-                            outline=True,
-                            interval_loading="interval-cloud-saved",
+                            add_loading=True,
+                            add_interval=True,
                             border_width=0,
-                            height=3.8,
+                            height="3.8rem",
                         ),
                     ),
                 ],
@@ -196,15 +201,17 @@ def layout() -> html.Div:
                                 ),
                             ),
                             du.make_stacked_label_component_float_left(
-                                width=13,
-                                component=du.make_icon_label_tooltip(
+                                width=15,
+                                component=du.ButtonIconLabelTooltipFactory.make(
                                     "wbs-headcounts-confirm-yes",
-                                    "fa-solid fa-right-to-bracket",
-                                    "Confirm",
+                                    du.IconClassNames.RIGHT_TO_BRACKET,  # set in callback
+                                    "Confirm",  # set in callback
                                     "headcounts need to be confirmed before each collaboration meeting",
-                                    outline=True,
-                                    color=du.Color.SUCCESS,
-                                    height=3.8,
+                                    button_classname=du.ButtonIconLabelTooltipFactory.build_classname(
+                                        outline=True,
+                                        color=du.Color.SUCCESS,
+                                    ),
+                                    height="3.8rem",
                                 ),
                             ),
                         ],
@@ -223,27 +230,31 @@ def layout() -> html.Div:
                     # Add Button
                     dbc.Col(
                         width=3,
-                        children=du.make_icon_label_tooltip(
+                        children=du.ButtonIconLabelTooltipFactory.make(
                             "wbs-new-data-button",
-                            icon_class="fa-solid fa-pen-to-square",
+                            icon_class=du.IconClassNames.PEN_TO_SQUARE,
                             label_text="Create New Statement of Work",
                             tooltip_text="click to add a new statement of work",
-                            color=du.Color.DARK,
-                            outline=True,
-                            extra_class="table-tool-large",
+                            button_classname=du.ButtonIconLabelTooltipFactory.build_classname(
+                                outline=True,
+                                color=du.Color.DARK,
+                            ),
+                            height="25.53px",
                         ),
                     ),
                     # Confirm Table
                     dbc.Col(
                         width=3,
-                        children=du.make_icon_label_tooltip(
+                        children=du.ButtonIconLabelTooltipFactory.make(
                             "wbs-table-confirm-yes",
-                            "fa-solid fa-right-to-bracket",
-                            "Confirm All Statements of Work",
+                            du.IconClassNames.RIGHT_TO_BRACKET,  # set in callback
+                            "Confirm All Statements of Work",  # set in callback
                             "SOWs need to be confirmed before each collaboration meeting",
-                            outline=True,
-                            color=du.Color.SUCCESS,
-                            extra_class="table-tool-large",
+                            button_classname=du.ButtonIconLabelTooltipFactory.build_classname(
+                                outline=True,
+                                color=du.Color.SUCCESS,
+                            ),
+                            height="25.53px",
                         ),
                     ),
                     # Labor Category filter dropdown menu
@@ -252,7 +263,7 @@ def layout() -> html.Div:
                         children=dcc.Dropdown(
                             id="wbs-filter-labor",
                             placeholder="Filter by Labor Category",
-                            className="table-tool-large caps",
+                            className="table-custom-filter caps",
                             # options set in callback
                             # value set in callback
                             optionHeight=30,
@@ -398,15 +409,17 @@ def layout() -> html.Div:
                                 ),
                             ),
                             du.make_stacked_label_component_float_left(
-                                width=13,
-                                component=du.make_icon_label_tooltip(
+                                width=15,
+                                component=du.ButtonIconLabelTooltipFactory.make(
                                     "wbs-computing-confirm-yes",
-                                    "fa-solid fa-right-to-bracket",
-                                    "Confirm",
+                                    du.IconClassNames.RIGHT_TO_BRACKET,  # set in callback
+                                    "Confirm",  # set in callback
                                     "computing contributions need to be confirmed before each collaboration meeting",
-                                    outline=True,
-                                    color=du.Color.SUCCESS,
-                                    height=3.8,
+                                    button_classname=du.ButtonIconLabelTooltipFactory.build_classname(
+                                        outline=True,
+                                        color=du.Color.SUCCESS,
+                                    ),
+                                    height="3.8rem",
                                 ),
                             ),
                         ],

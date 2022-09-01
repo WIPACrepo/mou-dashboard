@@ -36,7 +36,7 @@ class SelectInstitutionValueOutput:
     h2_table: str = no_update
     h2_textarea: str = no_update
     h2_computing: str = no_update
-    # CONTAINERS
+    # CONTAINERS FOR HIDING
     headcounts_container_hidden: bool = no_update
     below_table_container_hidden: bool = no_update
     # INST DROPDOWN
@@ -45,13 +45,23 @@ class SelectInstitutionValueOutput:
     # LABOR
     labor_opts: List[Dict[str, str]] = no_update
     # INST-VAL STORES
-    # instval_conf_init: dict = no_update
-    instval_conf_headcounts: dict = no_update
-    instval_conf_table: dict = no_update
-    instval_conf_computing: dict = no_update
+    # conf_init: dict = no_update
+    conf_headcounts: dict = no_update
+    conf_table: dict = no_update
+    conf_computing: dict = no_update
+    # INST-VAL CONFIRMATION BUTTONS
+    conf_headcounts_btn_icon_class: str = no_update
+    conf_headcounts_btn_label_text: str = no_update
+    conf_headcounts_btn_classname: str = no_update
+    conf_table_btn_icon_class: str = no_update
+    conf_table_btn_label_text: str = no_update
+    conf_table_btn_classname: str = no_update
+    conf_computing_btn_icon_class: str = no_update
+    conf_computing_btn_label_text: str = no_update
+    conf_computing_btn_classname: str = no_update
 
     def update_institution_values(self, inst_vals: uut.InstitutionValues) -> None:
-        """Updated fields using an `InstitutionValues` instance."""
+        """Updated fields using/dependent on `InstitutionValues` instance."""
         self.phds_val = inst_vals.phds_authors
         self.faculty_val = inst_vals.faculty
         self.scis_val = inst_vals.scientists_post_docs
@@ -59,9 +69,61 @@ class SelectInstitutionValueOutput:
         self.cpus_val = inst_vals.cpus if inst_vals.cpus else 0  # None (blank) -> 0
         self.gpus_val = inst_vals.gpus if inst_vals.gpus else 0  # None (blank) -> 0
         self.textarea_val = inst_vals.text
-        self.instval_conf_headcounts = dc.asdict(inst_vals.headcounts_metadata)
-        self.instval_conf_table = dc.asdict(inst_vals.table_metadata)
-        self.instval_conf_computing = dc.asdict(inst_vals.computing_metadata)
+        self.conf_headcounts = dc.asdict(inst_vals.headcounts_metadata)
+        self.conf_table = dc.asdict(inst_vals.table_metadata)
+        self.conf_computing = dc.asdict(inst_vals.computing_metadata)
+
+        # Headcounts button styling
+        if inst_vals.headcounts_metadata.has_valid_confirmation():
+            self.conf_headcounts_btn_icon_class = du.IconClassNames.CHECK_TO_SLOT
+            self.conf_headcounts_btn_label_text = "Confirmed"
+            self.conf_headcounts_btn_classname = (
+                du.ButtonIconLabelTooltipFactory.build_classname(
+                    outline=False, color=du.Color.SUCCESS
+                )
+            )
+        else:
+            self.conf_headcounts_btn_icon_class = du.IconClassNames.RIGHT_TO_BRACKET
+            self.conf_headcounts_btn_label_text = "Confirm"
+            self.conf_headcounts_btn_classname = (
+                du.ButtonIconLabelTooltipFactory.build_classname(
+                    outline=True, color=du.Color.SUCCESS
+                )
+            )
+        # Table button styling
+        if inst_vals.table_metadata.has_valid_confirmation():
+            self.conf_table_btn_icon_class = du.IconClassNames.CHECK_TO_SLOT
+            self.conf_table_btn_label_text = "All Statements of Work are Confirmed"
+            self.conf_table_btn_classname = (
+                du.ButtonIconLabelTooltipFactory.build_classname(
+                    outline=False, color=du.Color.SUCCESS
+                )
+            )
+        else:
+            self.conf_table_btn_icon_class = du.IconClassNames.RIGHT_TO_BRACKET
+            self.conf_table_btn_label_text = "Confirm All Statements of Work"
+            self.conf_table_btn_classname = (
+                du.ButtonIconLabelTooltipFactory.build_classname(
+                    outline=True, color=du.Color.SUCCESS
+                )
+            )
+        # Computing button styling
+        if inst_vals.computing_metadata.has_valid_confirmation():
+            self.conf_computing_btn_icon_class = du.IconClassNames.CHECK_TO_SLOT
+            self.conf_computing_btn_label_text = "Confirmed"
+            self.conf_computing_btn_classname = (
+                du.ButtonIconLabelTooltipFactory.build_classname(
+                    outline=False, color=du.Color.SUCCESS
+                )
+            )
+        else:
+            self.conf_computing_btn_icon_class = du.IconClassNames.RIGHT_TO_BRACKET
+            self.conf_computing_btn_label_text = "Confirm"
+            self.conf_computing_btn_classname = (
+                du.ButtonIconLabelTooltipFactory.build_classname(
+                    outline=True, color=du.Color.SUCCESS
+                )
+            )
 
 
 @dc.dataclass(frozen=True)
@@ -72,10 +134,10 @@ class SelectInstitutionValueState:
     s_snap_ts: str
     s_table: uut.WebTable
     # INST-VAL STORES
-    # s_instval_conf_init: dict
-    s_instval_conf_headcounts: dict
-    s_instval_conf_table: dict
-    s_instval_conf_computing: dict
+    # s_conf_init: dict
+    s_conf_headcounts: dict
+    s_conf_table: dict
+    s_conf_computing: dict
 
 
 @dc.dataclass(frozen=True)
@@ -104,13 +166,13 @@ class SelectInstitutionValueInputs:
         """Get an `InstitutionValues` instance from fields and `state`."""
 
         headcounts_metadata = uut.InstitutionAttributeMetadata(
-            **state.s_instval_conf_headcounts,
+            **state.s_conf_headcounts,
         )
         table_metadata = uut.InstitutionAttributeMetadata(
-            **state.s_instval_conf_table,
+            **state.s_conf_table,
         )
         computing_metadata = uut.InstitutionAttributeMetadata(
-            **state.s_instval_conf_computing,
+            **state.s_conf_computing,
         )
 
         # Update Confirmations
@@ -197,11 +259,33 @@ class SelectInstitutionValueInputs:
             # LABOR
             labor_opts=Output("wbs-filter-labor", "options"),
             # INST-VAL STORES
-            # instval_conf_init=Output("wbs-store-confirm-initial", "data"),
+            # conf_init=Output("wbs-store-confirm-initial", "data"),
             # instval_conf=Output("wbs-store-confirm", "data"),
-            instval_conf_headcounts=Output("wbs-store-confirm-headcounts", "data"),
-            instval_conf_table=Output("wbs-store-confirm-table", "data"),
-            instval_conf_computing=Output("wbs-store-confirm-computing", "data"),
+            conf_headcounts=Output("wbs-store-confirm-headcounts", "data"),
+            conf_table=Output("wbs-store-confirm-table", "data"),
+            conf_computing=Output("wbs-store-confirm-computing", "data"),
+            # INST-VAL CONFIRMATION BUTTONS
+            conf_headcounts_btn_icon_class=Output(
+                "wbs-headcounts-confirm-yes-i", "className"
+            ),
+            conf_headcounts_btn_label_text=Output(
+                "wbs-headcounts-confirm-yes-label", "children"
+            ),
+            conf_headcounts_btn_classname=Output(
+                "wbs-headcounts-confirm-yes", "className"
+            ),
+            conf_table_btn_icon_class=Output("wbs-table-confirm-yes-i", "className"),
+            conf_table_btn_label_text=Output("wbs-table-confirm-yes-label", "children"),
+            conf_table_btn_classname=Output("wbs-table-confirm-yes", "className"),
+            conf_computing_btn_icon_class=Output(
+                "wbs-computing-confirm-yes-i", "className"
+            ),
+            conf_computing_btn_label_text=Output(
+                "wbs-computing-confirm-yes-label", "children"
+            ),
+            conf_computing_btn_classname=Output(
+                "wbs-computing-confirm-yes", "className"
+            ),
         )
     ),
     inputs=dict(
@@ -235,11 +319,11 @@ class SelectInstitutionValueInputs:
                 s_urlpath=State("url", "pathname"),
                 s_snap_ts=State("wbs-current-snapshot-ts", "value"),
                 s_table=State("wbs-data-table", "data"),
-                # s_instval_conf_init=Output("wbs-store-confirm-initial", "data"),
+                # s_conf_init=Output("wbs-store-confirm-initial", "data"),
                 # s_instval_conf=Output("wbs-store-confirm", "data"),
-                s_instval_conf_headcounts=State("wbs-store-confirm-headcounts", "data"),
-                s_instval_conf_table=State("wbs-store-confirm-table", "data"),
-                s_instval_conf_computing=State("wbs-store-confirm-computing", "data"),
+                s_conf_headcounts=State("wbs-store-confirm-headcounts", "data"),
+                s_conf_table=State("wbs-store-confirm-table", "data"),
+                s_conf_computing=State("wbs-store-confirm-computing", "data"),
             )
         )
     ),
@@ -271,7 +355,7 @@ def _select_institution_value_dc(
             except du.CallbackAbortException as e:
                 logging.critical(f"ABORTED: select_institution_value() [{e}]")
                 return SelectInstitutionValueOutput()
-            return pull_institution_values(inputs, state)
+            return to_pull_institution_values(inputs, state)
         # INST DROPDOWN
         case "wbs-dropdown-institution.value":
             return changed_institution(inputs, state)
@@ -290,7 +374,7 @@ def _select_institution_value_dc(
             | "wbs-table-confirm-yes.n_clicks"
             | "wbs-computing-confirm-yes.n_clicks"
         ):
-            return push_institution_values(inputs, state)
+            return to_push_institution_values(inputs, state)
 
     raise ValueError(f"Unaccounted for trigger: {du.triggered()}")
 
@@ -313,11 +397,11 @@ def changed_institution(
     )
 
 
-def pull_institution_values(
+def to_pull_institution_values(
     inputs: SelectInstitutionValueInputs,
     state: SelectInstitutionValueState,
 ) -> SelectInstitutionValueOutput:
-    logging.info("pull_institution_values")
+    logging.info("to_pull_institution_values")
 
     output = SelectInstitutionValueOutput()
     tconfig = tc.TableConfigParser(du.get_wbs_l1(state.s_urlpath))
@@ -571,11 +655,11 @@ def pull_institution_values(
 #     return du.build_urlpath(du.get_wbs_l1(s_urlpath), inst)  # type: ignore[arg-type]
 
 
-def push_institution_values(
+def to_push_institution_values(
     inputs: SelectInstitutionValueInputs,
     state: SelectInstitutionValueState,
 ) -> SelectInstitutionValueOutput:
-    logging.info("push_institution_values")
+    logging.info("to_push_institution_values")
 
     # Is there an institution selected?
     if not (inst := du.get_inst(state.s_urlpath)):  # pylint: disable=C0325
@@ -589,11 +673,27 @@ def push_institution_values(
     if state.s_snap_ts:
         return SelectInstitutionValueOutput()
 
+    # Get the inst vals
+    inst_vals = inputs.get_institution_values(state)
+
+    # Are we trying to confirm an already confirmed thing?
+    match du.triggered():
+        case "wbs-headcounts-confirm-yes.n_clicks":
+            if inst_vals.headcounts_metadata.has_valid_confirmation():
+                logging.debug("ABORTED: Tried to re-confirm headcounts")
+                return SelectInstitutionValueOutput()
+        case "wbs-table-confirm-yes.n_clicks":
+            if inst_vals.table_metadata.has_valid_confirmation():
+                logging.debug("ABORTED: Tried to re-confirm table")
+                return SelectInstitutionValueOutput()
+        case "wbs-computing-confirm-yes.n_clicks":
+            if inst_vals.computing_metadata.has_valid_confirmation():
+                logging.debug("ABORTED: Tried to re-confirm computing")
+                return SelectInstitutionValueOutput()
+
     output = SelectInstitutionValueOutput()
 
     # TODO - use du.HEADCOUNTS_REQUIRED
-
-    # set confirmation timestamps
 
     # push
     try:
@@ -601,7 +701,7 @@ def push_institution_values(
             src.push_institution_values(
                 du.get_wbs_l1(state.s_urlpath),
                 inst,
-                inputs.get_institution_values(state),
+                inst_vals,
             )
         )
     except DataSourceException:
