@@ -51,7 +51,7 @@ def _add_new_data(  # pylint: disable=R0913
     wbs_l1: str,
     table: uut.WebTable,
     columns: types.TColumns,
-    labor: types.DashVal,
+    # labor: types.DashVal,
     institution: types.DashVal,
     tconfig: tc.TableConfigParser,
 ) -> Tuple[uut.WebTable, dbc.Toast]:
@@ -71,7 +71,7 @@ def _add_new_data(  # pylint: disable=R0913
             wbs_l1,
             new_record,
             tconfig,
-            labor=labor,
+            # labor=labor,
             institution=institution,
             novel=True,
         )
@@ -145,7 +145,7 @@ def confirm_deletion(
     ],
     [
         Input("wbs-data-table", "columns"),  # setup_table()-only
-        Input("wbs-filter-labor", "value"),  # user
+        # Input("wbs-filter-labor", "value"),  # user
         Input("wbs-show-totals-button", "n_clicks"),  # user-only
         Input("wbs-new-data-button", "n_clicks"),  # user-only
         Input("wbs-undo-last-delete-hidden-button", "n_clicks"),  # confirm_deletion()
@@ -162,7 +162,7 @@ def confirm_deletion(
 )  # pylint: disable=R0913,R0914
 def table_data_exterior_controls(
     columns: types.TColumns,
-    labor: types.DashVal,
+    # labor: types.DashVal,
     tot_n_clicks: int,
     _: int,
     __: int,
@@ -218,7 +218,7 @@ def table_data_exterior_controls(
                     wbs_l1,
                     s_table,
                     columns,
-                    labor,
+                    # labor,
                     inst,
                     tconfig,  # s_new_task
                 )
@@ -230,7 +230,7 @@ def table_data_exterior_controls(
                         wbs_l1,
                         tconfig,
                         institution=inst,
-                        labor=labor,
+                        # labor=labor,
                         with_totals=show_totals,
                         restore_id=cast(str, s_deleted_record[tconfig.const.ID]),
                     )
@@ -254,7 +254,7 @@ def table_data_exterior_controls(
                     wbs_l1,
                     tconfig,
                     institution=inst,
-                    labor=labor,
+                    # labor=labor,
                     with_totals=show_totals,
                     snapshot_ts=s_snap_ts,
                 )
@@ -347,7 +347,7 @@ def _find_deleted_record(
         # Output("wbs-sow-last-updated", "children"),
         # Output("wbs-sow-last-updated-time", "children"),
         # CONTAINERS FOR HIDING
-        Output("wbs-filter-labor-container", "hidden"),
+        # Output("wbs-filter-labor-container", "hidden"),
         Output("wbs-data-table-container", "hidden"),
         Output("wbs-table-bottom-toolbar-container", "hidden"),
         # Output("wbs-table-confirm-yes-container", "hidden"),
@@ -380,7 +380,7 @@ def table_data_interior_controls(
     # str,
     # str,
     # CONTAINERS FOR HIDING
-    bool,
+    # bool,
     bool,
     bool,
     # bool,
@@ -419,7 +419,7 @@ def table_data_interior_controls(
             not s_flag_intctrl,
             # "SOWs Last Updated:",
             # sows_updated_label,
-            not current_table,
+            # not current_table,
             not current_table,
             not current_table,
             # not current_table,
@@ -454,7 +454,7 @@ def table_data_interior_controls(
         s_flag_intctrl,  # preserve flag
         # "SOWs Last Updated:",
         # sows_updated_label,
-        not current_table,
+        # not current_table,
         not current_table,
         not current_table,
         # not current_table,

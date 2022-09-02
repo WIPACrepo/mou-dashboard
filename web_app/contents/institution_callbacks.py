@@ -44,7 +44,7 @@ class SelectInstitutionValueOutput:
     ddown_inst_val: str = no_update
     ddown_inst_opts: List[Dict[str, str]] = no_update
     # LABOR
-    labor_opts: List[Dict[str, str]] = no_update
+    # labor_opts: List[Dict[str, str]] = no_update
     # INST-VAL STORES
     # conf_init: dict = no_update
     conf_headcounts: dict = no_update
@@ -259,7 +259,7 @@ class SelectInstitutionValueInputs:
             ddown_inst_val=Output("wbs-dropdown-institution", "value"),
             ddown_inst_opts=Output("wbs-dropdown-institution", "options"),
             # LABOR
-            labor_opts=Output("wbs-filter-labor", "options"),
+            # labor_opts=Output("wbs-filter-labor", "options"),
             # INST-VAL STORES
             # conf_init=Output("wbs-store-confirm-initial", "data"),
             # instval_conf=Output("wbs-store-confirm", "data"),
@@ -436,10 +436,10 @@ def to_pull_institution_values(
     output.ddown_inst_opts = sorted(output.ddown_inst_opts, key=lambda d: d["label"])
 
     # labor dropdown
-    output.labor_opts = [
-        {"label": f"{abbrev} – {name}", "value": abbrev}
-        for name, abbrev in tconfig.get_labor_categories_w_abbrevs()
-    ]
+    # output.labor_opts = [
+    #     {"label": f"{abbrev} – {name}", "value": abbrev}
+    #     for name, abbrev in tconfig.get_labor_categories_w_abbrevs()
+    # ]
 
     # are we looking at an institution?
     if inst := du.get_inst(state.s_urlpath):

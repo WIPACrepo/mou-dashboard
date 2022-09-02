@@ -223,6 +223,67 @@ def layout() -> html.Div:
             #
             html.H2(className="section-header", id="wbs-h2-sow-table"),
             #
+            #
+            dbc.Row(
+                justify="center",
+                className="g-0",  # "g-0" -> no gutters
+                style={
+                    "margin-left": "5rem",
+                    "margin-right": "1rem",
+                    "margin-bottom": "4rem",
+                    # "text-align": "right",
+                },
+                children=[
+                    dbc.Col(
+                        width=2,
+                        style={"font-size": "10px"},
+                        children=[
+                            dbc.Label("AD – Administration"),
+                            dbc.Label("KE – Key Personnel (Faculty)"),
+                        ],
+                    ),
+                    dbc.Col(
+                        width=2,
+                        style={"font-size": "10px"},
+                        children=[
+                            dbc.Label("CS – Computer Science"),
+                            dbc.Label("MA – Manager"),
+                        ],
+                    ),
+                    dbc.Col(
+                        width=2,
+                        style={"font-size": "10px"},
+                        children=[
+                            dbc.Label("DS – Data Science"),
+                            dbc.Label("PO – Postdoctoral Associates"),
+                        ],
+                    ),
+                    dbc.Col(
+                        width=2,
+                        style={"font-size": "10px"},
+                        children=[
+                            dbc.Label("EN – Engineering"),
+                            dbc.Label("SC – Scientist"),
+                        ],
+                    ),
+                    dbc.Col(
+                        width=2,
+                        style={"font-size": "10px"},
+                        children=[
+                            dbc.Label("GR – Graduate (PhD) Students"),
+                            dbc.Label("WO – Winterover"),
+                        ],
+                    ),
+                    dbc.Col(
+                        width=1,
+                        style={"font-size": "10px"},
+                        children=[
+                            dbc.Label("IT – Information Technology"),
+                        ],
+                    ),
+                ],
+            ),
+            #
             # Top Tools
             dbc.Row(
                 style={"padding-left": "1em"},
@@ -258,22 +319,22 @@ def layout() -> html.Div:
                             hidden=True,
                         ),
                     ),
-                    # Labor Category filter dropdown menu
-                    dbc.Col(
-                        width=2,
-                        children=html.Div(
-                            id="wbs-filter-labor-container",
-                            hidden=True,
-                            children=dcc.Dropdown(
-                                id="wbs-filter-labor",
-                                placeholder="Filter by Labor Category",
-                                className="table-custom-filter caps",
-                                # options set in callback
-                                # value set in callback
-                                optionHeight=30,
-                            ),
-                        ),
-                    ),
+                    # # Labor Category filter dropdown menu
+                    # dbc.Col(
+                    #     width=2,
+                    #     children=html.Div(
+                    #         id="wbs-filter-labor-container",
+                    #         hidden=True,
+                    #         children=dcc.Dropdown(
+                    #             id="wbs-filter-labor",
+                    #             placeholder="Filter by Labor Category",
+                    #             className="table-custom-filter caps",
+                    #             # options set in callback
+                    #             # value set in callback
+                    #             optionHeight=30,
+                    #         ),
+                    #     ),
+                    # ),
                 ],
             ),
             #
@@ -284,9 +345,9 @@ def layout() -> html.Div:
                 children=dash_table.DataTable(
                     id="wbs-data-table",
                     editable=False,
-                    # sort_action="native",
-                    # sort_mode="multi",
-                    # filter_action="native",  # the UI for native filtering isn't there yet
+                    sort_mode="multi",
+                    filter_action="native",
+                    filter_options={"case": "insensitive"},
                     sort_action="native",
                     # Styles
                     style_table={

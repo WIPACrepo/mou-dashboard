@@ -241,7 +241,7 @@ def pull_data_table(  # pylint: disable=R0913
     wbs_l1: str,
     tconfig: tc.TableConfigParser,
     institution: types.DashVal = "",
-    labor: types.DashVal = "",
+    # labor: types.DashVal = "",
     with_totals: bool = False,
     snapshot_ts: types.DashVal = "",
     restore_id: str = "",
@@ -265,7 +265,7 @@ def pull_data_table(  # pylint: disable=R0913
     """
     _validate(wbs_l1, str, falsy_okay=False)
     institution = _validate(institution, types.DashVal_types, out=str)
-    labor = _validate(labor, types.DashVal_types, out=str)
+    # labor = _validate(labor, types.DashVal_types, out=str)
     _validate(with_totals, bool)
     snapshot_ts = _validate(snapshot_ts, types.DashVal_types, out=str)
     _validate(restore_id, str)
@@ -276,7 +276,7 @@ def pull_data_table(  # pylint: disable=R0913
     # request
     body = {
         "institution": institution,
-        "labor": labor,
+        # "labor": labor,
         "total_rows": with_totals,
         "snapshot": snapshot_ts,
         "restore_id": restore_id,
@@ -297,7 +297,7 @@ def push_record(  # pylint: disable=R0913
     record: uut.WebRecord,
     tconfig: tc.TableConfigParser,
     task: str = "",
-    labor: types.DashVal = "",
+    # labor: types.DashVal = "",
     institution: types.DashVal = "",
     novel: bool = False,
 ) -> uut.WebRecord:
@@ -314,7 +314,7 @@ def push_record(  # pylint: disable=R0913
     _validate(wbs_l1, str, falsy_okay=False)
     _validate(record, dict)
     _validate(task, str)
-    labor = _validate(labor, types.DashVal_types, out=str)
+    # labor = _validate(labor, types.DashVal_types, out=str)
     institution = _validate(institution, types.DashVal_types, out=str)
     _validate(novel, bool)
     _validate(tconfig, tc.TableConfigParser)
@@ -329,8 +329,8 @@ def push_record(  # pylint: disable=R0913
     }
     if institution:
         body["institution"] = institution
-    if labor:
-        body["labor"] = labor
+    # if labor:
+    #     body["labor"] = labor
     if task:
         body["task"] = task.replace("\n", " ")
     response = cast(_RespRecord, mou_request("POST", f"/record/{wbs_l1}", body=body))

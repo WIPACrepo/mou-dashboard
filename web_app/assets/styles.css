@@ -370,6 +370,17 @@ code {
 /*------------------------------------------------------------------------------------*/
 /* Table Tools */
 
+.dash-filter--case {
+    visibility: hidden;
+}
+.dash-filter, .dash-filter > * > input[type=text] {
+    /*font-style: italic !important;*/
+    text-transform: uppercase;
+    letter-spacing: .075em;
+    font: italic 15px Arial !important;
+    color: #258835 !important;
+}
+
 .dash-delete-header, .dash-delete-cell {
     max-width: 12px !important;
     width: 12px !important;
