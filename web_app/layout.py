@@ -48,11 +48,15 @@ def layout() -> None:
                         className="logo-container",
                         children=[
                             dbc.Col(
-                                html.Img(
-                                    src="/assets/mou_dash.png",
-                                    alt="MOU Dashboard",
-                                    width="300rem",
-                                )
+                                dcc.Link(
+                                    href="/mo",
+                                    refresh=True,  # otherwise won't hit checks
+                                    children=html.Img(
+                                        src="/assets/mou_dash.png",
+                                        alt="MOU Dashboard",
+                                        width="300rem",
+                                    ),
+                                ),
                             ),
                             dbc.Col(
                                 html.Label(
