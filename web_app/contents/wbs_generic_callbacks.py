@@ -25,7 +25,7 @@ from ..utils.oidc_tools import CurrentUser
 
 def _totals_button_logic(
     n_clicks: int, all_cols: int
-) -> Tuple[bool, str, str, bool, int]:
+) -> Tuple[bool, str, bool, str, str, int]:
     """Figure out whether to include totals, and format the button.
 
     Returns:
@@ -37,14 +37,39 @@ def _totals_button_logic(
     """
     on = n_clicks % 2 == 1  # pylint: disable=C0103
     if not on:  # off -> don't trigger "show-all-columns"
-        return False, "Show Totals", du.Color.SECONDARY, True, all_cols
+
+        tooltip = "click to show cascading FTE totals by L2 and L3 -- along with a grand total"
+        if CurrentUser.is_admin():
+            tooltip = "click to show cascading FTE totals by institution, L2, and L3 -- along with a grand total"
+        return (
+            False,
+            du.Color.SECONDARY,
+            True,
+            tooltip,
+            du.IconClassNames.PLUS_MINUS,
+            all_cols,
+        )
 
     # on and triggered -> trigger "show-all-columns"
     if du.triggered() == "wbs-show-totals-button.n_clicks":
-        return True, "Hide Totals", du.Color.DARK, False, 1
+        return (
+            True,
+            du.Color.DARK,
+            False,
+            "click to hide the totals",
+            du.IconClassNames.CHECK,
+            1,
+        )
 
     # on and not triggered, AKA already on -> don't trigger "show-all-columns"
-    return True, "Hide Totals", du.Color.DARK, False, all_cols
+    return (
+        True,
+        du.Color.DARK,
+        False,
+        "click to hide the totals",
+        du.IconClassNames.CHECK,
+        all_cols,
+    )
 
 
 def _add_new_data(  # pylint: disable=R0913
@@ -135,13 +160,20 @@ def confirm_deletion(
         Output("wbs-data-table", "data"),
         Output("wbs-data-table", "page_current"),
         Output("wbs-toast-via-exterior-control-div", "children"),
-        Output("wbs-show-totals-button", "children"),
-        Output("wbs-show-totals-button", "color"),
-        Output("wbs-show-totals-button", "outline"),
+        # Output("wbs-show-totals-button", "children"),
+        # TOTALS
+        # Output("wbs-show-totals-button", "color"),
+        # Output("wbs-show-totals-button", "outline"),
+        Output("wbs-show-totals-button", "className"),
+        Output("wbs-show-totals-button-tooltip", "children"),
+        Output("wbs-show-totals-button-i", "className"),
+        # ALL COLUMNS
         Output("wbs-show-all-columns-button", "n_clicks"),
+        #
         Output("wbs-table-update-flag-exterior-control", "data"),
+        # All Rows
         Output("wbs-show-all-rows-button", "n_clicks"),
-        Output("wbs-show-all-rows-button", "style"),
+        Output("wbs-show-all-rows-button", "hidden"),
     ],
     [
         Input("wbs-data-table", "columns"),  # setup_table()-only
@@ -178,13 +210,17 @@ def table_data_exterior_controls(
     uut.WebTable,
     int,
     dbc.Toast,
+    # TOTALS
     str,
     str,
+    str,
+    # All Columns
+    int,
+    #
     bool,
+    # All Rows
     int,
     bool,
-    int,
-    Dict[str, str],
 ]:
     """Exterior control signaled that the table should be updated.
 
@@ -206,9 +242,14 @@ def table_data_exterior_controls(
     tconfig = tc.TableConfigParser(wbs_l1)
 
     # Format "Show Totals" button
-    show_totals, tot_label, tot_color, tot_outline, all_cols = _totals_button_logic(
-        tot_n_clicks, s_all_cols
-    )
+    (
+        show_totals,
+        tot_color,
+        tot_outline,
+        tot_tooltip,
+        tot_icon,
+        all_cols,
+    ) = _totals_button_logic(tot_n_clicks, s_all_cols)
 
     match du.triggered():
         # Add New Data
@@ -267,22 +308,29 @@ def table_data_exterior_controls(
         and not inst  # paginate if viewing entire collaboration
         and CurrentUser.is_admin()  # paginate if admin
     )
-    # hide "Show All Rows"/"Collapse Rows to Pages" if paginating wouldn't do anything
-    style_paginate_button = {}
-    if len(table) <= tconfig.get_page_size():
-        style_paginate_button = {"visibility": "hidden"}
+    # # hide "Show All Rows"/"Collapse Rows to Pages" if paginating wouldn't do anything
+    # style_paginate_button = {}
+    # if :
+    #     style_paginate_button = {"visibility": "hidden"}
 
     return (
         table,
         0,
         toast,
-        tot_label,
-        tot_color,
-        tot_outline,
+        # TOTALS
+        # tot_label,
+        # tot_color,
+        # tot_outline,
+        du.ButtonIconLabelTooltipFactory.build_classname(tot_outline, color=tot_color),
+        tot_tooltip,
+        tot_icon,
+        # All Columns
         all_cols,
+        #
         not s_flag_extctrl,  # toggle flag to send a message to table_interior_controls
+        # All Rows
         int(not do_paginate),  # n_clicks: 0/even -> paginate; 1/odd -> don't paginate
-        style_paginate_button,
+        len(table) <= tconfig.get_page_size(),
     )
 
 
@@ -349,6 +397,9 @@ def _find_deleted_record(
         # CONTAINERS FOR HIDING
         # Output("wbs-filter-labor-container", "hidden"),
         Output("wbs-data-table-container", "hidden"),
+        Output("wbs-show-totals-button", "hidden"),
+        Output("wbs-show-all-columns-button", "hidden"),
+        # Output("wbs-show-all-rows-button", "hidden"),
         # Output("wbs-table-bottom-toolbar-container", "hidden"),
         # Output("wbs-table-confirm-yes-container", "hidden"),
     ],
@@ -380,9 +431,9 @@ def table_data_interior_controls(
     # str,
     # str,
     # CONTAINERS FOR HIDING
-    # bool,
     bool,
-    # bool,
+    bool,
+    bool,
     # bool,
 ]:
     """Interior control signaled that the table should be updated.
@@ -419,9 +470,9 @@ def table_data_interior_controls(
             not s_flag_intctrl,
             # "SOWs Last Updated:",
             # sows_updated_label,
-            # not current_table,
             not current_table,
-            # not current_table,
+            not current_table,
+            not current_table,
             # not current_table,
         )
 
@@ -454,9 +505,9 @@ def table_data_interior_controls(
         s_flag_intctrl,  # preserve flag
         # "SOWs Last Updated:",
         # sows_updated_label,
-        # not current_table,
         not current_table,
-        # not current_table,
+        not current_table,
+        not current_table,
         # not current_table,
     )
 
@@ -851,9 +902,14 @@ def setup_user_dependent_components(
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("wbs-show-all-rows-button", "children"),
-        Output("wbs-show-all-rows-button", "color"),
-        Output("wbs-show-all-rows-button", "outline"),
+        # Output("wbs-show-all-rows-button", "children"),
+        # Output("wbs-show-all-rows-button", "color"),
+        # Output("wbs-show-all-rows-button", "outline"),
+        # All Rows
+        Output("wbs-show-all-rows-button", "className"),
+        Output("wbs-show-all-rows-button-tooltip", "children"),
+        Output("wbs-show-all-rows-button-i", "className"),
+        #
         Output("wbs-data-table", "page_size"),
         Output("wbs-data-table", "page_action"),
         # Output("wbs-table-bottom-toolbar", "style"),
@@ -870,9 +926,13 @@ def toggle_pagination(
     # state(s)
     s_urlpath: str,
 ) -> Tuple[
+    # str,
+    # All Rows
     str,
     str,
-    bool,
+    str,
+    # bool,
+    #
     int,
     str,
     # Dict[str, str],
@@ -883,18 +943,28 @@ def toggle_pagination(
     if n_clicks % 2 == 0:
         tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath))
         return (
-            "Show All Rows",
-            du.Color.SECONDARY,
-            True,
+            # du.Color.SECONDARY,
+            # True,
+            du.ButtonIconLabelTooltipFactory.build_classname(
+                False, color=du.Color.DARK
+            ),
+            "click to show all the rows without pages",
+            du.IconClassNames.CHECK,
+            #
             tconfig.get_page_size(),
             "native",
             # {"margin-top": "-3.75rem", "padding-left": "1em"},
         )
     # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
     return (
-        "Collapse Rows to Pages",
-        du.Color.DARK,
-        False,
+        # du.Color.DARK,
+        # False,
+        du.ButtonIconLabelTooltipFactory.build_classname(
+            True, color=du.Color.SECONDARY
+        ),
+        "click to show pages",
+        du.IconClassNames.LAYER_GROUP,
+        #
         9999999999,
         "none",
         # {"margin-top": "1rem", "padding-left": "1em"},
@@ -903,9 +973,13 @@ def toggle_pagination(
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("wbs-show-all-columns-button", "children"),
-        Output("wbs-show-all-columns-button", "color"),
-        Output("wbs-show-all-columns-button", "outline"),
+        # All Columns
+        Output("wbs-show-all-columns-button", "className"),
+        Output("wbs-show-all-columns-button-tooltip", "children"),
+        Output("wbs-show-all-columns-button-i", "className"),
+        # Output("wbs-show-all-columns-button", "children"),
+        # Output("wbs-show-all-columns-button", "color"),
+        # Output("wbs-show-all-columns-button", "outline"),
         Output("wbs-data-table", "hidden_columns"),
     ],
     [Input("wbs-show-all-columns-button", "n_clicks")],  # user/table_data_exterior_c...
@@ -916,7 +990,17 @@ def toggle_hidden_columns(
     n_clicks: int,
     # state(s)
     s_urlpath: str,
-) -> Tuple[str, str, bool, List[str]]:
+) -> Tuple[
+    # All Columns
+    str,
+    str,
+    str,
+    # str,
+    # str,
+    # bool,
+    #
+    List[str],
+]:
     """Toggle hiding/showing the default hidden columns."""
     logging.warning(f"'{du.triggered()}' -> toggle_hidden_columns()")
 
@@ -927,14 +1011,27 @@ def toggle_hidden_columns(
         if du.get_inst(s_urlpath) and not CurrentUser.is_admin():
             hiddens.append(tconfig.const.INSTITUTION)
         return (
-            "Show Hidden Columns",
-            du.Color.SECONDARY,
-            True,
+            du.ButtonIconLabelTooltipFactory.build_classname(
+                True, color=du.Color.SECONDARY
+            ),
+            "click to show the hidden columns, including the recent edit history for each entry",
+            du.IconClassNames.EXPAND,
+            # du.Color.SECONDARY,
+            # True,
+            #
             hiddens,
         )
 
     always_hidden_columns = tconfig.get_always_hidden_columns()
-    return "Show Default Columns", du.Color.DARK, False, always_hidden_columns
+    return (
+        du.ButtonIconLabelTooltipFactory.build_classname(False, color=du.Color.DARK),
+        "click to show the default columns",
+        du.IconClassNames.CHECK,
+        # du.Color.DARK,
+        # False,
+        # All Columns
+        always_hidden_columns,
+    )
 
 
 @app.callback(  # type: ignore[misc]

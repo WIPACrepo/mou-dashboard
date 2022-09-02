@@ -72,14 +72,11 @@ def layout() -> html.Div:
                         width=4,
                         children=[
                             du.ButtonIconLabelTooltipFactory.make(
-                                parent_id="wbs-view-snapshots",
+                                "wbs-view-snapshots",
                                 hidden=True,
                                 icon_class=du.IconClassNames.CLOCK_ROTATE_LEFT,
                                 label_text="View a Snapshot",
                                 tooltip_text="click to select and view past statements of work",
-                                button_classname=du.ButtonIconLabelTooltipFactory.build_classname(
-                                    outline=True,
-                                ),
                                 width="17rem",
                                 height="3.8rem",
                             ),
@@ -128,13 +125,10 @@ def layout() -> html.Div:
                     dbc.Col(
                         width=4,
                         children=du.ButtonIconLabelTooltipFactory.make(
-                            parent_id="wbs-cloud-saved",
+                            "wbs-cloud-saved",
                             icon_class=du.IconClassNames.CLOUD,
                             label_text="Saved",
                             tooltip_text="your work is automatically being saved to the cloud",
-                            button_classname=du.ButtonIconLabelTooltipFactory.build_classname(
-                                outline=True,
-                            ),
                             float_right=True,
                             add_loading=True,
                             add_interval=True,
@@ -204,9 +198,9 @@ def layout() -> html.Div:
                                 width=15,
                                 component=du.ButtonIconLabelTooltipFactory.make(
                                     "wbs-headcounts-confirm-yes",
-                                    du.IconClassNames.RIGHT_TO_BRACKET,  # set in callback
-                                    "Confirm",  # set in callback
-                                    "headcounts need to be confirmed before each collaboration meeting",
+                                    icon_class=du.IconClassNames.RIGHT_TO_BRACKET,  # set in callback
+                                    label_text="Confirm",  # set in callback
+                                    tooltip_text="headcounts need to be confirmed before each collaboration meeting",
                                     button_classname=du.ButtonIconLabelTooltipFactory.build_classname(
                                         outline=True,
                                         color=du.Color.SUCCESS,
@@ -228,8 +222,8 @@ def layout() -> html.Div:
                 justify="center",
                 className="g-0",  # "g-0" -> no gutters
                 style={
-                    "margin-left": "5rem",
-                    "margin-right": "1rem",
+                    "margin-left": "7rem",
+                    # "margin-right": "1rem",
                     "margin-bottom": "4rem",
                     # "text-align": "right",
                 },
@@ -275,7 +269,7 @@ def layout() -> html.Div:
                         ],
                     ),
                     dbc.Col(
-                        width=1,
+                        width=2,
                         style={"font-size": "10px"},
                         children=[
                             dbc.Label("IT – Information Technology"),
@@ -286,7 +280,7 @@ def layout() -> html.Div:
             #
             # Top Tools
             dbc.Row(
-                style={"padding-left": "1em"},
+                style={"padding-left": "1em", "padding-right": "120px"},
                 children=[
                     # Add Button
                     dbc.Col(
@@ -308,9 +302,9 @@ def layout() -> html.Div:
                         width=3,
                         children=du.ButtonIconLabelTooltipFactory.make(
                             "wbs-table-confirm-yes",
-                            du.IconClassNames.RIGHT_TO_BRACKET,  # set in callback
-                            "Confirm All Statements of Work",  # set in callback
-                            "SOWs need to be confirmed before each collaboration meeting",
+                            icon_class=du.IconClassNames.RIGHT_TO_BRACKET,  # set in callback
+                            label_text="Confirm All Statements of Work",  # set in callback
+                            tooltip_text="SOWs need to be confirmed before each collaboration meeting",
                             button_classname=du.ButtonIconLabelTooltipFactory.build_classname(
                                 outline=True,
                                 color=du.Color.SUCCESS,
@@ -340,24 +334,55 @@ def layout() -> html.Div:
                     # du.new_data_button(2),
                     #
                     # Show Totals
-                    dbc.Button(
-                        id="wbs-show-totals-button",
-                        n_clicks=0,
-                        className="table-tool-medium",
+                    # dbc.Button(
+                    #     id="wbs-show-totals-button",
+                    #     n_clicks=0,
+                    #     className="table-tool-medium",
+                    #     children="Totals",
+                    # ),
+                    dbc.Col(
+                        width=2,
+                        children=du.ButtonIconLabelTooltipFactory.make(
+                            "wbs-show-totals-button",
+                            icon_class=du.IconClassNames.PLUS_MINUS,  # set in callback
+                            label_text="Totals",
+                            height="25.53px",
+                            add_loading=True,
+                            width="100%",
+                        ),
                     ),
                     #
                     # Show All Columns
-                    dbc.Button(
-                        id="wbs-show-all-columns-button",
-                        n_clicks=0,
-                        className="table-tool-medium",
+                    # dbc.Button(
+                    #     id="wbs-show-all-columns-button",
+                    #     n_clicks=0,
+                    #     className="table-tool-medium",
+                    #     children="All Columns",
+                    # ),
+                    dbc.Col(
+                        width=2,
+                        children=du.ButtonIconLabelTooltipFactory.make(
+                            "wbs-show-all-columns-button",
+                            icon_class=du.IconClassNames.EXPAND,  # set in callback
+                            label_text="All Columns",
+                            height="25.53px",
+                            add_loading=True,
+                            width="100%",
+                        ),
                     ),
                     #
-                    # Show All Rows
-                    dbc.Button(
-                        id="wbs-show-all-rows-button",
-                        n_clicks=0,
-                        className="table-tool-medium",
+                    # Show Pages
+                    dbc.Col(
+                        width=2,
+                        children=du.ButtonIconLabelTooltipFactory.make(
+                            "wbs-show-all-rows-button",
+                            icon_class=du.IconClassNames.LAYER_GROUP,  # set in callback
+                            label_text="Show Pages",
+                            height="25.53px",
+                            hidden=True,  # set in callback
+                            add_loading=True,
+                            width="100%",
+                        ),
                     ),
                 ],
             ),
@@ -483,9 +508,9 @@ def layout() -> html.Div:
                                 width=15,
                                 component=du.ButtonIconLabelTooltipFactory.make(
                                     "wbs-computing-confirm-yes",
-                                    du.IconClassNames.RIGHT_TO_BRACKET,  # set in callback
-                                    "Confirm",  # set in callback
-                                    "computing contributions need to be confirmed before each collaboration meeting",
+                                    icon_class=du.IconClassNames.RIGHT_TO_BRACKET,  # set in callback
+                                    label_text="Confirm",  # set in callback
+                                    tooltip_text="computing contributions need to be confirmed before each collaboration meeting",
                                     button_classname=du.ButtonIconLabelTooltipFactory.build_classname(
                                         outline=True,
                                         color=du.Color.SUCCESS,

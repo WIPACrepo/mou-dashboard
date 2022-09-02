@@ -78,6 +78,11 @@ class IconClassNames:
     RIGHT_TO_BRACKET = "fa-solid fa-right-to-bracket"
     PEN_TO_SQUARE = "fa-solid fa-pen-to-square"
     CHECK_TO_SLOT = "fa-solid fa-check-to-slot"
+    CHECK = "fa-solid fa-check"
+    LAYER_GROUP = "fa-solid fa-layer-group"
+    EXPAND = "fa-solid fa-expand"
+    CALCULATOR = "fa-solid fa-calculator"
+    PLUS_MINUS = "fa-solid fa-plus-minus"
 
 
 # --------------------------------------------------------------------------------------
@@ -308,10 +313,10 @@ class ButtonIconLabelTooltipFactory:
     @staticmethod
     def make(
         parent_id: str,
-        icon_class: str,
-        label_text: str,
-        tooltip_text: str,
-        button_classname: str,
+        icon_class: str = "",
+        label_text: str = "",
+        tooltip_text: str = "",
+        button_classname: str = "",
         hidden: bool = False,
         float_right: bool = False,
         add_interval: bool = False,
@@ -364,6 +369,11 @@ class ButtonIconLabelTooltipFactory:
         if add_interval:
             div_children.append(
                 dcc.Interval(id=f"{parent_id}-interval", interval=60 * 1000)
+            )
+
+        if not button_classname:
+            button_classname = ButtonIconLabelTooltipFactory.build_classname(
+                outline=True
             )
 
         # Build the button
@@ -637,7 +647,7 @@ def after_deletion_toast() -> dbc.Toast:
             "top": 66,
             "right": 10,
             "width": 350,
-            "font-size": "1.1em",
+            "font-size": "12px",
         },
         children=[html.Div(id="wbs-after-deletion-toast-message")],
     )
@@ -668,7 +678,7 @@ def make_toast(
             "top": 66,
             "right": 10,
             "width": 350,
-            "font-size": "1.1em",
+            "font-size": "12px",
         },
         children=[html.Div(m) for m in _messages],
     )
@@ -863,7 +873,7 @@ def simple_table(id_: str) -> dash_table.DataTable:
         style_data={
             "whiteSpace": "normal",
             "height": "auto",
-            "lineHeight": "20px",
+            "lineHeight": "12px",
             "wordBreak": "break-all",
         },
         export_format="xlsx",

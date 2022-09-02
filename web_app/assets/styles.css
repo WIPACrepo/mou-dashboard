@@ -421,7 +421,7 @@ code {
 
 .table-tool-medium {
     height: 25.53px;
-    width: 19.15rem;
+    width: 15.15rem;
     margin-right: 1rem;
     padding: 0 !important;
 }
@@ -508,8 +508,8 @@ code {
     float: right;
 }
 .data-table-outer > .dash-table-container > .dash-spreadsheet-menu {
-    margin-bottom: 1rem;
-    margin-top: -25.53px;
+    margin-bottom: 0.25rem !important;
+    margin-top: calc(-25.53px - 1px); /*shift pseudo table-controls down*/
     margin-right: 1em;
 }
 .admin-table > .dash-table-container > .dash-spreadsheet-menu {
@@ -590,7 +590,6 @@ code {
     letter-spacing: .075em;
     font: italic bold 10px Arial !important;
     color: whitesmoke !important;
-    background-color: #17a2b8 !important;
     border: 0 !important;
     text-align: left !important;
 }
