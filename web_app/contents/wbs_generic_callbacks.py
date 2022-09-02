@@ -1043,4 +1043,4 @@ def interval_cloud_saved(_: int) -> int:
     """Automatically "reload" cloud-saved "button" on interval."""
     # logging.debug(f"'{du.triggered()}' -> interval_cloud_saved()")
     time.sleep(1)
-    return random.choice([30, 60, 90, 120]) * 1000  # fake it 'til you make it
+    return random.choice([60, 120, 180, 240]) * 1000  # fake it 'til you make it

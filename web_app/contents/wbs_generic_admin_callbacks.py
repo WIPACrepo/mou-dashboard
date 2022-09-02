@@ -4,7 +4,7 @@ import dataclasses as dc
 import logging
 from collections import OrderedDict as ODict
 from decimal import Decimal
-from typing import Dict, Final, List, Tuple, cast
+from typing import Any, Dict, Final, List, Tuple, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import universal_utils.types as uut
@@ -156,7 +156,11 @@ def handle_xlsx(  # pylint: disable=R0911
 
 
 @app.callback(  # type: ignore[misc]
-    [Output("wbs-summary-table", "data"), Output("wbs-summary-table", "columns")],
+    [
+        Output("wbs-summary-table", "data"),
+        Output("wbs-summary-table", "columns"),
+        Output("wbs-summary-table", "style_data_conditional"),
+    ],
     [Input("wbs-summary-table-recalculate", "n_clicks")],  # user-only
     [
         State("url", "pathname"),
@@ -170,7 +174,7 @@ def summarize(
     # state(s)
     s_urlpath: str,
     s_snap_ts: types.DashVal,
-) -> Tuple[uut.WebTable, List[Dict[str, str]]]:
+) -> Tuple[uut.WebTable, List[Dict[str, str]], List[Dict[str, Any]]]:
     """Manage uploading a new xlsx document as the new live table."""
     logging.warning(f"'{du.triggered()}' -> summarize()")
 
@@ -185,27 +189,6 @@ def summarize(
         return [], []
 
     insts_infos = institution_info.get_institutions_infos()
-
-    column_names = ["Institution", "Institutional Lead", "SOWs Confirmed?"]
-    if wbs_l1 == "mo":
-        column_names.extend(
-            [
-                "Ph.D. Authors",
-                "Faculty",
-                "Scientists / Post Docs",
-                "Ph.D. Students",
-                "Headcount Total",
-                "Headcounts Confirmed?",
-                "CPU",
-                "GPU",
-                "Computing Confirmed?",
-            ]
-        )
-    column_names.extend(tconfig.get_l2_categories())
-    column_names.append("FTE Total")
-    if wbs_l1 == "mo":
-        column_names.append("FTE / Headcount")
-    columns = [{"id": c, "name": c, "type": "numeric"} for c in column_names]
 
     def _sum_it(_inst: str, _l2: str = "") -> float:
         return float(
@@ -226,11 +209,10 @@ def summarize(
         row: Dict[str, uut.StrNum] = {
             "Institution": inst_info.long_name,
             "Institutional Lead": inst_info.institution_lead_uid,
-            "SOW Table Confirmed?": utils.get_human_time(
-                str(inst_dc.table_confirmed_ts), short=True
-            )
-            if inst_dc.table_confirmed_ts
-            else "No",
+            "SOW Table Confirmed": (
+                f"{utils.get_human_time(str(inst_dc.table_metadata.confirmation_ts), short=True)}"
+                f"{'' if inst_dc.table_metadata.has_valid_confirmation() else ' (EXPIRED)'}"
+            ),
         }
 
         if wbs_l1 == "mo":
@@ -246,18 +228,16 @@ def summarize(
                     "Ph.D. Students": inst_dc.grad_students
                     if inst_dc.grad_students
                     else 0,
-                    "Headcounts Confirmed?": utils.get_human_time(
-                        str(inst_dc.headcounts_confirmed_ts), short=True
-                    )
-                    if inst_dc.headcounts_confirmed_ts
-                    else "No",
+                    "Headcounts Confirmed": (
+                        f"{utils.get_human_time(str(inst_dc.headcounts_metadata.confirmation_ts), short=True)}"
+                        f"{'' if inst_dc.headcounts_metadata.has_valid_confirmation() else ' (EXPIRED)'}"
+                    ),
                     "CPU": inst_dc.cpus if inst_dc.cpus else 0,
                     "GPU": inst_dc.gpus if inst_dc.gpus else 0,
-                    "Computing Confirmed?": utils.get_human_time(
-                        str(inst_dc.computing_confirmed_ts), short=True
-                    )
-                    if inst_dc.computing_confirmed_ts
-                    else "No",
+                    "Computing Confirmed": (
+                        f"{utils.get_human_time(str(inst_dc.computing_metadata.confirmation_ts), short=True)}"
+                        f"{'' if inst_dc.computing_metadata.has_valid_confirmation() else ' (EXPIRED)'}"
+                    ),
                 }
             )
             row["Headcount Total"] = sum(
@@ -275,11 +255,24 @@ def summarize(
                     float, row["Headcount Total"]
                 )
             except ZeroDivisionError:
-                row["FTE / Headcount"] = ""
+                row["FTE / Headcount"] = "-"
 
         summary_table.append(row)
 
-    return summary_table, columns
+    columns = summary_table[0].keys()
+    style_data_conditional = [
+        {
+            "if": {"filter_query": f'{{{col}}} contains "(EXPIRED)"'},
+            "backgroundColor": du.LIGHT_YELLOW,
+        }
+        for col in columns
+    ]
+
+    return (
+        summary_table,
+        [{"id": c, "name": c, "type": "numeric"} for c in columns],
+        style_data_conditional,
+    )
 
 
 def _blame_row(
