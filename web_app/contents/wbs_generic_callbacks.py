@@ -349,7 +349,7 @@ def _find_deleted_record(
         # CONTAINERS FOR HIDING
         # Output("wbs-filter-labor-container", "hidden"),
         Output("wbs-data-table-container", "hidden"),
-        Output("wbs-table-bottom-toolbar-container", "hidden"),
+        # Output("wbs-table-bottom-toolbar-container", "hidden"),
         # Output("wbs-table-confirm-yes-container", "hidden"),
     ],
     [Input("wbs-data-table", "data")],  # user/table_data_exterior_controls()
@@ -382,7 +382,7 @@ def table_data_interior_controls(
     # CONTAINERS FOR HIDING
     # bool,
     bool,
-    bool,
+    # bool,
     # bool,
 ]:
     """Interior control signaled that the table should be updated.
@@ -421,7 +421,7 @@ def table_data_interior_controls(
             # sows_updated_label,
             # not current_table,
             not current_table,
-            not current_table,
+            # not current_table,
             # not current_table,
         )
 
@@ -456,7 +456,7 @@ def table_data_interior_controls(
         # sows_updated_label,
         # not current_table,
         not current_table,
-        not current_table,
+        # not current_table,
         # not current_table,
     )
 
@@ -856,7 +856,7 @@ def setup_user_dependent_components(
         Output("wbs-show-all-rows-button", "outline"),
         Output("wbs-data-table", "page_size"),
         Output("wbs-data-table", "page_action"),
-        Output("wbs-table-bottom-toolbar", "style"),
+        # Output("wbs-table-bottom-toolbar", "style"),
     ],
     [
         # user/table_data_exterior_controls
@@ -869,7 +869,14 @@ def toggle_pagination(
     n_clicks: int,
     # state(s)
     s_urlpath: str,
-) -> Tuple[str, str, bool, int, str, Dict[str, str]]:
+) -> Tuple[
+    str,
+    str,
+    bool,
+    int,
+    str,
+    # Dict[str, str],
+]:
     """Toggle whether the table is paginated."""
     logging.warning(f"'{du.triggered()}' -> toggle_pagination({n_clicks=})")
 
@@ -881,7 +888,7 @@ def toggle_pagination(
             True,
             tconfig.get_page_size(),
             "native",
-            {"margin-top": "-3.75rem", "padding-left": "1em"},
+            # {"margin-top": "-3.75rem", "padding-left": "1em"},
         )
     # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
     return (
@@ -890,7 +897,7 @@ def toggle_pagination(
         False,
         9999999999,
         "none",
-        {"margin-top": "1rem", "padding-left": "1em"},
+        # {"margin-top": "1rem", "padding-left": "1em"},
     )
 
 

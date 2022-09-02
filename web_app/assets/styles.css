@@ -438,7 +438,7 @@ code {
 
 .table-tool-medium {
     height: 25.53px;
-    width: 18rem;
+    width: 19.15rem;
     margin-right: 1rem;
     padding: 0 !important;
 }
@@ -567,6 +567,10 @@ code {
 .data-table-outer > .dash-table-container > .dash-spreadsheet-menu > * > .export,
 .data-table-outer > .dash-table-container > .dash-spreadsheet-menu > * > .show-hide {
     height: 25.53px !important;
+}
+.data-table-outer > .dash-table-container > .dash-spreadsheet-menu > * > .show-hide {
+    visibility: hidden;
+    width: 0px !important;
 }
 .export:hover, .show-hide:hover { /* copy btn btn-outline-secondary */
     color: whitesmoke;
