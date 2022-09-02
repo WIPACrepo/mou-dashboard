@@ -30,7 +30,7 @@ GREEN: Final[str] = "#258835"
 RED: Final[str] = "#B22222"
 YELLOW: Final[str] = "#EED202"
 LIGHT_YELLOW: Final[str] = "#FFEC82"
-TABLE_GRAY: Final[str] = "#23272B"
+TABLE_GRAY: Final[str] = "black"  # "#23272B"
 RELOAD: Final[str] = "location.reload();"
 
 

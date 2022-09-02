@@ -370,23 +370,6 @@ code {
 /*------------------------------------------------------------------------------------*/
 /* Table Tools */
 
-.dash-filter--case {
-    visibility: hidden;
-}
-.dash-filter, .dash-filter > * > input[type=text] {
-    /*font-style: italic !important;*/
-    text-transform: uppercase;
-    letter-spacing: .075em;
-    font: italic 15px Arial !important;
-    color: #258835 !important;
-}
-
-.dash-delete-header, .dash-delete-cell {
-    max-width: 12px !important;
-    width: 12px !important;
-    min-width: 12px !important;
-}
-
 .wbs-table-top-toolbar {
     height: 25.53px;
     margin-right: 30rem;
@@ -505,13 +488,6 @@ code {
     min-width: calc(100% - 15px) !important;
 }
 
-.dash-header, .dash-delete-header {
-    border-right-width: 1px !important;
-    border-left-width: 0 !important;
-    border-top-width: 0 !important;
-    border-color: lightgray !important;
-}
-
 .cell--selected {
     background-color: white !important;
 }
@@ -582,6 +558,88 @@ code {
     margin-right: 1em;
 }
 
+.dash-header {
+    border: 0 !important;
+    padding-right: 0.5em !important;
+    text-transform: uppercase;
+    letter-spacing: .075em;
+    font: bold 10px Arial !important;
+}
+.dash-header > div {
+    display: flex;
+    align-items: center;
+    flex-direction: row-reverse;
+}
+.dash-header, .dash-delete-header {
+    border-right-width: 1px !important;
+    border-left-width: 0 !important;
+    border-top-width: 0 !important;
+    border-color: lightgray !important;
+}
+
+.dash-filter {
+    padding-left: 1rem !important;
+}
+.dash-filter--case {
+    visibility: hidden;
+    height: 0px !important;
+    width: 0px !important;
+}
+.dash-filter, .dash-filter > * > input[type=text] {
+    text-transform: uppercase;
+    letter-spacing: .075em;
+    font: italic bold 10px Arial !important;
+    color: whitesmoke !important;
+    background-color: #17a2b8 !important;
+    border: 0 !important;
+    text-align: left !important;
+}
+.dash-delete-header {
+    border: 0 !important;
+}
+tr:nth-child(2) > th { /* SECOND HEADER */
+    background-color: #17a2b8 !important;
+}
+.dash-delete-header, .dash-delete-cell {
+    max-width: 12px !important;
+    width: 12px !important;
+    min-width: 12px !important;
+}
+
+.column-header--hide { /* Hide the column header hide icon */
+    visibility: hidden !important;
+    padding: 0 !important;
+    width: 0 !important;
+}
+
+.column-actions > .column-header--sort {
+    float: right !important;
+    margin-left: 0.25rem;
+    margin-right: 1rem;
+    text-align: right;
+    flex-basis: 1%;
+}
+
+.column-header-name {
+    flex-basis: 99%;
+}
+
+.current-page {
+    width: 35px !important;
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+}
+
+.dash-delete-cell {
+    text-align: center !important;
+    padding: 0 !important;
+}
+
+.dash-spreadsheet-container table {
+    --accent: #17a2b8 !important;
+    --selected-background: #17a2b8 !important;
+    --selected-color: #17a2b8 !important;
+}
 
 /*------------------------------------------------------------------------------------*/
 /* dbc Buttons */
@@ -628,52 +686,3 @@ code {
 }
 
 
-/*------------------------------------------------------------------------------------*/
-/* DataTable */
-
-.column-header--hide { /* Hide the column header hide icon */
-    visibility: hidden !important;
-    padding: 0 !important;
-    width: 0 !important;
-}
-
-.dash-header {
-    padding-right: 0.5em !important;
-    text-transform: uppercase;
-    letter-spacing: .075em;
-}
-
-.dash-header > div {
-    display: flex;
-    align-items: center;
-    flex-direction: row-reverse;
-}
-
-.column-header--sort {
-    float: right !important;
-    margin-left: 0.25rem;
-    margin-right: -0.25rem;
-    text-align: right;
-    flex-basis: 1%;
-}
-
-.column-header-name {
-    flex-basis: 99%;
-}
-
-.current-page {
-    width: 35px !important;
-    padding-right: 0 !important;
-    padding-left: 0 !important;
-}
-
-.dash-delete-cell {
-    text-align: center !important;
-    padding: 0 !important;
-}
-
-.dash-spreadsheet-container table {
-    --accent: #17a2b8 !important;
-    --selected-background: #17a2b8 !important;
-    --selected-color: #17a2b8 !important;
-}
