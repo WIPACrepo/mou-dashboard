@@ -251,6 +251,24 @@ class MakeSnapshotHandler(BaseMOUHandler):  # pylint: disable=W0223
 # -----------------------------------------------------------------------------
 
 
+class InstitutionValuesConfirmationTouchstoneHandler(
+    BaseMOUHandler
+):  # pylint: disable=W0223
+    """Handle requests for making a new touchstone timestamp for institution values."""
+
+    ROUTE = rf"/institution/values/confirmation/touchstone(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
+
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["admin"])  # type: ignore
+    async def post(self, wbs_l1: str) -> None:
+        """Handle POST."""
+        timestamp = await self.mou_db_client.retouchstone(wbs_l1)
+
+        self.write({"touchstone_timestamp": timestamp})
+
+
+# -----------------------------------------------------------------------------
+
+
 class InstitutionValuesHandler(BaseMOUHandler):  # pylint: disable=W0223
     """Handle requests for managing an institution's values, possibly for a snapshot."""
 

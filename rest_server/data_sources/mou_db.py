@@ -10,6 +10,7 @@ from typing import Dict, List, Tuple
 import pandas as pd  # type: ignore[import]
 import pymongo.errors
 import universal_utils.types as uut
+from dacite import from_dict
 from motor.motor_tornado import MotorClient  # type: ignore
 from tornado import web
 
@@ -184,6 +185,24 @@ class MOUDatabaseClient:
             timestamp=doc.timestamp,
             admin_only=doc.admin_only,
         )
+
+    async def retouchstone(self, wbs_db: str) -> int:
+        """Make an updated touchstone timestamp value for all LIVE institutions."""
+        logging.debug(f"Re-touchstoning ({wbs_db=})...")
+
+        timestamp = int(time.time())
+
+        doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
+        for institution, vals in doc.snapshot_institution_values.items():
+            instvals = from_dict(uut.InstitutionValues, vals)
+            instvals.headcounts_metadata.confirmation_touchstone_ts = timestamp
+            instvals.table_metadata.confirmation_touchstone_ts = timestamp
+            instvals.computing_metadata.confirmation_touchstone_ts = timestamp
+            doc.snapshot_institution_values.update({institution: dc.asdict(instvals)})
+        await self._set_supplemental_doc(wbs_db, _LIVE_COLLECTION, doc)
+
+        logging.info(f"Re-touchstoned ({wbs_db=}, {timestamp=}).")
+        return timestamp
 
     async def upsert_institution_values(
         self, wbs_db: str, institution: str, vals: uut.InstitutionValues

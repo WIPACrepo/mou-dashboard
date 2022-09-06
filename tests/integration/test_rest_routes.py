@@ -10,6 +10,7 @@ NOTE: THESE TESTS NEED TO RUN IN ORDER -- STATE DEPENDENT
 import base64
 import dataclasses as dc
 import time
+from typing import Dict
 
 import pytest
 import requests
@@ -340,8 +341,7 @@ class TestInstitutionValuesHandler:
     @staticmethod
     def test_institution_values_full_cycle(ds_rc: RestClient) -> None:
         """Test confirming admin-level re-touch-stoning."""
-
-        local_insts = {}
+        local_insts: Dict[str, uut.InstitutionValues] = {}
 
         # Get values (should all be default values)
         for inst in local_insts:
@@ -481,5 +481,19 @@ class TestInstitutionValuesHandler:
             local_insts[inst] = resp_instval
 
         # Re-touchstone
+        resp = ds_rc.request_seq(
+            "POST", f"/institution/values/confirmation/touchstone{WBS_L1}"
+        )
+        ts_ts = resp["touchstone_timestamp"]
 
         # Check values / confirmations
+        for inst in local_insts:
+            resp = ds_rc.request_seq(
+                "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
+            )
+            assert resp_instval.headcounts_metadata.confirmation_touchstone_ts == ts_ts
+            assert not resp_instval.headcounts_metadata.has_valid_confirmation()
+            assert resp_instval.table_metadata.confirmation_touchstone_ts == ts_ts
+            assert not resp_instval.table_metadata.has_valid_confirmation()
+            assert resp_instval.computing_metadata.confirmation_touchstone_ts == ts_ts
+            assert not resp_instval.computing_metadata.has_valid_confirmation()
