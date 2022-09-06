@@ -2,19 +2,12 @@
 
 
 import logging
-import time
 import urllib
 from typing import Any, Collection, Dict, Final, List, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import universal_utils.types as uut
-from dash import (  # type: ignore[import]
-    callback_context,
-    dash_table,
-    dcc,
-    html,
-    no_update,
-)
+from dash import callback_context, dash_table, dcc, html  # type: ignore[import]
 
 from ..data_source import data_source as src
 from ..data_source import institution_info

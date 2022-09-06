@@ -12,7 +12,6 @@ from dash.dependencies import Input, Output, State  # type: ignore[import]
 
 from ..config import app
 from ..data_source import data_source as src
-from ..data_source import institution_info
 from ..data_source import table_config as tc
 from ..data_source.utils import DataSourceException
 from ..utils import dash_utils as du

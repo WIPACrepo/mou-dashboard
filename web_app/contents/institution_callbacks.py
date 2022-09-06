@@ -406,7 +406,6 @@ def to_pull_institution_values(
     logging.info("to_pull_institution_values")
 
     output = SelectInstitutionValueOutput()
-    tconfig = tc.TableConfigParser(du.get_wbs_l1(state.s_urlpath))
 
     def inactive_flag(info: institution_info.Institution) -> str:
         if info.has_mou:
