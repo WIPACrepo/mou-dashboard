@@ -493,6 +493,12 @@ class TestInstitutionValuesHandler:
         ts_ts = ds_rc.request_seq(
             "POST", f"/institution/values/confirmation/touchstone/{WBS_L1}"
         )["touchstone_timestamp"]
+        assert (
+            ts_ts
+            == ds_rc.request_seq(
+                "GET", f"/institution/values/confirmation/touchstone/{WBS_L1}"
+            )["touchstone_timestamp"]
+        )
 
         # Check values / confirmations
         assert local_insts

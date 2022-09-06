@@ -265,6 +265,13 @@ class InstitutionValuesConfirmationTouchstoneHandler(
 
         self.write({"touchstone_timestamp": timestamp})
 
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["admin"])  # type: ignore
+    async def get(self, wbs_l1: str) -> None:
+        """Handle POST."""
+        timestamp = await self.mou_db_client.retouchstone(wbs_l1)
+
+        self.write({"touchstone_timestamp": timestamp})
+
 
 # -----------------------------------------------------------------------------
 

@@ -64,7 +64,7 @@ async def start(debug: bool = False) -> RestServer:
     server.add_route(MakeSnapshotHandler.ROUTE, MakeSnapshotHandler, args)  # post
     server.add_route(RecordHandler.ROUTE, RecordHandler, args)  # post, delete
     server.add_route(TableConfigHandler.ROUTE, TableConfigHandler, args)  # get
-    server.add_route(  # post
+    server.add_route(  # post, get
         InstitutionValuesConfirmationTouchstoneHandler.ROUTE,
         InstitutionValuesConfirmationTouchstoneHandler,
         args,

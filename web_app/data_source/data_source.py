@@ -466,3 +466,23 @@ def push_institution_values(  # pylint: disable=R0913
     body = {"institution": institution, "institution_values": dc.asdict(inst_dc)}
     response = mou_request("POST", f"/institution/values/{wbs_l1}", body=body)
     return from_dict(uut.InstitutionValues, response)  # type: ignore[no-any-return] # fixed in future release
+
+
+def retouchstone(wbs_l1: str) -> int:
+    """Make an updated touchstone timestamp value for all institutions (no snapshots)."""
+    _validate(wbs_l1, str, falsy_okay=False)
+
+    response = mou_request(
+        "POST", f"/institution/values/confirmation/touchstone/{wbs_l1}"
+    )
+    return response["touchstone_timestamp"]  # type: ignore[no-any-return]
+
+
+def get_touchstone(wbs_l1: str) -> int:
+    """Make an updated touchstone timestamp value for all institutions (no snapshots)."""
+    _validate(wbs_l1, str, falsy_okay=False)
+
+    response = mou_request(
+        "GET", f"/institution/values/confirmation/touchstone/{wbs_l1}"
+    )
+    return response["touchstone_timestamp"]  # type: ignore[no-any-return]

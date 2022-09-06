@@ -8,7 +8,7 @@ from typing import Any, Dict, Final, List, Tuple, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import universal_utils.types as uut
-from dash import dcc
+from dash import dcc, no_update
 from dash.dependencies import Input, Output, State  # type: ignore[import]
 
 from ..config import app
@@ -464,3 +464,49 @@ def blame(
         _blame_columns(column_names),
         _blame_style_cell_conditional(column_names),
     )
+
+
+@app.callback(  # type: ignore[misc]
+    [
+        Output("wbs-reset-inst-confirmations-button", "children"),
+        Output("wbs-reset-inst-confirmations-button", "disabled"),
+    ],
+    [Input("wbs-reset-inst-confirmations-button", "n_clicks")],  # user-only
+    [
+        State("url", "pathname"),
+        State("wbs-current-snapshot-ts", "value"),
+    ],
+    # prevent_initial_call=True,
+)  # pylint: disable=R0914
+def retouchstone(
+    # input(s)
+    _: int,
+    # state(s)
+    s_urlpath: str,
+    s_snap_ts: types.DashVal,
+) -> Tuple[str, bool]:
+    """Make an updated touchstone timestamp value."""
+    logging.warning(f"'{du.triggered()}' -> summarize()")
+
+    match du.triggered():
+        # ON LOAD
+        case ".":
+            if s_snap_ts:
+                return (
+                    "Cannot reset institution confirmations for snapshots",
+                    True,
+                )
+            timestamp = src.get_touchstone(du.get_wbs_l1(s_urlpath))
+            return (
+                f"Reset Institution Confirmations (currently {utils.get_human_time(str(timestamp))})",
+                not CurrentUser.is_admin(),
+            )
+        # CLICKED
+        case "wbs-reset-inst-confirmations-button.n_clicks":
+            timestamp = src.retouchstone(du.get_wbs_l1(s_urlpath))
+            return (
+                f"Reset Institution Confirmations (currently {utils.get_human_time(str(timestamp))})",
+                False,
+            )
+
+    raise Exception(f"Unaccounted for trigger {du.triggered()}")
