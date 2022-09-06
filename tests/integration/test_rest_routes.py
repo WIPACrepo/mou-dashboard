@@ -481,10 +481,9 @@ class TestInstitutionValuesHandler:
             local_insts[inst] = resp_instval
 
         # Re-touchstone
-        resp = ds_rc.request_seq(
+        ts_ts = ds_rc.request_seq(
             "POST", f"/institution/values/confirmation/touchstone{WBS_L1}"
-        )
-        ts_ts = resp["touchstone_timestamp"]
+        )["touchstone_timestamp"]
 
         # Check values / confirmations
         for inst in local_insts:

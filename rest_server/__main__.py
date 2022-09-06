@@ -17,6 +17,7 @@ from . import config
 from .data_sources import table_config_cache, todays_institutions
 from .routes import (
     InstitutionStaticHandler,
+    InstitutionValuesConfirmationTouchstoneHandler,
     InstitutionValuesHandler,
     MainHandler,
     MakeSnapshotHandler,
@@ -63,6 +64,11 @@ async def start(debug: bool = False) -> RestServer:
     server.add_route(MakeSnapshotHandler.ROUTE, MakeSnapshotHandler, args)  # post
     server.add_route(RecordHandler.ROUTE, RecordHandler, args)  # post, delete
     server.add_route(TableConfigHandler.ROUTE, TableConfigHandler, args)  # get
+    server.add_route(  # post
+        InstitutionValuesConfirmationTouchstoneHandler.ROUTE,
+        InstitutionValuesConfirmationTouchstoneHandler,
+        args,
+    )
     server.add_route(  # get, post
         InstitutionValuesHandler.ROUTE, InstitutionValuesHandler, args
     )
