@@ -256,7 +256,7 @@ class InstitutionValuesConfirmationTouchstoneHandler(
 ):  # pylint: disable=W0223
     """Handle requests for making a new touchstone timestamp for institution values."""
 
-    ROUTE = rf"/institution/values/confirmation/touchstone(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
+    ROUTE = rf"/institution/values/confirmation/touchstone/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["admin"])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
