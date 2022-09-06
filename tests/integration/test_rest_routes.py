@@ -345,7 +345,7 @@ class TestInstitutionValuesHandler:
         local_insts: Dict[str, uut.InstitutionValues] = {}
 
         # Get values (should all be default values)
-        for inst in local_insts:
+        for inst in inst_keys:
             resp = ds_rc.request_seq(
                 "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
             )
