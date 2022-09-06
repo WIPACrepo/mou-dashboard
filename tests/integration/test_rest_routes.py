@@ -401,10 +401,12 @@ class TestInstitutionValuesHandler:
                 },
             )
             resp_instval = from_dict(uut.InstitutionValues, resp)
+            updated_last_edit_ts = resp_instval.headcounts_metadata.last_edit_ts
+            assert abs(updated_last_edit_ts - int(time.time())) <= 1
             assert resp_instval == dc.replace(
                 post_instval,
                 headcounts_metadata=uut.InstitutionAttributeMetadata(
-                    last_edit_ts=int(time.time()),  # "now" could be too late?
+                    last_edit_ts=updated_last_edit_ts,
                     confirmation_ts=0,
                     confirmation_touchstone_ts=0,
                 ),
@@ -412,7 +414,7 @@ class TestInstitutionValuesHandler:
                     last_edit_ts=0, confirmation_ts=0, confirmation_touchstone_ts=0
                 ),
                 computing_metadata=uut.InstitutionAttributeMetadata(
-                    last_edit_ts=int(time.time()),  # "now" could be too late?
+                    last_edit_ts=updated_last_edit_ts,
                     confirmation_ts=0,
                     confirmation_touchstone_ts=0,
                 ),
@@ -428,11 +430,11 @@ class TestInstitutionValuesHandler:
         # Confirm headcounts
         assert local_insts
         for inst in local_insts:
+            now = int(time.time())
             post_instval = dc.replace(
                 local_insts[inst],
                 headcounts_metadata=dc.replace(
-                    local_insts[inst].headcounts_metadata,
-                    confirmation_ts=int(time.time()),
+                    local_insts[inst].headcounts_metadata, confirmation_ts=now
                 ),
             )
             resp = ds_rc.request_seq(
@@ -444,7 +446,7 @@ class TestInstitutionValuesHandler:
             assert resp_instval == dc.replace(
                 post_instval,
                 headcounts_metadata=dc.replace(
-                    resp_instval.headcounts_metadata, confirmation_ts=int(time.time())
+                    resp_instval.headcounts_metadata, confirmation_ts=now
                 ),
             )
             assert resp_instval.headcounts_metadata.has_valid_confirmation()
@@ -456,15 +458,14 @@ class TestInstitutionValuesHandler:
         # Confirm table + computing
         assert local_insts
         for inst in local_insts:
+            now = int(time.time())
             post_instval = dc.replace(
                 local_insts[inst],
                 table_metadata=dc.replace(
-                    local_insts[inst].table_metadata,
-                    confirmation_ts=int(time.time()),  # "now" could be too late?
+                    local_insts[inst].table_metadata, confirmation_ts=now
                 ),
                 computing_metadata=dc.replace(
-                    local_insts[inst].computing_metadata,
-                    confirmation_ts=int(time.time()),  # "now" could be too late?
+                    local_insts[inst].computing_metadata, confirmation_ts=now
                 ),
             )
             resp = ds_rc.request_seq(
@@ -476,10 +477,10 @@ class TestInstitutionValuesHandler:
             assert resp_instval == dc.replace(
                 post_instval,
                 table_metadata=dc.replace(
-                    resp_instval.table_metadata, confirmation_ts=int(time.time())
+                    resp_instval.table_metadata, confirmation_ts=now
                 ),
                 computing_metadata=dc.replace(
-                    resp_instval.computing_metadata, confirmation_ts=int(time.time())
+                    resp_instval.computing_metadata, confirmation_ts=now
                 ),
             )
             assert resp_instval.headcounts_metadata.has_valid_confirmation()  # (before)
