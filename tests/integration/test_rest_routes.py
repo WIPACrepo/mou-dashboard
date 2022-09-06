@@ -344,7 +344,7 @@ class TestInstitutionValuesHandler:
         # Get values (should all be default values)
         for inst in ["Foo", "Bar", "Baz"]:
             resp = ds_rc.request_seq(
-                "POST", f"/institution/values/{WBS_L1}", {"institution": inst}
+                "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
             )
             assert from_dict(resp) == uut.InstitutionValues()
 
