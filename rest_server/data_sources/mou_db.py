@@ -190,19 +190,28 @@ class MOUDatabaseClient:
         """Make an updated touchstone timestamp value for all LIVE institutions."""
         logging.debug(f"Re-touchstoning ({wbs_db=})...")
 
-        timestamp = int(time.time())
+        now = int(time.time())
 
         doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
         for institution, vals in doc.snapshot_institution_values.items():
             instvals = from_dict(uut.InstitutionValues, vals)
-            instvals.headcounts_metadata.confirmation_touchstone_ts = timestamp
-            instvals.table_metadata.confirmation_touchstone_ts = timestamp
-            instvals.computing_metadata.confirmation_touchstone_ts = timestamp
+            dc.replace(
+                instvals,
+                headcounts_metadata=dc.replace(
+                    instvals.headcounts_metadata, confirmation_touchstone_ts=now
+                ),
+                table_metadata=dc.replace(
+                    instvals.table_metadata, confirmation_touchstone_ts=now
+                ),
+                computing_metadata=dc.replace(
+                    instvals.computing_metadata, confirmation_touchstone_ts=now
+                ),
+            )
             doc.snapshot_institution_values.update({institution: dc.asdict(instvals)})
         await self._set_supplemental_doc(wbs_db, _LIVE_COLLECTION, doc)
 
-        logging.info(f"Re-touchstoned ({wbs_db=}, {timestamp=}).")
-        return timestamp
+        logging.info(f"Re-touchstoned ({wbs_db=}, {now=}).")
+        return now
 
     async def get_touchstone(self, wbs_db: str) -> int:
         """Get touchstone timestamp value for all LIVE institutions."""
