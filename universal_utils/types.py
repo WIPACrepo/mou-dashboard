@@ -89,14 +89,8 @@ class InstitutionValues:
         else:
             computing_metadata = newer.computing_metadata
 
-        return InstitutionValues(
-            newer.phds_authors,
-            newer.faculty,
-            newer.scientists_post_docs,
-            newer.grad_students,
-            newer.cpus,
-            newer.gpus,
-            newer.text,
+        return dc.replace(
+            newer,
             headcounts_metadata=headcounts_metadata,
             table_metadata=table_metadata,
             computing_metadata=computing_metadata,

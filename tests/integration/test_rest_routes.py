@@ -341,84 +341,144 @@ class TestInstitutionValuesHandler:
     def test_institution_values_full_cycle(ds_rc: RestClient) -> None:
         """Test confirming admin-level re-touch-stoning."""
 
+        local_insts = {}
+
         # Get values (should all be default values)
-        for inst in ["Foo", "Bar", "Baz"]:
+        for inst in local_insts:
             resp = ds_rc.request_seq(
                 "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
             )
-            assert from_dict(uut.InstitutionValues, resp) == uut.InstitutionValues()
+            resp_instval = from_dict(uut.InstitutionValues, resp)
+            assert resp_instval == uut.InstitutionValues()
+            # update local storage
+            local_insts[inst] = resp_instval
+
+        first_post_insts = {
+            "Foo": uut.InstitutionValues(
+                phds_authors=1,
+                faculty=2,
+                scientists_post_docs=3,
+                grad_students=4,
+                cpus=5,
+                gpus=6,
+                text="foo's test text",
+            ),
+            "Bar": uut.InstitutionValues(
+                phds_authors=100,
+                faculty=200,
+                scientists_post_docs=300,
+                grad_students=400,
+                cpus=500,
+                gpus=600,
+                text="bar's test text",
+            ),
+            "Baz": uut.InstitutionValues(
+                phds_authors=51,
+                faculty=52,
+                scientists_post_docs=53,
+                grad_students=54,
+                cpus=55,
+                gpus=56,
+                text="baz's test text",
+            ),
+        }
 
         # Add institution values
-        post_bodies = [
-            {
-                "institution": "Foo",
-                "institution_values": dc.asdict(
-                    uut.InstitutionValues(
-                        phds_authors=1,
-                        faculty=2,
-                        scientists_post_docs=3,
-                        grad_students=4,
-                        cpus=5,
-                        gpus=6,
-                        text="foo's test text",
-                    )
-                ),
-            },
-            {
-                "institution": "Bar",
-                "institution_values": dc.asdict(
-                    uut.InstitutionValues(
-                        phds_authors=100,
-                        faculty=200,
-                        scientists_post_docs=300,
-                        grad_students=400,
-                        cpus=500,
-                        gpus=600,
-                        text="bar's test text",
-                    )
-                ),
-            },
-            {
-                "institution": "Baz",
-                "institution_values": dc.asdict(
-                    uut.InstitutionValues(
-                        phds_authors=51,
-                        faculty=52,
-                        scientists_post_docs=53,
-                        grad_students=54,
-                        cpus=55,
-                        gpus=56,
-                        text="baz's test text",
-                    )
-                ),
-            },
-        ]
-        for body in post_bodies:
-            resp = ds_rc.request_seq("POST", f"/institution/values/{WBS_L1}", body)
-            instval = from_dict(uut.InstitutionValues, resp)
-            assert instval == uut.InstitutionValues(
-                phds_authors=body["institution_values"]["phds_authors"],
-                faculty=body["institution_values"]["faculty"],
-                scientists_post_docs=body["institution_values"]["scientists_post_docs"],
-                grad_students=body["institution_values"]["grad_students"],
-                cpus=body["institution_values"]["cpus"],
-                gpus=body["institution_values"]["gpus"],
-                text=body["institution_values"]["text"],
+        for inst in local_insts:
+            post_instval = first_post_insts.pop(inst)  # be done w/ this structure ASAP
+            resp = ds_rc.request_seq(
+                "POST",
+                f"/institution/values/{WBS_L1}",
+                {
+                    "institution": inst,
+                    "institution_values": dc.asdict(post_instval),
+                },
+            )
+            resp_instval = from_dict(uut.InstitutionValues, resp)
+            assert resp_instval == dc.replace(
+                post_instval,
                 headcounts_metadata=uut.InstitutionAttributeMetadata(
-                    last_edit_ts=-1000, confirmation_ts=0, confirmation_touchstone_ts=0
+                    last_edit_ts=int(time.time()),  # "now" could be too late?
+                    confirmation_ts=0,
+                    confirmation_touchstone_ts=0,
                 ),
                 table_metadata=uut.InstitutionAttributeMetadata(
-                    last_edit_ts=-1000, confirmation_ts=0, confirmation_touchstone_ts=0
+                    last_edit_ts=0, confirmation_ts=0, confirmation_touchstone_ts=0
                 ),
                 computing_metadata=uut.InstitutionAttributeMetadata(
-                    last_edit_ts=-1000, confirmation_ts=0, confirmation_touchstone_ts=0
+                    last_edit_ts=int(time.time()),  # "now" could be too late?
+                    confirmation_ts=0,
+                    confirmation_touchstone_ts=0,
                 ),
             )
-            assert not instval.headcounts_metadata.has_valid_confirmation()
-            assert not instval.table_metadata.has_valid_confirmation()
-            assert not instval.computing_metadata.has_valid_confirmation()
+            assert not resp_instval.headcounts_metadata.has_valid_confirmation()
+            assert not resp_instval.table_metadata.has_valid_confirmation()
+            assert not resp_instval.computing_metadata.has_valid_confirmation()
+            # update local storage
+            local_insts[inst] = resp_instval
 
-        # Confirm
+        # TODO - TEST EDITING TABLE
+
+        # Confirm headcounts
+        for inst in local_insts:
+            post_instval = dc.replace(
+                local_insts[inst],
+                headcounts_metadata=dc.replace(
+                    local_insts[inst].headcounts_metadata,
+                    confirmation_ts=int(time.time()),
+                ),
+            )
+            resp = ds_rc.request_seq(
+                "POST",
+                f"/institution/values/{WBS_L1}",
+                {"institution": inst, "institution_values": dc.asdict(post_instval)},
+            )
+            resp_instval = from_dict(uut.InstitutionValues, resp)
+            assert resp_instval == dc.replace(
+                post_instval,
+                headcounts_metadata=dc.replace(
+                    resp_instval.headcounts_metadata, confirmation_ts=int(time.time())
+                ),
+            )
+            assert resp_instval.headcounts_metadata.has_valid_confirmation()
+            assert not resp_instval.table_metadata.has_valid_confirmation()
+            assert not resp_instval.computing_metadata.has_valid_confirmation()
+            # update local storage
+            local_insts[inst] = resp_instval
+
+        # Confirm table + computing
+        for inst in local_insts:
+            post_instval = dc.replace(
+                local_insts[inst],
+                table_metadata=dc.replace(
+                    local_insts[inst].table_metadata,
+                    confirmation_ts=int(time.time()),  # "now" could be too late?
+                ),
+                computing_metadata=dc.replace(
+                    local_insts[inst].computing_metadata,
+                    confirmation_ts=int(time.time()),  # "now" could be too late?
+                ),
+            )
+            resp = ds_rc.request_seq(
+                "POST",
+                f"/institution/values/{WBS_L1}",
+                {"institution": inst, "institution_values": dc.asdict(post_instval)},
+            )
+            resp_instval = from_dict(uut.InstitutionValues, resp)
+            assert resp_instval == dc.replace(
+                post_instval,
+                table_metadata=dc.replace(
+                    resp_instval.table_metadata, confirmation_ts=int(time.time())
+                ),
+                computing_metadata=dc.replace(
+                    resp_instval.computing_metadata, confirmation_ts=int(time.time())
+                ),
+            )
+            assert resp_instval.headcounts_metadata.has_valid_confirmation()  # (before)
+            assert resp_instval.table_metadata.has_valid_confirmation()
+            assert resp_instval.computing_metadata.has_valid_confirmation()
+            # update local storage
+            local_insts[inst] = resp_instval
 
         # Re-touchstone
 

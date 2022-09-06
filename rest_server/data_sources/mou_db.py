@@ -201,6 +201,7 @@ class MOUDatabaseClient:
         )
         vals = before.update_anew(vals)
 
+        # put in DB
         doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
         doc.snapshot_institution_values.update({institution: dc.asdict(vals)})
         await self._set_supplemental_doc(wbs_db, _LIVE_COLLECTION, doc)
@@ -242,9 +243,7 @@ class MOUDatabaseClient:
             return uut.InstitutionValues()
 
         try:
-            vals = uut.InstitutionValues(
-                **doc.snapshot_institution_values[institution]
-            )
+            vals = uut.InstitutionValues(**doc.snapshot_institution_values[institution])
             logging.info(f"Institution's Values [{vals}] ({wbs_db=}, {institution=}).")
             return vals
         except KeyError:
