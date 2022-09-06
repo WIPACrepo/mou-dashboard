@@ -384,6 +384,7 @@ class TestInstitutionValuesHandler:
         }
 
         # Add institution values
+        assert local_insts
         for inst in local_insts:
             post_instval = first_post_insts.pop(inst)  # be done w/ this structure ASAP
             resp = ds_rc.request_seq(
@@ -420,6 +421,7 @@ class TestInstitutionValuesHandler:
         # TODO - TEST EDITING TABLE
 
         # Confirm headcounts
+        assert local_insts
         for inst in local_insts:
             post_instval = dc.replace(
                 local_insts[inst],
@@ -447,6 +449,7 @@ class TestInstitutionValuesHandler:
             local_insts[inst] = resp_instval
 
         # Confirm table + computing
+        assert local_insts
         for inst in local_insts:
             post_instval = dc.replace(
                 local_insts[inst],
@@ -486,13 +489,24 @@ class TestInstitutionValuesHandler:
         )["touchstone_timestamp"]
 
         # Check values / confirmations
+        assert local_insts
         for inst in local_insts:
             resp = ds_rc.request_seq(
                 "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
             )
-            assert resp_instval.headcounts_metadata.confirmation_touchstone_ts == ts_ts
+            resp_instval = from_dict(uut.InstitutionValues, resp)
+            assert resp_instval == dc.replace(
+                local_insts[inst],
+                headcounts_metadata=dc.replace(
+                    resp_instval.headcounts_metadata, confirmation_touchstone_ts=ts_ts
+                ),
+                table_metadata=dc.replace(
+                    resp_instval.table_metadata, confirmation_touchstone_ts=ts_ts
+                ),
+                computing_metadata=dc.replace(
+                    resp_instval.computing_metadata, confirmation_touchstone_ts=ts_ts
+                ),
+            )
             assert not resp_instval.headcounts_metadata.has_valid_confirmation()
-            assert resp_instval.table_metadata.confirmation_touchstone_ts == ts_ts
             assert not resp_instval.table_metadata.has_valid_confirmation()
-            assert resp_instval.computing_metadata.confirmation_touchstone_ts == ts_ts
             assert not resp_instval.computing_metadata.has_valid_confirmation()
