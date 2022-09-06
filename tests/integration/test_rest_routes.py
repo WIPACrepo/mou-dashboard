@@ -8,6 +8,7 @@ NOTE: THESE TESTS NEED TO RUN IN ORDER -- STATE DEPENDENT
 
 
 import base64
+import dataclasses as dc
 import time
 
 import pytest
@@ -15,6 +16,7 @@ import requests
 import universal_utils.types as uut
 import web_app.config
 import web_app.data_source.utils
+from dacite import from_dict
 from rest_server import routes
 from rest_server.data_sources import todays_institutions
 from rest_tools.client import RestClient
@@ -28,10 +30,13 @@ def ds_rc() -> RestClient:
     return web_app.data_source.utils._rest_connection()
 
 
+########################################################################################
+
+
 def test_ingest(ds_rc: RestClient) -> None:
     """Test POST /table/data.
 
-    NOTE: Execute first, so other tests have data in the db.
+    NOTE: EXECUTE FIRST, SO OTHER TESTS HAVE DATA IN THE DB.
     """
     filename = "./tests/integration/Dummy_WBS.xlsx"
     with open(filename, "rb") as f:
@@ -61,6 +66,9 @@ def test_ingest(ds_rc: RestClient) -> None:
     with pytest.raises(requests.exceptions.HTTPError):
         body = {"base64_file": "123456789", "filename": filename}
         resp = ds_rc.request_seq("POST", f"/table/data/{WBS_L1}", body)
+
+
+########################################################################################
 
 
 class TestNoArgumentRoutes:
@@ -314,3 +322,104 @@ class TestRecordHandler:
 
         with pytest.raises(requests.exceptions.HTTPError):
             _ = ds_rc.request_seq("DELETE", f"/record/{WBS_L1}")
+
+
+class TestInstitutionValuesHandler:
+    """Test `/institution/values/*`."""
+
+    @staticmethod
+    def test_sanity() -> None:
+        """Check routes and methods are there."""
+        assert (
+            routes.InstitutionValuesHandler.ROUTE
+            == rf"/institution/values/(?P<wbs_l1>{routes._WBS_L1_REGEX_VALUES})$"
+        )
+        assert "post" in dir(routes.InstitutionValuesHandler)
+        assert "get" in dir(routes.InstitutionValuesHandler)
+
+    @staticmethod
+    def test_institution_values_full_cycle(ds_rc: RestClient) -> None:
+        """Test confirming admin-level re-touch-stoning."""
+
+        # Get values (should all be default values)
+        for inst in ["Foo", "Bar", "Baz"]:
+            resp = ds_rc.request_seq(
+                "POST", f"/institution/values/{WBS_L1}", {"institution": inst}
+            )
+            assert from_dict(resp) == uut.InstitutionValues()
+
+        # Add institution values
+        post_bodies = [
+            {
+                "institution": "Foo",
+                "institution_values": dc.asdict(
+                    uut.InstitutionValues(
+                        phds_authors=1,
+                        faculty=2,
+                        scientists_post_docs=3,
+                        grad_students=4,
+                        cpus=5,
+                        gpus=6,
+                        text="foo's test text",
+                    )
+                ),
+            },
+            {
+                "institution": "Bar",
+                "institution_values": dc.asdict(
+                    uut.InstitutionValues(
+                        phds_authors=100,
+                        faculty=200,
+                        scientists_post_docs=300,
+                        grad_students=400,
+                        cpus=500,
+                        gpus=600,
+                        text="bar's test text",
+                    )
+                ),
+            },
+            {
+                "institution": "Baz",
+                "institution_values": dc.asdict(
+                    uut.InstitutionValues(
+                        phds_authors=51,
+                        faculty=52,
+                        scientists_post_docs=53,
+                        grad_students=54,
+                        cpus=55,
+                        gpus=56,
+                        text="baz's test text",
+                    )
+                ),
+            },
+        ]
+        for body in post_bodies:
+            resp = ds_rc.request_seq("POST", f"/institution/values/{WBS_L1}", body)
+            instval = from_dict(resp)
+            assert instval == uut.InstitutionValues(
+                phds_authors=body["institution_values"]["phds_authors"],
+                faculty=body["institution_values"]["faculty"],
+                scientists_post_docs=body["institution_values"]["scientists_post_docs"],
+                grad_students=body["institution_values"]["grad_students"],
+                cpus=body["institution_values"]["cpus"],
+                gpus=body["institution_values"]["gpus"],
+                text=body["institution_values"]["text"],
+                headcounts_metadata=uut.InstitutionAttributeMetadata(
+                    last_edit_ts=-1000, confirmation_ts=0, confirmation_touchstone_ts=0
+                ),
+                table_metadata=uut.InstitutionAttributeMetadata(
+                    last_edit_ts=-1000, confirmation_ts=0, confirmation_touchstone_ts=0
+                ),
+                computing_metadata=uut.InstitutionAttributeMetadata(
+                    last_edit_ts=-1000, confirmation_ts=0, confirmation_touchstone_ts=0
+                ),
+            )
+            assert not instval.headcounts_metadata.has_valid_confirmation()
+            assert not instval.table_metadata.has_valid_confirmation()
+            assert not instval.computing_metadata.has_valid_confirmation()
+
+        # Confirm
+
+        # Re-touchstone
+
+        # Check values / confirmations
