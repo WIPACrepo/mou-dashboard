@@ -28,9 +28,9 @@ WBS = "mo"
 def clear_all_cachetools_func_caches() -> Iterator[None]:
     """Clear all `cachetools.func` caches, everywhere"""
     yield
-    institution_info._cached_get_institutions_infos.cache_clear()  # type: ignore[attr-defined]
-    tc.TableConfigParser._cached_get_configs.cache_clear()  # type: ignore[attr-defined]
-    web_app.utils.oidc_tools.CurrentUser._cached_get_info.cache_clear()  # type: ignore[attr-defined]
+    institution_info._cached_get_institutions_infos.cache_clear()
+    tc.TableConfigParser._cached_get_configs.cache_clear()
+    web_app.utils.oidc_tools.CurrentUser._cached_get_info.cache_clear()
 
 
 @pytest.fixture
@@ -261,7 +261,6 @@ class TestDataSource:
                     WBS,
                     tconfig,
                     institution=body["institution"],  # type: ignore[arg-type]
-                    labor=body["labor"],  # type: ignore[arg-type]
                     with_totals=body["total_rows"],  # type: ignore[arg-type]
                     snapshot_ts=body["snapshot"],  # type: ignore[arg-type]
                     restore_id=body["restore_id"],  # type: ignore[arg-type]
@@ -318,7 +317,6 @@ class TestDataSource:
                     WBS,
                     body["record"],
                     tconfig,
-                    labor=body["labor"],
                     institution=body["institution"],
                 )
 
@@ -578,7 +576,7 @@ class TestTableConfig:
         for col, wid in resp[WBS].widths.items():
             assert table_config.get_column_width(col) == wid
         # reset
-        tc.TableConfigParser._cached_get_configs.cache_clear()  # type: ignore[attr-defined]
+        tc.TableConfigParser._cached_get_configs.cache_clear()
         mock_rest.return_value.request_seq.return_value = {}
         # call
         table_config = tc.TableConfigParser(WBS)

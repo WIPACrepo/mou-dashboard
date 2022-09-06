@@ -15,9 +15,9 @@ from web_app.data_source import table_config as tc
 def clear_all_cachetools_func_caches() -> Iterator[None]:
     """Clear all `cachetools.func` caches, everywhere"""
     yield
-    institution_info._cached_get_institutions_infos.cache_clear()  # type: ignore[attr-defined]
-    tc.TableConfigParser._cached_get_configs.cache_clear()  # type: ignore[attr-defined]
-    web_app.utils.oidc_tools.CurrentUser._cached_get_info.cache_clear()  # type: ignore[attr-defined]
+    institution_info._cached_get_institutions_infos.cache_clear()
+    tc.TableConfigParser._cached_get_configs.cache_clear()
+    web_app.utils.oidc_tools.CurrentUser._cached_get_info.cache_clear()
 
 
 class TestTableConfig:
