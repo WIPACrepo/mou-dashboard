@@ -351,6 +351,9 @@ class TestInstitutionValuesHandler:
             )
             resp_instval = from_dict(uut.InstitutionValues, resp)
             assert resp_instval == uut.InstitutionValues()
+            assert resp_instval.headcounts_metadata.has_valid_confirmation()
+            assert resp_instval.table_metadata.has_valid_confirmation()
+            assert resp_instval.computing_metadata.has_valid_confirmation()
             # update local storage
             local_insts[inst] = resp_instval
 
@@ -415,7 +418,7 @@ class TestInstitutionValuesHandler:
                 ),
             )
             assert not resp_instval.headcounts_metadata.has_valid_confirmation()
-            assert not resp_instval.table_metadata.has_valid_confirmation()
+            assert resp_instval.table_metadata.has_valid_confirmation()
             assert not resp_instval.computing_metadata.has_valid_confirmation()
             # update local storage
             local_insts[inst] = resp_instval
@@ -445,7 +448,7 @@ class TestInstitutionValuesHandler:
                 ),
             )
             assert resp_instval.headcounts_metadata.has_valid_confirmation()
-            assert not resp_instval.table_metadata.has_valid_confirmation()
+            assert resp_instval.table_metadata.has_valid_confirmation()
             assert not resp_instval.computing_metadata.has_valid_confirmation()
             # update local storage
             local_insts[inst] = resp_instval
@@ -487,7 +490,7 @@ class TestInstitutionValuesHandler:
 
         # Re-touchstone
         ts_ts = ds_rc.request_seq(
-            "POST", f"/institution/values/confirmation/touchstone{WBS_L1}"
+            "POST", f"/institution/values/confirmation/touchstone/{WBS_L1}"
         )["touchstone_timestamp"]
 
         # Check values / confirmations
