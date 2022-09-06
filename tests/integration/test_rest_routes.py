@@ -341,6 +341,7 @@ class TestInstitutionValuesHandler:
     @staticmethod
     def test_institution_values_full_cycle(ds_rc: RestClient) -> None:
         """Test confirming admin-level re-touch-stoning."""
+        inst_keys = ["Foo", "Bar", "Baz"]
         local_insts: Dict[str, uut.InstitutionValues] = {}
 
         # Get values (should all be default values)
@@ -382,6 +383,7 @@ class TestInstitutionValuesHandler:
                 text="baz's test text",
             ),
         }
+        assert set(first_post_insts.keys()) == set(inst_keys)  # JIC tests change
 
         # Add institution values
         assert local_insts
