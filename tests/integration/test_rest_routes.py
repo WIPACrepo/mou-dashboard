@@ -346,7 +346,7 @@ class TestInstitutionValuesHandler:
             resp = ds_rc.request_seq(
                 "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
             )
-            assert from_dict(resp) == uut.InstitutionValues()
+            assert from_dict(resp, uut.InstitutionValues) == uut.InstitutionValues()
 
         # Add institution values
         post_bodies = [
@@ -395,7 +395,7 @@ class TestInstitutionValuesHandler:
         ]
         for body in post_bodies:
             resp = ds_rc.request_seq("POST", f"/institution/values/{WBS_L1}", body)
-            instval = from_dict(resp)
+            instval = from_dict(resp, uut.InstitutionValues)
             assert instval == uut.InstitutionValues(
                 phds_authors=body["institution_values"]["phds_authors"],
                 faculty=body["institution_values"]["faculty"],
