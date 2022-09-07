@@ -193,10 +193,8 @@ class MOUDatabaseClient:
         now = int(time.time())
 
         doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
-        for institution in doc.snapshot_institution_values.keys():
-            instvals = from_dict(
-                uut.InstitutionValues, doc.snapshot_institution_values[institution]
-            )
+        for institution, vals in doc.snapshot_institution_values.items():
+            instvals = from_dict(uut.InstitutionValues, vals)
             dc.replace(
                 instvals,
                 headcounts_metadata=dc.replace(
