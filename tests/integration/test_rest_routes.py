@@ -346,12 +346,10 @@ class TestInstitutionValuesHandler:
 
         # Get values (should all be default values)
         for inst in inst_keys:
-            resp_instval = from_dict(
-                uut.InstitutionValues,
-                ds_rc.request_seq(
-                    "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
-                ),
+            resp = ds_rc.request_seq(
+                "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
             )
+            resp_instval = from_dict(uut.InstitutionValues, resp)
             assert resp_instval == uut.InstitutionValues()
             assert resp_instval.headcounts_metadata.has_valid_confirmation()
             assert resp_instval.table_metadata.has_valid_confirmation()
@@ -395,17 +393,15 @@ class TestInstitutionValuesHandler:
         assert local_insts
         for inst in local_insts:
             post_instval = first_post_insts.pop(inst)  # be done w/ this structure ASAP
-            resp_instval = from_dict(
-                uut.InstitutionValues,
-                ds_rc.request_seq(
-                    "POST",
-                    f"/institution/values/{WBS_L1}",
-                    {
-                        "institution": inst,
-                        "institution_values": dc.asdict(post_instval),
-                    },
-                ),
+            resp = ds_rc.request_seq(
+                "POST",
+                f"/institution/values/{WBS_L1}",
+                {
+                    "institution": inst,
+                    "institution_values": dc.asdict(post_instval),
+                },
             )
+            resp_instval = from_dict(uut.InstitutionValues, resp)
             updated_last_edit_ts = resp_instval.headcounts_metadata.last_edit_ts
             assert abs(updated_last_edit_ts - int(time.time())) <= 1
             assert resp_instval == dc.replace(
@@ -444,17 +440,12 @@ class TestInstitutionValuesHandler:
                     local_insts[inst].headcounts_metadata, confirmation_ts=now
                 ),
             )
-            resp_instval = from_dict(
-                uut.InstitutionValues,
-                ds_rc.request_seq(
-                    "POST",
-                    f"/institution/values/{WBS_L1}",
-                    {
-                        "institution": inst,
-                        "institution_values": dc.asdict(post_instval),
-                    },
-                ),
+            resp = ds_rc.request_seq(
+                "POST",
+                f"/institution/values/{WBS_L1}",
+                {"institution": inst, "institution_values": dc.asdict(post_instval)},
             )
+            resp_instval = from_dict(uut.InstitutionValues, resp)
             assert resp_instval == dc.replace(
                 post_instval,
                 headcounts_metadata=dc.replace(
@@ -481,17 +472,12 @@ class TestInstitutionValuesHandler:
                     local_insts[inst].computing_metadata, confirmation_ts=now
                 ),
             )
-            resp_instval = from_dict(
-                uut.InstitutionValues,
-                ds_rc.request_seq(
-                    "POST",
-                    f"/institution/values/{WBS_L1}",
-                    {
-                        "institution": inst,
-                        "institution_values": dc.asdict(post_instval),
-                    },
-                ),
+            resp = ds_rc.request_seq(
+                "POST",
+                f"/institution/values/{WBS_L1}",
+                {"institution": inst, "institution_values": dc.asdict(post_instval)},
             )
+            resp_instval = from_dict(uut.InstitutionValues, resp)
             assert resp_instval == dc.replace(
                 post_instval,
                 table_metadata=dc.replace(
@@ -523,12 +509,10 @@ class TestInstitutionValuesHandler:
         time.sleep(1)
         assert local_insts
         for inst in local_insts:
-            resp_instval = from_dict(
-                uut.InstitutionValues,
-                ds_rc.request_seq(
-                    "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
-                ),
+            resp = ds_rc.request_seq(
+                "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
             )
+            resp_instval = from_dict(uut.InstitutionValues, resp)
             assert resp_instval == dc.replace(
                 local_insts[inst],
                 headcounts_metadata=dc.replace(
