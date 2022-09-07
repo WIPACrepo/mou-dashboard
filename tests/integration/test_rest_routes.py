@@ -394,12 +394,7 @@ class TestInstitutionValuesHandler:
         for inst in local_insts:
             post_instval = first_post_insts.pop(inst)  # be done w/ this structure ASAP
             resp = ds_rc.request_seq(
-                "POST",
-                f"/institution/values/{WBS_L1}",
-                {
-                    "institution": inst,
-                    "institution_values": dc.asdict(post_instval),
-                },
+                "POST", f"/institution/values/{WBS_L1}", post_instval.restful_dict(inst)
             )
             resp_instval = from_dict(uut.InstitutionValues, resp)
             updated_last_edit_ts = resp_instval.headcounts_metadata.last_edit_ts
@@ -441,9 +436,7 @@ class TestInstitutionValuesHandler:
                 ),
             )
             resp = ds_rc.request_seq(
-                "POST",
-                f"/institution/values/{WBS_L1}",
-                {"institution": inst, "institution_values": dc.asdict(post_instval)},
+                "POST", f"/institution/values/{WBS_L1}", post_instval.restful_dict(inst)
             )
             resp_instval = from_dict(uut.InstitutionValues, resp)
             assert resp_instval == dc.replace(
@@ -473,9 +466,7 @@ class TestInstitutionValuesHandler:
                 ),
             )
             resp = ds_rc.request_seq(
-                "POST",
-                f"/institution/values/{WBS_L1}",
-                {"institution": inst, "institution_values": dc.asdict(post_instval)},
+                "POST", f"/institution/values/{WBS_L1}", post_instval.restful_dict(inst)
             )
             resp_instval = from_dict(uut.InstitutionValues, resp)
             assert resp_instval == dc.replace(

@@ -269,7 +269,16 @@ class MOUDatabaseClient:
         return vals
 
     async def upsert_institution_values(
-        self, wbs_db: str, institution: str, vals: uut.InstitutionValues
+        self,
+        wbs_db: str,
+        institution: str,
+        phds_authors: int | None,
+        faculty: int | None,
+        scientists_post_docs: int | None,
+        grad_students: int | None,
+        cpus: int | None,
+        gpus: int | None,
+        text: str,
     ) -> uut.InstitutionValues:
         """Upsert the values for an institution."""
         logging.debug(
@@ -282,7 +291,15 @@ class MOUDatabaseClient:
         before = await self.get_institution_values(
             wbs_db, _LIVE_COLLECTION, institution
         )
-        vals = before.update_anew(vals)
+        vals = before.compute_last_edits(
+            phds_authors,
+            faculty,
+            scientists_post_docs,
+            grad_students,
+            cpus,
+            gpus,
+            text,
+        )
 
         # put in DB
         await self._update_institution_values(wbs_db, institution, vals)

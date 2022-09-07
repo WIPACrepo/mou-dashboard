@@ -285,7 +285,7 @@ class InstitutionValuesConfirmationHandler(BaseMOUHandler):  # pylint: disable=W
 
     ROUTE = rf"/institution/values/confirmation/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["admin"])  # type: ignore
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
         institution = self.get_argument("institution")
@@ -324,19 +324,26 @@ class InstitutionValuesHandler(BaseMOUHandler):  # pylint: disable=W0223
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
         institution = self.get_argument("institution")
-        institution_values = self.get_argument("institution_values")
 
-        vals = from_dict(uut.InstitutionValues, institution_values)
-        try:
-            vals.no_metadata_check()
-        except ValueError as e:
-            raise web.HTTPError(
-                422,
-                reason=f"Client attempted to override metadata field(s) ({wbs_l1=}, {institution=}, {vals=}).",
-            ) from e
+        # client cannot try to override metadata
+        phds_authors = self.get_argument("phds_authors", type=int)
+        faculty = self.get_argument("faculty", type=int)
+        scientists_post_docs = self.get_argument("scientists_post_docs", type=int)
+        grad_students = self.get_argument("grad_students", type=int)
+        cpus = self.get_argument("cpus", type=int)
+        gpus = self.get_argument("gpus", type=int)
+        text = self.get_argument("text")
 
         vals = await self.mou_db_client.upsert_institution_values(
-            wbs_l1, institution, vals
+            wbs_l1,
+            institution,
+            phds_authors,
+            faculty,
+            scientists_post_docs,
+            grad_students,
+            cpus,
+            gpus,
+            text,
         )
 
         self.write(dc.asdict(vals))
