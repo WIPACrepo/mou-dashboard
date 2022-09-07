@@ -371,16 +371,16 @@ class TestDataSource:
         mock_ili.return_value = True
         response = {
             "snapshots": [
-                uut.SnapshotInfo(
+                dict(  # -> uut.SnapshotInfo
                     timestamp="a", name="aye", creator="George", admin_only=False
                 ),
-                uut.SnapshotInfo(
+                dict(  # -> uut.SnapshotInfo
                     timestamp="b", name="bee", creator="Ringo", admin_only=False
                 ),
-                uut.SnapshotInfo(
+                dict(  # -> uut.SnapshotInfo
                     timestamp="c", name="see", creator="John", admin_only=False
                 ),
-                uut.SnapshotInfo(
+                dict(  # -> uut.SnapshotInfo
                     timestamp="d", name="dee", creator="Paul", admin_only=False
                 ),
             ],
