@@ -389,6 +389,7 @@ class TestInstitutionValuesHandler:
         assert set(first_post_insts.keys()) == set(inst_keys)  # JIC tests change
 
         # Add institution values
+        time.sleep(1)
         assert local_insts
         for inst in local_insts:
             post_instval = first_post_insts.pop(inst)  # be done w/ this structure ASAP
@@ -425,9 +426,11 @@ class TestInstitutionValuesHandler:
             # update local storage
             local_insts[inst] = resp_instval
 
+        time.sleep(1)
         # TODO - TEST EDITING TABLE
 
         # Confirm headcounts
+        time.sleep(1)
         assert local_insts
         for inst in local_insts:
             now = int(time.time())
@@ -456,6 +459,7 @@ class TestInstitutionValuesHandler:
             local_insts[inst] = resp_instval
 
         # Confirm table + computing
+        time.sleep(1)
         assert local_insts
         for inst in local_insts:
             now = int(time.time())
@@ -501,6 +505,7 @@ class TestInstitutionValuesHandler:
         )
 
         # Check values / confirmations
+        time.sleep(1)
         assert local_insts
         for inst in local_insts:
             resp = ds_rc.request_seq(
