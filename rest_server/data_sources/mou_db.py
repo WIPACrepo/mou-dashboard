@@ -282,7 +282,7 @@ class MOUDatabaseClient:
     ) -> uut.InstitutionValues:
         """Upsert the values for an institution."""
         logging.debug(
-            f"Upserting Institution's Values ({wbs_db=}, {institution=}, {vals=})..."
+            f"Upserting Institution's Values ({wbs_db=}, {institution=}, {[phds_authors,faculty,scientists_post_docs,grad_students,cpus,gpus,text]=})..."
         )
 
         await self._check_database_state(wbs_db)
@@ -514,7 +514,7 @@ class MOUDatabaseClient:
 
     async def upsert_record(
         self, wbs_db: str, record: uut.DBRecord, editor: str
-    ) -> uut.DBRecord:
+    ) -> Tuple[uut.DBRecord, uut.InstitutionValues]:
         """Insert a record.
 
         Update if it already exists.
@@ -524,7 +524,8 @@ class MOUDatabaseClient:
         await self._check_database_state(wbs_db)
 
         # record timestamp and editor's name
-        record[columns.TIMESTAMP] = time.time()
+        now = time.time()
+        record[columns.TIMESTAMP] = now
         if editor:
             record[columns.EDITOR] = editor
 
@@ -543,11 +544,31 @@ class MOUDatabaseClient:
             record[columns.ID] = res.inserted_id
             logging.info(f"Inserted {record} ({wbs_db=}) -> {res}.")
 
-        return self.data_adaptor.demongofy_record(record)
+        # update table's last edit in institution values
+        if record[columns.INSTITUTION]:
+            instvals = await self.get_institution_values(
+                wbs_db,
+                "",
+                record[columns.INSTITUTION],  # type: ignore[arg-type]
+            )
+            instvals = dc.replace(
+                instvals,
+                table_metadata=dc.replace(
+                    instvals.table_metadata, last_edit_ts=int(now)
+                ),
+            )
+            # put in DB
+            instvals = await self._update_institution_values(
+                wbs_db,
+                record[columns.INSTITUTION],  # type: ignore[arg-type]
+                instvals,
+            )
+
+        return self.data_adaptor.demongofy_record(record), instvals
 
     async def _set_is_deleted_status(
         self, wbs_db: str, record_id: str, is_deleted: bool, editor: str = ""
-    ) -> uut.DBRecord:
+    ) -> Tuple[uut.DBRecord, uut.InstitutionValues]:
         """Mark the record as deleted/not-deleted."""
         query = self.data_adaptor.mongofy_record(
             wbs_db,
@@ -558,22 +579,24 @@ class MOUDatabaseClient:
         )
 
         record.update({self.data_adaptor.IS_DELETED: is_deleted})
-        record = await self.upsert_record(wbs_db, record, editor)
+        record, instvals = await self.upsert_record(wbs_db, record, editor)
 
-        return record
+        return record, instvals
 
     async def delete_record(
         self, wbs_db: str, record_id: str, editor: str
-    ) -> uut.DBRecord:
+    ) -> Tuple[uut.DBRecord, uut.InstitutionValues]:
         """Mark the record as deleted."""
         logging.debug(f"Deleting {record_id} ({wbs_db=})...")
 
         await self._check_database_state(wbs_db)
 
-        record = await self._set_is_deleted_status(wbs_db, record_id, True, editor)
+        record, instvals = await self._set_is_deleted_status(
+            wbs_db, record_id, True, editor
+        )
 
         logging.info(f"Deleted {record} ({wbs_db=}).")
-        return record
+        return record, instvals
 
     async def snapshot_live_collection(
         self, wbs_db: str, name: str, creator: str, admin_only: bool

@@ -300,7 +300,7 @@ def push_record(  # pylint: disable=R0913
     # labor: types.DashVal = "",
     institution: types.DashVal = "",
     novel: bool = False,
-) -> uut.WebRecord:
+) -> Tuple[uut.WebRecord, uut.InstitutionValues]:
     """Push new/changed record to source.
 
     Keyword Arguments:
@@ -324,6 +324,7 @@ def push_record(  # pylint: disable=R0913
 
     class _RespRecord(TypedDict):
         record: uut.WebRecord
+        institution_values: uut.InstitutionValues
 
     # request
     body: Dict[str, Any] = {
@@ -338,19 +339,28 @@ def push_record(  # pylint: disable=R0913
     #     body["task"] = task.replace("\n", " ")
     response = cast(_RespRecord, mou_request("POST", f"/record/{wbs_l1}", body=body))
     # get & convert
-    return _convert_record_rest_to_dash(response["record"], tconfig, novel=novel)
+    return (
+        _convert_record_rest_to_dash(response["record"], tconfig, novel=novel),
+        from_dict(uut.InstitutionValues, response["institution_values"]),
+    )
 
 
-def delete_record(wbs_l1: str, record_id: str) -> None:
+def delete_record(wbs_l1: str, record_id: str) -> uut.InstitutionValues:
     """Delete the record, return True if successful."""
     _validate(wbs_l1, str, falsy_okay=False)
     _validate(record_id, str)
+
+    class _RespRecord(TypedDict):
+        record: uut.WebRecord
+        institution_values: uut.InstitutionValues
 
     body = {
         "record_id": record_id,
         "editor": CurrentUser.get_username(),
     }
-    mou_request("DELETE", f"/record/{wbs_l1}", body=body)
+    response = cast(_RespRecord, mou_request("DELETE", f"/record/{wbs_l1}", body=body))
+    # get & convert
+    return from_dict(uut.InstitutionValues, response["institution_values"])  # type: ignore[no-any-return]
 
 
 # --------------------------------------------------------------------------------------

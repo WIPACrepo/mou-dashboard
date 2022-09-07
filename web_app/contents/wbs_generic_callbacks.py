@@ -91,7 +91,7 @@ def _add_new_data(  # pylint: disable=R0913
 
     # push to data source AND auto-fill labor and/or institution
     try:
-        new_record = src.push_record(
+        new_record, instvals = src.push_record(
             wbs_l1,
             new_record,
             tconfig,
@@ -143,7 +143,9 @@ def confirm_deletion(
             try:
                 wbs_l1 = du.get_wbs_l1(s_urlpath)
                 tconfig = tc.TableConfigParser(wbs_l1)
-                src.delete_record(wbs_l1, cast(str, s_record[tconfig.const.ID]))
+                inst_vals = src.delete_record(
+                    wbs_l1, cast(str, s_record[tconfig.const.ID])
+                )
                 lines = [html.Div(s) for s in src.record_to_strings(s_record, tconfig)]
                 return None, no_update, True, lines
             except DataSourceException:
@@ -349,7 +351,7 @@ def _push_modified_records(
     last_record = {}
     for record in modified_records:
         try:
-            last_record = src.push_record(wbs_l1, record, tconfig)
+            last_record, instvals = src.push_record(wbs_l1, record, tconfig)
         except DataSourceException:
             pass
 

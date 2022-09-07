@@ -6,14 +6,11 @@ import json
 import logging
 from typing import Any
 
-import universal_utils.types as uut
-from dacite import from_dict
 from motor.motor_tornado import MotorClient  # type: ignore
 from rest_tools.server import RestHandler, handler
-from tornado import web
 
 from .config import AUTH_PREFIX
-from .data_sources import columns, mou_db, table_config_cache, todays_institutions, wbs
+from .data_sources import mou_db, table_config_cache, todays_institutions, wbs
 from .utils import utils
 
 _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
@@ -149,10 +146,12 @@ class RecordHandler(BaseMOUHandler):  # pylint: disable=W0223
         #     record[columns.TASK_DESCRIPTION] = task  # insert
 
         record = self.tc_data_adaptor.remove_on_the_fly_fields(record)
-        record = await self.mou_db_client.upsert_record(wbs_l1, record, editor)
+        record, instvals = await self.mou_db_client.upsert_record(
+            wbs_l1, record, editor
+        )
         record = self.tc_data_adaptor.add_on_the_fly_fields(record)
 
-        self.write({"record": record})
+        self.write({"record": record, "institution_values": dc.asdict(instvals)})
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def delete(self, wbs_l1: str) -> None:
@@ -160,9 +159,11 @@ class RecordHandler(BaseMOUHandler):  # pylint: disable=W0223
         record_id = self.get_argument("record_id")
         editor = self.get_argument("editor")
 
-        record = await self.mou_db_client.delete_record(wbs_l1, record_id, editor)
+        record, instvals = await self.mou_db_client.delete_record(
+            wbs_l1, record_id, editor
+        )
 
-        self.write({"record": record})
+        self.write({"record": record, "institution_values": dc.asdict(instvals)})
 
 
 # -----------------------------------------------------------------------------
