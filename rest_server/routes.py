@@ -196,7 +196,12 @@ class TableConfigHandler(BaseMOUHandler):  # pylint: disable=W0223
             for l1 in wbs.WORK_BREAKDOWN_STRUCTURES.keys()  # pylint:disable=C0201
         }
 
-        logging.debug("Table Config:\n%s", json.dumps(table_config, indent=4))
+        logging.debug(
+            "Table Config Keys:\n%s",
+            json.dumps(
+                {k: {k1 for k1 in v} for k, v in table_config.items()}, indent=4
+            ),
+        )
 
         self.write(table_config)
 
