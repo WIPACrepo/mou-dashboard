@@ -823,6 +823,7 @@ def handle_make_snapshot(
         Output("wbs-cpus", "disabled"),
         Output("wbs-gpus", "disabled"),
         Output("wbs-textarea", "disabled"),
+        # redirect
         Output("url-user-inst-redirect", "pathname"),
     ],
     [Input("dummy-input-for-setup", "hidden")],  # never triggered
@@ -847,7 +848,8 @@ def setup_user_dependent_components(
     bool,
     bool,
     bool,
-    # , str
+    # redirect
+    str,
 ]:
     """Logged-in callback."""
     try:
@@ -880,6 +882,7 @@ def setup_user_dependent_components(
             True,  # institution value disabled
             True,  # institution value disabled
             True,  # institution value disabled
+            # redirect
             no_update,
         )
 
@@ -897,6 +900,7 @@ def setup_user_dependent_components(
         False,  # institution value NOT disabled
         False,  # institution value NOT disabled
         False,  # institution value NOT disabled
+        # redirect
         no_update,
     )
 
