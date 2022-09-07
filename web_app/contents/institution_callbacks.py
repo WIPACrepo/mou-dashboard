@@ -166,13 +166,13 @@ class SelectInstitutionValueInputs:
     ) -> uut.InstitutionValues:
         """Get an `InstitutionValues` instance from fields and `state`."""
 
-        headcounts_metadata = uut.InstitutionAttributeMetadata(
+        headcounts_metadata = uut.InstitutionAttrMetadata(
             **state.s_conf_headcounts,
         )
-        table_metadata = uut.InstitutionAttributeMetadata(
+        table_metadata = uut.InstitutionAttrMetadata(
             **state.s_conf_table,
         )
-        computing_metadata = uut.InstitutionAttributeMetadata(
+        computing_metadata = uut.InstitutionAttrMetadata(
             **state.s_conf_computing,
         )
 

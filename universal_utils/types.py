@@ -31,7 +31,7 @@ class SnapshotInfo:
 
 
 @dc.dataclass(frozen=True)
-class InstitutionAttributeMetadata:
+class InstitutionAttrMetadata:
     """Metadata for an `InstitutionValues` attribute/attributes."""
 
     last_edit_ts: int = 0
@@ -58,12 +58,29 @@ class InstitutionValues:
     cpus: int | None = None
     gpus: int | None = None
     text: str = ""
-    headcounts_metadata: InstitutionAttributeMetadata = InstitutionAttributeMetadata()
-    table_metadata: InstitutionAttributeMetadata = InstitutionAttributeMetadata()
-    computing_metadata: InstitutionAttributeMetadata = InstitutionAttributeMetadata()
+    headcounts_metadata: InstitutionAttrMetadata | None = InstitutionAttrMetadata()
+    table_metadata: InstitutionAttrMetadata | None = InstitutionAttrMetadata()
+    computing_metadata: InstitutionAttrMetadata | None = InstitutionAttrMetadata()
+
+    def no_metadata_check(self) -> None:
+        """Raise a ValueError if one (or more) of the metadata fields is not None."""
+        if (
+            self.headcounts_metadata is not None
+            or self.table_metadata is not None
+            or self.computing_metadata is not None
+        ):
+            raise ValueError(f"Instance has non-None metadata field(s): {self}")
 
     def update_anew(self, newer: "InstitutionValues") -> "InstitutionValues":
-        """Copy all fields from `newer`, and update all metadata `last_edit_ts` values by diffing with `self`."""
+        """Copy non-metadata fields from `newer` and compute new metadata.
+
+        Non-table metadata's `last_edit_ts` values are computed by diffing with `self`.
+
+        `newer` cannot have any non-None metadata fields (simplifies assumptions).
+        """
+        newer.no_metadata_check()
+
+        now = int(time.time())
 
         # Update "last edit"?
         if (
@@ -72,26 +89,27 @@ class InstitutionValues:
             or self.scientists_post_docs != newer.scientists_post_docs
             or self.grad_students != newer.grad_students
         ):
-            headcounts_metadata = dc.replace(
-                newer.headcounts_metadata, last_edit_ts=int(time.time())
-            )
+            headcounts_metadata = dc.replace(self.headcounts_metadata, last_edit_ts=now)
         else:
-            headcounts_metadata = newer.headcounts_metadata
-
-        # Just copy over `newer.table_metadata` since table values live elsewhere
-        table_metadata = newer.table_metadata
+            headcounts_metadata = self.headcounts_metadata
 
         # Update "last edit"?
         if self.cpus != newer.cpus or self.gpus != newer.gpus:
-            computing_metadata = dc.replace(
-                newer.computing_metadata, last_edit_ts=int(time.time())
-            )
+            computing_metadata = dc.replace(self.computing_metadata, last_edit_ts=now)
         else:
-            computing_metadata = newer.computing_metadata
+            computing_metadata = self.computing_metadata
 
         return dc.replace(
             newer,
             headcounts_metadata=headcounts_metadata,
-            table_metadata=table_metadata,
             computing_metadata=computing_metadata,
+        )
+
+    def without_metadatas(self) -> "InstitutionValues":
+        """Get an instance w/o the metadata fields."""
+        return dc.replace(
+            self,
+            headcounts_metadata=None,
+            table_metadata=None,
+            computing_metadata=None,
         )

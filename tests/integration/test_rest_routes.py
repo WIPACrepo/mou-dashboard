@@ -406,15 +406,15 @@ class TestInstitutionValuesHandler:
             assert abs(updated_last_edit_ts - int(time.time())) <= 1
             assert resp_instval == dc.replace(
                 post_instval,
-                headcounts_metadata=uut.InstitutionAttributeMetadata(
+                headcounts_metadata=uut.InstitutionAttrMetadata(
                     last_edit_ts=updated_last_edit_ts,
                     confirmation_ts=0,
                     confirmation_touchstone_ts=0,
                 ),
-                table_metadata=uut.InstitutionAttributeMetadata(
+                table_metadata=uut.InstitutionAttrMetadata(
                     last_edit_ts=0, confirmation_ts=0, confirmation_touchstone_ts=0
                 ),
-                computing_metadata=uut.InstitutionAttributeMetadata(
+                computing_metadata=uut.InstitutionAttrMetadata(
                     last_edit_ts=updated_last_edit_ts,
                     confirmation_ts=0,
                     confirmation_touchstone_ts=0,

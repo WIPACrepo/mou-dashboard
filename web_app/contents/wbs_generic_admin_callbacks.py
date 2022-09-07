@@ -8,7 +8,7 @@ from typing import Any, Dict, Final, List, Tuple, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import universal_utils.types as uut
-from dash import dcc, no_update
+from dash import dcc  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
 
 from ..config import app

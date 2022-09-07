@@ -10,6 +10,7 @@ import universal_utils.types as uut
 from dacite import from_dict
 from motor.motor_tornado import MotorClient  # type: ignore
 from rest_tools.server import RestHandler, handler
+from tornado import web
 
 from .config import AUTH_PREFIX
 from .data_sources import columns, mou_db, table_config_cache, todays_institutions, wbs
@@ -303,19 +304,13 @@ class InstitutionValuesHandler(BaseMOUHandler):  # pylint: disable=W0223
         institution_values = self.get_argument("institution_values")
 
         vals = from_dict(uut.InstitutionValues, institution_values)
-
-        # vals = uut.InstitutionValues(
-        #     phds_authors=phds if phds >= 0 else None,
-        #     faculty=faculty if faculty >= 0 else None,
-        #     scientists_post_docs=sci if sci >= 0 else None,
-        #     grad_students=grad if grad >= 0 else None,
-        #     cpus=cpus if cpus >= 0 else None,
-        #     gpus=gpus if gpus >= 0 else None,
-        #     text=text,
-        #     headcounts_confirmed_ts=headcounts_confirmed_ts,
-        #     table_confirmed_ts=table_confirmed_ts,
-        #     computing_confirmed_ts=computing_confirmed_ts,
-        # )
+        try:
+            vals.no_metadata_check()
+        except ValueError as e:
+            raise web.HTTPError(
+                422,
+                reason=f"Client attempted to override metadata field(s) ({wbs_l1=}, {institution=}, {vals=}).",
+            ) from e
 
         vals = await self.mou_db_client.upsert_institution_values(
             wbs_l1, institution, vals
