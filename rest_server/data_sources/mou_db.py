@@ -195,7 +195,7 @@ class MOUDatabaseClient:
         doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
         for institution, vals in doc.snapshot_institution_values.items():
             instvals = from_dict(uut.InstitutionValues, vals)
-            dc.replace(
+            instvals = dc.replace(
                 instvals,
                 headcounts_metadata=dc.replace(
                     instvals.headcounts_metadata, confirmation_touchstone_ts=now
