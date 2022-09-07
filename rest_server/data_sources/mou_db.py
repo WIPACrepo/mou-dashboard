@@ -228,6 +228,46 @@ class MOUDatabaseClient:
         logging.info(f"Got touchstone ({wbs_db=}, {timestamp=}).")
         return timestamp  # type: ignore[no-any-return]
 
+    async def _update_institution_values(
+        self,
+        wbs_db: str,
+        institution: str,
+        vals: uut.InstitutionValues,
+    ) -> uut.InstitutionValues:
+        """Put in DB."""
+        doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
+        doc.snapshot_institution_values.update({institution: dc.asdict(vals)})
+        await self._set_supplemental_doc(wbs_db, _LIVE_COLLECTION, doc)
+
+        return vals
+
+    async def confirm_institution_values(
+        self,
+        wbs_db: str,
+        institution: str,
+        headcounts: bool,
+        table: bool,
+        computing: bool,
+    ) -> uut.InstitutionValues:
+        """Confirm the indicated values for an institution."""
+        logging.debug(
+            f"Confirming Institution's Values ({wbs_db=}, {institution=}, {headcounts=}, {table=}, {computing=})..."
+        )
+
+        await self._check_database_state(wbs_db)
+
+        # update
+        vals = await self.get_institution_values(wbs_db, _LIVE_COLLECTION, institution)
+        vals = vals.confirm(headcounts, table, computing)
+
+        # put in DB
+        await self._update_institution_values(wbs_db, institution, vals)
+
+        logging.info(
+            f"Confirmed Institution's Values ({wbs_db=}, {institution=}, {vals=})."
+        )
+        return vals
+
     async def upsert_institution_values(
         self, wbs_db: str, institution: str, vals: uut.InstitutionValues
     ) -> uut.InstitutionValues:
@@ -245,9 +285,7 @@ class MOUDatabaseClient:
         vals = before.update_anew(vals)
 
         # put in DB
-        doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
-        doc.snapshot_institution_values.update({institution: dc.asdict(vals)})
-        await self._set_supplemental_doc(wbs_db, _LIVE_COLLECTION, doc)
+        await self._update_institution_values(wbs_db, institution, vals)
 
         logging.info(
             f"Upserted Institution's Values ({wbs_db=}, {institution=}, {vals=})."

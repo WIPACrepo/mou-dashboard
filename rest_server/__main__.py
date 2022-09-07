@@ -17,6 +17,7 @@ from . import config
 from .data_sources import table_config_cache, todays_institutions
 from .routes import (
     InstitutionStaticHandler,
+    InstitutionValuesConfirmationHandler,
     InstitutionValuesConfirmationTouchstoneHandler,
     InstitutionValuesHandler,
     MainHandler,
@@ -69,11 +70,20 @@ async def start(debug: bool = False) -> RestServer:
         InstitutionValuesConfirmationTouchstoneHandler,
         args,
     )
+    server.add_route(  # post
+        InstitutionValuesConfirmationHandler.ROUTE,
+        InstitutionValuesConfirmationHandler,
+        args,
+    )
     server.add_route(  # get, post
-        InstitutionValuesHandler.ROUTE, InstitutionValuesHandler, args
+        InstitutionValuesHandler.ROUTE,
+        InstitutionValuesHandler,
+        args,
     )
     server.add_route(  # get
-        InstitutionStaticHandler.ROUTE, InstitutionStaticHandler, args
+        InstitutionStaticHandler.ROUTE,
+        InstitutionStaticHandler,
+        args,
     )
 
     server.startup(address=env.MOU_REST_HOST, port=env.MOU_REST_PORT)

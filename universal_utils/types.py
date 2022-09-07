@@ -113,3 +113,29 @@ class InstitutionValues:
             table_metadata=None,
             computing_metadata=None,
         )
+
+    def confirm(
+        self, headcounts: bool, table: bool, computing: bool
+    ) -> "InstitutionValues":
+        """Confirm the indicated values (update their metadata's `confirmation_ts`)."""
+        now = int(time.time())
+
+        if headcounts:
+            headcounts_metadata = dc.replace(
+                self.headcounts_metadata, confirmation_ts=now
+            )
+
+        if table:
+            table_metadata = dc.replace(self.table_metadata, confirmation_ts=now)
+
+        if computing:
+            computing_metadata = dc.replace(
+                self.computing_metadata, confirmation_ts=now
+            )
+
+        return dc.replace(
+            self,
+            headcounts_metadata=headcounts_metadata,
+            table_metadata=table_metadata,
+            computing_metadata=computing_metadata,
+        )

@@ -280,6 +280,29 @@ class InstitutionValuesConfirmationTouchstoneHandler(
 # -----------------------------------------------------------------------------
 
 
+class InstitutionValuesConfirmationHandler(BaseMOUHandler):  # pylint: disable=W0223
+    """Handle requests for confirming institution values."""
+
+    ROUTE = rf"/institution/values/confirmation/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
+
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["admin"])  # type: ignore
+    async def post(self, wbs_l1: str) -> None:
+        """Handle POST."""
+        institution = self.get_argument("institution")
+        headcounts = self.get_argument("headcounts", type=bool, default=False)
+        table = self.get_argument("table", type=bool, default=False)
+        computing = self.get_argument("computing", type=bool, default=False)
+
+        vals = await self.mou_db_client.confirm_institution_values(
+            wbs_l1, institution, headcounts, table, computing
+        )
+
+        self.write(dc.asdict(vals))
+
+
+# -----------------------------------------------------------------------------
+
+
 class InstitutionValuesHandler(BaseMOUHandler):  # pylint: disable=W0223
     """Handle requests for managing an institution's values, possibly for a snapshot."""
 
