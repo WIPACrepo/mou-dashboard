@@ -235,14 +235,14 @@ class TestDataSource:
         bodies = [
             {  # Default values
                 "institution": "",
-                "labor": "",
+                # "labor": "",
                 "total_rows": False,
                 "snapshot": "",
                 "restore_id": "",
             },
             {  # Other values
                 "institution": "bar",
-                "labor": "baz",
+                # "labor": "baz",
                 "total_rows": True,
                 "snapshot": "123",
                 "restore_id": "456789456123",
@@ -290,7 +290,7 @@ class TestDataSource:
         class _Body(TypedDict, total=False):
             record: uut.WebRecord
             institution: str
-            labor: str
+            # labor: str
             editor: str
 
         bodies: List[_Body] = [
@@ -299,7 +299,7 @@ class TestDataSource:
             # Other values
             {
                 "institution": "foo",
-                "labor": "bar",
+                # "labor": "bar",
                 "record": {"a": 1},
                 "editor": "t.hanks",
             },
