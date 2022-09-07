@@ -198,9 +198,7 @@ class TableConfigHandler(BaseMOUHandler):  # pylint: disable=W0223
 
         logging.debug(
             "Table Config Keys:\n%s",
-            json.dumps(
-                {k: {k1 for k1 in v} for k, v in table_config.items()}, indent=4
-            ),
+            json.dumps({k: list(v.keys()) for k, v in table_config.items()}, indent=4),
         )
 
         self.write(table_config)
