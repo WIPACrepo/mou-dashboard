@@ -296,7 +296,7 @@ def push_record(  # pylint: disable=R0913
     wbs_l1: str,
     record: uut.WebRecord,
     tconfig: tc.TableConfigParser,
-    task: str = "",
+    # task: str = "",
     # labor: types.DashVal = "",
     institution: types.DashVal = "",
     novel: bool = False,
@@ -313,11 +313,14 @@ def push_record(  # pylint: disable=R0913
     """
     _validate(wbs_l1, str, falsy_okay=False)
     _validate(record, dict)
-    _validate(task, str)
+    # _validate(task, str)
     # labor = _validate(labor, types.DashVal_types, out=str)
     institution = _validate(institution, types.DashVal_types, out=str)
     _validate(novel, bool)
     _validate(tconfig, tc.TableConfigParser)
+
+    if institution:
+        record[tconfig.const.INSTITUTION] = institution
 
     class _RespRecord(TypedDict):
         record: uut.WebRecord
@@ -327,12 +330,12 @@ def push_record(  # pylint: disable=R0913
         "record": _convert_record_dash_to_rest(record, tconfig),
         "editor": CurrentUser.get_username(),
     }
-    if institution:
-        body["institution"] = institution
+    # if institution:
+    #     body["institution"] = institution
     # if labor:
     #     body["labor"] = labor
-    if task:
-        body["task"] = task.replace("\n", " ")
+    # if task:
+    #     body["task"] = task.replace("\n", " ")
     response = cast(_RespRecord, mou_request("POST", f"/record/{wbs_l1}", body=body))
     # get & convert
     return _convert_record_rest_to_dash(response["record"], tconfig, novel=novel)
