@@ -369,32 +369,32 @@ class TestDataSource:
             "t.hanks", ["/tokens/mou-dashboard-admin"]
         )
         mock_ili.return_value = True
-        response = {
-            "snapshots": [
-                uut.SnapshotInfo(
-                    timestamp="a", name="aye", creator="George", admin_only=False
-                ),
-                uut.SnapshotInfo(
-                    timestamp="b", name="bee", creator="Ringo", admin_only=False
-                ),
-                uut.SnapshotInfo(
-                    timestamp="c", name="see", creator="John", admin_only=False
-                ),
-                uut.SnapshotInfo(
-                    timestamp="d", name="dee", creator="Paul", admin_only=False
-                ),
-            ],
-        }
+        snap_infos = [
+            uut.SnapshotInfo(
+                timestamp="a", name="aye", creator="George", admin_only=False
+            ),
+            uut.SnapshotInfo(
+                timestamp="b", name="bee", creator="Ringo", admin_only=False
+            ),
+            uut.SnapshotInfo(
+                timestamp="c", name="see", creator="John", admin_only=False
+            ),
+            uut.SnapshotInfo(
+                timestamp="d", name="dee", creator="Paul", admin_only=False
+            ),
+        ]
 
         # Call
-        mock_rest.return_value.request_seq.return_value = response
+        mock_rest.return_value.request_seq.return_value = {
+            "snapshots": [dc.asdict(si) for si in snap_infos]
+        }
         ret = src.list_snapshots(WBS)
 
         # Assert
         mock_rest.return_value.request_seq.assert_called_with(
             "GET", f"/snapshots/list/{WBS}", {"is_admin": True}
         )
-        assert sorted(ret, key=lambda si: si.timestamp) == response["snapshots"]
+        assert sorted(ret, key=lambda si: si.timestamp) == snap_infos
 
     @staticmethod
     @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
