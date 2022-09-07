@@ -494,6 +494,7 @@ class TestInstitutionValuesHandler:
             local_insts[inst] = resp_instval
 
         # Re-touchstone
+        time.sleep(1)
         ts_ts = ds_rc.request_seq(
             "POST", f"/institution/values/confirmation/touchstone/{WBS_L1}"
         )["touchstone_timestamp"]
@@ -527,3 +528,5 @@ class TestInstitutionValuesHandler:
             assert not resp_instval.headcounts_metadata.has_valid_confirmation()
             assert not resp_instval.table_metadata.has_valid_confirmation()
             assert not resp_instval.computing_metadata.has_valid_confirmation()
+            # update local storage
+            local_insts[inst] = resp_instval
