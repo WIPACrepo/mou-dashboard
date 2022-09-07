@@ -2,8 +2,7 @@
 
 import dataclasses as dc
 import logging
-import time
-from typing import Dict, List, cast
+from typing import Dict, List
 
 import universal_utils.types as uut
 from dash import no_update  # type: ignore[import]
@@ -12,10 +11,9 @@ from dash.dependencies import Input, Output, State  # type: ignore[import]
 from ..config import app
 from ..data_source import data_source as src
 from ..data_source import institution_info
-from ..data_source import table_config as tc
 from ..data_source.utils import DataSourceException
 from ..utils import dash_utils as du
-from ..utils import types, utils
+from ..utils import types
 from ..utils.oidc_tools import CurrentUser
 
 
@@ -160,12 +158,13 @@ class SelectInstitutionValueInputs:
     comfirm_headcounts_click: int
     comfirm_table_click: int
     comfirm_computing_click: int
+    # INTERVALS
+    n_interval_trigger_conf_refresh: int
 
     def get_institution_values(
         self, state: SelectInstitutionValueState
     ) -> uut.InstitutionValues:
         """Get an `InstitutionValues` instance from fields and `state`."""
-
         headcounts_metadata = uut.InstitutionAttrMetadata(
             **state.s_conf_headcounts,
         )
@@ -175,46 +174,6 @@ class SelectInstitutionValueInputs:
         computing_metadata = uut.InstitutionAttrMetadata(
             **state.s_conf_computing,
         )
-
-        # Update Confirmations
-        # similar logic to `InstitutionValues.update_anew()`
-        match du.triggered():
-            # Confirm Headcounts
-            case "wbs-headcounts-confirm-yes.n_clicks":
-                headcounts_metadata = dc.replace(
-                    headcounts_metadata,
-                    confirmation_ts=int(time.time()),
-                )
-                logging.debug(f"Confirming headcounts_metadata: {headcounts_metadata}")
-            # Confirm Table
-            case "wbs-table-confirm-yes.n_clicks":
-                table_metadata = dc.replace(
-                    table_metadata,
-                    confirmation_ts=int(time.time()),
-                )
-                logging.debug(f"Confirming table_metadata: {table_metadata}")
-            # Confirm Computing
-            case "wbs-computing-confirm-yes.n_clicks":
-                computing_metadata = dc.replace(
-                    computing_metadata,
-                    confirmation_ts=int(time.time()),
-                )
-                logging.debug(f"Confirming computing_metadata: {computing_metadata}")
-
-        # Set Table's Last Edit
-        tconfig = tc.TableConfigParser(du.get_wbs_l1(state.s_urlpath))
-        # TODO - what about when a record was just deleted? that's an edit, but it won't be here
-        # - could change table's last-edit on the backend when record is updated...
-        # -- then always use that? and skip all this logic here?
-        if timestamps := [
-            utils.iso_to_epoch(cast(str, r[tconfig.const.TIMESTAMP]))
-            for r in state.s_table
-            if r.get(tconfig.const.TIMESTAMP)
-        ]:
-            table_metadata = dc.replace(
-                table_metadata,
-                last_edit_ts=int(max(timestamps)),
-            )
 
         return uut.InstitutionValues(
             phds_authors=self.phds_val,
@@ -312,6 +271,10 @@ class SelectInstitutionValueInputs:
                 ),
                 comfirm_table_click=Input("wbs-table-confirm-yes", "n_clicks"),
                 comfirm_computing_click=Input("wbs-computing-confirm-yes", "n_clicks"),
+                # INTERVALS
+                n_interval_trigger_conf_refresh=Input(
+                    "wbs-interval-trigger-confirmation-refreshes", "n_intervals"
+                ),
             )
         )
     ),
@@ -358,12 +321,14 @@ def _select_institution_value_dc(
                 logging.critical(f"ABORTED: select_institution_value() [{e}]")
                 return SelectInstitutionValueOutput()
             return to_pull_institution_values(inputs, state)
+        # INTERVALS
+        case "wbs-interval-trigger-confirmation-refreshes.n_intervals":
+            return to_pull_institution_values(inputs, state)
         # INST DROPDOWN
         case "wbs-dropdown-institution.value":
             return changed_institution(inputs, state)
-        # push some data
+        # INST VALUES
         case (
-            # INST VALUES
             "wbs-phds-authors.value"
             | "wbs-faculty.value"
             | "wbs-scientists-post-docs.value"
@@ -371,12 +336,15 @@ def _select_institution_value_dc(
             | "wbs-cpus.value"
             | "wbs-gpus.value"
             | "wbs-textarea.value"
-            # CLICKS
-            | "wbs-headcounts-confirm-yes.n_clicks"
+        ):
+            return to_push_institution_values(inputs, state)
+        # CLICKS
+        case (
+            "wbs-headcounts-confirm-yes.n_clicks"
             | "wbs-table-confirm-yes.n_clicks"
             | "wbs-computing-confirm-yes.n_clicks"
         ):
-            return to_push_institution_values(inputs, state)
+            return to_confirm_institution_values(inputs, state)
 
     raise ValueError(f"Unaccounted for trigger: {du.triggered()}")
 
@@ -658,48 +626,97 @@ def to_pull_institution_values(
 #     return du.build_urlpath(du.get_wbs_l1(s_urlpath), inst)  # type: ignore[arg-type]
 
 
-def to_push_institution_values(
-    inputs: SelectInstitutionValueInputs,
-    state: SelectInstitutionValueState,
-) -> SelectInstitutionValueOutput:
-    logging.info("to_push_institution_values")
-
+def institution_checks(state: SelectInstitutionValueState) -> str:
     # Is there an institution selected?
     if not (inst := du.get_inst(state.s_urlpath)):  # pylint: disable=C0325
-        return SelectInstitutionValueOutput()
+        raise ValueError()
 
     # Are the fields editable?
     if not CurrentUser.is_loggedin_with_permissions():
-        return SelectInstitutionValueOutput()
+        raise ValueError()
 
     # Is this a snapshot?
     if state.s_snap_ts:
+        raise ValueError()
+
+    return inst
+
+
+def to_confirm_institution_values(
+    inputs: SelectInstitutionValueInputs,
+    state: SelectInstitutionValueState,
+) -> SelectInstitutionValueOutput:
+    """Confirm inst values."""
+    logging.info("to_confirm_institution_values")
+
+    try:
+        inst = institution_checks(state)
+    except ValueError:
         return SelectInstitutionValueOutput()
 
     # Get the inst vals
     inst_vals = inputs.get_institution_values(state)
 
-    # Are we trying to confirm an already confirmed thing?
     match du.triggered():
+        # Confirm Headcounts
         case "wbs-headcounts-confirm-yes.n_clicks":
+            # are we trying to confirm an already confirmed thing?
             if inst_vals.headcounts_metadata.has_valid_confirmation():
                 logging.debug("ABORTED: Tried to re-confirm headcounts")
                 return SelectInstitutionValueOutput()
+            # confirm
+            logging.debug(f"Confirming headcounts_metadata: {inst_vals}")
+            inst_vals = src.confirm_institution_values(
+                du.get_wbs_l1(state.s_urlpath), inst, headcounts=True
+            )
+        # Confirm Table
         case "wbs-table-confirm-yes.n_clicks":
+            # are we trying to confirm an already confirmed thing?
             if inst_vals.table_metadata.has_valid_confirmation():
                 logging.debug("ABORTED: Tried to re-confirm table")
                 return SelectInstitutionValueOutput()
+            # confirm
+            logging.debug(f"Confirming table_metadata: {inst_vals}")
+            inst_vals = src.confirm_institution_values(
+                du.get_wbs_l1(state.s_urlpath), inst, table=True
+            )
+        # Confirm Computing
         case "wbs-computing-confirm-yes.n_clicks":
+            # are we trying to confirm an already confirmed thing?
             if inst_vals.computing_metadata.has_valid_confirmation():
                 logging.debug("ABORTED: Tried to re-confirm computing")
                 return SelectInstitutionValueOutput()
+            # confirm
+            logging.debug(f"Confirming computing_metadata: {inst_vals}")
+            inst_vals = src.confirm_institution_values(
+                du.get_wbs_l1(state.s_urlpath), inst, computing=True
+            )
+        case _:
+            raise ValueError(f"Unaccounted for trigger: {du.triggered()}")
 
     output = SelectInstitutionValueOutput()
+    output.update_institution_values(inst_vals)
+    return output
 
-    # TODO - use du.HEADCOUNTS_REQUIRED
+
+def to_push_institution_values(
+    inputs: SelectInstitutionValueInputs,
+    state: SelectInstitutionValueState,
+) -> SelectInstitutionValueOutput:
+    """Push inst values."""
+    logging.info("to_push_institution_values")
+
+    try:
+        inst = institution_checks(state)
+    except ValueError:
+        return SelectInstitutionValueOutput()
+
+    # Get the inst vals
+    inst_vals = inputs.get_institution_values(state)
 
     # push
     try:
+        output = SelectInstitutionValueOutput()
         output.update_institution_values(
             src.push_institution_values(
                 du.get_wbs_l1(state.s_urlpath),

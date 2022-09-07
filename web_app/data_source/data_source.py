@@ -300,11 +300,10 @@ def push_record(  # pylint: disable=R0913
     # labor: types.DashVal = "",
     institution: types.DashVal = "",
     novel: bool = False,
-) -> Tuple[uut.WebRecord, uut.InstitutionValues]:
+) -> uut.WebRecord:
     """Push new/changed record to source.
 
     Keyword Arguments:
-        labor {str} -- labor category value to be inserted into record (default: {""})
         institution {str} -- institution value to be inserted into record (default: {""})
         novel {bool} -- whether the record is new (default: {False})
 
@@ -339,13 +338,10 @@ def push_record(  # pylint: disable=R0913
     #     body["task"] = task.replace("\n", " ")
     response = cast(_RespRecord, mou_request("POST", f"/record/{wbs_l1}", body=body))
     # get & convert
-    return (
-        _convert_record_rest_to_dash(response["record"], tconfig, novel=novel),
-        from_dict(uut.InstitutionValues, response["institution_values"]),
-    )
+    return _convert_record_rest_to_dash(response["record"], tconfig, novel=novel)
 
 
-def delete_record(wbs_l1: str, record_id: str) -> uut.InstitutionValues:
+def delete_record(wbs_l1: str, record_id: str) -> None:
     """Delete the record, return True if successful."""
     _validate(wbs_l1, str, falsy_okay=False)
     _validate(record_id, str)
@@ -358,9 +354,7 @@ def delete_record(wbs_l1: str, record_id: str) -> uut.InstitutionValues:
         "record_id": record_id,
         "editor": CurrentUser.get_username(),
     }
-    response = cast(_RespRecord, mou_request("DELETE", f"/record/{wbs_l1}", body=body))
-    # get & convert
-    return from_dict(uut.InstitutionValues, response["institution_values"])  # type: ignore[no-any-return]
+    mou_request("DELETE", f"/record/{wbs_l1}", body=body)
 
 
 # --------------------------------------------------------------------------------------
@@ -477,7 +471,28 @@ def push_institution_values(  # pylint: disable=R0913
     institution = _validate(institution, types.DashVal_types)
 
     response = mou_request(
-        "POST", f"/institution/values/{wbs_l1}", body=inst_dc.restful_dict(institution)
+        "POST",
+        f"/institution/values/{wbs_l1}",
+        body=inst_dc.restful_dict(institution),  # type: ignore[arg-type]
+    )
+    return from_dict(uut.InstitutionValues, response)  # type: ignore[no-any-return] # fixed in future release
+
+
+def confirm_institution_values(
+    wbs_l1: str,
+    institution: str,
+    headcounts: bool = False,
+    table: bool = False,
+    computing: bool = False,
+) -> uut.InstitutionValues:
+    """Confirm the institution's indicated values."""
+    _validate(wbs_l1, str, falsy_okay=False)
+    institution = _validate(institution, types.DashVal_types, out=str)
+
+    response = mou_request(
+        "POST",
+        f"/institution/values/{wbs_l1}",
+        body={"headcounts": headcounts, "table": table, "computing": computing},
     )
     return from_dict(uut.InstitutionValues, response)  # type: ignore[no-any-return] # fixed in future release
 
