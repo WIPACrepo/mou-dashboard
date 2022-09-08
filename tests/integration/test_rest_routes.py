@@ -426,7 +426,7 @@ class TestInstitutionValuesHandler:
                 "GET", f"/table/data/{WBS_L1}", {"institution": inst}
             )["table"]
             now = int(time.time())
-            match local_insts:
+            match inst:
                 # add
                 case "LBNL":
                     to_add = records[0]
