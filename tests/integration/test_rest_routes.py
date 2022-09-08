@@ -427,7 +427,7 @@ class TestInstitutionValuesHandler:
         for i, inst in enumerate(local_insts):
             records = ds_rc.request_seq(
                 "GET", f"/table/data/{WBS_L1}", {"institution": inst}
-            )
+            )["table"]
             now = int(time.time())
             match i:
                 # add
