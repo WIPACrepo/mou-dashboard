@@ -462,8 +462,8 @@ class TestInstitutionValuesHandler:
                             "editor": "Tom Haverford",
                         },
                     )
-                case _:
-                    raise ValueError()
+                case other:
+                    raise ValueError(other)
             resp_instval = from_dict(uut.InstitutionValues, resp["institution_values"])
             assert resp_instval == dc.replace(
                 local_insts[inst],
