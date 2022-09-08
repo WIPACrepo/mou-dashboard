@@ -290,7 +290,6 @@ class TestDataSource:
         class _Body(TypedDict, total=False):
             record: uut.WebRecord
             institution: str
-            # labor: str
             editor: str
 
         bodies: List[_Body] = [
@@ -298,8 +297,6 @@ class TestDataSource:
             {"record": {"BAR": 23}, "editor": "t.hanks"},
             # Other values
             {
-                "institution": "foo",
-                # "labor": "bar",
                 "record": {"a": 1},
                 "editor": "t.hanks",
             },
