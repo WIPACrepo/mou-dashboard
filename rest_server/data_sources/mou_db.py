@@ -514,7 +514,7 @@ class MOUDatabaseClient:
 
     async def upsert_record(
         self, wbs_db: str, record: uut.DBRecord, editor: str
-    ) -> Tuple[uut.DBRecord, uut.InstitutionValues]:
+    ) -> Tuple[uut.DBRecord, uut.InstitutionValues | None]:
         """Insert a record.
 
         Update if it already exists.
@@ -545,6 +545,7 @@ class MOUDatabaseClient:
             logging.info(f"Inserted {record} ({wbs_db=}) -> {res}.")
 
         # update table's last edit in institution values
+        instvals = None
         if record[columns.INSTITUTION]:
             instvals = await self.get_institution_values(
                 wbs_db,
@@ -568,7 +569,7 @@ class MOUDatabaseClient:
 
     async def _set_is_deleted_status(
         self, wbs_db: str, record_id: str, is_deleted: bool, editor: str = ""
-    ) -> Tuple[uut.DBRecord, uut.InstitutionValues]:
+    ) -> Tuple[uut.DBRecord, uut.InstitutionValues | None]:
         """Mark the record as deleted/not-deleted."""
         query = self.data_adaptor.mongofy_record(
             wbs_db,
@@ -585,7 +586,7 @@ class MOUDatabaseClient:
 
     async def delete_record(
         self, wbs_db: str, record_id: str, editor: str
-    ) -> Tuple[uut.DBRecord, uut.InstitutionValues]:
+    ) -> Tuple[uut.DBRecord, uut.InstitutionValues | None]:
         """Mark the record as deleted."""
         logging.debug(f"Deleting {record_id} ({wbs_db=})...")
 

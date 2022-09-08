@@ -151,7 +151,10 @@ class RecordHandler(BaseMOUHandler):  # pylint: disable=W0223
         )
         record = self.tc_data_adaptor.add_on_the_fly_fields(record)
 
-        self.write({"record": record, "institution_values": dc.asdict(instvals)})
+        resp = {"record": record}
+        if instvals:
+            resp["institution_values"] = dc.asdict(instvals)
+        self.write(resp)
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def delete(self, wbs_l1: str) -> None:
@@ -163,7 +166,10 @@ class RecordHandler(BaseMOUHandler):  # pylint: disable=W0223
             wbs_l1, record_id, editor
         )
 
-        self.write({"record": record, "institution_values": dc.asdict(instvals)})
+        resp = {"record": record}
+        if instvals:
+            resp["institution_values"] = dc.asdict(instvals)
+        self.write(resp)
 
 
 # -----------------------------------------------------------------------------
