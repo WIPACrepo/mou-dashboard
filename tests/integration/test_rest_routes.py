@@ -468,8 +468,8 @@ class TestInstitutionValuesHandler:
             resp_instval = from_dict(uut.InstitutionValues, resp["institution_values"])
             assert resp_instval == dc.replace(
                 local_insts[inst],
-                talbe_metadata=dc.replace(
-                    resp_instval.talbe_metadata, confirmation_ts=now
+                table_metadata=dc.replace(
+                    resp_instval.table_metadata, confirmation_ts=now
                 ),
             )
             assert not resp_instval.headcounts_metadata.has_valid_confirmation()
