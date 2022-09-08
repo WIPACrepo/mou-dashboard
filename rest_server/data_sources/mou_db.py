@@ -138,10 +138,7 @@ class MOUDatabaseClient:
         # ingest
         try:
             doc = await self._get_supplemental_doc(wbs_db, previous_snap)
-            all_insts_values = {
-                k: uut.InstitutionValues(**v)
-                for k, v in doc.snapshot_institution_values.items()
-            }
+            all_insts_values = doc.snapshot_institution_values_as_dc()
         except (DocumentNotFoundError, pymongo.errors.InvalidName):
             all_insts_values = {}
         await self._create_live_collection(wbs_db, table, creator, all_insts_values)
@@ -193,8 +190,7 @@ class MOUDatabaseClient:
         now = int(time.time())
 
         doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
-        for institution, vals in doc.snapshot_institution_values.items():
-            instvals = from_dict(uut.InstitutionValues, vals)
+        for institution, instvals in doc.snapshot_institution_values_as_dc().items():
             instvals = dc.replace(
                 instvals,
                 headcounts_metadata=dc.replace(
@@ -218,8 +214,7 @@ class MOUDatabaseClient:
         logging.debug(f"Getting touchstone ({wbs_db=})...")
 
         doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
-        for _, vals in doc.snapshot_institution_values.items():
-            instvals = from_dict(uut.InstitutionValues, vals)
+        for _, instvals in doc.snapshot_institution_values_as_dc().items():
             timestamp = instvals.headcounts_metadata.confirmation_touchstone_ts
             break
             # instvals.table_metadata.confirmation_touchstone_ts = timestamp
@@ -341,7 +336,9 @@ class MOUDatabaseClient:
             return uut.InstitutionValues()
 
         try:
-            vals = uut.InstitutionValues(**doc.snapshot_institution_values[institution])
+            vals = from_dict(
+                uut.InstitutionValues, doc.snapshot_institution_values[institution]
+            )
             logging.info(f"Institution's Values [{vals}] ({wbs_db=}, {institution=}).")
             return vals
         except KeyError:
@@ -402,9 +399,9 @@ class MOUDatabaseClient:
                 name=name,
                 timestamp=snap_coll,
                 creator=creator,
-                snapshot_institution_values=dc.asdict(all_insts_values)
-                if all_insts_values
-                else {},
+                snapshot_institution_values={
+                    k: dc.asdict(v) for k, v in all_insts_values.items()
+                },
                 admin_only=admin_only,
             ),
         )
@@ -617,10 +614,7 @@ class MOUDatabaseClient:
             table,
             name,
             creator,
-            {
-                k: uut.InstitutionValues(**v)
-                for k, v in supplemental_doc.snapshot_institution_values.items()
-            },
+            supplemental_doc.snapshot_institution_values_as_dc(),
             admin_only,
         )
 
