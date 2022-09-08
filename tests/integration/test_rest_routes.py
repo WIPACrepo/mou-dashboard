@@ -361,7 +361,7 @@ class TestInstitutionValuesHandler:
                 gpus=600,
                 text="bar's test text",
             ),
-            "ALBERTA": uut.InstitutionValues(
+            "Alberta": uut.InstitutionValues(
                 phds_authors=51,
                 faculty=52,
                 scientists_post_docs=53,
@@ -453,7 +453,7 @@ class TestInstitutionValuesHandler:
                         },
                     )
                 # delete
-                case "ALBERTA":
+                case "Alberta":
                     resp = ds_rc.request_seq(
                         "DELETE",
                         f"/record/{WBS_L1}",
