@@ -321,7 +321,7 @@ class TestDataSource:
             # Assert
             posted = deepcopy(body)
             if inst := posted.pop("institution", None):
-                posted["record"]["institution"] = inst  # push_record() auto-moves inst
+                posted["record"]["Institution"] = inst  # push_record() auto-moves inst
             # fields not included in `push_record()` are added as blanks
             posted["record"].update({"Alpha": "", "Dish": "", "F1": "", "Beta": ""})
             mock_rest.return_value.request_seq.assert_called_with(
