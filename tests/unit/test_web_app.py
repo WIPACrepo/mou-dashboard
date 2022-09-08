@@ -297,6 +297,7 @@ class TestDataSource:
             {"record": {"BAR": 23}, "editor": "t.hanks"},
             # Other values
             {
+                "institution": "foo",
                 "record": {"a": 1},
                 "editor": "t.hanks",
             },
