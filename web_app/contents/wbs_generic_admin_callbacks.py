@@ -257,6 +257,8 @@ def summarize(
             except ZeroDivisionError:
                 row["FTE / Headcount"] = "-"
 
+            row["Notes"] = inst_dc.text
+
         summary_table.append(row)
 
     columns = summary_table[0].keys()
