@@ -485,7 +485,12 @@ class TestInstitutionValuesHandler:
             resp = ds_rc.request_seq(
                 "POST",
                 f"/institution/values/confirmation/{WBS_L1}",
-                {"headcounts": True, "table": False},  # , "computing": True},
+                {
+                    "institution": inst,
+                    "headcounts": True,
+                    "table": False,
+                    # "computing": False,
+                },
             )
             resp_instval = from_dict(uut.InstitutionValues, resp)
             assert resp_instval == dc.replace(
