@@ -433,7 +433,7 @@ class TestInstitutionValuesHandler:
                 # add
                 case 0:
                     to_add = records[0]
-                    to_add.pop("_id")  # copy data, but don't replace records[0]
+                    to_add["_id"] = ""  # copy data, but don't replace records[0]
                     to_add["Name"] = "Leslie Knope"
                     resp = ds_rc.request_seq(
                         "POST",
@@ -446,8 +446,7 @@ class TestInstitutionValuesHandler:
                 # edit
                 case 1:
                     to_add = records[0]
-                    # to_add.pop("_id")
-                    to_add["Name"] = "Jean-Ralphio"
+                    to_add["Name"] = "Jean-Ralphio"  # classic Jean-Ralphio...
                     resp = ds_rc.request_seq(
                         "POST",
                         f"/record/{WBS_L1}",
