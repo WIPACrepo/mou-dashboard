@@ -124,14 +124,17 @@ class InstitutionValues:
         """Confirm the indicated values (update their metadata's `confirmation_ts`)."""
         now = int(time.time())
 
+        headcounts_metadata = self.headcounts_metadata
         if headcounts:
             headcounts_metadata = dc.replace(
                 self.headcounts_metadata, confirmation_ts=now
             )
 
+        table_metadata = self.table_metadata
         if table:
             table_metadata = dc.replace(self.table_metadata, confirmation_ts=now)
 
+        computing_metadata = self.computing_metadata
         if computing:
             computing_metadata = dc.replace(
                 self.computing_metadata, confirmation_ts=now
