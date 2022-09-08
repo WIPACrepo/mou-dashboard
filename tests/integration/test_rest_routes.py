@@ -23,6 +23,7 @@ from rest_server.data_sources import todays_institutions
 from rest_tools.client import RestClient
 
 WBS_L1 = "mo"
+HANDFUL_OF_INSTITUTIONS = ["LBNL", "ALBERTA", "DESY"]
 
 
 @pytest.fixture
@@ -341,11 +342,10 @@ class TestInstitutionValuesHandler:
     @staticmethod
     def test_institution_values_full_cycle(ds_rc: RestClient) -> None:
         """Test confirming admin-level re-touch-stoning."""
-        inst_keys = ["Foo", "Bar", "Baz"]
         local_insts: Dict[str, uut.InstitutionValues] = {}
 
         # Get values (should all be default values)
-        for inst in inst_keys:
+        for inst in HANDFUL_OF_INSTITUTIONS:
             resp = ds_rc.request_seq(
                 "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
             )
@@ -358,7 +358,7 @@ class TestInstitutionValuesHandler:
             local_insts[inst] = resp_instval
 
         first_post_insts = {
-            "Foo": uut.InstitutionValues(
+            "LBNL": uut.InstitutionValues(
                 phds_authors=1,
                 faculty=2,
                 scientists_post_docs=3,
@@ -367,7 +367,7 @@ class TestInstitutionValuesHandler:
                 gpus=6,
                 text="foo's test text",
             ),
-            "Bar": uut.InstitutionValues(
+            "DESY": uut.InstitutionValues(
                 phds_authors=100,
                 faculty=200,
                 scientists_post_docs=300,
@@ -376,7 +376,7 @@ class TestInstitutionValuesHandler:
                 gpus=600,
                 text="bar's test text",
             ),
-            "Baz": uut.InstitutionValues(
+            "ALBERTA": uut.InstitutionValues(
                 phds_authors=51,
                 faculty=52,
                 scientists_post_docs=53,
@@ -386,7 +386,7 @@ class TestInstitutionValuesHandler:
                 text="baz's test text",
             ),
         }
-        assert set(first_post_insts.keys()) == set(inst_keys)  # JIC tests change
+        assert set(first_post_insts.keys()) == set(HANDFUL_OF_INSTITUTIONS)
 
         # Add institution values
         time.sleep(1)
@@ -421,32 +421,83 @@ class TestInstitutionValuesHandler:
             # update local storage
             local_insts[inst] = resp_instval
 
+        # TEST EDITING TABLE
         time.sleep(1)
-        # TODO - TEST EDITING TABLE
+        assert local_insts
+        for i, inst in enumerate(local_insts):
+            records = ds_rc.request_seq(
+                "GET", f"/table/data/{WBS_L1}", {"institution": inst}
+            )
+            now = int(time.time())
+            match i:
+                # add
+                case 0:
+                    to_add = records[0]
+                    to_add.pop("_id")  # copy data, but don't replace records[0]
+                    to_add["Name"] = "Leslie Knope"
+                    resp = ds_rc.request_seq(
+                        "POST",
+                        f"/record/{WBS_L1}",
+                        {
+                            "record": to_add,
+                            "editor": "Tom Haverford",
+                        },
+                    )
+                # edit
+                case 1:
+                    to_add = records[0]
+                    # to_add.pop("_id")
+                    to_add["Name"] = "Jean-Ralphio"
+                    resp = ds_rc.request_seq(
+                        "POST",
+                        f"/record/{WBS_L1}",
+                        {
+                            "record": to_add,
+                            "editor": "Tom Haverford",
+                        },
+                    )
+                # delete
+                case _:
+                    resp = ds_rc.request_seq(
+                        "DELETE",
+                        f"/record/{WBS_L1}",
+                        {
+                            "record_id": records[0]["_id"],
+                            "editor": "Tom Haverford",
+                        },
+                    )
+            resp_instval = from_dict(uut.InstitutionValues, resp["institution_values"])
+            assert resp_instval == dc.replace(
+                local_insts[inst],
+                talbe_metadata=dc.replace(
+                    resp_instval.talbe_metadata, confirmation_ts=now
+                ),
+            )
+            assert not resp_instval.headcounts_metadata.has_valid_confirmation()
+            assert not resp_instval.table_metadata.has_valid_confirmation()
+            assert not resp_instval.computing_metadata.has_valid_confirmation()
+            # update local storage
+            local_insts[inst] = resp_instval
 
         # Confirm headcounts
         time.sleep(1)
         assert local_insts
         for inst in local_insts:
             now = int(time.time())
-            post_instval = dc.replace(
-                local_insts[inst],
-                headcounts_metadata=dc.replace(
-                    local_insts[inst].headcounts_metadata, confirmation_ts=now
-                ),
-            )
             resp = ds_rc.request_seq(
-                "POST", f"/institution/values/{WBS_L1}", post_instval.restful_dict(inst)
+                "POST",
+                f"/institution/values/confirmation/{WBS_L1}",
+                {"headcounts": True, "table": False},  # , "computing": True},
             )
             resp_instval = from_dict(uut.InstitutionValues, resp)
             assert resp_instval == dc.replace(
-                post_instval,
+                local_insts[inst],
                 headcounts_metadata=dc.replace(
                     resp_instval.headcounts_metadata, confirmation_ts=now
                 ),
             )
             assert resp_instval.headcounts_metadata.has_valid_confirmation()
-            assert resp_instval.table_metadata.has_valid_confirmation()
+            assert not resp_instval.table_metadata.has_valid_confirmation()
             assert not resp_instval.computing_metadata.has_valid_confirmation()
             # update local storage
             local_insts[inst] = resp_instval
@@ -456,21 +507,14 @@ class TestInstitutionValuesHandler:
         assert local_insts
         for inst in local_insts:
             now = int(time.time())
-            post_instval = dc.replace(
-                local_insts[inst],
-                table_metadata=dc.replace(
-                    local_insts[inst].table_metadata, confirmation_ts=now
-                ),
-                computing_metadata=dc.replace(
-                    local_insts[inst].computing_metadata, confirmation_ts=now
-                ),
-            )
             resp = ds_rc.request_seq(
-                "POST", f"/institution/values/{WBS_L1}", post_instval.restful_dict(inst)
+                "POST",
+                f"/institution/values/confirmation/{WBS_L1}",
+                {"table": True, "computing": True},
             )
             resp_instval = from_dict(uut.InstitutionValues, resp)
             assert resp_instval == dc.replace(
-                post_instval,
+                local_insts[inst],
                 table_metadata=dc.replace(
                     resp_instval.table_metadata, confirmation_ts=now
                 ),

@@ -491,7 +491,7 @@ def confirm_institution_values(
 
     response = mou_request(
         "POST",
-        f"/institution/values/{wbs_l1}",
+        f"/institution/values/confirmation/{wbs_l1}",
         body={"headcounts": headcounts, "table": table, "computing": computing},
     )
     return from_dict(uut.InstitutionValues, response)  # type: ignore[no-any-return] # fixed in future release
