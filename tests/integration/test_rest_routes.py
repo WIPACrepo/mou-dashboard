@@ -426,9 +426,9 @@ class TestInstitutionValuesHandler:
                 "GET", f"/table/data/{WBS_L1}", {"institution": inst}
             )["table"]
             now = int(time.time())
-            match "LBNL":
+            match local_insts:
                 # add
-                case 0:
+                case "LBNL":
                     to_add = records[0]
                     to_add["_id"] = ""  # copy data, but don't replace records[0]
                     to_add["Name"] = "Leslie Knope"
