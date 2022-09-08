@@ -469,7 +469,7 @@ class TestInstitutionValuesHandler:
             assert resp_instval == dc.replace(
                 local_insts[inst],
                 table_metadata=dc.replace(
-                    resp_instval.table_metadata, confirmation_ts=now
+                    resp_instval.table_metadata, last_edit_ts=now
                 ),
             )
             assert not resp_instval.headcounts_metadata.has_valid_confirmation()
