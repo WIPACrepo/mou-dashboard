@@ -23,7 +23,6 @@ from rest_server.data_sources import todays_institutions
 from rest_tools.client import RestClient
 
 WBS_L1 = "mo"
-HANDFUL_OF_INSTITUTIONS = ["LBNL", "ALBERTA", "DESY"]
 
 
 @pytest.fixture
@@ -343,20 +342,6 @@ class TestInstitutionValuesHandler:
     def test_institution_values_full_cycle(ds_rc: RestClient) -> None:
         """Test confirming admin-level re-touch-stoning."""
         local_insts: Dict[str, uut.InstitutionValues] = {}
-
-        # Get values (should all be default values)
-        for inst in HANDFUL_OF_INSTITUTIONS:
-            resp = ds_rc.request_seq(
-                "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
-            )
-            resp_instval = from_dict(uut.InstitutionValues, resp)
-            assert resp_instval == uut.InstitutionValues()
-            assert resp_instval.headcounts_metadata.has_valid_confirmation()
-            assert resp_instval.table_metadata.has_valid_confirmation()
-            assert resp_instval.computing_metadata.has_valid_confirmation()
-            # update local storage
-            local_insts[inst] = resp_instval
-
         first_post_insts = {
             "LBNL": uut.InstitutionValues(
                 phds_authors=1,
@@ -386,23 +371,35 @@ class TestInstitutionValuesHandler:
                 text="baz's test text",
             ),
         }
-        assert set(first_post_insts.keys()) == set(HANDFUL_OF_INSTITUTIONS)
+
+        # Get values (should all be default values)
+        for inst in first_post_insts:
+            resp = ds_rc.request_seq(
+                "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
+            )
+            resp_instval = from_dict(uut.InstitutionValues, resp)
+            assert resp_instval == uut.InstitutionValues()
+            assert resp_instval.headcounts_metadata.has_valid_confirmation()
+            assert resp_instval.table_metadata.has_valid_confirmation()
+            assert resp_instval.computing_metadata.has_valid_confirmation()
+            # update local storage
+            local_insts[inst] = resp_instval
 
         # Add institution values
         time.sleep(1)
         assert local_insts
         for inst in local_insts:
             post_instval = first_post_insts.pop(inst)  # be done w/ this structure ASAP
+            now = int(time.time())
             resp = ds_rc.request_seq(
                 "POST", f"/institution/values/{WBS_L1}", post_instval.restful_dict(inst)
             )
             resp_instval = from_dict(uut.InstitutionValues, resp)
-            updated_last_edit_ts = resp_instval.headcounts_metadata.last_edit_ts
-            assert abs(updated_last_edit_ts - int(time.time())) <= 1
+            assert abs(now - int(time.time())) <= 1
             assert resp_instval == dc.replace(
                 post_instval,
                 headcounts_metadata=uut.InstitutionAttrMetadata(
-                    last_edit_ts=updated_last_edit_ts,
+                    last_edit_ts=now,
                     confirmation_ts=0,
                     confirmation_touchstone_ts=0,
                 ),
@@ -410,7 +407,7 @@ class TestInstitutionValuesHandler:
                     last_edit_ts=0, confirmation_ts=0, confirmation_touchstone_ts=0
                 ),
                 computing_metadata=uut.InstitutionAttrMetadata(
-                    last_edit_ts=updated_last_edit_ts,
+                    last_edit_ts=now,
                     confirmation_ts=0,
                     confirmation_touchstone_ts=0,
                 ),
@@ -424,12 +421,12 @@ class TestInstitutionValuesHandler:
         # TEST EDITING TABLE
         time.sleep(1)
         assert local_insts
-        for i, inst in enumerate(local_insts):
+        for inst in local_insts:
             records = ds_rc.request_seq(
                 "GET", f"/table/data/{WBS_L1}", {"institution": inst}
             )["table"]
             now = int(time.time())
-            match i:
+            match "LBNL":
                 # add
                 case 0:
                     to_add = records[0]
@@ -444,7 +441,7 @@ class TestInstitutionValuesHandler:
                         },
                     )
                 # edit
-                case 1:
+                case "DESY":
                     to_add = records[0]
                     to_add["Name"] = "Jean-Ralphio"  # classic Jean-Ralphio...
                     resp = ds_rc.request_seq(
@@ -456,7 +453,7 @@ class TestInstitutionValuesHandler:
                         },
                     )
                 # delete
-                case _:
+                case "ALBERTA":
                     resp = ds_rc.request_seq(
                         "DELETE",
                         f"/record/{WBS_L1}",
@@ -465,6 +462,8 @@ class TestInstitutionValuesHandler:
                             "editor": "Tom Haverford",
                         },
                     )
+                case _:
+                    raise ValueError()
             resp_instval = from_dict(uut.InstitutionValues, resp["institution_values"])
             assert resp_instval == dc.replace(
                 local_insts[inst],
