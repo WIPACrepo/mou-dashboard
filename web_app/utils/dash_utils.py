@@ -318,6 +318,7 @@ class ButtonIconLabelTooltipFactory:
         height: str | None = None,
         loading_color: str = Color.SECONDARY,
         border_width: int | None = None,
+        border_radius: str | None = None,
     ) -> html.Div:
         """Make a button comprising of an icon and label, with a tooltip bubble."""
         div_style: Dict[str, uut.StrNum] = {
@@ -328,6 +329,8 @@ class ButtonIconLabelTooltipFactory:
             div_style["float"] = "right"
         if border_width is not None:
             div_style["border"] = border_width
+        if border_radius is not None:
+            div_style["border-radius"] = border_radius
         if width:
             div_style["width"] = width
         if height:

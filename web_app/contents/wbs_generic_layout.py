@@ -48,10 +48,10 @@ def layout() -> html.Div:
             #
             # Snapshot / Institution filter dropdown menu / Cloud Saved
             dbc.Row(
-                className="g-0",  # "g-0" -> no gutters
+                className="g-0 bottom-border",  # "g-0" -> no gutters
                 children=[
                     dbc.Col(
-                        width=4,
+                        width=2,
                         children=[
                             du.ButtonIconLabelTooltipFactory.make(
                                 "wbs-view-snapshots",
@@ -61,6 +61,8 @@ def layout() -> html.Div:
                                 tooltip_text="click to select and view past statements of work",
                                 width="17rem",
                                 height="3.8rem",
+                                border_width=0,
+                                border_radius="0",
                             ),
                             html.Div(
                                 id="wbs-snapshot-dropdown-div",
@@ -72,13 +74,13 @@ def layout() -> html.Div:
                                     value="",
                                     disabled=False,
                                     persistence=True,
-                                    searchable=False,
+                                    searchable=True,
                                 ),
                             ),
                             html.Div(
                                 id="wbs-view-live-btn-div",
                                 hidden=True,
-                                style={"margin-top": "0.25rem"},
+                                # style={"margin-top": "0.25rem"},
                                 children=dbc.Button(
                                     "View Today's SOW",
                                     id="wbs-view-live-btn",
@@ -89,12 +91,12 @@ def layout() -> html.Div:
                         ],
                     ),
                     dbc.Col(
-                        className="large-dropdown-container",
-                        width=4,
+                        className="institution-dropdown-container",
+                        width=8,
                         children=[
                             dcc.Dropdown(
                                 id="wbs-dropdown-institution",
-                                className="large-dropdown institution-dropdown",
+                                className="institution-dropdown",
                                 placeholder="— Viewing Entire Collaboration —",
                                 # options set in callback
                                 # values set in callback
@@ -105,7 +107,7 @@ def layout() -> html.Div:
                         ],
                     ),
                     dbc.Col(
-                        width=4,
+                        width=2,
                         children=du.ButtonIconLabelTooltipFactory.make(
                             "wbs-cloud-saved",
                             icon_class=du.IconClassNames.CLOUD,
@@ -115,7 +117,9 @@ def layout() -> html.Div:
                             add_loading=True,
                             add_interval=True,
                             border_width=0,
+                            width="17rem",
                             height="3.8rem",
+                            border_radius="0",
                         ),
                     ),
                 ],
