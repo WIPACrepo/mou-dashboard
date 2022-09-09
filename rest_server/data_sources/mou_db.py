@@ -339,9 +339,8 @@ class MOUDatabaseClient:
             logging.info(
                 f"Creating new institution values ({wbs_db=}, {institution=})..."
             )
-            await self._update_institution_values(wbs_db, institution, vals)
-            return await self.get_institution_values(
-                wbs_db, snapshot_timestamp, institution
+            return await self._update_institution_values(
+                wbs_db, institution, uut.InstitutionValues()
             )
 
     async def _get_supplemental_doc(

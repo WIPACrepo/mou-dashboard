@@ -39,6 +39,7 @@ class EnvConfig:
     OVERWRITE_REDIRECT_URI: str = ""
     DEBUG: bool = False
     DEBUG_AS_PI: List[str] = dc.field(default_factory=list)
+    LOG_REST_CALLS: bool = True
 
     def __post_init__(self) -> None:
         # since our instance is frozen, we need to use `__setattr__`

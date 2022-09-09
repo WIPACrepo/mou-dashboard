@@ -1,5 +1,6 @@
 """Callbacks for a specified WBS layout."""
 
+import dataclasses as dc
 import logging
 import random
 import time
@@ -807,100 +808,133 @@ def handle_make_snapshot(
 # Other Callbacks
 
 
+@dc.dataclass()
+class UserDependentComponentsOutput:
+    """States for setup_user_dependent_components()."""
+
+    datatable_editable: bool = no_update
+    new_data_btn_hidden: bool = no_update
+    datatable_row_deletable: bool = no_update
+    #
+    dropdown_institution_disabled: bool = no_update
+    #
+    admin_zone_hidden: bool = no_update
+    collaboration_summary_hidden: bool = no_update
+    #
+    phds_disabled: bool = no_update
+    faculty_disabled: bool = no_update
+    sci_disabled: bool = no_update
+    grads_disabled: bool = no_update
+    cpus_disabled: bool = no_update
+    gpus_disabled: bool = no_update
+    textarea_disabled: bool = no_update
+    #
+    inst_redirect_pathname: str = no_update
+
+
+@dc.dataclass(frozen=True)
+class UserDependentComponentsInputs:
+    """States for setup_user_dependent_components()."""
+
+    dummy: str
+
+
+@dc.dataclass(frozen=True)
+class UserDependentComponentsState:
+    """States for setup_user_dependent_components()."""
+
+    s_snap_ts: types.DashVal
+    s_urlpath: str
+
+
 @app.callback(  # type: ignore[misc]
-    [
-        Output("wbs-data-table", "editable"),
-        Output("wbs-new-data-button", "hidden"),
-        Output("wbs-data-table", "row_deletable"),
-        Output("wbs-dropdown-institution", "disabled"),
-        Output("wbs-admin-zone-div", "hidden"),
-        Output("wbs-phds-authors", "disabled"),
-        Output("wbs-faculty", "disabled"),
-        Output("wbs-scientists-post-docs", "disabled"),
-        Output("wbs-grad-students", "disabled"),
-        Output("wbs-cpus", "disabled"),
-        Output("wbs-gpus", "disabled"),
-        Output("wbs-textarea", "disabled"),
-        # redirect
-        Output("url-user-inst-redirect", "pathname"),
-    ],
-    [Input("dummy-input-for-setup", "hidden")],  # never triggered
-    [State("wbs-current-snapshot-ts", "value"), State("url", "pathname")],
+    output=dc.asdict(
+        UserDependentComponentsOutput(
+            datatable_editable=Output("wbs-data-table", "editable"),
+            new_data_btn_hidden=Output("wbs-new-data-button", "hidden"),
+            datatable_row_deletable=Output("wbs-data-table", "row_deletable"),
+            dropdown_institution_disabled=Output(
+                "wbs-dropdown-institution", "disabled"
+            ),
+            admin_zone_hidden=Output("wbs-admin-zone-div", "hidden"),
+            collaboration_summary_hidden=Output(
+                "wbs-collaboration-summary-div", "hidden"
+            ),
+            phds_disabled=Output("wbs-phds-authors", "disabled"),
+            faculty_disabled=Output("wbs-faculty", "disabled"),
+            sci_disabled=Output("wbs-scientists-post-docs", "disabled"),
+            grads_disabled=Output("wbs-grad-students", "disabled"),
+            cpus_disabled=Output("wbs-cpus", "disabled"),
+            gpus_disabled=Output("wbs-gpus", "disabled"),
+            textarea_disabled=Output("wbs-textarea", "disabled"),
+            # redirect
+            inst_redirect_pathname=Output("url-user-inst-redirect", "pathname"),
+        )
+    ),
+    inputs=dict(
+        inputs=dc.asdict(
+            UserDependentComponentsInputs(
+                dummy=Input("dummy-input-for-setup", "hidden"),  # never triggered
+            )
+        )
+    ),
+    state=dict(
+        state=dc.asdict(
+            UserDependentComponentsState(
+                s_snap_ts=State("wbs-current-snapshot-ts", "value"),
+                s_urlpath=State("url", "pathname"),
+            )
+        )
+    ),
 )
-def setup_user_dependent_components(
-    _: bool,
-    # state(s)
-    s_snap_ts: types.DashVal,
-    s_urlpath: str,
-) -> Tuple[
-    bool,
-    # bool,
-    bool,
-    bool,
-    bool,
-    bool,
-    bool,
-    bool,
-    bool,
-    bool,
-    bool,
-    bool,
-    bool,
-    # redirect
-    str,
-]:
+def setup_user_dependent_components(inputs: dict, state: dict) -> dict:
     """Logged-in callback."""
+    return dc.asdict(
+        _setup_user_dependent_components_dc(
+            UserDependentComponentsInputs(**inputs),
+            UserDependentComponentsState(**state),
+        )
+    )
+
+
+def _setup_user_dependent_components_dc(
+    inputs: UserDependentComponentsInputs,
+    state: UserDependentComponentsState,
+) -> UserDependentComponentsOutput:
     try:
-        du.precheck_setup_callback(s_urlpath)
+        du.precheck_setup_callback(state.s_urlpath)
     except du.CallbackAbortException as e:
         logging.critical(f"ABORTED: setup_user_dependent_components() [{e}]")
-        return tuple(no_update for _ in range(13))  # type: ignore[return-value]
+        return UserDependentComponentsOutput()
     else:
         logging.warning(
-            f"'{du.triggered()}' -> setup_user_dependent_components({s_snap_ts=}, {s_urlpath=}, {CurrentUser.get_summary()=})"
+            f"'{du.triggered()}' -> setup_user_dependent_components({state.s_snap_ts=}, {state.s_urlpath=}, {CurrentUser.get_summary()=})"
         )
 
+    output = UserDependentComponentsOutput(
+        datatable_editable=not bool(state.s_snap_ts),
+        new_data_btn_hidden=bool(state.s_snap_ts),
+        datatable_row_deletable=not bool(state.s_snap_ts),
+        phds_disabled=bool(state.s_snap_ts),
+        faculty_disabled=bool(state.s_snap_ts),
+        sci_disabled=bool(state.s_snap_ts),
+        grads_disabled=bool(state.s_snap_ts),
+        cpus_disabled=bool(state.s_snap_ts),
+        gpus_disabled=bool(state.s_snap_ts),
+        textarea_disabled=bool(state.s_snap_ts),
+        inst_redirect_pathname=no_update,
+    )
+
     # filter-inst disabled if not admin and less than 2 insts (to pick from)
-    dropdown_institution_disabled = (
+    output.dropdown_institution_disabled = (
         not CurrentUser.is_admin() and len(CurrentUser.get_institutions()) < 2
     )
 
-    if s_snap_ts:
-        return (
-            False,  # data-table NOT editable
-            True,  # new-data-div hidden
-            # True,  # new-data-div-2 hidden
-            False,  # row NOT deletable
-            dropdown_institution_disabled,
-            True,  # wbs-admin-zone-div hidden
-            True,  # institution value disabled
-            True,  # institution value disabled
-            True,  # institution value disabled
-            True,  # institution value disabled
-            True,  # institution value disabled
-            True,  # institution value disabled
-            True,  # institution value disabled
-            # redirect
-            no_update,
-        )
+    # hide if a snap or not admin
+    output.admin_zone_hidden = bool(state.s_snap_ts) or not CurrentUser.is_admin()
+    output.collaboration_summary_hidden = not CurrentUser.is_admin()
 
-    return (
-        True,  # data-table editable
-        False,  # new-data-div NOT hidden
-        # False,  # new-data-div-2 NOT hidden
-        True,  # row is deletable
-        dropdown_institution_disabled,
-        not CurrentUser.is_admin(),  # wbs-admin-zone-div hidden if user is not an admin
-        False,  # institution value NOT disabled
-        False,  # institution value NOT disabled
-        False,  # institution value NOT disabled
-        False,  # institution value NOT disabled
-        False,  # institution value NOT disabled
-        False,  # institution value NOT disabled
-        False,  # institution value NOT disabled
-        # redirect
-        no_update,
-    )
+    return output
 
 
 @app.callback(  # type: ignore[misc]

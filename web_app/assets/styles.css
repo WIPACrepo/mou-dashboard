@@ -71,6 +71,12 @@ body {
     font-style: italic;
 }
 */
+
+.admin-zone-content {
+    margin-right: 2rem !important;
+    margin-left: 2rem !important;
+}
+
 .modal-footer {
     border-top: 0 !important;
 }

@@ -97,7 +97,7 @@ def layout() -> html.Div:
                             dcc.Dropdown(
                                 id="wbs-dropdown-institution",
                                 className="institution-dropdown",
-                                placeholder="— Viewing Entire Collaboration —",
+                                placeholder="IceCube Collaboration",
                                 # options set in callback
                                 # values set in callback
                                 disabled=True,
@@ -526,64 +526,76 @@ def layout() -> html.Div:
                     # ),
                 ],
             ),
-            #
-            # Admin Zone
             html.Div(
-                id="wbs-admin-zone-div",
+                id="wbs-collaboration-summary-div",
                 hidden=True,
-                className="d-grid gap-2 mx-auto",  # "col-#" -> width; "mx-auto" -> centered
+                # one of these classes was overriding hidden property
+                # className="d-grid gap-2 mx-auto",  # "col-#" -> width; "mx-auto" -> centered
                 children=[
                     #
-                    html.H2(className="section-header", children="Admin Zone"),
+                    html.H2(
+                        className="section-header", children="Collaboration Summary"
+                    ),
                     #
                     # Summary Table
                     du.fullscreen_loading(
                         children=[
                             html.Div(
-                                className="admin-table-button",
+                                className="admin-table-button admin-zone-content",
                                 children=[
                                     dbc.Button(
                                         id="wbs-summary-table-recalculate",
                                         n_clicks=0,
                                         color=du.Color.SECONDARY,
                                         children="Recalculate Institution Summary",
-                                        style={"width": "100%"},
+                                        style={"width": "97%"},
                                     ),
                                 ],
                             ),
                             html.Div(
-                                className="admin-table",
+                                className="admin-table admin-zone-content",
                                 children=du.simple_table("wbs-summary-table"),
                             ),
                         ]
                     ),
+                ],
+            ),
+            #
+            # Admin Zone
+            html.Div(
+                id="wbs-admin-zone-div",
+                hidden=True,
+                # one of these classes was overriding hidden property
+                # className="d-grid gap-2 mx-auto",  # "col-#" -> width; "mx-auto" -> centered
+                children=[
                     #
-                    html.Hr(),
+                    html.H2(className="section-header", children="Admin Zone"),
                     #
                     # Blame Table
                     du.fullscreen_loading(
                         children=[
                             html.Div(
-                                className="admin-table-button",
+                                className="admin-table-button admin-zone-content",
                                 children=[
                                     dbc.Button(
                                         id="wbs-blame-table-button",
                                         n_clicks=0,
                                         color=du.Color.DARK,
                                         children="View How SOWs Have Changed",
-                                        style={"width": "100%"},
+                                        style={"width": "97%"},
                                     ),
                                 ],
                             ),
                             html.Div(
-                                className="admin-table",
+                                className="admin-table admin-zone-content",
                                 children=du.simple_table("wbs-blame-table"),
                             ),
                         ],
                     ),
                     #
-                    html.Hr(),
+                    html.Hr(className="admin-zone-content"),
                     dbc.Row(
+                        className="admin-zone-content",
                         children=[
                             # Make Snapshot
                             dbc.Col(
@@ -621,7 +633,7 @@ def layout() -> html.Div:
                                     style={"width": "100%"},
                                 ),
                             ),
-                        ]
+                        ],
                     ),
                 ],
             ),
