@@ -184,7 +184,7 @@ def summarize(
     try:
         data_table = src.pull_data_table(wbs_l1, tconfig, snapshot_ts=s_snap_ts)
     except DataSourceException:
-        return [], []
+        return [], [], []
 
     insts_infos = institution_info.get_institutions_infos()
 

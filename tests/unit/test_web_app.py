@@ -576,7 +576,7 @@ class TestTableConfig:
         for col, wid in resp[WBS].widths.items():
             assert table_config.get_column_width(col) == wid
         # reset
-        tc.TableConfigParser._cached_get_configs.cache_clear()
+        tc.TableConfigParser._cached_get_configs.cache_clear()  # type: ignore[attr-defined]
         mock_rest.return_value.request_seq.return_value = {}
         # call
         table_config = tc.TableConfigParser(WBS)

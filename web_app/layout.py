@@ -5,7 +5,7 @@ from typing import Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import visdcc  # type: ignore[import]
-from dash import dcc, html, no_update
+from dash import dcc, html, no_update  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore
 
 from .config import AUTO_RELOAD_MINS, REDIRECT_WBS, app
