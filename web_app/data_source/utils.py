@@ -3,6 +3,7 @@
 
 import copy
 import logging
+import time
 from typing import Any, Dict, Final
 
 import requests
@@ -45,6 +46,9 @@ def mou_request(method: str, url: str, body: Any = None) -> Dict[str, Any]:
     """Make a request to the MOU REST server."""
     log_body = _get_log_body(method, url, body)
     logging.info(f"REQUEST :: {method} @ {url}, body: {log_body}")
+
+    if ENV.DEBUG:
+        time.sleep(0.1)
 
     try:
         response: Dict[str, Any] = _rest_connection().request_seq(method, url, body)
