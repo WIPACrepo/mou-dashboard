@@ -362,7 +362,7 @@ class MOUDatabaseClient:
         # always override all `confirmation_touchstone_ts` attrs
         siv_dict = doc["snapshot_institution_values"]
         for inst in siv_dict.keys():
-            tsts = doc.confirmation_touchstone_ts
+            tsts = doc["confirmation_touchstone_ts"]
             siv_dict[inst]["headcounts_metadata"]["confirmation_touchstone_ts"] = tsts
             siv_dict[inst]["table_metadata"]["confirmation_touchstone_ts"] = tsts
             siv_dict[inst]["computing_metadata"]["confirmation_touchstone_ts"] = tsts
