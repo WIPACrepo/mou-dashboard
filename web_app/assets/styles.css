@@ -31,6 +31,7 @@ body {
     color: black;
     margin-bottom: 3rem;
     margin-top: 5rem;
+    margin-right: 1.5rem;
 }
 
 .section-header:after {
@@ -38,7 +39,7 @@ body {
     display: inline-block;
     height: 0.79rem;
     vertical-align: bottom;
-    width: calc(100% - 29rem);
+    width: 100%;
     margin-right: -100%;
     margin-left: 0.5rem;
     border-top: 1px solid black;
@@ -349,9 +350,10 @@ code {
 }
 
 .institution-text-area {
-    width: 100%;
+    width: 90%;
     height: 30rem;
     padding-bottom: 0;
+    margin-left: 6rem;
 }
 
 
