@@ -31,7 +31,7 @@ class MOUDatabaseClient:
         self.data_adaptor = data_adaptor
         self._mongo = motor_client
 
-    async def _create_live_collection(  # pylint: disable=R0913
+    async def _override_live_collection_for_xlsx(  # pylint: disable=R0913
         self,
         wbs_db: str,
         table: uut.DBTable,
@@ -52,7 +52,7 @@ class MOUDatabaseClient:
             creator,
             all_insts_values,
             False,
-            confirmation_touchstone_ts=int(time.time()),
+            confirmation_touchstone_ts=0,
         )
 
         logging.debug(f"Created Live Collection: ({wbs_db=}) {len(table)} records.")
@@ -148,7 +148,9 @@ class MOUDatabaseClient:
             all_insts_values = doc.snapshot_institution_values_as_dc()
         except (DocumentNotFoundError, pymongo.errors.InvalidName):
             all_insts_values = {}
-        await self._create_live_collection(wbs_db, table, creator, all_insts_values)
+        await self._override_live_collection_for_xlsx(
+            wbs_db, table, creator, all_insts_values
+        )
 
         # snapshot
         current_snap = await self.snapshot_live_collection(
