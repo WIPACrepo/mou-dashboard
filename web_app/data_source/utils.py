@@ -63,10 +63,11 @@ def mou_request(method: str, url: str, body: Any = None) -> Dict[str, Any]:
             return val.keys()
         return val
 
-    logging.info(f"RESPONSE ({method} @ {url}, body: {log_body}) ::")
-    for key, val in response.items():
-        logging.debug(f"> {key}")
-        logging.debug(f"-> {str(type(val).__name__)}")
-        logging.debug(f"-> {log_it(key, val)}")
+    if ENV.LOG_REST_CALLS:
+        logging.info(f"RESPONSE ({method} @ {url}, body: {log_body}) ::")
+        for key, val in response.items():
+            logging.debug(f"> {key}")
+            logging.debug(f"-> {str(type(val).__name__)}")
+            logging.debug(f"-> {log_it(key, val)}")
 
     return response
