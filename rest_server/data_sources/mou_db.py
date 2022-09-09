@@ -45,7 +45,14 @@ class MOUDatabaseClient:
             record.update({columns.EDITOR: "", columns.TIMESTAMP: time.time()})
 
         await self._ingest_new_collection(
-            wbs_db, _LIVE_COLLECTION, table, "", creator, all_insts_values, False
+            wbs_db,
+            _LIVE_COLLECTION,
+            table,
+            "",
+            creator,
+            all_insts_values,
+            False,
+            confirmation_touchstone_ts=int(time.time()),
         )
 
         logging.debug(f"Created Live Collection: ({wbs_db=}) {len(table)} records.")
@@ -190,20 +197,7 @@ class MOUDatabaseClient:
         now = int(time.time())
 
         doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
-        for institution, instvals in doc.snapshot_institution_values_as_dc().items():
-            instvals = dc.replace(
-                instvals,
-                headcounts_metadata=dc.replace(
-                    instvals.headcounts_metadata, confirmation_touchstone_ts=now
-                ),
-                table_metadata=dc.replace(
-                    instvals.table_metadata, confirmation_touchstone_ts=now
-                ),
-                computing_metadata=dc.replace(
-                    instvals.computing_metadata, confirmation_touchstone_ts=now
-                ),
-            )
-            doc.snapshot_institution_values.update({institution: dc.asdict(instvals)})
+        doc = dc.replace(doc, confirmation_touchstone_ts=now)
         await self._set_supplemental_doc(wbs_db, _LIVE_COLLECTION, doc)
 
         logging.info(f"Re-touchstoned ({wbs_db=}, {now=}).")
@@ -213,26 +207,25 @@ class MOUDatabaseClient:
         """Get touchstone timestamp value for all LIVE institutions."""
         logging.debug(f"Getting touchstone ({wbs_db=})...")
 
-        doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
-        for _, instvals in doc.snapshot_institution_values_as_dc().items():
-            timestamp = instvals.headcounts_metadata.confirmation_touchstone_ts
-            break
-            # instvals.table_metadata.confirmation_touchstone_ts = timestamp
-            # instvals.computing_metadata.confirmation_touchstone_ts = timestamp
+        try:
+            doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
+        except DocumentNotFoundError:
+            return 0
 
-        logging.info(f"Got touchstone ({wbs_db=}, {timestamp=}).")
-        return timestamp  # type: ignore[no-any-return]
+        logging.info(f"Got touchstone ({wbs_db=}, {doc.confirmation_touchstone_ts=}).")
+        return doc.confirmation_touchstone_ts
 
     async def _update_institution_values(
         self,
         wbs_db: str,
         institution: str,
         vals: uut.InstitutionValues,
+        snapshot_timestamp: str = _LIVE_COLLECTION,
     ) -> uut.InstitutionValues:
         """Put in DB."""
-        doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
+        doc = await self._get_supplemental_doc(wbs_db, snapshot_timestamp)
         doc.snapshot_institution_values.update({institution: dc.asdict(vals)})
-        await self._set_supplemental_doc(wbs_db, _LIVE_COLLECTION, doc)
+        await self._set_supplemental_doc(wbs_db, snapshot_timestamp, doc)
 
         return vals
 
@@ -342,8 +335,14 @@ class MOUDatabaseClient:
             logging.info(f"Institution's Values [{vals}] ({wbs_db=}, {institution=}).")
             return vals
         except KeyError:
-            logging.info(f"Institution has no values ({wbs_db=}, {institution=}).")
-            return uut.InstitutionValues()
+            # if the inst is missing, make it
+            logging.info(
+                f"Creating new institution values ({wbs_db=}, {institution=})..."
+            )
+            await self._update_institution_values(wbs_db, institution, vals)
+            return await self.get_institution_values(
+                wbs_db, snapshot_timestamp, institution
+            )
 
     async def _get_supplemental_doc(
         self, wbs_db: str, snap_coll: str
@@ -359,6 +358,14 @@ class MOUDatabaseClient:
                 500,
                 reason=f"Erroneous supplemental document found: {snap_coll=}, {doc=}",
             )
+
+        # always override all `confirmation_touchstone_ts` attrs
+        siv_dict = doc["snapshot_institution_values"]
+        for inst in siv_dict.keys():
+            tsts = doc.confirmation_touchstone_ts
+            siv_dict[inst]["headcounts_metadata"]["confirmation_touchstone_ts"] = tsts
+            siv_dict[inst]["table_metadata"]["confirmation_touchstone_ts"] = tsts
+            siv_dict[inst]["computing_metadata"]["confirmation_touchstone_ts"] = tsts
 
         return types.SupplementalDoc(**doc)
 
@@ -385,6 +392,7 @@ class MOUDatabaseClient:
         creator: str,
         all_insts_values: Dict[str, uut.InstitutionValues],
         admin_only: bool,
+        confirmation_touchstone_ts: int,
     ) -> None:
         logging.debug(f"Creating Supplemental DB/Document ({wbs_db=}, {snap_coll=})...")
 
@@ -403,6 +411,7 @@ class MOUDatabaseClient:
                     k: dc.asdict(v) for k, v in all_insts_values.items()
                 },
                 admin_only=admin_only,
+                confirmation_touchstone_ts=confirmation_touchstone_ts,
             ),
         )
 
@@ -420,6 +429,7 @@ class MOUDatabaseClient:
         creator: str,
         all_insts_values: Dict[str, uut.InstitutionValues],
         admin_only: bool,
+        confirmation_touchstone_ts: int,
     ) -> None:
         """Add table to a new collection.
 
@@ -448,7 +458,13 @@ class MOUDatabaseClient:
 
         # create supplemental document
         await self._create_supplemental_db_document(
-            wbs_db, snap_coll, name, creator, all_insts_values, admin_only
+            wbs_db,
+            snap_coll,
+            name,
+            creator,
+            all_insts_values,
+            admin_only,
+            confirmation_touchstone_ts,
         )
 
     async def _ensure_collection_indexes(self, wbs_db: str, snap_coll: str) -> None:
@@ -616,6 +632,7 @@ class MOUDatabaseClient:
             creator,
             supplemental_doc.snapshot_institution_values_as_dc(),
             admin_only,
+            confirmation_touchstone_ts=supplemental_doc.confirmation_touchstone_ts,
         )
 
         logging.info(f"Snapshotted {snap_coll} ({wbs_db=}, {creator=}).")

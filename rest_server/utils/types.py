@@ -18,6 +18,7 @@ class SupplementalDoc:
     snapshot_institution_values: Dict[str, Dict[str, Any]]
     admin_only: bool
     _id: ObjectId | None = None
+    confirmation_touchstone_ts: int = 0  # zero for legacy data
 
     def snapshot_institution_values_as_dc(self) -> Dict[str, uut.InstitutionValues]:
         """Get `snapshot_institution_values` as a dict of `InstitutionValues`s."""
