@@ -2,7 +2,7 @@
 
 import dataclasses as dc
 import logging
-from typing import Final
+from typing import Final, List
 from urllib.parse import urljoin
 
 import dash  # type: ignore
@@ -38,6 +38,7 @@ class EnvConfig:
     OIDC_CLIENT_SECRETS: str = "client_secrets.json"
     OVERWRITE_REDIRECT_URI: str = ""
     DEBUG: bool = False
+    DEBUG_AS_PI: List[str] = dc.field(default_factory=list)
 
     def __post_init__(self) -> None:
         # since our instance is frozen, we need to use `__setattr__`

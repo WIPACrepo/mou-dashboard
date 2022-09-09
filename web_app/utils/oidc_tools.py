@@ -8,7 +8,7 @@ from typing import Any, Dict, List, cast
 import cachetools.func  # type: ignore[import]
 import flask  # type: ignore[import]
 
-from ..config import MAX_CACHE_MINS, oidc
+from ..config import ENV, MAX_CACHE_MINS, oidc
 from ..data_source import institution_info
 
 
@@ -80,6 +80,8 @@ class CurrentUser:
     @staticmethod
     def is_admin() -> bool:
         """Is the user an admin?"""
+        if ENV.DEBUG_AS_PI:
+            return False
         try:
             return "/tokens/mou-dashboard-admin" in CurrentUser._get_info().groups
         except (KeyError, TypeError):
@@ -109,15 +111,21 @@ class CurrentUser:
             if m := re.match(pattern, user_group):
                 group_insts.add(m.groupdict()["inst"])
 
+        if ENV.DEBUG_AS_PI:
+            group_insts = set(ENV.DEBUG_AS_PI)
+
         # now, check if each of the institutions has an mou
         infos = institution_info.get_institutions_infos()
         editable_insts = []
         for short_name in group_insts:
-            if not infos[short_name].has_mou:
-                logging.error(
-                    f"User ({CurrentUser.get_username()}) belongs to {short_name},"
-                    " but institution does not have an MOU (has_mou=false)"
-                )
-            editable_insts.append(short_name)
+            try:
+                if not infos[short_name].has_mou:
+                    logging.error(
+                        f"User ({CurrentUser.get_username()}) belongs to {short_name},"
+                        " but institution does not have an MOU (has_mou=false)"
+                    )
+                editable_insts.append(short_name)
+            except KeyError:
+                continue
 
         return editable_insts
