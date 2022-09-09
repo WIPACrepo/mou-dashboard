@@ -89,6 +89,12 @@ def layout() -> None:
                                 external_link=True,
                                 className="hover-bold",
                             ),
+                            html.A(
+                                "User Guide PDF",
+                                download="MOU_Dashboard_Getting_Started.pdf",
+                                href="/assets/MOU_Dashboard_Getting_Started.pdf",
+                                className="hover-bold nav-link",
+                            ),
                             html.Div(
                                 id="nav-seperator",
                                 children="■",

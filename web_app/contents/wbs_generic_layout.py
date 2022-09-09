@@ -14,24 +14,6 @@ def layout() -> html.Div:
         children=[
             html.Div(id="dummy-input-for-setup", hidden=True),
             #
-            # PDF User Guide
-            dbc.Alert(
-                className="caps",
-                color=du.Color.DARK,
-                style={
-                    "fontWeight": "bold",
-                    "fontStyle": "italic",
-                    "width": "100%",
-                    "text-align": "center",
-                    "margin-bottom": "1rem",
-                },
-                children=html.A(
-                    "Download User Guide PDF",
-                    download="MOU_Dashboard_Getting_Started.pdf",
-                    href="/assets/MOU_Dashboard_Getting_Started.pdf",
-                ),
-            ),
-            #
             # "Viewing Snapshot" Alert
             dbc.Alert(
                 children=[
