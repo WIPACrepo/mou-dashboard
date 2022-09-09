@@ -211,7 +211,7 @@ def summarize(
             "Institutional Lead": inst_info.institution_lead_uid,
             "SOW Table Confirmed": (
                 f"{utils.get_human_time(str(inst_dc.table_metadata.confirmation_ts), short=True)}"
-                f"{'' if inst_dc.table_metadata.has_valid_confirmation() else ' (EXPIRED)'}"
+                f"{'' if inst_dc.table_metadata.has_valid_confirmation() else ' ('+inst_dc.table_metadata.get_confirmation_reason()+')'}"
             ),
         }
 
@@ -230,13 +230,13 @@ def summarize(
                     else 0,
                     "Headcounts Confirmed": (
                         f"{utils.get_human_time(str(inst_dc.headcounts_metadata.confirmation_ts), short=True)}"
-                        f"{'' if inst_dc.headcounts_metadata.has_valid_confirmation() else ' (EXPIRED)'}"
+                        f"{'' if inst_dc.headcounts_metadata.has_valid_confirmation() else ' ('+inst_dc.headcounts_metadata.get_confirmation_reason()+')'}"
                     ),
                     "CPU": inst_dc.cpus if inst_dc.cpus else 0,
                     "GPU": inst_dc.gpus if inst_dc.gpus else 0,
                     "Computing Confirmed": (
                         f"{utils.get_human_time(str(inst_dc.computing_metadata.confirmation_ts), short=True)}"
-                        f"{'' if inst_dc.computing_metadata.has_valid_confirmation() else ' (EXPIRED)'}"
+                        f"{'' if inst_dc.computing_metadata.has_valid_confirmation() else ' ('+inst_dc.computing_metadata.get_confirmation_reason()+')'}"
                     ),
                 }
             )
@@ -264,7 +264,9 @@ def summarize(
     columns = summary_table[0].keys()
     style_data_conditional = [
         {
-            "if": {"filter_query": f'{{{col}}} contains "(EXPIRED)"'},
+            "if": {
+                "filter_query": f'{{{col}}} contains "({uut.CHANGES})" or {{{col}}} contains "({uut.EXPIRED})"'
+            },
             "backgroundColor": du.LIGHT_YELLOW,
         }
         for col in columns
@@ -500,14 +502,14 @@ def retouchstone(
                 )
             timestamp = src.get_touchstone(du.get_wbs_l1(s_urlpath))
             return (
-                f"Reset Institution Confirmations (currently {utils.get_human_time(str(timestamp))})",
+                f"Reset Institution Confirmations ({utils.get_human_time(str(timestamp), medium=True)})",
                 not CurrentUser.is_admin(),
             )
         # CLICKED
         case "wbs-reset-inst-confirmations-button.n_clicks":
             timestamp = src.retouchstone(du.get_wbs_l1(s_urlpath))
             return (
-                f"Reset Institution Confirmations (currently {utils.get_human_time(str(timestamp))})",
+                f"Reset Institution Confirmations ({utils.get_human_time(str(timestamp), medium=True)})",
                 False,
             )
 

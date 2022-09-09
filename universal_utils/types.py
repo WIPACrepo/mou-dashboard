@@ -30,6 +30,11 @@ class SnapshotInfo:
     admin_only: bool
 
 
+EXPIRED = "expired"
+CHANGES = "changes"
+GOOD = "good"
+
+
 @dc.dataclass(frozen=True)
 class InstitutionAttrMetadata:
     """Metadata for an `InstitutionValues` attribute/attributes."""
@@ -41,10 +46,21 @@ class InstitutionAttrMetadata:
     def has_valid_confirmation(self) -> bool:
         """Return whether the confirmation is valid."""
         # using `>=` will pass the null-case where everything=0
-        return (
-            self.confirmation_ts >= self.last_edit_ts
-            and self.confirmation_ts >= self.confirmation_touchstone_ts
-        )
+        return not self._is_expired() and not self._has_new_changes()
+
+    def _is_expired(self) -> bool:
+        return self.confirmation_ts < self.confirmation_touchstone_ts
+
+    def _has_new_changes(self) -> bool:
+        return self.confirmation_ts < self.last_edit_ts
+
+    def get_confirmation_reason(self) -> str:
+        """Get a human-readable reason for why the confirmation is valid/invalid."""
+        if self._has_new_changes():
+            return CHANGES
+        if self._is_expired():
+            return EXPIRED
+        return GOOD
 
 
 @dc.dataclass(frozen=True)

@@ -28,7 +28,7 @@ def get_iso(timestamp: str) -> str:
     return datetime.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def get_human_time(timestamp: str, short: bool = False) -> str:
+def get_human_time(timestamp: str, short: bool = False, medium: bool = False) -> str:
     """Get the given date and time with timezone, human-readable."""
     try:
         datetime = dt.fromtimestamp(float(timestamp))
@@ -38,10 +38,13 @@ def get_human_time(timestamp: str, short: bool = False) -> str:
     if short:
         return datetime.strftime("%d-%b %Y")
 
-    date = datetime.strftime("%d-%B %Y")
-    time_ = datetime.strftime("%I:%M:%S%p").lower()
-    timezone = datetime.astimezone().tzinfo
-    return f"{date} ({time_} {timezone})"
+    if medium:
+        return f"{datetime.strftime('%d-%b %Y %I:%M%p')} {datetime.astimezone().tzinfo}"
+
+    return (
+        f"{datetime.strftime('%d-%B %Y')} "
+        f"({datetime.strftime('%I:%M:%S%p').lower()} {datetime.astimezone().tzinfo})"
+    )
 
 
 def get_human_now(short: bool = False) -> str:
