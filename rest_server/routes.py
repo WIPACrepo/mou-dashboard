@@ -142,6 +142,7 @@ class RecordHandler(BaseMOUHandler):  # pylint: disable=W0223
         #     record[columns.INSTITUTION] = inst  # insert
         # if labor := self.get_argument("labor", default=None):
         #     record[columns.LABOR_CAT] = labor  # insert
+
         # if task := self.get_argument("task", default=None):
         #     record[columns.TASK_DESCRIPTION] = task  # insert
 
@@ -150,7 +151,6 @@ class RecordHandler(BaseMOUHandler):  # pylint: disable=W0223
             wbs_l1, record, editor
         )
         record = self.tc_data_adaptor.add_on_the_fly_fields(record)
-
         resp = {"record": record}
         if instvals:
             resp["institution_values"] = dc.asdict(instvals)
@@ -279,7 +279,7 @@ class InstitutionValuesConfirmationTouchstoneHandler(
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["admin"])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle POST."""
-        timestamp = await self.mou_db_client.retouchstone(wbs_l1)
+        timestamp = await self.mou_db_client.get_touchstone(wbs_l1)
 
         self.write({"touchstone_timestamp": timestamp})
 
@@ -333,23 +333,47 @@ class InstitutionValuesHandler(BaseMOUHandler):  # pylint: disable=W0223
         institution = self.get_argument("institution")
 
         # client cannot try to override metadata
-        phds_authors = self.get_argument("phds_authors", type=int)
-        faculty = self.get_argument("faculty", type=int)
-        scientists_post_docs = self.get_argument("scientists_post_docs", type=int)
-        grad_students = self.get_argument("grad_students", type=int)
-        cpus = self.get_argument("cpus", type=int)
-        gpus = self.get_argument("gpus", type=int)
-        text = self.get_argument("text")
+        phds_authors = self.get_argument(
+            "phds_authors",
+            type=int,
+            default=-1,
+        )
+        faculty = self.get_argument(
+            "faculty",
+            type=int,
+            default=-1,
+        )
+        scientists_post_docs = self.get_argument(
+            "scientists_post_docs",
+            type=int,
+            default=-1,
+        )
+        grad_students = self.get_argument(
+            "grad_students",
+            type=int,
+            default=-1,
+        )
+        cpus = self.get_argument(
+            "cpus",
+            type=int,
+            default=-1,
+        )
+        gpus = self.get_argument(
+            "gpus",
+            type=int,
+            default=-1,
+        )
+        text = self.get_argument("text", default="")
 
         vals = await self.mou_db_client.upsert_institution_values(
             wbs_l1,
             institution,
-            phds_authors,
-            faculty,
-            scientists_post_docs,
-            grad_students,
-            cpus,
-            gpus,
+            None if phds_authors == -1 else phds_authors,
+            None if faculty == -1 else faculty,
+            None if scientists_post_docs == -1 else scientists_post_docs,
+            None if grad_students == -1 else grad_students,
+            None if cpus == -1 else cpus,
+            None if gpus == -1 else gpus,
             text,
         )
 

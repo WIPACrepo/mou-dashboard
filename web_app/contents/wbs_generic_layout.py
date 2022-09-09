@@ -675,8 +675,7 @@ def layout() -> html.Div:
             # Intervals
             dcc.Interval(
                 id="wbs-interval-trigger-confirmation-refreshes",
-                interval=10 * 1000,
-                max_intervals=0,
+                interval=10 * 1000 if ENV.DEBUG else 30 * 1000,
             ),
             #
             # Container Divs -- for adding dynamic toasts, dialogs, etc.

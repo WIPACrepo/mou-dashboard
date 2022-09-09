@@ -132,6 +132,10 @@ class InstitutionValues:
         dicto.pop("computing_metadata")
         dicto["institution"] = institution
 
+        for key in list(dicto.keys()):
+            if dicto[key] is None:
+                del dicto[key]
+
         return dicto
 
     def confirm(

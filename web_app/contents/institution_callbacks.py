@@ -13,7 +13,6 @@ from ..data_source import data_source as src
 from ..data_source import institution_info
 from ..data_source.utils import DataSourceException
 from ..utils import dash_utils as du
-from ..utils import types
 from ..utils.oidc_tools import CurrentUser
 
 
@@ -146,13 +145,13 @@ class SelectInstitutionValueInputs:
     inst_val: str | None
     # INST VALUES
     # user/setup_institution_components()
-    phds_val: types.DashVal
-    faculty_val: types.DashVal
-    scis_val: types.DashVal
-    grads_val: types.DashVal
-    cpus_val: types.DashVal
-    gpus_val: types.DashVal
-    textarea_val: types.DashVal
+    phds_val: int | None
+    faculty_val: int | None
+    scis_val: int | None
+    grads_val: int | None
+    cpus_val: int | None
+    gpus_val: int | None
+    textarea_val: str | None
     # CLICKS
     # user-only
     comfirm_headcounts_click: int
@@ -182,7 +181,7 @@ class SelectInstitutionValueInputs:
             grad_students=self.grads_val,
             cpus=self.cpus_val,
             gpus=self.gpus_val,
-            text=self.textarea_val,
+            text=self.textarea_val if self.textarea_val else "",
             headcounts_metadata=headcounts_metadata,
             table_metadata=table_metadata,
             computing_metadata=computing_metadata,
@@ -629,15 +628,15 @@ def to_pull_institution_values(
 def institution_checks(state: SelectInstitutionValueState) -> str:
     # Is there an institution selected?
     if not (inst := du.get_inst(state.s_urlpath)):  # pylint: disable=C0325
-        raise ValueError()
+        raise ValueError("No institution")
 
     # Are the fields editable?
     if not CurrentUser.is_loggedin_with_permissions():
-        raise ValueError()
+        raise ValueError("Bad permissions / not logged in")
 
     # Is this a snapshot?
     if state.s_snap_ts:
-        raise ValueError()
+        raise ValueError("Viewing a Snapshot")
 
     return inst
 
@@ -651,7 +650,8 @@ def to_confirm_institution_values(
 
     try:
         inst = institution_checks(state)
-    except ValueError:
+    except ValueError as e:
+        logging.warning(f"Not allowed to confirm institution values: {e}")
         return SelectInstitutionValueOutput()
 
     # Get the inst vals
@@ -708,7 +708,8 @@ def to_push_institution_values(
 
     try:
         inst = institution_checks(state)
-    except ValueError:
+    except ValueError as e:
+        logging.warning(f"Not allowed to push institution values: {e}")
         return SelectInstitutionValueOutput()
 
     # Get the inst vals

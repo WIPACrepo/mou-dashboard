@@ -1,7 +1,6 @@
 """REST interface for reading and writing MOU data."""
 
 
-import dataclasses as dc
 from typing import Any, Dict, Final, List, Tuple, TypedDict, cast
 
 import universal_utils.types as uut
@@ -492,7 +491,12 @@ def confirm_institution_values(
     response = mou_request(
         "POST",
         f"/institution/values/confirmation/{wbs_l1}",
-        body={"headcounts": headcounts, "table": table, "computing": computing},
+        body={
+            "institution": institution,
+            "headcounts": headcounts,
+            "table": table,
+            "computing": computing,
+        },
     )
     return from_dict(uut.InstitutionValues, response)  # type: ignore[no-any-return] # fixed in future release
 
