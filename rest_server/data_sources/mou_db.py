@@ -316,7 +316,26 @@ class MOUDatabaseClient:
     ) -> uut.InstitutionValues:
         """Get the values for an institution."""
         logging.debug(f"Getting Institution's Values ({wbs_db=}, {institution=})...")
+        while True:
+            try:
+                return await self._get_institution_values(
+                    wbs_db, snapshot_timestamp, institution
+                )
+            except KeyError:
+                # if the inst is missing, make it
+                logging.info(
+                    f"Creating new institution values ({wbs_db=}, {institution=})..."
+                )
+                await self._update_institution_values(
+                    wbs_db, institution, uut.InstitutionValues()
+                )
 
+    async def _get_institution_values(
+        self,
+        wbs_db: str,
+        snapshot_timestamp: str,
+        institution: str,
+    ) -> uut.InstitutionValues:
         await self._check_database_state(wbs_db)
 
         if not snapshot_timestamp:
@@ -328,20 +347,11 @@ class MOUDatabaseClient:
             logging.warning(str(e))
             return uut.InstitutionValues()
 
-        try:
-            vals = from_dict(
-                uut.InstitutionValues, doc.snapshot_institution_values[institution]
-            )
-            logging.info(f"Institution's Values [{vals}] ({wbs_db=}, {institution=}).")
-            return vals
-        except KeyError:
-            # if the inst is missing, make it
-            logging.info(
-                f"Creating new institution values ({wbs_db=}, {institution=})..."
-            )
-            return await self._update_institution_values(
-                wbs_db, institution, uut.InstitutionValues()
-            )
+        vals = from_dict(
+            uut.InstitutionValues, doc.snapshot_institution_values[institution]
+        )
+        logging.info(f"Institution's Values [{vals}] ({wbs_db=}, {institution=}).")
+        return vals
 
     async def _get_supplemental_doc(
         self, wbs_db: str, snap_coll: str
