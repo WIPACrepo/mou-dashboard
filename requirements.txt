@@ -16,7 +16,7 @@ cachetools==5.2.0
     # via
     #   UNKNOWN (setup.py)
     #   wipac-keycloak-rest-services
-certifi==2022.6.15
+certifi==2022.6.15.1
     # via requests
 cffi==1.15.1
     # via cryptography
