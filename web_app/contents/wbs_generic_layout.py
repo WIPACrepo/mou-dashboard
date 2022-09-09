@@ -616,7 +616,7 @@ def layout() -> html.Div:
                                 width=4,
                                 children=dbc.Button(
                                     "Reset Institution Confirmations",
-                                    id="wbs-reset-inst-confirmations-button",
+                                    id="wbs-retouchstone-button",
                                     n_clicks=0,
                                     color=du.Color.WARNING,
                                     disabled=False,

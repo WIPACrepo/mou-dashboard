@@ -676,7 +676,7 @@ def view_live_table(_: int) -> types.DashVal:
 
 
 @app.callback(  # type: ignore[misc]
-    Output("refresh-for-snapshot-change", "run"),
+    Output("reload-for-snapshot-change", "run"),
     [Input("wbs-current-snapshot-ts", "value")],  # user/view_live_table()
     prevent_initial_call=True,
 )
@@ -756,7 +756,7 @@ def setup_snapshot_components(
         Output("wbs-name-snapshot", "is_open"),
         Output("wbs-toast-via-snapshot-div", "children"),
         Output("wbs-make-snapshot-button", "color"),  # triggers "Loading" element
-        Output("refresh-for-snapshot-make", "run"),
+        Output("reload-for-snapshot-make", "run"),
     ],
     [
         Input("wbs-make-snapshot-button", "n_clicks"),  # user-only

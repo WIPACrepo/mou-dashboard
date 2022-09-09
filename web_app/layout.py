@@ -32,11 +32,12 @@ def layout() -> None:
             dcc.Location(id="url-user-inst-redirect"),
             dcc.Location(id="url-404-redirect"),
             #
-            # JS calls for refreshing page
-            visdcc.Run_js("refresh-for-snapshot-make"),  # pylint: disable=E1101
-            visdcc.Run_js("refresh-for-override-success"),  # pylint: disable=E1101
-            visdcc.Run_js("refresh-for-snapshot-change"),  # pylint: disable=E1101
-            visdcc.Run_js("refresh-for-interval"),  # pylint: disable=E1101
+            # JS calls for reloading page
+            visdcc.Run_js("reload-for-snapshot-make"),  # pylint: disable=E1101
+            visdcc.Run_js("reload-for-override-success"),  # pylint: disable=E1101
+            visdcc.Run_js("reload-for-snapshot-change"),  # pylint: disable=E1101
+            visdcc.Run_js("reload-for-interval"),  # pylint: disable=E1101
+            visdcc.Run_js("reload-for-retouchstone"),  # pylint: disable=E1101
             #
             # Logo, Tabs, & Login
             dbc.Navbar(
@@ -127,7 +128,7 @@ def layout() -> None:
 
 
 @app.callback(  # type: ignore[misc]
-    Output("refresh-for-interval", "run"),
+    Output("reload-for-interval", "run"),
     Input("interval-page-reload", "n_intervals"),  # dummy input
     prevent_initial_call=True,
 )

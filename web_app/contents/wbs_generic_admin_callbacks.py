@@ -8,7 +8,7 @@ from typing import Any, Dict, Final, List, Tuple, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import universal_utils.types as uut
-from dash import dcc  # type: ignore[import]
+from dash import dcc, no_update  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
 
 from ..config import app
@@ -64,7 +64,7 @@ def _get_upload_success_modal_body(
 
 
 @app.callback(  # type: ignore[misc]
-    Output("refresh-for-override-success", "run"),
+    Output("reload-for-override-success", "run"),
     [Input("wbs-upload-success-view-new-table-button", "n_clicks")],  # user-only
     prevent_initial_call=True,
 )
@@ -472,10 +472,11 @@ def blame(
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("wbs-reset-inst-confirmations-button", "children"),
-        Output("wbs-reset-inst-confirmations-button", "disabled"),
+        Output("wbs-retouchstone-button", "children"),
+        Output("wbs-retouchstone-button", "disabled"),
+        Output("reload-for-retouchstone", "run"),
     ],
-    [Input("wbs-reset-inst-confirmations-button", "n_clicks")],  # user-only
+    [Input("wbs-retouchstone-button", "n_clicks")],  # user-only
     [
         State("url", "pathname"),
         State("wbs-current-snapshot-ts", "value"),
@@ -488,7 +489,7 @@ def retouchstone(
     # state(s)
     s_urlpath: str,
     s_snap_ts: types.DashVal,
-) -> Tuple[str, bool]:
+) -> Tuple[str, bool, str]:
     """Make an updated touchstone timestamp value."""
     logging.warning(f"'{du.triggered()}' -> summarize()")
 
@@ -499,18 +500,21 @@ def retouchstone(
                 return (
                     "Cannot reset institution confirmations for snapshots",
                     True,
+                    no_update,
                 )
             timestamp = src.get_touchstone(du.get_wbs_l1(s_urlpath))
             return (
                 f"Reset Institution Confirmations ({utils.get_human_time(str(timestamp), medium=True)})",
                 not CurrentUser.is_admin(),
+                no_update,
             )
         # CLICKED
-        case "wbs-reset-inst-confirmations-button.n_clicks":
+        case "wbs-retouchstone-button.n_clicks":
             timestamp = src.retouchstone(du.get_wbs_l1(s_urlpath))
             return (
                 f"Reset Institution Confirmations ({utils.get_human_time(str(timestamp), medium=True)})",
-                False,
+                True,
+                du.RELOAD,
             )
 
     raise Exception(f"Unaccounted for trigger {du.triggered()}")
