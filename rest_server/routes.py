@@ -138,14 +138,6 @@ class RecordHandler(BaseMOUHandler):  # pylint: disable=W0223
         record = self.get_argument("record")
         editor = self.get_argument("editor")
 
-        # if inst := self.get_argument("institution", default=None):
-        #     record[columns.INSTITUTION] = inst  # insert
-        # if labor := self.get_argument("labor", default=None):
-        #     record[columns.LABOR_CAT] = labor  # insert
-
-        # if task := self.get_argument("task", default=None):
-        #     record[columns.TASK_DESCRIPTION] = task  # insert
-
         record = self.tc_data_adaptor.remove_on_the_fly_fields(record)
         record, instvals = await self.mou_db_client.upsert_record(
             wbs_l1, record, editor

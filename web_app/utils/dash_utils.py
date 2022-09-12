@@ -125,94 +125,12 @@ def get_sow_last_updated_label(
     return most_recent
 
 
-# def timecheck_labels(
-#     subject: str, verbage: str, snap_ts: types.DashVal = None
-# ) -> List[html.Label]:
-#     """Return labels with datetime and a checkmark for saved/submitted/etc."""
-#     if snap_ts:
-#         return []
-#     return [
-#         html.Label(f"{subject} {verbage} ✔", className="timecheck-label"),
-#         html.Label(utils.get_human_now(), className="timecheck-datetime"),
-#     ]
-
-
 HEADCOUNTS_REQUIRED = [
     html.Label(
         "Headcounts are required. Please enter all four numbers.",
         style={"color": "red", "font-weight": "bold"},
     )
 ]
-
-
-# def confirmation_saved_label(
-#     confirmed_ts: int,
-#     label: str,
-#     override: bool = False,
-#     override_label: List[html.Label] | None = None,
-# ) -> List[html.Label]:
-#     """Get a confirmation-saved label."""
-#     if override:
-#         return override_label if override_label else []
-
-#     # TODO - detect if recent change
-#     if just_now_confirmed:  # show saved label if count was just now confirmed
-#         return timecheck_labels(label, "Submitted")
-#     elif not confirmed_ts:  # if it's not confirmed, then don't show anything
-#         return []
-#     else:  # it's confirmed but this isn't new, so don't change anything
-#         return no_update  # type: ignore[no-any-return]
-
-
-# def _figure_confirmation_ts(
-#     confirm_trigger_id: str, prev_ts: int, causal_fields: List[str]
-# ) -> int:
-#     if triggered_id() == confirm_trigger_id:
-#         # the user is confirming the count
-#         return int(time.time())
-#     elif triggered_id() in causal_fields:
-#         # if a casual-field value changed, then the count is no longer confirmed
-#         return 0
-#     else:
-#         # an unrelated value changed, so maintain previous timestamp
-#         return prev_ts
-
-
-# def figure_headcounts_confirmation_ts(prev_ts: int) -> int:
-#     """Figure the confirmation timestamp for the headcounts."""
-#     return _figure_confirmation_ts(
-#         "wbs-headcounts-confirm-yes",
-#         prev_ts,
-#         [
-#             "wbs-phds-authors",
-#             "wbs-faculty",
-#             "wbs-scientists-post-docs",
-#             "wbs-grad-students",
-#         ],
-#     )
-
-
-# def figure_table_confirmation_ts(prev_ts: int) -> int:
-#     """Figure the confirmation timestamp for the table."""
-#     return _figure_confirmation_ts(
-#         "wbs-table-confirm-yes",
-#         prev_ts,
-#         [
-#             # TODO
-#         ],
-#     )
-
-
-# def figure_computing_confirmation_ts(prev_ts: int) -> int:
-#     """Figure the confirmation timestamp for the computing counts."""
-#     return _figure_confirmation_ts(
-#         "wbs-computing-confirm-yes",
-#         prev_ts,
-#         [
-#             "wbs-cpus",
-#             "wbs-gpus",
-#         ],
-#     )
 
 
 # --------------------------------------------------------------------------------------
@@ -413,45 +331,6 @@ def make_stacked_label_component_float_left(
             component,
         ],
     )
-
-    # def make_timecheck_container(id_: str, loading: bool = False) -> html.Div:
-    #     """Create a container for the timecheck container.
-
-    #     Optionally, wrapped in a `dcc.Loading`.
-    #     """
-    #     if loading:
-    #         return dcc.Loading(
-    #             type="default",
-    #             color=TEAL,
-    #             children=html.Div(className="timecheck-container", id=id_),
-    #         )
-    #     else:
-    #         return html.Div(className="timecheck-container", id=id_)
-
-    # def make_confirm_container(id_subject: str, button_label: str) -> html.Div:
-    #     """Create a container for confirming `subject`."""
-    #     return html.Div(
-    #         id=f"wbs-{id_subject}-confirm-container",
-    #         hidden=True,
-    #         # className="timecheck-container",
-    #         children=dbc.Button(button_label, id=f"wbs-{id_subject}-confirm-yes"),
-    #     )
-
-    # def new_data_button(id_num: int) -> html.Div:
-    """Get a button for triggering adding of new data."""
-    # return
-    # return html.Div(
-    #     id=,
-    #     children=dbc.Button(
-    #         ,
-    #         id=f"wbs-new-data-button-{id_num}",
-    #         n_clicks=0,
-    #         color=Color.DARK,
-    #         disabled=False,
-    #     ),
-    #     hidden=True,
-    #     className="table-custom-filter d-grid gap-2",
-    # )
 
 
 def table_columns(
@@ -803,42 +682,6 @@ def name_snapshot_modal() -> dbc.Modal:
             ),
         ],
     )
-
-
-# def add_new_data_modal() -> dbc.Modal:
-#     """Get a modal for adding new data."""
-#     return dbc.Modal(
-#         id="wbs-new-data-modal",
-#         size="md",
-#         is_open=False,
-#         # backdrop="static",
-#         centered=True,
-#         children=[
-#             html.Div(
-#                 children=dbc.Button(id="wbs-new-data-modal-dummy-add", n_clicks=0),
-#                 hidden=True,
-#             ),
-#             html.Div(id="wbs-new-data-modal-header", className="section-header caps"),
-#             dbc.ModalBody(
-#                 dcc.Textarea(
-#                     id="wbs-new-data-modal-task",
-#                     value="",
-#                     minLength=5,
-#                     placeholder="Enter Task Description",
-#                     style={"width": "100%"},
-#                 ),
-#             ),
-#             dbc.ModalFooter(
-#                 dbc.Button(
-#                     "+ Add",
-#                     id="wbs-new-data-modal-add-button",
-#                     n_clicks=0,
-#                     color=Color.SUCCESS,
-#                     className="table-tool-medium",
-#                 ),
-#             ),
-#         ],
-#     )
 
 
 def simple_table(id_: str) -> dash_table.DataTable:

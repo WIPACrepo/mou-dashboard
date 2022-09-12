@@ -76,7 +76,6 @@ def _add_new_data(  # pylint: disable=R0913
     wbs_l1: str,
     table: uut.WebTable,
     columns: types.TColumns,
-    # labor: types.DashVal,
     institution: types.DashVal,
     tconfig: tc.TableConfigParser,
 ) -> Tuple[uut.WebTable, dbc.Toast]:
@@ -90,13 +89,12 @@ def _add_new_data(  # pylint: disable=R0913
         nam: "" for nam in [cast(str, col["name"]) for col in columns]
     }
 
-    # push to data source AND auto-fill labor and/or institution
+    # push to data source AND auto-fill institution
     try:
         new_record = src.push_record(
             wbs_l1,
             new_record,
             tconfig,
-            # labor=labor,
             institution=institution,
             novel=True,
         )
@@ -160,10 +158,7 @@ def confirm_deletion(
         Output("wbs-data-table", "data"),
         Output("wbs-data-table", "page_current"),
         Output("wbs-toast-via-exterior-control-div", "children"),
-        # Output("wbs-show-totals-button", "children"),
         # TOTALS
-        # Output("wbs-show-totals-button", "color"),
-        # Output("wbs-show-totals-button", "outline"),
         Output("wbs-show-totals-button", "className"),
         Output("wbs-show-totals-button-tooltip", "children"),
         Output("wbs-show-totals-button-i", "className"),
@@ -177,7 +172,6 @@ def confirm_deletion(
     ],
     [
         Input("wbs-data-table", "columns"),  # setup_table()-only
-        # Input("wbs-filter-labor", "value"),  # user
         Input("wbs-show-totals-button", "n_clicks"),  # user-only
         Input("wbs-new-data-button", "n_clicks"),  # user-only
         Input("wbs-undo-last-delete-hidden-button", "n_clicks"),  # confirm_deletion()
@@ -194,11 +188,9 @@ def confirm_deletion(
 )  # pylint: disable=R0913,R0914
 def table_data_exterior_controls(
     columns: types.TColumns,
-    # labor: types.DashVal,
     tot_n_clicks: int,
     _: int,
     __: int,
-    # ___: int,
     # state(s)
     s_urlpath: str,
     s_snap_ts: types.DashVal,
@@ -271,7 +263,6 @@ def table_data_exterior_controls(
                         wbs_l1,
                         tconfig,
                         institution=inst,
-                        # labor=labor,
                         with_totals=show_totals,
                         restore_id=cast(str, s_deleted_record[tconfig.const.ID]),
                     )
@@ -295,7 +286,6 @@ def table_data_exterior_controls(
                     wbs_l1,
                     tconfig,
                     institution=inst,
-                    # labor=labor,
                     with_totals=show_totals,
                     snapshot_ts=s_snap_ts,
                 )
@@ -308,19 +298,12 @@ def table_data_exterior_controls(
         and not inst  # paginate if viewing entire collaboration
         and CurrentUser.is_admin()  # paginate if admin
     )
-    # # hide "Show All Rows"/"Collapse Rows to Pages" if paginating wouldn't do anything
-    # style_paginate_button = {}
-    # if :
-    #     style_paginate_button = {"visibility": "hidden"}
 
     return (
         table,
         0,
         toast,
         # TOTALS
-        # tot_label,
-        # tot_color,
-        # tot_outline,
         du.ButtonIconLabelTooltipFactory.build_classname(tot_outline, color=tot_color),
         tot_tooltip,
         tot_icon,
@@ -387,21 +370,14 @@ def _find_deleted_record(
 @app.callback(  # type: ignore[misc]
     [
         Output("wbs-data-table", "data_previous"),
-        # Output("wbs-table-timecheck-container", "children"),
         Output("wbs-last-deleted-record", "data"),
         Output("wbs-confirm-deletion", "displayed"),
         Output("wbs-confirm-deletion", "message"),
         Output("wbs-table-update-flag-interior-control", "data"),
-        # Output("wbs-sow-last-updated", "children"),
-        # Output("wbs-sow-last-updated-time", "children"),
         # CONTAINERS FOR HIDING
-        # Output("wbs-filter-labor-container", "hidden"),
         Output("wbs-data-table-container", "hidden"),
         Output("wbs-show-totals-button", "hidden"),
         Output("wbs-show-all-columns-button", "hidden"),
-        # Output("wbs-show-all-rows-button", "hidden"),
-        # Output("wbs-table-bottom-toolbar-container", "hidden"),
-        # Output("wbs-table-confirm-yes-container", "hidden"),
     ],
     [Input("wbs-data-table", "data")],  # user/table_data_exterior_controls()
     [
@@ -423,18 +399,14 @@ def table_data_interior_controls(
     s_flag_intctrl: bool,
 ) -> Tuple[
     uut.WebTable,
-    # List[html.Label],
     uut.WebRecord,
     bool,
     str,
     bool,
-    # str,
-    # str,
     # CONTAINERS FOR HIDING
     bool,
     bool,
     bool,
-    # bool,
 ]:
     """Interior control signaled that the table should be updated.
 
@@ -449,31 +421,19 @@ def table_data_interior_controls(
     wbs_l1 = du.get_wbs_l1(s_urlpath)
     tconfig = tc.TableConfigParser(wbs_l1)
 
-    # Make labels
-    # timecheck_labels = du.timecheck_labels("Table", "Autosaved", s_snap_ts)
-    # sows_updated_label = du.get_sow_last_updated_label(
-    #     current_table, bool(s_snap_ts), tconfig
-    # )
-
-    # TODO - update instval table confirmation meta info
-
     # Was table just updated via exterior controls? -- if so, toggle flag
     # flags will agree only after table_data_exterior_controls() triggers this function
     if not du.flags_agree(s_flag_extctrl, s_flag_intctrl):
         logging.warning("table_data_interior_controls() :: aborted callback")
         return (
             current_table,
-            # timecheck_labels,
             {},
             False,
             "",
             not s_flag_intctrl,
-            # "SOWs Last Updated:",
-            # sows_updated_label,
             not current_table,
             not current_table,
             not current_table,
-            # not current_table,
         )
 
     assert not s_snap_ts  # should not be a snapshot
@@ -489,26 +449,16 @@ def table_data_interior_controls(
         current_table, s_previous_table, mod_ids, tconfig
     )
 
-    # # get the last updated label (make an ad hoc pseudo-table just to find the max time)
-    # if pushed_record or deleted_record:
-    #     sows_updated_label = du.get_sow_last_updated_label(
-    #         [pushed_record, deleted_record], bool(s_snap_ts), tconfig
-    #     )
-
     # Update data_previous
     return (
         current_table,
-        # timecheck_labels,
         deleted_record,
         bool(deleted_record),
         delete_message,
         s_flag_intctrl,  # preserve flag
-        # "SOWs Last Updated:",
-        # sows_updated_label,
         not current_table,
         not current_table,
         not current_table,
-        # not current_table,
     )
 
 
@@ -939,9 +889,6 @@ def _setup_user_dependent_components_dc(
 
 @app.callback(  # type: ignore[misc]
     [
-        # Output("wbs-show-all-rows-button", "children"),
-        # Output("wbs-show-all-rows-button", "color"),
-        # Output("wbs-show-all-rows-button", "outline"),
         # All Rows
         Output("wbs-show-all-rows-button", "className"),
         Output("wbs-show-all-rows-button-tooltip", "children"),
@@ -949,7 +896,6 @@ def _setup_user_dependent_components_dc(
         #
         Output("wbs-data-table", "page_size"),
         Output("wbs-data-table", "page_action"),
-        # Output("wbs-table-bottom-toolbar", "style"),
     ],
     [
         # user/table_data_exterior_controls
@@ -963,16 +909,13 @@ def toggle_pagination(
     # state(s)
     s_urlpath: str,
 ) -> Tuple[
-    # str,
     # All Rows
     str,
     str,
     str,
-    # bool,
     #
     int,
     str,
-    # Dict[str, str],
 ]:
     """Toggle whether the table is paginated."""
     logging.warning(f"'{du.triggered()}' -> toggle_pagination({n_clicks=})")
@@ -980,8 +923,6 @@ def toggle_pagination(
     if n_clicks % 2 == 0:
         tconfig = tc.TableConfigParser(du.get_wbs_l1(s_urlpath))
         return (
-            # du.Color.SECONDARY,
-            # True,
             du.ButtonIconLabelTooltipFactory.build_classname(
                 False, color=du.Color.DARK
             ),
@@ -990,12 +931,9 @@ def toggle_pagination(
             #
             tconfig.get_page_size(),
             "native",
-            # {"margin-top": "-3.75rem", "padding-left": "1em"},
         )
     # https://community.plotly.com/t/rendering-all-rows-without-pages-in-datatable/15605/2
     return (
-        # du.Color.DARK,
-        # False,
         du.ButtonIconLabelTooltipFactory.build_classname(
             True, color=du.Color.SECONDARY
         ),
@@ -1004,7 +942,6 @@ def toggle_pagination(
         #
         9999999999,
         "none",
-        # {"margin-top": "1rem", "padding-left": "1em"},
     )
 
 
@@ -1014,9 +951,6 @@ def toggle_pagination(
         Output("wbs-show-all-columns-button", "className"),
         Output("wbs-show-all-columns-button-tooltip", "children"),
         Output("wbs-show-all-columns-button-i", "className"),
-        # Output("wbs-show-all-columns-button", "children"),
-        # Output("wbs-show-all-columns-button", "color"),
-        # Output("wbs-show-all-columns-button", "outline"),
         Output("wbs-data-table", "hidden_columns"),
     ],
     [Input("wbs-show-all-columns-button", "n_clicks")],  # user/table_data_exterior_c...
@@ -1032,9 +966,6 @@ def toggle_hidden_columns(
     str,
     str,
     str,
-    # str,
-    # str,
-    # bool,
     #
     List[str],
 ]:
@@ -1053,8 +984,6 @@ def toggle_hidden_columns(
             ),
             "click to show the hidden columns, including the recent edit history for each entry",
             du.IconClassNames.EXPAND,
-            # du.Color.SECONDARY,
-            # True,
             #
             hiddens,
         )
@@ -1064,8 +993,6 @@ def toggle_hidden_columns(
         du.ButtonIconLabelTooltipFactory.build_classname(False, color=du.Color.DARK),
         "click to show the default columns",
         du.IconClassNames.CHECK,
-        # du.Color.DARK,
-        # False,
         # All Columns
         always_hidden_columns,
     )

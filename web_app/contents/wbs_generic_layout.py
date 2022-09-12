@@ -80,7 +80,6 @@ def layout() -> html.Div:
                             html.Div(
                                 id="wbs-view-live-btn-div",
                                 hidden=True,
-                                # style={"margin-top": "0.25rem"},
                                 children=dbc.Button(
                                     "View Today's SOW",
                                     id="wbs-view-live-btn",
@@ -134,7 +133,6 @@ def layout() -> html.Div:
                     # Inputs
                     dbc.Row(
                         justify="center",
-                        # className="g-0",  # "g-0" -> no gutters
                         children=[
                             du.make_stacked_label_component_float_left(
                                 width=18,
@@ -196,8 +194,6 @@ def layout() -> html.Div:
                             ),
                         ],
                     ),
-                    # Autosaved & Confirm
-                    # du.make_timecheck_container("wbs-headcounts-timecheck-container"),
                 ],
             ),
             #
@@ -209,9 +205,7 @@ def layout() -> html.Div:
                 className="g-0",  # "g-0" -> no gutters
                 style={
                     "margin-left": "7rem",
-                    # "margin-right": "1rem",
                     "margin-bottom": "4rem",
-                    # "text-align": "right",
                 },
                 children=[
                     dbc.Col(
@@ -299,33 +293,8 @@ def layout() -> html.Div:
                             hidden=True,
                         ),
                     ),
-                    # # Labor Category filter dropdown menu
-                    # dbc.Col(
-                    #     width=2,
-                    #     children=html.Div(
-                    #         id="wbs-filter-labor-container",
-                    #         hidden=True,
-                    #         children=dcc.Dropdown(
-                    #             id="wbs-filter-labor",
-                    #             placeholder="Filter by Labor Category",
-                    #             className="table-custom-filter caps",
-                    #             # options set in callback
-                    #             # value set in callback
-                    #             optionHeight=30,
-                    #         ),
-                    #     ),
-                    # ),
-                    #
-                    # New Data
-                    # du.new_data_button(2),
                     #
                     # Show Totals
-                    # dbc.Button(
-                    #     id="wbs-show-totals-button",
-                    #     n_clicks=0,
-                    #     className="table-tool-medium",
-                    #     children="Totals",
-                    # ),
                     dbc.Col(
                         width=2,
                         children=du.ButtonIconLabelTooltipFactory.make(
@@ -339,12 +308,6 @@ def layout() -> html.Div:
                     ),
                     #
                     # Show All Columns
-                    # dbc.Button(
-                    #     id="wbs-show-all-columns-button",
-                    #     n_clicks=0,
-                    #     className="table-tool-medium",
-                    #     children="All Columns",
-                    # ),
                     dbc.Col(
                         width=2,
                         children=du.ButtonIconLabelTooltipFactory.make(
@@ -431,27 +394,7 @@ def layout() -> html.Div:
                 ),
             ),
             #
-            # Bottom Buttons
-            # html.Div(
-            #     id="wbs-table-bottom-toolbar-container",
-            #     hidden=True,
-            #     children=du.fullscreen_loading(
-            #         children=[
-            #             dbc.Row(
-            #                 id="wbs-table-bottom-toolbar",
-            #                 className="g-0 wbs-table-bottom-toolbar",  # "g-0" -> no gutters
-            #                 # style={}, # updated by callback
-            #                 children=[
-            #                 ],
-            #             ),
-            #         ],
-            #     ),
-            # ),
-            #
-            # Table Autosaved
-            # du.make_timecheck_container("wbs-table-timecheck-container", loading=True),
-            # du.make_confirm_container("table", ""),
-            #
+            # Computing + Notes
             html.Div(
                 id="institution-values-below-table-container",
                 hidden=True,
@@ -466,7 +409,6 @@ def layout() -> html.Div:
                     # Inputs
                     dbc.Row(
                         justify="center",
-                        # className="g-0",  # "g-0" -> no gutters
                         children=[
                             du.make_stacked_label_component_float_left(
                                 width=15,
@@ -506,9 +448,6 @@ def layout() -> html.Div:
                             ),
                         ],
                     ),
-                    # Autosaved & Confirm
-                    # du.make_timecheck_container("wbs-computing-timecheck-container"),
-                    # du.make_confirm_container("computing", "Submit Counts"),
                     #
                     # Free Text & Autosaved
                     html.H2(
@@ -521,9 +460,6 @@ def layout() -> html.Div:
                         className="institution-text-area",
                         disabled=True,
                     ),
-                    # du.make_timecheck_container(
-                    #     "wbs-institution-textarea-timecheck-container", loading=True
-                    # ),
                 ],
             ),
             html.Div(
@@ -647,10 +583,6 @@ def layout() -> html.Div:
                 storage_type="memory",
                 data=True,
             ),
-            # - for storing the initial confirmation timestamps
-            # dcc.Store(id="wbs-headcounts-confirm-timestamp", storage_type="memory"),
-            # dcc.Store(id="wbs-table-confirm-timestamp", storage_type="memory"),
-            # dcc.Store(id="wbs-computing-confirm-timestamp", storage_type="memory"),
             # - for storing confirmation info
             dcc.Store(id="wbs-store-confirm-headcounts", storage_type="memory"),
             dcc.Store(id="wbs-store-confirm-table", storage_type="memory"),
@@ -682,12 +614,11 @@ def layout() -> html.Div:
             html.Div(id="wbs-toast-via-snapshot-div"),
             html.Div(id="wbs-toast-via-upload-div"),
             #
-            # Modals & Toasts
+            # Modals, Dialogs, & Toasts
             du.after_deletion_toast(),
             du.upload_modal(),
             du.upload_success_modal(),
             du.name_snapshot_modal(),
-            # du.add_new_data_modal(),
             dcc.ConfirmDialog(id="wbs-confirm-deletion"),
             dbc.Button(
                 id="wbs-undo-last-delete-hidden-button", style={"visibility": "hidden"}
