@@ -4,7 +4,7 @@
 #
 #    pip-compile
 #
-aio-pika==8.2.0
+aio-pika==8.2.1
     # via wipac-keycloak-rest-services
 aiormq==6.4.1
     # via aio-pika
