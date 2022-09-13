@@ -312,8 +312,8 @@ def layout() -> html.Div:
                         width=2,
                         children=du.ButtonIconLabelTooltipFactory.make(
                             "wbs-show-all-columns-button",
-                            icon_class=du.IconClassNames.EXPAND,  # set in callback
-                            label_text="All Columns",
+                            icon_class=du.IconClassNames.TABLE_COLUMNS,  # set in callback
+                            label_text="Extra Info",
                             height="25.53px",
                             add_loading=True,
                             width="100%",

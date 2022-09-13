@@ -982,8 +982,8 @@ def toggle_hidden_columns(
             du.ButtonIconLabelTooltipFactory.build_classname(
                 True, color=du.Color.SECONDARY
             ),
-            "click to show the hidden columns, including the recent edit history for each entry",
-            du.IconClassNames.EXPAND,
+            "click to show additional columns, containing funding metrics and recent edit history for each entry",
+            du.IconClassNames.TABLE_COLUMNS,
             #
             hiddens,
         )

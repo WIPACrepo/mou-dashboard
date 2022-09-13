@@ -73,7 +73,7 @@ class IconClassNames:
     CHECK_TO_SLOT = "fa-solid fa-check-to-slot"
     CHECK = "fa-solid fa-check"
     LAYER_GROUP = "fa-solid fa-layer-group"
-    EXPAND = "fa-solid fa-expand"
+    TABLE_COLUMNS = "fa-solid fa-table-columns"
     CALCULATOR = "fa-solid fa-calculator"
     PLUS_MINUS = "fa-solid fa-plus-minus"
 
