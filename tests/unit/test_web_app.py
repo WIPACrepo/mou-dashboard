@@ -57,6 +57,7 @@ def tconfig() -> Iterator[tc.TableConfigParser]:
             numerics=[],
             non_editables=[],
             hiddens=[],
+            mandatories=[],
             tooltips={},
             widths={},
             border_left_columns=[],
@@ -488,6 +489,7 @@ class TestTableConfig:
                 numerics=["foobarbaz"],
                 non_editables=["alpha", "beta"],
                 hiddens=["z", "y", "x"],
+                mandatories=["aa", "bb"],
                 widths={"Zetta": 888, "Yotta": -50},
                 border_left_columns=["ee", "e"],
                 page_size=55,
@@ -513,6 +515,7 @@ class TestTableConfig:
             table_config.get_labor_categories_w_abbrevs() == resp[WBS].labor_categories
         )
         assert table_config.get_hidden_columns() == resp[WBS].hiddens
+        assert table_config.get_mandatory_columns() == resp[WBS].mandatories
         assert table_config.get_dropdown_columns() == resp[WBS].dropdowns
         assert table_config.get_page_size() == resp[WBS].page_size
 
