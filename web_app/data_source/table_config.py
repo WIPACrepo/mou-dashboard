@@ -23,6 +23,7 @@ class _WBSTableCache:
     numerics: List[str]
     non_editables: List[str]
     hiddens: List[str]
+    mandatories: List[str]
     tooltips: Dict[str, str]
     widths: Dict[str, int]
     border_left_columns: List[str]
@@ -137,6 +138,10 @@ class TableConfigParser:  # pylint: disable=R0904
     def get_hidden_columns(self) -> List[str]:
         """Get the columns hidden be default."""
         return self._configs[self._wbs_l1].hiddens
+
+    def get_mandatory_columns(self) -> List[str]:
+        """Get the columns that must be filled in by user."""
+        return self._configs[self._wbs_l1].mandatories
 
     def get_always_hidden_columns(self) -> List[str]:
         """Get the columns that should never be shown to the user.

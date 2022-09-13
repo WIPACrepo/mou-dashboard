@@ -188,6 +188,7 @@ class TableConfigHandler(BaseMOUHandler):  # pylint: disable=W0223
                 "numerics": self.tc_cache.get_numerics(),
                 "non_editables": self.tc_cache.get_non_editables(),
                 "hiddens": self.tc_cache.get_hiddens(),
+                "mandatories": self.tc_cache.get_mandatory_columns(),
                 "tooltips": self.tc_cache.get_tooltips(),
                 "widths": self.tc_cache.get_widths(),
                 "border_left_columns": self.tc_cache.get_border_left_columns(),

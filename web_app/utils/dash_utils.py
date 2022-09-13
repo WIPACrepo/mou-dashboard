@@ -460,7 +460,7 @@ def get_style_data_conditional(tconfig: tc.TableConfigParser) -> types.TSDCond:
     style_data_conditional += [
         {"if": {"filter_query": f'{{{col}}} = ""'}, "backgroundColor": LIGHT_YELLOW}
         for col in tconfig.get_table_columns()
-        if col not in tconfig.get_hidden_columns()
+        if col in tconfig.get_mandatory_columns()
     ]
 
     # selected cell style

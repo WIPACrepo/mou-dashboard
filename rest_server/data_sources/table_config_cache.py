@@ -23,6 +23,7 @@ class _ColumnConfig:
     tooltip: str = ""
     non_editable: bool = False
     hidden: bool = False
+    mandatory: bool = False
     options: List[str] | None = None
     sort_value: int | None = None
     conditional_parent: str | None = None
@@ -46,6 +47,14 @@ _LABOR_CATEGORY_DICTIONARY: Dict[str, str] = {
     "IT": "Information Technology",
     "MA": "Manager",
     "WO": "Winterover",
+}
+
+
+_TASK_CATEGORY_DICTIONARY: Dict[str, str] = {
+    "Standard": "",
+    "Intro": "",
+    "Open": "",
+    "Custom": "",
 }
 
 MAX_CACHE_AGE = 60 * 60  # seconds
@@ -96,11 +105,13 @@ class TableConfigCache:
                 width=115,
                 sort_value=70,
                 tooltip="WBS Level 2 Category",
+                mandatory=True,
             ),
             columns.WBS_L3: _ColumnConfig(
                 width=115,
                 sort_value=60,
                 tooltip="WBS Level 3 Category",
+                mandatory=True,
             ),
             columns.US_NON_US: _ColumnConfig(
                 width=50,
@@ -117,20 +128,30 @@ class TableConfigCache:
                 border_left=True,
                 sort_value=40,
                 tooltip="The institution. This cannot be changed.",
+                mandatory=True,
             ),
             columns.LABOR_CAT: _ColumnConfig(
                 width=50,
                 options=sorted(_LABOR_CATEGORY_DICTIONARY.keys()),
                 sort_value=30,
                 tooltip="The labor category",
+                mandatory=True,
             ),
             columns.NAME: _ColumnConfig(
                 width=100,
                 sort_value=20,
                 tooltip="LastName, FirstName",
+                mandatory=True,
+            ),
+            columns.TASK: _ColumnConfig(
+                width=75,
+                sort_value=25,
+                options=sorted(_TASK_CATEGORY_DICTIONARY.keys()),
+                tooltip="Task category",
+                mandatory=True,
             ),
             columns.TASK_DESCRIPTION: _ColumnConfig(
-                width=300,
+                width=200,
                 tooltip="A description of the task",
             ),
             columns.SOURCE_OF_FUNDS_US_ONLY: _ColumnConfig(
@@ -147,11 +168,13 @@ class TableConfigCache:
                 border_left=True,
                 sort_value=10,
                 tooltip="The funding source",
+                mandatory=True,
             ),
             columns.FTE: _ColumnConfig(
                 width=50,
                 numeric=True,
                 tooltip="FTE for funding source",
+                mandatory=True,
             ),
             columns.TOTAL_COL: _ColumnConfig(
                 width=100,
@@ -297,6 +320,10 @@ class TableConfigCache:
     def get_hiddens(self) -> List[str]:
         """Get the columns that are hidden."""
         return [col for col, config in self.column_configs.items() if config.hidden]
+
+    def get_mandatory_columns(self) -> List[str]:
+        """Get the columns that are hidden."""
+        return [col for col, config in self.column_configs.items() if config.mandatory]
 
     def get_widths(self) -> Dict[str, int]:
         """Get the widths of each column."""

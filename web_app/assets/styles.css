@@ -322,7 +322,7 @@ code {
 }
 
 .institution-dropdown > .Select-control > .Select-arrow-zone {
-    /*visibility: hidden;*/
+    visibility: hidden;
 }
 
 .institution-dropdown > .Select-control > .Select-multi-value-wrapper > * {
@@ -427,8 +427,13 @@ code {
     /*padding-top: 12px;*/
     line-height:  25.53px !important;
 }
+
+.Select-arrow {
+    --faded-dropdown: transparent !important; /*make arrow not visible when not hovered*/
+}
 .Select-arrow-zone {
-    visibility:  hidden;
+    padding: 0 !important;
+    width: 15px !important;
 }
 
 .table-custom-filter > .Select-menu-outer {
@@ -490,7 +495,7 @@ code {
 }
 
 .dash-dropdown-cell-value-container > .Select > .Select-control > .Select-multi-value-wrapper > .Select-value {
-    max-width: calc(100% - 25px);
+    max-width: calc(100% - 15px);
 }
 
 /* dropdown cell "X" */
