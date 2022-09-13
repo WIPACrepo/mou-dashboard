@@ -182,6 +182,7 @@ class TestNoArgumentRoutes:
                 "numerics",
                 "non_editables",
                 "hiddens",
+                "mandatories",
                 "tooltips",
                 "widths",
                 "border_left_columns",
