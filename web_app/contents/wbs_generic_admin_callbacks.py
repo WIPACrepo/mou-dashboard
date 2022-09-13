@@ -1,4 +1,4 @@
-"""Admin-only callbacks for a specified WBS layout."""
+"""Admin-only callbacks for a specified WBS layout."""  # lgtm [py/syntax-error]
 
 import dataclasses as dc
 import logging

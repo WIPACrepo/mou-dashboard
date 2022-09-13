@@ -339,10 +339,6 @@ def delete_record(wbs_l1: str, record_id: str) -> None:
     _validate(wbs_l1, str, falsy_okay=False)
     _validate(record_id, str)
 
-    class _RespRecord(TypedDict):
-        record: uut.WebRecord
-        institution_values: uut.InstitutionValues
-
     body = {
         "record_id": record_id,
         "editor": CurrentUser.get_username(),
