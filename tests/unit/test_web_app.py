@@ -344,7 +344,7 @@ class TestDataSource:
         # Call
         mock_rest.return_value.request_seq.side_effect = requests.exceptions.HTTPError
 
-        with pytest.raises(utils.DataSourceException):
+        with pytest.raises(connections.DataSourceException):
             src.delete_record(WBS, record_id)
 
         # Assert
