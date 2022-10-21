@@ -272,13 +272,8 @@ class TestDataSource:
         current_user: Any, mock_rest: Any, tconfig: tc.TableConfigParser
     ) -> None:
         """Test push_record()."""
-<<<<<<< HEAD
         current_user.return_value = web_app.networking.connections.UserInfo(
             "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"], "foobarbaz"
-=======
-        current_user.return_value = web_app.utils.oidc_tools.UserInfo(
-            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
->>>>>>> parent of de55df8 (solve circular import issue by combining and renaming)
         )
         unrealistic_hardcoded_resp = {
             "foo": 0,
