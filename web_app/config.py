@@ -31,7 +31,6 @@ class ConfigVarsTypedDict(TypedDict):
     FLASK_SECRET: str
     OIDC_CLIENT_SECRETS: str
     OVERWRITE_REDIRECT_URI: str
-    CI_TEST_ENV: bool
 
 
 def get_config_vars() -> ConfigVarsTypedDict:
@@ -45,7 +44,6 @@ def get_config_vars() -> ConfigVarsTypedDict:
             "FLASK_SECRET": "super-secret-flask-key",
             "OIDC_CLIENT_SECRETS": "client_secrets.json",
             "OVERWRITE_REDIRECT_URI": "",
-            "CI_TEST_ENV": False,
         }
     )
 

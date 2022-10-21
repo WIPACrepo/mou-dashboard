@@ -24,11 +24,7 @@ class DataSourceException(Exception):
 def _rest_connection() -> RestClient:
     """Return REST Client connection object."""
     config_vars = get_config_vars()
-
-    if config_vars["CI_TEST_ENV"]:
-        user_access_token = ""
-    else:
-        user_access_token = CurrentUser.get_access_token()
+    user_access_token = CurrentUser.get_access_token()
 
     rc = RestClient(
         config_vars["REST_SERVER_URL"], token=user_access_token, timeout=30, retries=0
