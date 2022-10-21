@@ -172,8 +172,8 @@ class TestNoArgumentRoutes:
 
         resp = ds_rc.request_seq("GET", "/table/config")
         assert list(resp.keys()) == ["mo", "upgrade"]
-        for config in resp.values():
-            assert list(config.keys()) == [
+        for tc_cfg in resp.values():
+            assert list(tc_cfg.keys()) == [
                 "columns",
                 "simple_dropdown_menus",
                 "labor_categories",
