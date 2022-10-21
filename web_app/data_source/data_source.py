@@ -6,7 +6,7 @@ from typing import Any, Dict, Final, List, Optional, Tuple, TypedDict, Union, ca
 from ..data_source.connections import CurrentUser
 from ..utils import types, utils
 from . import table_config as tc
-from .utils import mou_request
+from .connections import mou_request
 
 # constants
 _OC_SUFFIX: Final[str] = "_original"
