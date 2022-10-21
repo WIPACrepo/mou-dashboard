@@ -272,7 +272,7 @@ class TestDataSource:
     ) -> None:
         """Test push_record()."""
         current_user.return_value = web_app.networking.connections.UserInfo(
-            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
+            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"], "foobarbaz"
         )
         unrealistic_hardcoded_resp = {
             "foo": 0,
