@@ -38,15 +38,13 @@ async def start(debug: bool = False) -> RestServer:
     mongodb_host = config_env["MOU_MONGODB_HOST"]
     mongodb_port = int(config_env["MOU_MONGODB_PORT"])
 
-    args = RestHandlerSetup(
-        {
-            "auth": {
-                "audience": config_env["AUTH_AUDIENCE"],
-                "openid_url": config_env["AUTH_OPENID_URL"],
-            },
-            "debug": debug,
+    rhs_config = {"debug": debug}
+    if config_env["AUTH_OPENID_URL"]:
+        rhs_config["auth"] = {
+            "audience": config_env["AUTH_AUDIENCE"],
+            "openid_url": config_env["AUTH_OPENID_URL"],
         }
-    )
+    args = RestHandlerSetup(rhs_config)
     args["tc_cache"] = await table_config_cache.TableConfigCache.create()
 
     # Setup DB URL
