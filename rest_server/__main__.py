@@ -41,9 +41,8 @@ async def start(debug: bool = False) -> RestServer:
     args = RestHandlerSetup(
         {
             "auth": {
-                "secret": config_env["MOU_AUTH_SECRET"],
-                "issuer": config_env["MOU_AUTH_ISSUER"],
-                "algorithm": config_env["MOU_AUTH_ALGORITHM"],
+                "audience": config_env["AUTH_AUDIENCE"],
+                "openid_url": config_env["AUTH_OPENID_URL"],
             },
             "debug": debug,
         }

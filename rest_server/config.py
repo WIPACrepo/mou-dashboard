@@ -9,9 +9,8 @@ from typing import Any, Dict
 
 
 DEFAULT_ENV_CONFIG = {
-    "MOU_AUTH_ALGORITHM": "HS512",  # 'RS256',
-    "MOU_AUTH_ISSUER": "http://localhost:8888",  # 'MOUdash',
-    "MOU_AUTH_SECRET": "secret",
+    "AUTH_AUDIENCE": "mou",
+    "AUTH_OPENID_URL": "",
     "MOU_MONGODB_AUTH_USER": "",  # None means required to specify
     "MOU_MONGODB_AUTH_PASS": "",  # empty means no authentication required
     "MOU_MONGODB_HOST": "localhost",
