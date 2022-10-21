@@ -272,7 +272,7 @@ class TestDataSource:
         current_user: Any, mock_rest: Any, tconfig: tc.TableConfigParser
     ) -> None:
         """Test push_record()."""
-        current_user.return_value = web_app.networking.connections.UserInfo(
+        current_user.return_value = web_app.data_source.oidc_tools.UserInfo(
             "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"], "foobarbaz"
         )
         unrealistic_hardcoded_resp = {
