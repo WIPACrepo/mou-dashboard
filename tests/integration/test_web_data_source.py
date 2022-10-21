@@ -10,23 +10,23 @@ import pytest
 
 sys.path.append(".")
 import web_app.utils  # isort:skip  # noqa # pylint: disable=E0401,C0413
-from web_app.data_source import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
+from web_app.networking import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
     table_config as tc,
-    institution_info,
+    connections,
 )
 
 
 @pytest.fixture(autouse=True)
 def clear_all_cachetools_func_caches() -> Iterator[None]:
-    """Clear all `cachetools.func` caches, everywhere"""
+    """Clear all `cachetools.func` caches, everywhere."""
     yield
-    institution_info._cached_get_institutions_infos.cache_clear()  # type: ignore[attr-defined]
+    connections._cached_get_institutions_infos.cache_clear()  # type: ignore[attr-defined]
     tc.TableConfigParser._cached_get_configs.cache_clear()  # type: ignore[attr-defined]
-    web_app.utils.oidc_tools.CurrentUser._cached_get_info.cache_clear()  # type: ignore[attr-defined]
+    web_app.networking.connections.CurrentUser._cached_get_info.cache_clear()  # type: ignore[attr-defined]
 
 
 class TestTableConfig:
-    """Test data_source/table_config.py."""
+    """Test networking/table_config.py."""
 
     @staticmethod
     def test_const_w_columns() -> None:

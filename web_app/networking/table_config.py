@@ -7,7 +7,7 @@ from typing import Dict, Final, List, Tuple, TypedDict, cast
 import cachetools.func  # type: ignore[import]
 
 from ..config import MAX_CACHE_MINS
-from .utils import mou_request
+from .connections import mou_request
 
 
 class _WBSTableCache(TypedDict):  # pylint: disable=R0903
