@@ -2,7 +2,6 @@
 
 import logging
 from typing import TypedDict
-from urllib.parse import urljoin
 
 import dash  # type: ignore
 import dash_bootstrap_components as dbc  # type: ignore
