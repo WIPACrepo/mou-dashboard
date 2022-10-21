@@ -18,6 +18,7 @@ class UserInfo:
 
     preferred_username: str
     groups: List[str]
+    access_token: str
 
 
 class CurrentUser:
@@ -30,6 +31,7 @@ class CurrentUser:
         # pylint:disable=unused-argument
         logging.warning(f"Cache Miss: CurrentUser._cached_get_info({oidc_csrf_token=})")
         resp: Dict[str, Any] = oidc.user_getinfo(["preferred_username", "groups"])
+        resp["access_token"] = oidc.get_access_token()
         return UserInfo(**resp)
 
     @staticmethod
@@ -117,3 +119,8 @@ class CurrentUser:
             editable_insts.append(short_name)
 
         return editable_insts
+
+    @staticmethod
+    def get_access_token() -> str:
+        """Retrieve the logged-in user's access token."""
+        return CurrentUser._get_info().access_token

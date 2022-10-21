@@ -26,12 +26,9 @@ class ConfigVarsTypedDict(TypedDict):
     """Global configuration-variable types."""
 
     REST_SERVER_URL: str
-    TOKEN_SERVER_URL: str
     WEB_SERVER_HOST: str
     WEB_SERVER_PORT: int
     AUTH_PREFIX: str
-    TOKEN_REQUEST_URL: str
-    TOKEN: str
     FLASK_SECRET: str
     OIDC_CLIENT_SECRETS: str
     OVERWRITE_REDIRECT_URI: str
@@ -42,20 +39,13 @@ def get_config_vars() -> ConfigVarsTypedDict:
     config_vars: ConfigVarsTypedDict = from_environment(
         {
             "REST_SERVER_URL": "http://localhost:8080",
-            "TOKEN_SERVER_URL": "http://localhost:8888",
             "WEB_SERVER_HOST": "localhost",
             "WEB_SERVER_PORT": 8050,
             "AUTH_PREFIX": "mou",
-            "TOKEN": "",
             "FLASK_SECRET": "super-secret-flask-key",
             "OIDC_CLIENT_SECRETS": "client_secrets.json",
             "OVERWRITE_REDIRECT_URI": "",
         }
-    )
-
-    config_vars["TOKEN_REQUEST_URL"] = urljoin(
-        config_vars["TOKEN_SERVER_URL"],
-        f"token?scope={config_vars['AUTH_PREFIX']}:admin",
     )
 
     return config_vars

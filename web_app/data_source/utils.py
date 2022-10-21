@@ -11,6 +11,7 @@ import requests
 from rest_tools.client import RestClient  # type: ignore
 
 from ..config import get_config_vars
+from ..utils.oidc_tools import CurrentUser
 
 
 class DataSourceException(Exception):
@@ -20,14 +21,11 @@ class DataSourceException(Exception):
 def _rest_connection() -> RestClient:
     """Return REST Client connection object."""
     config_vars = get_config_vars()
+    user_access_token = CurrentUser.get_access_token()
 
-    if config_vars["TOKEN"]:
-        token = config_vars["TOKEN"]
-    else:
-        token_json = requests.get(config_vars["TOKEN_REQUEST_URL"]).json()
-        token = token_json["access"]
-
-    rc = RestClient(config_vars["REST_SERVER_URL"], token=token, timeout=30, retries=0)
+    rc = RestClient(
+        config_vars["REST_SERVER_URL"], token=user_access_token, timeout=30, retries=0
+    )
 
     return rc
 
