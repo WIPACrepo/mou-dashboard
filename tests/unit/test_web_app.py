@@ -29,7 +29,7 @@ WBS = "mo"
 
 @pytest.fixture(autouse=True)
 def clear_all_cachetools_func_caches() -> Iterator[None]:
-    """Clear all `cachetools.func` caches, everywhere"""
+    """Clear all `cachetools.func` caches, everywhere."""
     yield
     institution_info._cached_get_institutions_infos.cache_clear()  # type: ignore[attr-defined]
     tc.TableConfigParser._cached_get_configs.cache_clear()  # type: ignore[attr-defined]
@@ -329,7 +329,7 @@ class TestDataSource:
     def test_delete_record(current_user: Any, mock_rest: Any) -> None:
         """Test delete_record()."""
         current_user.return_value = web_app.utils.oidc_tools.UserInfo(
-            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
+            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"], "foobarbaz"
         )
         record_id = "23"
 
@@ -361,7 +361,7 @@ class TestDataSource:
     ) -> None:
         """Test list_snapshot_timestamps()."""
         current_user.return_value = web_app.utils.oidc_tools.UserInfo(
-            "t.hanks", ["/tokens/mou-dashboard-admin"]
+            "t.hanks", ["/tokens/mou-dashboard-admin"], "foobarbaz"
         )
         mock_ili.return_value = True
         response = {
@@ -388,7 +388,7 @@ class TestDataSource:
     def test_create_snapshot(current_user: Any, mock_rest: Any) -> None:
         """Test create_snapshot()."""
         current_user.return_value = web_app.utils.oidc_tools.UserInfo(
-            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
+            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"], "foobarbaz"
         )
         response = {"timestamp": "a", "foo": "bar"}
 
