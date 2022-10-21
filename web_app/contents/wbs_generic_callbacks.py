@@ -9,11 +9,10 @@ from dash import no_update  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
 
 from ..config import app
+from ..data_source import connections
 from ..data_source import data_source as src
-from ..data_source import institution_info
 from ..data_source import table_config as tc
-from ..data_source.oidc_tools import CurrentUser
-from ..data_source.utils import DataSourceException
+from ..data_source.connections import CurrentUser, DataSourceException
 from ..utils import dash_utils as du
 from ..utils import types, utils
 
@@ -793,7 +792,7 @@ def setup_institution_components(
     wbs_l1 = du.get_wbs_l1(s_urlpath)
     tconfig = tc.TableConfigParser(wbs_l1)
 
-    def inactive_flag(info: institution_info.Institution) -> str:
+    def inactive_flag(info: connections.Institution) -> str:
         if info.has_mou:
             return ""
         return "inactive: "
@@ -805,7 +804,7 @@ def setup_institution_components(
                 "value": short_name,
                 # "disabled": not info.has_mou,
             }
-            for short_name, info in institution_info.get_institutions_infos().items()
+            for short_name, info in connections.get_institutions_infos().items()
         ]
     else:
         inst_options = [  # only include the user's institution(s)
@@ -814,7 +813,7 @@ def setup_institution_components(
                 "value": short_name,
                 # "disabled": not info.has_mou,
             }
-            for short_name, info in institution_info.get_institutions_infos().items()
+            for short_name, info in connections.get_institutions_infos().items()
             if short_name in CurrentUser.get_institutions()
         ]
 
