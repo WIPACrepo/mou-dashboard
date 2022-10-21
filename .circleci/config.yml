@@ -30,6 +30,7 @@ jobs:
             sleep 30
             pip install -r rest_server/requirements.txt -r web_app/requirements.txt -r requirements-dev.txt
             cp resources/dummy_client_secrets.json client_secrets.json
+            export CI_TEST_ENV=true
             pytest -vvv tests/integration
 
   docker_deploy:
