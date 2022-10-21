@@ -8,8 +8,8 @@ from typing import Any, Dict, List, Optional, cast
 import cachetools.func  # type: ignore[import]
 import flask  # type: ignore[import]
 
-from ..config import MAX_CACHE_MINS, oidc
-from ..data_source import institution_info
+from ..config import oidc
+from . import institution_info
 
 
 @dataclass(frozen=True)
@@ -25,7 +25,7 @@ class CurrentUser:
     """Wrap oidc's user info requests."""
 
     @staticmethod
-    @cachetools.func.ttl_cache(ttl=MAX_CACHE_MINS * 60)  # type: ignore[misc]
+    @cachetools.func.ttl_cache(ttl=((5 * 60) - 1))  # type: ignore[misc] # access token has 5m lifetime
     def _cached_get_info(oidc_csrf_token: str) -> UserInfo:
         """Cache is keyed by the oidc session token."""
         # pylint:disable=unused-argument

@@ -15,8 +15,8 @@ from dash import no_update
 from ..data_source import data_source as src
 from ..data_source import institution_info
 from ..data_source import table_config as tc
+from ..data_source.oidc_tools import CurrentUser
 from ..utils import types, utils
-from ..utils.oidc_tools import CurrentUser
 
 # constants
 REFRESH_MSG: Final[str] = "Refresh page and try again."

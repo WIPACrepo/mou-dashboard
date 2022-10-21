@@ -3,8 +3,8 @@
 
 from typing import Any, Dict, Final, List, Optional, Tuple, TypedDict, Union, cast
 
+from ..data_source.oidc_tools import CurrentUser
 from ..utils import types, utils
-from ..utils.oidc_tools import CurrentUser
 from . import table_config as tc
 from .utils import mou_request
 

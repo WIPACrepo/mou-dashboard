@@ -11,7 +11,7 @@ import requests
 from rest_tools.client import RestClient  # type: ignore
 
 from ..config import get_config_vars
-from ..utils.oidc_tools import CurrentUser
+from ..data_source.oidc_tools import CurrentUser
 
 
 class DataSourceException(Exception):
