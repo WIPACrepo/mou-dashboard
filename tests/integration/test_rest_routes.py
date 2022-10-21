@@ -26,7 +26,7 @@ from rest_server.data_sources import (  # isort:skip  # noqa # pylint: disable=E
     todays_institutions,
 )
 
-import web_app.networking.connections  # isort:skip  # noqa # pylint: disable=E0401,C0413
+import web_app.data_source.utils  # isort:skip  # noqa # pylint: disable=E0401,C0413
 import web_app.config  # isort:skip  # noqa # pylint: disable=E0401,C0413
 
 
@@ -36,7 +36,7 @@ WBS_L1 = "mo"
 @pytest.fixture
 def ds_rc() -> RestClient:
     """Get data source REST client via web_app."""
-    return web_app.networking.connections._rest_connection()
+    return web_app.data_source.utils._rest_connection()
 
 
 def test_ingest(ds_rc: RestClient) -> None:

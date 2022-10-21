@@ -12,11 +12,11 @@ import dash_html_components as html  # type: ignore[import]
 import dash_table  # type: ignore[import]
 from dash import no_update
 
-from ..networking import connections
-from ..networking import data_source as src
-from ..networking import table_config as tc
-from ..networking.connections import CurrentUser
+from ..data_source import data_source as src
+from ..data_source import institution_info
+from ..data_source import table_config as tc
 from ..utils import types, utils
+from ..utils.oidc_tools import CurrentUser
 
 # constants
 REFRESH_MSG: Final[str] = "Refresh page and try again."
@@ -204,7 +204,7 @@ def user_viewing_wrong_inst(urlpath: str) -> bool:
     Assumes the user is logged in.
     """
     if CurrentUser.is_admin():
-        all_insts = list(connections.get_institutions_infos().keys())
+        all_insts = list(institution_info.get_institutions_infos().keys())
         return get_inst(urlpath) not in all_insts + [""]
     else:
         return get_inst(urlpath) not in CurrentUser.get_institutions()
