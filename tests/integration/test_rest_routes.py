@@ -19,15 +19,13 @@ from rest_tools.client import RestClient  # type: ignore
 
 sys.path.append(".")
 from rest_server import routes  # isort:skip  # noqa # pylint: disable=E0401,C0413
+from rest_server import config  # isort:skip  # noqa # pylint: disable=E0401,C0413
 from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
     types,
 )
 from rest_server.data_sources import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
     todays_institutions,
 )
-
-import web_app.data_source.connections  # isort:skip  # noqa # pylint: disable=E0401,C0413
-import web_app.config  # isort:skip  # noqa # pylint: disable=E0401,C0413
 
 
 WBS_L1 = "mo"
@@ -36,7 +34,7 @@ WBS_L1 = "mo"
 @pytest.fixture
 def ds_rc() -> RestClient:
     """Get data source REST client via web_app."""
-    return web_app.data_source.connections._rest_connection()
+    return RestClient("http://localhost:8080", timeout=30, retries=0)
 
 
 def test_ingest(ds_rc: RestClient) -> None:
