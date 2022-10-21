@@ -5,7 +5,7 @@ import argparse
 import asyncio
 import json
 import logging
-from typing import List
+from typing import Any, Dict, List
 from urllib.parse import quote_plus
 
 import coloredlogs  # type: ignore[import]
@@ -38,7 +38,7 @@ async def start(debug: bool = False) -> RestServer:
     mongodb_host = config_env["MOU_MONGODB_HOST"]
     mongodb_port = int(config_env["MOU_MONGODB_PORT"])
 
-    rhs_config = {"debug": debug}
+    rhs_config: Dict[str, Any] = {"debug": debug}
     if config_env["AUTH_OPENID_URL"]:
         rhs_config["auth"] = {
             "audience": config_env["AUTH_AUDIENCE"],
