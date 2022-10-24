@@ -25,7 +25,7 @@ if is_testing():
             return wrapper
         return make_wrapper
 else:
-    service_account_auth = handler.service_account_auth
+    service_account_auth = handler.keycloak_role_auth
 
 
 # -----------------------------------------------------------------------------
