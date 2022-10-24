@@ -22,6 +22,7 @@ if is_testing():
             async def wrapper(self, *args, **kwargs):
                 logging.warning('TESTING: auth disabled')
                 return await method(self, *args, **kwargs)
+            return wrapper
         return make_wrapper
 else:
     service_account_auth = handler.service_account_auth
