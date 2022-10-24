@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.2.0 (2022-10-24)
+### Feature
+* OIDC REST Tokens ([#67](https://github.com/WIPACrepo/mou-dashboard/issues/67)) ([`2df6142`](https://github.com/WIPACrepo/mou-dashboard/commit/2df61421c4ab86ddce9d0744af0fbc9aab584229))
+
 ## v2.1.7 (2022-06-07)
 
 
