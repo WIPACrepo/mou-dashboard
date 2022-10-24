@@ -4,12 +4,10 @@
 import json
 import logging
 from dataclasses import asdict
-from functools import wraps
 from typing import Any
 
 from motor.motor_tornado import MotorClient  # type: ignore
 from rest_tools.server import RestHandler, handler  # type: ignore
-from tornado.web import HTTPError
 
 from .config import AUTH_SERVICE_ACCOUNT, is_testing
 from .data_sources import columns, mou_db, table_config_cache, todays_institutions, wbs
