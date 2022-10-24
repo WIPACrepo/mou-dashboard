@@ -2,7 +2,6 @@
 
 import logging
 from typing import TypedDict
-from urllib.parse import urljoin
 
 import dash  # type: ignore
 import dash_bootstrap_components as dbc  # type: ignore
@@ -10,7 +9,7 @@ import flask  # type: ignore
 from flask_oidc import OpenIDConnect  # type: ignore[import]
 
 # local imports
-from rest_tools.server.config import from_environment  # type: ignore[import]
+from wipac_dev_tools import from_environment  # type: ignore[import]
 
 AUTO_RELOAD_MINS = 30  # how often to auto-reload the page
 MAX_CACHE_MINS = 5  # how often to expire a cache result
@@ -26,36 +25,26 @@ class ConfigVarsTypedDict(TypedDict):
     """Global configuration-variable types."""
 
     REST_SERVER_URL: str
-    TOKEN_SERVER_URL: str
     WEB_SERVER_HOST: str
     WEB_SERVER_PORT: int
-    AUTH_PREFIX: str
-    TOKEN_REQUEST_URL: str
-    TOKEN: str
     FLASK_SECRET: str
     OIDC_CLIENT_SECRETS: str
     OVERWRITE_REDIRECT_URI: str
+    CI_TEST_ENV: bool
 
 
 def get_config_vars() -> ConfigVarsTypedDict:
     """Get the global configuration variables."""
-    config_vars: ConfigVarsTypedDict = from_environment(
+    config_vars: ConfigVarsTypedDict = from_environment(  # type: ignore
         {
             "REST_SERVER_URL": "http://localhost:8080",
-            "TOKEN_SERVER_URL": "http://localhost:8888",
             "WEB_SERVER_HOST": "localhost",
             "WEB_SERVER_PORT": 8050,
-            "AUTH_PREFIX": "mou",
-            "TOKEN": "",
             "FLASK_SECRET": "super-secret-flask-key",
             "OIDC_CLIENT_SECRETS": "client_secrets.json",
             "OVERWRITE_REDIRECT_URI": "",
+            "CI_TEST_ENV": False,
         }
-    )
-
-    config_vars["TOKEN_REQUEST_URL"] = urljoin(
-        config_vars["TOKEN_SERVER_URL"],
-        f"token?scope={config_vars['AUTH_PREFIX']}:admin",
     )
 
     return config_vars

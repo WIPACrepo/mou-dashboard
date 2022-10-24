@@ -5,14 +5,14 @@ import argparse
 import asyncio
 import json
 import logging
-from typing import List
+from typing import Any, Dict, List
 from urllib.parse import quote_plus
 
 import coloredlogs  # type: ignore[import]
 
 # local imports
 from rest_tools.server import RestHandlerSetup, RestServer  # type: ignore
-from rest_tools.server.config import from_environment  # type: ignore[import]
+from wipac_dev_tools import from_environment  # type: ignore[import]
 
 from . import config
 from .data_sources import table_config_cache, todays_institutions
@@ -33,21 +33,18 @@ async def start(debug: bool = False) -> RestServer:
     config_env = from_environment(config.DEFAULT_ENV_CONFIG)
     config.log_environment(config_env)
 
-    mongodb_auth_user = quote_plus(config_env["MOU_MONGODB_AUTH_USER"])
-    mongodb_auth_pass = quote_plus(config_env["MOU_MONGODB_AUTH_PASS"])
-    mongodb_host = config_env["MOU_MONGODB_HOST"]
+    mongodb_auth_user = quote_plus(config_env["MOU_MONGODB_AUTH_USER"])  # type: ignore
+    mongodb_auth_pass = quote_plus(config_env["MOU_MONGODB_AUTH_PASS"])  # type: ignore
+    mongodb_host = config_env["MOU_MONGODB_HOST"]  # type: ignore
     mongodb_port = int(config_env["MOU_MONGODB_PORT"])
 
-    args = RestHandlerSetup(
-        {
-            "auth": {
-                "secret": config_env["MOU_AUTH_SECRET"],
-                "issuer": config_env["MOU_AUTH_ISSUER"],
-                "algorithm": config_env["MOU_AUTH_ALGORITHM"],
-            },
-            "debug": debug,
+    rhs_config: Dict[str, Any] = {"debug": debug}
+    if config_env["AUTH_OPENID_URL"]:
+        rhs_config["auth"] = {
+            "audience": config_env["AUTH_AUDIENCE"],
+            "openid_url": config_env["AUTH_OPENID_URL"],
         }
-    )
+    args = RestHandlerSetup(rhs_config)
     args["tc_cache"] = await table_config_cache.TableConfigCache.create()
 
     # Setup DB URL

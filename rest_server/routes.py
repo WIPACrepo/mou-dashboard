@@ -9,11 +9,23 @@ from typing import Any
 from motor.motor_tornado import MotorClient  # type: ignore
 from rest_tools.server import RestHandler, handler  # type: ignore
 
-from .config import AUTH_PREFIX
+from .config import AUTH_SERVICE_ACCOUNT, is_testing
 from .data_sources import columns, mou_db, table_config_cache, todays_institutions, wbs
 from .utils import types, utils
 
 _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
+
+
+if is_testing():
+    def service_account_auth(**kwargs):  # type: ignore
+        def make_wrapper(method):
+            async def wrapper(self, *args, **kwargs):
+                logging.warning('TESTING: auth disabled')
+                return await method(self, *args, **kwargs)
+            return wrapper
+        return make_wrapper
+else:
+    service_account_auth = handler.keycloak_role_auth
 
 
 # -----------------------------------------------------------------------------
@@ -22,7 +34,7 @@ _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
 class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
     """BaseMoUHandler is a RestHandler for all MoU routes."""
 
-    def initialize(  # pylint: disable=W0221
+    def initialize(  # type: ignore  # pylint: disable=W0221
         self,
         mongodb_url: str,
         tc_cache: table_config_cache.TableConfigCache,
@@ -60,7 +72,7 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
 
     ROUTE = rf"/table/data/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
+    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
         collection = self.get_argument("snapshot", "")
@@ -95,7 +107,7 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
 
         self.write({"table": table})
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["admin"])  # type: ignore
+    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
         base64_file = self.get_argument("base64_file")
@@ -132,7 +144,7 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
 
     ROUTE = rf"/record/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
+    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
         record = self.get_argument("record")
@@ -151,7 +163,7 @@ class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
 
         self.write({"record": record})
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
+    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def delete(self, wbs_l1: str) -> None:
         """Handle DELETE."""
         record_id = self.get_argument("record_id")
@@ -170,7 +182,7 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
 
     ROUTE = r"/table/config$"
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
+    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
         await self.tc_cache.refresh()
@@ -207,7 +219,7 @@ class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
 
     ROUTE = rf"/snapshots/list/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
+    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
         is_admin = self.get_argument("is_admin", type=bool, default=False)
@@ -232,7 +244,7 @@ class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
 
     ROUTE = rf"/snapshots/make/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
+    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
         name = self.get_argument("name")
@@ -243,7 +255,7 @@ class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
         )
         snap_info = await self.mou_db_client.get_snapshot_info(wbs_l1, snap_ts)
 
-        self.write(snap_info)
+        self.write(snap_info)  # type: ignore
 
 
 # -----------------------------------------------------------------------------
@@ -254,7 +266,7 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
 
     ROUTE = rf"/institution/values/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
+    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
         institution = self.get_argument("institution")
@@ -264,9 +276,9 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
             wbs_l1, snapshot_timestamp, institution
         )
 
-        self.write(vals)
+        self.write(vals)  # type: ignore
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
+    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
         institution = self.get_argument("institution")
@@ -310,7 +322,7 @@ class InstitutionStaticHandler(BaseMoUHandler):  # pylint: disable=W0223
 
     ROUTE = r"/institution/today$"
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
+    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
         institutions = await todays_institutions.request_krs_institutions()

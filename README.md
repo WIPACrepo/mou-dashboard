@@ -12,9 +12,8 @@ Statements of Work in accordance with MoUs:
 
 
 ## How to Run Locally
-You will need to launch four servers:
+You will need to launch three servers:
 - MongoDB Server
-- Token Server
 - REST Server
 - Web Server
 - *Optional:* Telemetry Service (see [WIPAC Telemetry Repo](https://github.com/WIPACrepo/wipac-telemetry-prototype#wipac-telemetry-prototype))
@@ -22,9 +21,6 @@ You will need to launch four servers:
 ### Launch Local MongoDB Server via Docker
 1. *(Optional)* Kill All Active MongoDB Daemons
 1. `./rest_server/resources/mongo_test_server.sh`
-
-### Launch Local Token Server via Docker
-1. `./rest_server/resources/token_test_server.sh`
 
 ### REST Server
 A REST server that interfaces with a local MongoDB server *(future: also Smartsheet)*

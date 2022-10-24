@@ -17,17 +17,13 @@ jobs:
     docker:
       - image: circleci/python:3.8
       - image: circleci/mongo:3.7.9-ram
-      - image: wipac/token-service:latest
-        environment:
-          port: 8888
-          auth_secret: secret
-        command: [python, test_server.py]
     steps:
       - checkout
       - run:
           command: |
             python3 -m virtualenv -p python3 env_rest && . env_rest/bin/activate && pip install --upgrade pip
             pip install -r rest_server/requirements.txt
+            export CI_TEST_ENV=true
             python3 -m rest_server --override-krs-insts ./resources/dummy-krs-data.json
           background: true
       - run: |
@@ -35,6 +31,7 @@ jobs:
             sleep 30
             pip install -r rest_server/requirements.txt -r web_app/requirements.txt -r requirements-dev.txt
             cp resources/dummy_client_secrets.json client_secrets.json
+            export CI_TEST_ENV=true
             pytest -vvv tests/integration
 
   docker_deploy:

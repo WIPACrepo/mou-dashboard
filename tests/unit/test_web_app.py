@@ -20,8 +20,7 @@ import web_app.utils  # isort:skip  # noqa # pylint: disable=E0401,C0413
 from web_app.data_source import (  # isort:skip  # noqa # pylint: disable=E0401,C0413
     data_source as src,
     table_config as tc,
-    utils,
-    institution_info,
+    connections,
 )
 
 WBS = "mo"
@@ -29,11 +28,11 @@ WBS = "mo"
 
 @pytest.fixture(autouse=True)
 def clear_all_cachetools_func_caches() -> Iterator[None]:
-    """Clear all `cachetools.func` caches, everywhere"""
+    """Clear all `cachetools.func` caches, everywhere."""
     yield
-    institution_info._cached_get_institutions_infos.cache_clear()  # type: ignore[attr-defined]
+    connections._cached_get_institutions_infos.cache_clear()  # type: ignore[attr-defined]
     tc.TableConfigParser._cached_get_configs.cache_clear()  # type: ignore[attr-defined]
-    web_app.utils.oidc_tools.CurrentUser._cached_get_info.cache_clear()  # type: ignore[attr-defined]
+    web_app.data_source.connections.CurrentUser._cached_get_info.cache_clear()  # type: ignore[attr-defined]
 
 
 @pytest.fixture
@@ -219,7 +218,7 @@ class TestDataSource:
     @pytest.fixture
     def mock_rest(mocker: Any) -> Any:
         """Patch mock_rest."""
-        return mocker.patch("web_app.data_source.utils._rest_connection")
+        return mocker.patch("web_app.data_source.connections._rest_connection")
 
     @staticmethod
     def test_pull_data_table(mock_rest: Any, tconfig: tc.TableConfigParser) -> None:
@@ -267,13 +266,13 @@ class TestDataSource:
             assert ret == response["table"]
 
     @staticmethod
-    @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
+    @patch("web_app.data_source.connections.CurrentUser._get_info")
     def test_push_record(
         current_user: Any, mock_rest: Any, tconfig: tc.TableConfigParser
     ) -> None:
         """Test push_record()."""
-        current_user.return_value = web_app.utils.oidc_tools.UserInfo(
-            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
+        current_user.return_value = web_app.data_source.connections.UserInfo(
+            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"], "foobarbaz"
         )
         unrealistic_hardcoded_resp = {
             "foo": 0,
@@ -325,11 +324,11 @@ class TestDataSource:
             assert ret == unrealistic_hardcoded_resp["record"]
 
     @staticmethod
-    @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
+    @patch("web_app.data_source.connections.CurrentUser._get_info")
     def test_delete_record(current_user: Any, mock_rest: Any) -> None:
         """Test delete_record()."""
-        current_user.return_value = web_app.utils.oidc_tools.UserInfo(
-            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
+        current_user.return_value = web_app.data_source.connections.UserInfo(
+            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"], "foobarbaz"
         )
         record_id = "23"
 
@@ -345,7 +344,7 @@ class TestDataSource:
         # Call
         mock_rest.return_value.request_seq.side_effect = requests.exceptions.HTTPError
 
-        with pytest.raises(utils.DataSourceException):
+        with pytest.raises(connections.DataSourceException):
             src.delete_record(WBS, record_id)
 
         # Assert
@@ -354,14 +353,14 @@ class TestDataSource:
         )
 
     @staticmethod
-    @patch("web_app.utils.oidc_tools.CurrentUser.is_loggedin")
-    @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
+    @patch("web_app.data_source.connections.CurrentUser.is_loggedin")
+    @patch("web_app.data_source.connections.CurrentUser._get_info")
     def test_list_snapshot_timestamps(
         current_user: Any, mock_ili: Any, mock_rest: Any
     ) -> None:
         """Test list_snapshot_timestamps()."""
-        current_user.return_value = web_app.utils.oidc_tools.UserInfo(
-            "t.hanks", ["/tokens/mou-dashboard-admin"]
+        current_user.return_value = web_app.data_source.connections.UserInfo(
+            "t.hanks", ["/tokens/mou-dashboard-admin"], "foobarbaz"
         )
         mock_ili.return_value = True
         response = {
@@ -384,11 +383,11 @@ class TestDataSource:
         assert sorted(ret, key=lambda k: k["timestamp"]) == response["snapshots"]
 
     @staticmethod
-    @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
+    @patch("web_app.data_source.connections.CurrentUser._get_info")
     def test_create_snapshot(current_user: Any, mock_rest: Any) -> None:
         """Test create_snapshot()."""
-        current_user.return_value = web_app.utils.oidc_tools.UserInfo(
-            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
+        current_user.return_value = web_app.data_source.connections.UserInfo(
+            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"], "foobarbaz"
         )
         response = {"timestamp": "a", "foo": "bar"}
 
@@ -412,7 +411,7 @@ class TestTableConfig:
     @pytest.fixture
     def mock_rest(mocker: Any) -> Any:
         """Patch mock_rest."""
-        return mocker.patch("web_app.data_source.utils._rest_connection")
+        return mocker.patch("web_app.data_source.connections._rest_connection")
 
     @staticmethod
     def test_consts(tconfig: tc.TableConfigParser) -> None:

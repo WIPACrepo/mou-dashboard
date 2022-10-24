@@ -1,3 +1,3 @@
 """Init."""
 
-from . import data_source, institution_info, table_config, utils  # noqa: F401
+from . import connections, data_source, table_config  # noqa: F401
