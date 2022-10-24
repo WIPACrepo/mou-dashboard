@@ -5,6 +5,7 @@ import copy
 import logging
 import re
 from dataclasses import dataclass
+import logging
 from typing import Any, Dict, Final, List, Optional, cast
 
 import cachetools.func  # type: ignore[import]
@@ -12,7 +13,7 @@ import flask  # type: ignore[import]
 import requests
 
 # local imports
-from rest_tools.client import RestClient  # type: ignore
+from rest_tools.client import RestClient, OpenIDRestClient  # type: ignore
 
 from ..config import MAX_CACHE_MINS, get_config_vars, oidc
 
@@ -26,13 +27,22 @@ def _rest_connection() -> RestClient:
     config_vars = get_config_vars()
 
     if config_vars["CI_TEST_ENV"]:
-        user_access_token = ""
+        logging.warning("CI TEST ENV - no auth to REST API")
+        rc = RestClient(
+            config_vars["REST_SERVER_URL"],
+            timeout=5,
+            retries=0
+        )
     else:
-        user_access_token = CurrentUser.get_access_token()
-
-    rc = RestClient(
-        config_vars["REST_SERVER_URL"], token=user_access_token, timeout=30, retries=0
-    )
+        oidc_client = json.load(open(config_vars["OIDC_CLIENT_SECRETS"])).get("web", {})
+        rc = OpenIDRestClient(
+            config_vars["REST_SERVER_URL"],
+            token_url=oidc_client.get("issuer"),
+            client_id=oidc_client.get("client_id"),
+            client_secret=oidc_client.get("client_secret"),
+            timeout=20,
+            retries=1
+        )
 
     return rc
 

@@ -2,6 +2,7 @@
 
 
 import logging
+import os
 from typing import Any, Dict
 
 # --------------------------------------------------------------------------------------
@@ -19,7 +20,7 @@ DEFAULT_ENV_CONFIG = {
     "MOU_REST_PORT": "8080",
 }
 
-AUTH_PREFIX = "mou"
+AUTH_SERVICE_ACCOUNT = "mou-service-account"
 
 EXCLUDE_DBS = [
     "system.indexes",
@@ -32,6 +33,15 @@ EXCLUDE_DBS = [
 ]
 
 EXCLUDE_COLLECTIONS = ["system.indexes"]
+
+
+def is_testing() -> bool:
+    """
+    Return true if this is the test environment.
+
+    Note: this needs to run on import.
+    """
+    return bool(os.environ.get('CI_TEST_ENV', False))
 
 
 def log_environment(config_env: Dict[str, Any]) -> None:

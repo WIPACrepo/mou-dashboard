@@ -27,7 +27,6 @@ class ConfigVarsTypedDict(TypedDict):
     REST_SERVER_URL: str
     WEB_SERVER_HOST: str
     WEB_SERVER_PORT: int
-    AUTH_PREFIX: str
     FLASK_SECRET: str
     OIDC_CLIENT_SECRETS: str
     OVERWRITE_REDIRECT_URI: str
@@ -41,7 +40,6 @@ def get_config_vars() -> ConfigVarsTypedDict:
             "REST_SERVER_URL": "http://localhost:8080",
             "WEB_SERVER_HOST": "localhost",
             "WEB_SERVER_PORT": 8050,
-            "AUTH_PREFIX": "mou",
             "FLASK_SECRET": "super-secret-flask-key",
             "OIDC_CLIENT_SECRETS": "client_secrets.json",
             "OVERWRITE_REDIRECT_URI": "",
