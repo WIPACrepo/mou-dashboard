@@ -12,7 +12,7 @@ import coloredlogs  # type: ignore[import]
 
 # local imports
 from rest_tools.server import RestHandlerSetup, RestServer  # type: ignore
-from rest_tools.server.config import from_environment  # type: ignore[import]
+from wipac_dev_tools import from_environment  # type: ignore[import]
 
 from . import config
 from .data_sources import table_config_cache, todays_institutions

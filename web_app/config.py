@@ -9,7 +9,7 @@ import flask  # type: ignore
 from flask_oidc import OpenIDConnect  # type: ignore[import]
 
 # local imports
-from rest_tools.server.config import from_environment  # type: ignore[import]
+from wipac_dev_tools import from_environment  # type: ignore[import]
 
 AUTO_RELOAD_MINS = 30  # how often to auto-reload the page
 MAX_CACHE_MINS = 5  # how often to expire a cache result
