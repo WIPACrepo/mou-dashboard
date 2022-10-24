@@ -35,7 +35,7 @@ async def start(debug: bool = False) -> RestServer:
 
     mongodb_auth_user = quote_plus(config_env["MOU_MONGODB_AUTH_USER"])  # type: ignore
     mongodb_auth_pass = quote_plus(config_env["MOU_MONGODB_AUTH_PASS"])  # type: ignore
-    mongodb_host = config_env["MOU_MONGODB_HOST"]
+    mongodb_host = config_env["MOU_MONGODB_HOST"]  # type: ignore
     mongodb_port = int(config_env["MOU_MONGODB_PORT"])
 
     rhs_config: Dict[str, Any] = {"debug": debug}
