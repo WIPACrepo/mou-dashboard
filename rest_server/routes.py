@@ -33,7 +33,7 @@ else:
 class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
     """BaseMoUHandler is a RestHandler for all MoU routes."""
 
-    def initialize(  # pylint: disable=W0221
+    def initialize(  # type: ignore  # pylint: disable=W0221
         self,
         mongodb_url: str,
         tc_cache: table_config_cache.TableConfigCache,
@@ -254,7 +254,7 @@ class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
         )
         snap_info = await self.mou_db_client.get_snapshot_info(wbs_l1, snap_ts)
 
-        self.write(snap_info)
+        self.write(snap_info)  # type: ignore
 
 
 # -----------------------------------------------------------------------------
@@ -275,7 +275,7 @@ class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
             wbs_l1, snapshot_timestamp, institution
         )
 
-        self.write(vals)
+        self.write(vals)  # type: ignore
 
     @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
