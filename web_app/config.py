@@ -35,7 +35,7 @@ class ConfigVarsTypedDict(TypedDict):
 
 def get_config_vars() -> ConfigVarsTypedDict:
     """Get the global configuration variables."""
-    config_vars: ConfigVarsTypedDict = from_environment(
+    config_vars: ConfigVarsTypedDict = from_environment(  # type: ignore
         {
             "REST_SERVER_URL": "http://localhost:8080",
             "WEB_SERVER_HOST": "localhost",
