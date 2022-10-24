@@ -33,8 +33,8 @@ async def start(debug: bool = False) -> RestServer:
     config_env = from_environment(config.DEFAULT_ENV_CONFIG)
     config.log_environment(config_env)
 
-    mongodb_auth_user = quote_plus(config_env["MOU_MONGODB_AUTH_USER"])
-    mongodb_auth_pass = quote_plus(config_env["MOU_MONGODB_AUTH_PASS"])
+    mongodb_auth_user = quote_plus(config_env["MOU_MONGODB_AUTH_USER"])  # type: ignore
+    mongodb_auth_pass = quote_plus(config_env["MOU_MONGODB_AUTH_PASS"])  # type: ignore
     mongodb_host = config_env["MOU_MONGODB_HOST"]
     mongodb_port = int(config_env["MOU_MONGODB_PORT"])
 
