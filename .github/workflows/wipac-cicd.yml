@@ -124,7 +124,7 @@ jobs:
         run: |
           export CI_TEST_ENV=true
 
-          # rest server
+          # rest server (background)
           docker run --rm -i \
               --env CI_TEST_ENV=true \
               moudash:local \
@@ -133,13 +133,12 @@ jobs:
 
           sleep 30
 
-          # tests
+          # tests (foreground)
           cp resources/dummy_client_secrets.json client_secrets.json
           docker run --rm -i \
               --env CI_TEST_ENV=true \
               moudash:local \
-              pytest -vvv tests/integration \
-              &
+              pytest -vvv tests/integration
 
 
   release:
