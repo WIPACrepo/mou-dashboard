@@ -1,12 +1,11 @@
 FROM python:3.10
 
-# RUN useradd -m -U app
+RUN useradd -m -U app
 
 WORKDIR /home/app
-# USER app
+USER app
 
-# COPY --chown=app:app . .
-COPY . .
+COPY --chown=app:app . .
 
 RUN pip install --no-cache-dir .
 ENV PYTHONPATH=/home/app
