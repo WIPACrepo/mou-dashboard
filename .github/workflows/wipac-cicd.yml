@@ -109,6 +109,9 @@ jobs:
         image: mongo:3
         ports:
         - 27017:27017
+    env:
+      TEMPDIR:
+        test-tempdir
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
@@ -133,12 +136,19 @@ jobs:
 
           sleep 30
 
+          # make test script
+          mkdir ./$TEMPDIR/
+          echo "#!/bin/bash" >> ./$TEMPDIR/test-script.sh
+          echo "pip install .[tests]" >> ./$TEMPDIR/test-script.sh
+          echo "pytest -vvv tests/integration" >> ./$TEMPDIR/test-script.sh
+
           # tests (foreground)
           cp resources/dummy_client_secrets.json client_secrets.json
           docker run --rm -i \
               --env CI_TEST_ENV=true \
+              --mount type=bind,source=$(realpath ./$TEMPDIR/),target=/local/$TEMPDIR \
               moudash:local \
-              pytest -vvv tests/integration
+              /local/$TEMPDIR/test-script.sh
 
 
   release:
