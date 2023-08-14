@@ -128,9 +128,8 @@ jobs:
           export CI_TEST_ENV=true
 
           # rest server (background)
-          docker run --rm -i \
+          docker run ---network="host" --rm -i \
               --env CI_TEST_ENV=true \
-              -p 8080:8080 \
               moudash:local \
               python -m rest_server \
               &
