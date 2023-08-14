@@ -130,6 +130,7 @@ jobs:
           # rest server (background)
           docker run --rm -i \
               --env CI_TEST_ENV=true \
+              -p 8080:8080 \
               moudash:local \
               python -m rest_server \
               &
