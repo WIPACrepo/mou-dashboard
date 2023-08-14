@@ -75,7 +75,7 @@ urllib3==2.0.4
 visdcc==0.0.50
 Werkzeug==2.2.3
 wipac-dev-tools==1.6.16
-wipac-keycloak-rest-services==1.4.36
+wipac-keycloak-rest-services==1.4.37
 wipac-rest-tools==1.5.1
 wipac-telemetry==0.2.7
 wrapt==1.15.0
