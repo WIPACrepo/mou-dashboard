@@ -135,7 +135,7 @@ jobs:
               &
 
           sleep 30
-          pip install pytest
+          pip install pytest wipac-rest-tools
           pytest -vvv tests/integration
 
 
