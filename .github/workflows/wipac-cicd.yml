@@ -87,52 +87,52 @@ jobs:
           pytest -vvv tests/unit
 
 
-    test-build-docker:
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v3
-        - uses: docker/setup-buildx-action@v2
-        - uses: docker/build-push-action@v3
-          with:
-            context: .
-            cache-from: type=gha
-            cache-to: type=gha,mode=min
-            file: Dockerfile
-            tags: moudash:local
+  test-build-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/build-push-action@v3
+        with:
+          context: .
+          cache-from: type=gha
+          cache-to: type=gha,mode=min
+          file: Dockerfile
+          tags: moudash:local
 
 
-    integration-tests:
-      needs: [test-build-docker]
-      runs-on: ubuntu-latest
-      services:
-        rabbitmq:
-          image: mongo:3
-          ports:
-          - 27017:27017
-      steps:
-        - uses: actions/checkout@v3
-        - uses: docker/setup-buildx-action@v2
-        - uses: docker/build-push-action@v3
-          with:
-            context: .
-            cache-from: type=gha
-            # cache-to: type=gha,mode=min
-            file: Dockerfile
-            tags: moudash:local
-            load: true
-        - name: run
-          run: |
-            export CI_TEST_ENV=true
+  integration-tests:
+    needs: [test-build-docker]
+    runs-on: ubuntu-latest
+    services:
+      rabbitmq:
+        image: mongo:3
+        ports:
+        - 27017:27017
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/build-push-action@v3
+        with:
+          context: .
+          cache-from: type=gha
+          # cache-to: type=gha,mode=min
+          file: Dockerfile
+          tags: moudash:local
+          load: true
+      - name: run
+        run: |
+          export CI_TEST_ENV=true
 
-            docker run --rm -i \
-                --env CI_TEST_ENV=true \
-                moudash:local \
-                python -m rest_server \
-                &
+          docker run --rm -i \
+              --env CI_TEST_ENV=true \
+              moudash:local \
+              python -m rest_server \
+              &
 
-            sleep 30
-            cp resources/dummy_client_secrets.json client_secrets.json
-            pytest -vvv tests/integration
+          sleep 30
+          cp resources/dummy_client_secrets.json client_secrets.json
+          pytest -vvv tests/integration
 
 
   release:
