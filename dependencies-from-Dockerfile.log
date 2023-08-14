@@ -10,7 +10,7 @@ click==8.1.6
 coloredlogs==15.0.1
 cryptography==41.0.3
 dacite==1.8.1
-dash==2.11.1
+dash==2.12.0
 dash-bootstrap-components==1.4.2
 dash-core-components==2.0.0
 dash-html-components==2.0.0
