@@ -106,7 +106,7 @@ jobs:
     needs: [test-build-docker]
     runs-on: ubuntu-latest
     services:
-      rabbitmq:
+      mongo:
         image: mongo:3
         ports:
         - 27017:27017
@@ -121,12 +121,13 @@ jobs:
           file: Dockerfile
           tags: moudash:local
           load: true
+
       - name: run
         run: |
           export CI_TEST_ENV=true
 
           # rest server (background)
-          docker run --network="host" --rm -i \
+          docker run --network="host" --rm -i --name rest \
               --env CI_TEST_ENV=true \
               moudash:local \
               python -m rest_server \
@@ -135,6 +136,16 @@ jobs:
           sleep 30
           pip install pytest wipac-rest-tools
           pytest -vvv tests/integration
+
+      - name: dump rest logs
+        if: always()
+        run: |
+          docker logs rest || true
+
+      - name: dump mongo logs
+        if: always()
+        run: |
+          docker logs mongo || true
 
 
   release:
