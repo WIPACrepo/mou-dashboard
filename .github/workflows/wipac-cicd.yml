@@ -141,6 +141,7 @@ jobs:
           echo "#!/bin/bash" >> ./$TEMPDIR/test-script.sh
           echo "pip install .[tests]" >> ./$TEMPDIR/test-script.sh
           echo "pytest -vvv tests/integration" >> ./$TEMPDIR/test-script.sh
+          chmod +x ./$TEMPDIR/test-script.sh
 
           # tests (foreground)
           cp resources/dummy_client_secrets.json client_secrets.json
