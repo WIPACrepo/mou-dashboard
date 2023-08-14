@@ -33,6 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        fail-fast: false
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v3
@@ -72,6 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        fail-fast: false
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v3
