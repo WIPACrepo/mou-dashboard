@@ -153,7 +153,7 @@ jobs:
               mongoexport -d $database -c $col -o "$out_dir/exp_${database}_${col}.json"
           done
 
-          cat $out_dir/*
+          more $out_dir/* | cat
 
       - name: dump rest logs
         if: always()
