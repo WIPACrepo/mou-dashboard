@@ -2,10 +2,10 @@
 
 
 import copy
-import re
-from dataclasses import dataclass
 import json
 import logging
+import re
+from dataclasses import dataclass
 from typing import Any, Dict, Final, List, Optional, cast
 
 import cachetools.func  # type: ignore[import]
@@ -13,9 +13,9 @@ import flask  # type: ignore[import]
 import requests
 
 # local imports
-from rest_tools.client import RestClient, OpenIDRestClient  # type: ignore
+from rest_tools.client import OpenIDRestClient, RestClient  # type: ignore
 
-from ..config import MAX_CACHE_MINS, get_config_vars, oidc
+from ..config import ENV, MAX_CACHE_MINS, oidc
 
 
 class DataSourceException(Exception):
@@ -24,24 +24,19 @@ class DataSourceException(Exception):
 
 def _rest_connection() -> RestClient:
     """Return REST Client connection object."""
-    config_vars = get_config_vars()
-
-    if config_vars["CI_TEST_ENV"]:
+    if ENV.CI_TEST_ENV:
         logging.warning("CI TEST ENV - no auth to REST API")
-        rc = RestClient(
-            config_vars["REST_SERVER_URL"],
-            timeout=5,
-            retries=0
-        )
+        rc = RestClient(ENV.REST_SERVER_URL, timeout=5, retries=0)
     else:
-        oidc_client = json.load(open(config_vars["OIDC_CLIENT_SECRETS"])).get("web", {})
+        with open(ENV.OIDC_CLIENT_SECRETS) as f:
+            oidc_client = json.load(f).get("web", {})
         rc = OpenIDRestClient(
-            config_vars["REST_SERVER_URL"],
+            ENV.REST_SERVER_URL,
             token_url=oidc_client.get("issuer"),
             client_id=oidc_client.get("client_id"),
             client_secret=oidc_client.get("client_secret"),
             timeout=20,
-            retries=1
+            retries=1,
         )
 
     return rc
