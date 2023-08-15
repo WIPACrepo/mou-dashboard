@@ -145,7 +145,7 @@ jobs:
       - name: dump mongo logs
         if: always()
         run: |
-          docker logs mongo || true
+          docker logs "${{ job.services.mongo.id }}" || true
 
 
   release:
