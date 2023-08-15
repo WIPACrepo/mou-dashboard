@@ -138,6 +138,12 @@ jobs:
           cp resources/dummy_client_secrets.json client_secrets.json
           pytest -vvv tests/integration
 
+
+      - name: mongodump
+        if: always()
+        run: |
+          mongodump
+
       - name: dump rest logs
         if: always()
         run: |
