@@ -145,7 +145,16 @@ jobs:
 
           sudo apt install mongodb-database-tools
 
-          mongodump --out -
+          database="mo"
+          out_dir="./mongodump-jsons"
+
+          tmp_file="temp.js"
+          echo "print('_ ' + db.getCollectionNames())" > $tmp_file
+          for col in $(mongo $database $tmp_file | grep '_' | awk '{print $2}' | tr ',' ' '); do
+              mongoexport -d $database -c $col -o "$out_dir/exp_${database}_${col}.json"
+          done
+
+          cat $out_dir/*
 
       - name: dump rest logs
         if: always()
