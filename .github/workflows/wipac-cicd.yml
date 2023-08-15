@@ -98,7 +98,6 @@ jobs:
 
 
   integration-tests:
-    needs: [test-build-docker]
     runs-on: ubuntu-latest
     services:
       mongo:
