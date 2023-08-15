@@ -137,6 +137,7 @@ jobs:
       - name: mongodump
         if: always()
         run: |
+          apt-get install mongodb-database-tools
           mongodump
 
       - name: dump rest logs
