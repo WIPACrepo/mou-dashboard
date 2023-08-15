@@ -1,4 +1,4 @@
-"""Callbacks for institution-related controls. """
+"""Callbacks for institution-related controls."""
 
 import dataclasses as dc
 import logging
@@ -9,8 +9,8 @@ from dash import no_update  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
 
 from ..config import app
+from ..data_source import connections
 from ..data_source import data_source as src
-from ..data_source import institution_info
 from ..data_source.utils import DataSourceException
 from ..utils import dash_utils as du
 from ..utils.oidc_tools import CurrentUser
@@ -284,7 +284,7 @@ class SelectInstitutionValueInputs:
     # prevent_initial_call=True,
 )
 def select_institution_value(inputs: dict, state: dict) -> dict:
-    """For all things institution values"""
+    """For all things institution values."""
     return dc.asdict(
         _select_institution_value_dc(
             SelectInstitutionValueInputs(**inputs),
@@ -364,7 +364,7 @@ def to_pull_institution_values(
 
     output = SelectInstitutionValueOutput()
 
-    def inactive_flag(info: institution_info.Institution) -> str:
+    def inactive_flag(info: connections.Institution) -> str:
         if info.has_mou:
             return ""
         return "inactive: "
@@ -377,7 +377,7 @@ def to_pull_institution_values(
                 "value": short_name,
                 # "disabled": not info.has_mou,
             }
-            for short_name, info in institution_info.get_institutions_infos().items()
+            for short_name, info in connections.get_institutions_infos().items()
         ]
     else:
         output.ddown_inst_opts = [  # only include the user's institution(s)
@@ -386,7 +386,7 @@ def to_pull_institution_values(
                 "value": short_name,
                 # "disabled": not info.has_mou,
             }
-            for short_name, info in institution_info.get_institutions_infos().items()
+            for short_name, info in connections.get_institutions_infos().items()
             if short_name in CurrentUser.get_institutions()
         ]
     output.ddown_inst_opts = sorted(output.ddown_inst_opts, key=lambda d: d["label"])

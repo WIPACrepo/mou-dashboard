@@ -9,7 +9,7 @@ import cachetools.func  # type: ignore[import]
 import flask  # type: ignore[import]
 
 from ..config import ENV, MAX_CACHE_MINS, oidc
-from ..data_source import institution_info
+from ..data_source import connections
 
 
 @dataclass(frozen=True)
@@ -115,7 +115,7 @@ class CurrentUser:
             group_insts = set(ENV.DEBUG_AS_PI)
 
         # now, check if each of the institutions has an mou
-        infos = institution_info.get_institutions_infos()
+        infos = connections.get_institutions_infos()
         editable_insts = []
         for short_name in group_insts:
             try:

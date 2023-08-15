@@ -188,7 +188,8 @@ class CallbackAbortException(Exception):
 
 
 def precheck_setup_callback(s_urlpath: str) -> None:
-    """Return whether to abort a dash setup callback based on url & user permissions."""
+    """Return whether to abort a dash setup callback based on url & user
+    permissions."""
     if triggered() != ".":  # Guarantee this is the initial call
         raise Exception(f"Setup-callback was called after setup ({triggered()=})")
 
@@ -209,11 +210,11 @@ def precheck_setup_callback(s_urlpath: str) -> None:
 
 
 class ButtonIconLabelTooltipFactory:
-    """For making a button comprising of an icon and label, with a tooltip bubble."""
+    """For making a button comprising of an icon and label, with a tooltip
+    bubble."""
 
     @staticmethod
     def build_classname(outline: bool, color: str = Color.SECONDARY) -> str:
-
         if outline:
             btn_class = f"btn-outline-{color}"
         else:
@@ -238,7 +239,8 @@ class ButtonIconLabelTooltipFactory:
         border_width: int | None = None,
         border_radius: str | None = None,
     ) -> html.Div:
-        """Make a button comprising of an icon and label, with a tooltip bubble."""
+        """Make a button comprising of an icon and label, with a tooltip
+        bubble."""
         div_style: Dict[str, uut.StrNum] = {
             "display": "flex",
             "justify-content": "center",
@@ -314,7 +316,8 @@ class ButtonIconLabelTooltipFactory:
 def make_stacked_label_component_float_left(
     component: Any, width: int = 0, label: str | None = None
 ) -> html.Div:
-    """Stack a label on top of a component and put it in a html.Div floating left."""
+    """Stack a label on top of a component and put it in a html.Div floating
+    left."""
     label_style = {}
     if not label:
         label = "."
