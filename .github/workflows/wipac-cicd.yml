@@ -135,6 +135,7 @@ jobs:
 
           sleep 30
           pip install pytest wipac-rest-tools
+          cp resources/dummy_client_secrets.json client_secrets.json
           pytest -vvv tests/integration
 
       - name: dump rest logs
