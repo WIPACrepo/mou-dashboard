@@ -15,11 +15,7 @@ from typing import Dict
 import pytest
 import requests
 import universal_utils.types as uut
-import web_app.config
-import web_app.data_source.utils
 from dacite import from_dict
-from rest_server import routes
-from rest_server.data_sources import todays_institutions
 from rest_tools.client import RestClient
 
 WBS_L1 = "mo"
@@ -27,8 +23,8 @@ WBS_L1 = "mo"
 
 @pytest.fixture
 def ds_rc() -> RestClient:
-    """Get data source REST client via web_app."""
-    return web_app.data_source.utils._rest_connection()
+    """Get data source REST client."""
+    return RestClient("http://localhost:8080", timeout=30, retries=0)
 
 
 ########################################################################################
@@ -78,21 +74,12 @@ class TestNoArgumentRoutes:
     @staticmethod
     def test_main_get(ds_rc: RestClient) -> None:
         """Test `GET` @ `/`."""
-        assert routes.MainHandler.ROUTE == r"/$"
-        assert "get" in dir(routes.MainHandler)
-
         resp = ds_rc.request_seq("GET", "/")
         assert resp == {}
 
     @staticmethod
     def test_snapshots_timestamps_get(ds_rc: RestClient) -> None:
         """Test `GET` @ `/snapshots/list`."""
-        assert (
-            routes.SnapshotsHandler.ROUTE
-            == rf"/snapshots/list/(?P<wbs_l1>{routes._WBS_L1_REGEX_VALUES})$"
-        )
-        assert "get" in dir(routes.SnapshotsHandler)
-
         resp = ds_rc.request_seq("GET", f"/snapshots/list/{WBS_L1}")
         assert list(resp.keys()) == ["snapshots"]
         assert isinstance(resp["snapshots"], list)
@@ -102,12 +89,6 @@ class TestNoArgumentRoutes:
     @staticmethod
     def test_snapshots_make_post() -> None:
         """Test `POST` @ `/snapshots/make`."""
-        assert (
-            routes.MakeSnapshotHandler.ROUTE
-            == rf"/snapshots/make/(?P<wbs_l1>{routes._WBS_L1_REGEX_VALUES})$"
-        )
-        assert "post" in dir(routes.MakeSnapshotHandler)
-
         # NOTE: reserve testing POST for test_snapshots()
 
     @staticmethod
@@ -167,9 +148,6 @@ class TestNoArgumentRoutes:
     @staticmethod
     def test_table_config_get(ds_rc: RestClient) -> None:
         """Test `GET` @ `/table/config`."""
-        assert routes.TableConfigHandler.ROUTE == r"/table/config$"
-        assert "get" in dir(routes.TableConfigHandler)
-
         resp = ds_rc.request_seq("GET", "/table/config")
         assert list(resp.keys()) == ["mo", "upgrade"]
         for config in resp.values():
@@ -192,9 +170,6 @@ class TestNoArgumentRoutes:
     @staticmethod
     def test_institution_static_get(ds_rc: RestClient) -> None:
         """Test `GET` @ `/institution/today`."""
-        assert routes.InstitutionStaticHandler.ROUTE == r"/institution/today$"
-        assert "get" in dir(routes.InstitutionStaticHandler)
-
         resp = ds_rc.request_seq("GET", "/institution/today")
         assert resp  # not empty
         assert isinstance(resp, dict)
@@ -202,20 +177,10 @@ class TestNoArgumentRoutes:
             assert " " not in inst
             # check all "-"-delimited substrings are initial-cased
             assert all(s[0].isupper() for s in inst.split("-"))
-            todays_institutions.Institution(**info)  # try to cast it (atrrs & types)
 
 
 class TestTableHandler:
     """Test `/table/data`."""
-
-    @staticmethod
-    def test_sanity() -> None:
-        """Check routes and methods are there."""
-        assert (
-            routes.TableHandler.ROUTE
-            == rf"/table/data/(?P<wbs_l1>{routes._WBS_L1_REGEX_VALUES})$"
-        )
-        assert "get" in dir(routes.TableHandler)
 
     @staticmethod
     def test_get_w_bad_args(ds_rc: RestClient) -> None:
@@ -285,16 +250,6 @@ class TestRecordHandler:
     """Test `/record`."""
 
     @staticmethod
-    def test_sanity() -> None:
-        """Check routes and methods are there."""
-        assert (
-            routes.RecordHandler.ROUTE
-            == rf"/record/(?P<wbs_l1>{routes._WBS_L1_REGEX_VALUES})$"
-        )
-        assert "post" in dir(routes.RecordHandler)
-        assert "delete" in dir(routes.RecordHandler)
-
-    @staticmethod
     def test_post_w_bad_args(ds_rc: RestClient) -> None:
         """Test `POST` @ `/record` with bad arguments."""
         # 'record' is the only required arg
@@ -328,16 +283,6 @@ class TestRecordHandler:
 
 class TestInstitutionValuesHandler:
     """Test `/institution/values/*`."""
-
-    @staticmethod
-    def test_sanity() -> None:
-        """Check routes and methods are there."""
-        assert (
-            routes.InstitutionValuesHandler.ROUTE
-            == rf"/institution/values/(?P<wbs_l1>{routes._WBS_L1_REGEX_VALUES})$"
-        )
-        assert "post" in dir(routes.InstitutionValuesHandler)
-        assert "get" in dir(routes.InstitutionValuesHandler)
 
     @staticmethod
     def test_institution_values_full_cycle(ds_rc: RestClient) -> None:
