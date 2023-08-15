@@ -1,9 +1,0 @@
-flake8
-mypy
-numpy
-pytest
-pytest-asyncio
-pytest-mock
-requests-mock
-types-python-dateutil
-types-requests

@@ -137,4 +137,6 @@ dmypy.json
 src/
 test-env-vars.sh
 client_secrets.json
-env*/
+
+# wipac-dev-py-setup-action
+!dependencies*.log

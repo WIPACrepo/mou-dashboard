@@ -12,13 +12,12 @@ from dash import dcc, no_update  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
 
 from ..config import app
+from ..data_source import connections
 from ..data_source import data_source as src
-from ..data_source import institution_info
 from ..data_source import table_config as tc
-from ..data_source.utils import DataSourceException
+from ..data_source.connections import CurrentUser, DataSourceException
 from ..utils import dash_utils as du
 from ..utils import types, utils
-from ..utils.oidc_tools import CurrentUser
 
 _CHANGES_COL: Final[str] = "Changes"
 
@@ -186,7 +185,7 @@ def summarize(
     except DataSourceException:
         return [], [], []
 
-    insts_infos = institution_info.get_institutions_infos()
+    insts_infos = connections.get_institutions_infos()
 
     def _sum_it(_inst: str, _l2: str = "") -> float:
         return float(

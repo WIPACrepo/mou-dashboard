@@ -8,7 +8,7 @@ from typing import Dict, Final, List, Tuple
 import cachetools.func  # type: ignore[import]
 
 from ..config import MAX_CACHE_MINS
-from .utils import mou_request
+from .connections import mou_request
 
 
 @dc.dataclass(frozen=True)

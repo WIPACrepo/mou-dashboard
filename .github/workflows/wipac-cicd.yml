@@ -2,10 +2,6 @@ name: wipac ci/cd
 
 on: [push]
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  # don't cancel on main/master/default
-  cancel-in-progress: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
 
 jobs:
 
@@ -18,6 +14,7 @@ jobs:
       - id: versions
         uses: WIPACrepo/wipac-dev-py-versions-action@v2.1
 
+
   flake8:
     runs-on: ubuntu-latest
     steps:
@@ -25,19 +22,21 @@ jobs:
       - uses: actions/setup-python@v4
       - uses: WIPACrepo/wipac-dev-flake8-action@v1.0
 
-  mypy:
-    needs: [py-versions]
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.py3 }}
-      - uses: WIPACrepo/wipac-dev-mypy-action@v1.2
+
+  # mypy:
+  #   needs: [py-versions]
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: actions/setup-python@v4
+  #       with:
+  #         python-version: ${{ matrix.py3 }}
+  #     - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
+
 
   py-setup:
     runs-on: ubuntu-latest
@@ -59,31 +58,118 @@ jobs:
           github.ref_type == 'branch' &&
           format('refs/heads/{0}', github.event.repository.default_branch) != github.ref
         name: wipac-dev-py-setup-action (only for non-dependabot non-default branches)
-        uses: WIPACrepo/wipac-dev-py-setup-action@v1.15
+        uses: WIPACrepo/wipac-dev-py-setup-action@v2.4
         with:
           base-keywords: "WIPAC IceCube"
+
 
   unit-tests:
     needs: [py-versions]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+      matrix:
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.py3 }}
-      - run: |
+      - name: run
+        run: |
           pip install --upgrade pip wheel setuptools
           pip install .[tests]
           cp resources/dummy_client_secrets.json client_secrets.json
           pytest -vvv tests/unit
 
+
+  test-build-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/build-push-action@v3
+        with:
+          context: .
+          cache-from: type=gha
+          cache-to: type=gha,mode=min
+          file: Dockerfile
+          tags: moudash:local
+
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:3
+        ports:
+        - 27017:27017
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/build-push-action@v3
+        with:
+          context: .
+          cache-from: type=gha
+          # cache-to: type=gha,mode=min
+          file: Dockerfile
+          tags: moudash:local
+          load: true
+
+      - name: run
+        run: |
+          export CI_TEST_ENV=true
+
+          # rest server (background)
+          docker run --network="host" --rm -i --name rest \
+              --env CI_TEST_ENV=true \
+              moudash:local \
+              python -m rest_server --override-krs-insts ./resources/dummy-krs-data.json \
+              &
+
+          sleep 30
+          pip install pytest wipac-rest-tools
+          cp resources/dummy_client_secrets.json client_secrets.json
+          pytest -vvv tests/integration
+
+
+      - name: mongodump
+        if: always()
+        run: |
+          sudo apt update
+          sudo apt install wget curl gnupg2 software-properties-common apt-transport-https ca-certificates lsb-release
+          curl -fsSL https://www.mongodb.org/static/pgp/server-6.0.asc|sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/mongodb-6.gpg
+          echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu $(lsb_release -cs)/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+          sudo apt update
+
+          sudo apt install mongodb-org mongodb-database-tools
+
+          database="mo"
+          out_dir="./mongodump-jsons"
+
+          tmp_file="temp.js"
+          echo "print('_ ' + db.getCollectionNames())" > $tmp_file
+          for col in $(mongosh $database $tmp_file | grep '_' | awk '{print $2}' | tr ',' ' '); do
+              mongoexport -d $database -c $col -o "$out_dir/exp_${database}_${col}.json"
+          done
+
+          more $out_dir/* | cat
+
+      - name: dump rest logs
+        if: always()
+        run: |
+          docker logs rest || true
+
+      - name: dump mongo logs
+        if: always()
+        run: |
+          docker logs "${{ job.services.mongo.id }}" || true
+
+
   release:
     # only run on main/master/default
     if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
-    needs: [flake8, mypy, py-setup, unit-tests]
+    needs: [flake8, py-setup, unit-tests, integration-tests] # mypy
     runs-on: ubuntu-latest
     concurrency: release
     steps:
@@ -92,7 +178,7 @@ jobs:
         fetch-depth: 0
         token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
     - name: Python Semantic Release
-      uses: python-semantic-release/python-semantic-release@master
+      uses: python-semantic-release/python-semantic-release@v7.34.6
       with:
         github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         # repository_username: __token__

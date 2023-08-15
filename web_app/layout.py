@@ -10,9 +10,9 @@ from dash.dependencies import Input, Output, State  # type: ignore
 
 from .config import AUTO_RELOAD_MINS, REDIRECT_WBS, app
 from .contents import wbs_generic_layout
+from .data_source.connections import CurrentUser
 from .utils import dash_utils as du
 from .utils import utils
-from .utils.oidc_tools import CurrentUser
 
 
 def layout() -> None:

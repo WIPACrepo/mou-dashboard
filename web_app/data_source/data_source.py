@@ -6,10 +6,10 @@ from typing import Any, Dict, Final, List, Tuple, TypedDict, cast
 import universal_utils.types as uut
 from dacite import from_dict
 
+from ..data_source.connections import CurrentUser
 from ..utils import types, utils
-from ..utils.oidc_tools import CurrentUser
 from . import table_config as tc
-from .utils import mou_request
+from .connections import mou_request
 
 # constants
 _OC_SUFFIX: Final[str] = "_original"
