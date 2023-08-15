@@ -1,3 +1,6 @@
+<!--- Top of README Badges (automated) --->
+[![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/WIPACrepo/mou-dashboard?include_prereleases)](https://github.com/WIPACrepo/mou-dashboard/) [![Lines of code](https://img.shields.io/tokei/lines/github/WIPACrepo/mou-dashboard)](https://github.com/WIPACrepo/mou-dashboard/) [![GitHub issues](https://img.shields.io/github/issues/WIPACrepo/mou-dashboard)](https://github.com/WIPACrepo/mou-dashboard/issues?q=is%3Aissue+sort%3Aupdated-desc+is%3Aopen) [![GitHub pull requests](https://img.shields.io/github/issues-pr/WIPACrepo/mou-dashboard)](https://github.com/WIPACrepo/mou-dashboard/pulls?q=is%3Apr+sort%3Aupdated-desc+is%3Aopen) 
+<!--- End of README Badges (automated) --->
 # mou-dashboard
 
 [![CircleCI](https://circleci.com/gh/WIPACrepo/mou-dashboard/tree/master.svg?style=shield)](https://circleci.com/gh/WIPACrepo/mou-dashboard/tree/master)
