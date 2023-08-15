@@ -130,7 +130,7 @@ jobs:
           docker run --network="host" --rm -i --name rest \
               --env CI_TEST_ENV=true \
               moudash:local \
-              python -m rest_server \
+              python -m rest_server --override-krs-insts ./resources/dummy-krs-data.json \
               &
 
           sleep 30
