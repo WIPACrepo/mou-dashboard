@@ -259,7 +259,7 @@ class TestRecordHandler:
         for arg, body_min in {
             "record": {"editor": "me"},
             "editor": {"record": {"a": 1}},
-        }:
+        }.items():
             with pytest.raises(
                 requests.exceptions.HTTPError,
                 match=rf"400 Client Error: `{arg}`: \(MissingArgumentError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
@@ -286,7 +286,7 @@ class TestRecordHandler:
         for arg, body_min in {
             "record_id": {"editor": "me"},
             "editor": {"record_id": {"a": 1}},
-        }:
+        }.items():
             with pytest.raises(
                 requests.exceptions.HTTPError,
                 match=rf"400 Client Error: `{arg}`: \(MissingArgumentError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
