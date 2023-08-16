@@ -63,12 +63,32 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
     @scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
-        collection = self.get_argument("snapshot", "")
+        collection = self.get_argument(
+            "snapshot",
+            default="",
+            type=str,
+        )
 
-        institution = self.get_argument("institution", default=None)
-        restore_id = self.get_argument("restore_id", default=None)
-        labor = self.get_argument("labor", default=None)
-        total_rows = self.get_argument("total_rows", default=False, type=bool)
+        institution = self.get_argument(
+            "institution",
+            default=None,
+            type=str,
+        )
+        restore_id = self.get_argument(
+            "restore_id",
+            default=None,
+            type=str,
+        )
+        labor = self.get_argument(
+            "labor",
+            default=None,
+            type=str,
+        )
+        total_rows = self.get_argument(
+            "total_rows",
+            default=False,
+            type=bool,
+        )
 
         if restore_id:
             await self.mou_db_client.restore_record(wbs_l1, restore_id)
@@ -135,8 +155,14 @@ class RecordHandler(BaseMOUHandler):  # pylint: disable=W0223
     @scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
-        record = self.get_argument("record")
-        editor = self.get_argument("editor")
+        record = self.get_argument(
+            "record",
+            type=dict,
+        )
+        editor = self.get_argument(
+            "editor",
+            type=str,
+        )
 
         record = self.tc_data_adaptor.remove_on_the_fly_fields(record)
         record, instvals = await self.mou_db_client.upsert_record(
@@ -151,8 +177,14 @@ class RecordHandler(BaseMOUHandler):  # pylint: disable=W0223
     @scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def delete(self, wbs_l1: str) -> None:
         """Handle DELETE."""
-        record_id = self.get_argument("record_id")
-        editor = self.get_argument("editor")
+        record_id = self.get_argument(
+            "record_id",
+            type=str,
+        )
+        editor = self.get_argument(
+            "editor",
+            type=str,
+        )
 
         record, instvals = await self.mou_db_client.delete_record(
             wbs_l1, record_id, editor
@@ -241,8 +273,14 @@ class MakeSnapshotHandler(BaseMOUHandler):  # pylint: disable=W0223
     @scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
-        name = self.get_argument("name")
-        creator = self.get_argument("creator")
+        name = self.get_argument(
+            "name",
+            type=str,
+        )
+        creator = self.get_argument(
+            "creator",
+            type=str,
+        )
 
         snap_ts = await self.mou_db_client.snapshot_live_collection(
             wbs_l1, name, creator, False
@@ -289,10 +327,25 @@ class InstitutionValuesConfirmationHandler(BaseMOUHandler):  # pylint: disable=W
     @scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
-        institution = self.get_argument("institution")
-        headcounts = self.get_argument("headcounts", type=bool, default=False)
-        table = self.get_argument("table", type=bool, default=False)
-        computing = self.get_argument("computing", type=bool, default=False)
+        institution = self.get_argument(
+            "institution",
+            type=str,
+        )
+        headcounts = self.get_argument(
+            "headcounts",
+            type=bool,
+            default=False,
+        )
+        table = self.get_argument(
+            "table",
+            type=bool,
+            default=False,
+        )
+        computing = self.get_argument(
+            "computing",
+            type=bool,
+            default=False,
+        )
 
         vals = await self.mou_db_client.confirm_institution_values(
             wbs_l1, institution, headcounts, table, computing
@@ -313,8 +366,15 @@ class InstitutionValuesHandler(BaseMOUHandler):  # pylint: disable=W0223
     @scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
-        institution = self.get_argument("institution")
-        snapshot_timestamp = self.get_argument("snapshot_timestamp", "")
+        institution = self.get_argument(
+            "institution",
+            type=str,
+        )
+        snapshot_timestamp = self.get_argument(
+            "snapshot_timestamp",
+            default="",
+            type=str,
+        )
 
         vals = await self.mou_db_client.get_institution_values(
             wbs_l1, snapshot_timestamp, institution
@@ -325,7 +385,10 @@ class InstitutionValuesHandler(BaseMOUHandler):  # pylint: disable=W0223
     @scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
-        institution = self.get_argument("institution")
+        institution = self.get_argument(
+            "institution",
+            type=str,
+        )
 
         # client cannot try to override metadata
         phds_authors = self.get_argument(
@@ -358,7 +421,11 @@ class InstitutionValuesHandler(BaseMOUHandler):  # pylint: disable=W0223
             type=int,
             default=-1,
         )
-        text = self.get_argument("text", default="")
+        text = self.get_argument(
+            "text",
+            default="",
+            type=str,
+        )
 
         vals = await self.mou_db_client.upsert_institution_values(
             wbs_l1,
