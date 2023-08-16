@@ -130,8 +130,7 @@ jobs:
 
           sleep 30
           pip install pytest wipac-rest-tools dacite requests bson
-          pytest -vvv tests/integration --exitfirst
-
+          pytest -vvv tests/integration
 
       - name: mongodump
         if: always()
