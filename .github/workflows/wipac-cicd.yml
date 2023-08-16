@@ -82,6 +82,7 @@ jobs:
         run: |
           pip install --upgrade pip wheel setuptools
           pip install .[tests]
+          cp resources/dummy_client_secrets_for_web_app.json client_secrets.json
           pytest -vvv tests/unit
 
 

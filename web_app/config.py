@@ -103,7 +103,7 @@ server.config.update(
         "OVERWRITE_REDIRECT_URI": ENV.OVERWRITE_REDIRECT_URI,
     }
 )
-oidc = OpenIDConnect(server)
+oidc = OpenIDConnect(server)  # grabs "OIDC_CLIENT_SECRETS"/ENV.OIDC_CLIENT_SECRETS
 
 
 @server.route("/login")  # type: ignore[misc]
