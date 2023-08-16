@@ -118,9 +118,18 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
     @scope_role_auth(prefix=AUTH_PREFIX, roles=["admin"])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
-        base64_file = self.get_argument("base64_file")
-        filename = self.get_argument("filename")
-        creator = self.get_argument("creator")
+        base64_file = self.get_argument(
+            "base64_file",
+            type=str,
+        )
+        filename = self.get_argument(
+            "filename",
+            type=str,
+        )
+        creator = self.get_argument(
+            "creator",
+            type=str,
+        )
 
         # ingest
         prev_snap, curr_snap = await self.mou_db_client.ingest_xlsx(
