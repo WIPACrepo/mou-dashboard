@@ -292,7 +292,7 @@ class TestRecordHandler:
                 match=rf"400 Client Error: `{arg}`: \(MissingArgumentError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
             ):
                 ds_rc.request_seq(
-                    "POST",
+                    "DELETE",
                     f"/record/{WBS_L1}",
                     {**body_min, **{"foo": "bar"}},
                 )
@@ -303,7 +303,7 @@ class TestRecordHandler:
                 match=rf"400 Client Error: `record_id`: \(MissingArgumentError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
             ):
                 ds_rc.request_seq(
-                    "POST",
+                    "DELETE",
                     f"/record/{WBS_L1}",
                 )
 
@@ -470,6 +470,11 @@ class TestInstitutionValuesHandler:
                 local_insts[inst],
                 headcounts_metadata=dc.replace(
                     resp_instval.headcounts_metadata, confirmation_ts=now
+                ),
+            ) or resp_instval == dc.replace(  # could be a bit slow
+                local_insts[inst],
+                headcounts_metadata=dc.replace(
+                    resp_instval.headcounts_metadata, confirmation_ts=now + 1
                 ),
             )
             assert resp_instval.headcounts_metadata.has_valid_confirmation()
