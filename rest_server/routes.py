@@ -257,7 +257,11 @@ class SnapshotsHandler(BaseMOUHandler):  # pylint: disable=W0223
     @scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
-        is_admin = self.get_argument("is_admin", type=bool, default=False)
+        is_admin = self.get_argument(
+            "is_admin",
+            type=bool,
+            default=False,
+        )
 
         timestamps = await self.mou_db_client.list_snapshot_timestamps(
             wbs_l1, exclude_admin_snaps=not is_admin
