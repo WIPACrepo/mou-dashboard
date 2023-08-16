@@ -90,17 +90,17 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
 
         institution = self.get_argument(
             "institution",
-            default=None,
+            default="",
             type=str,
         )
         restore_id = self.get_argument(
             "restore_id",
-            default=None,
+            default="",
             type=str,
         )
         labor = self.get_argument(
             "labor",
-            default=None,
+            default="",
             type=str,
         )
         total_rows = self.get_argument(
@@ -124,7 +124,7 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
                 self.tc_data_adaptor.get_total_rows(
                     wbs_l1,
                     table,
-                    only_totals_w_data=labor or institution,
+                    only_totals_w_data=bool(labor or institution),
                     with_us_non_us=not institution,
                 )
             )
