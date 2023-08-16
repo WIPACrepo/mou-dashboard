@@ -41,7 +41,7 @@ class EnvConfig:
     DEBUG_AS_PI: List[str] = dc.field(default_factory=list)
     LOG_REST_CALLS: bool = True
 
-    CI_TEST_ENV: bool = False
+    CI_TEST: bool = False
 
     def __post_init__(self) -> None:
         # since our instance is frozen, we need to use `__setattr__`

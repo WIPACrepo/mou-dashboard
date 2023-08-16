@@ -7,9 +7,9 @@ import logging
 from typing import Any
 
 from motor.motor_tornado import MotorClient  # type: ignore
-from rest_tools.server import RestHandler, scope_role_auth
+from rest_tools import server
 
-from .config import AUTH_PREFIX
+from .config import AUTH_PREFIX, is_testing
 from .data_sources import mou_db, table_config_cache, todays_institutions, wbs
 from .utils import utils
 
@@ -17,9 +17,28 @@ _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
 
 
 # -----------------------------------------------------------------------------
+# REST requestor auth
 
 
-class BaseMOUHandler(RestHandler):  # pylint: disable=W0223
+if is_testing():
+
+    def scope_role_auth(**kwargs):  # type: ignore
+        def make_wrapper(method):  # type: ignore[no-untyped-def]
+            async def wrapper(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+                logging.warning("TESTING: auth disabled")
+                return await method(self, *args, **kwargs)
+
+            return wrapper
+
+        return make_wrapper
+
+else:
+    scope_role_auth = server.scope_role_auth
+
+# -----------------------------------------------------------------------------
+
+
+class BaseMOUHandler(server.RestHandler):  # pylint: disable=W0223
     """BaseMOUHandler is a RestHandler for all MOU routes."""
 
     def initialize(  # type: ignore[override]  # pylint: disable=W0221

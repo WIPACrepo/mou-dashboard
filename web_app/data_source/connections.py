@@ -24,7 +24,7 @@ class DataSourceException(Exception):
 
 def _rest_connection() -> RestClient:
     """Return REST Client connection object."""
-    if ENV.CI_TEST_ENV:
+    if ENV.CI_TEST:
         logging.warning("CI TEST ENV - no auth to REST API")
         rc = RestClient(ENV.REST_SERVER_URL, timeout=5, retries=0)
     else:

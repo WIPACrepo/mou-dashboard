@@ -3,7 +3,7 @@ name: wipac ci/cd
 on: [push]
 
 env:
-  CI_TEST_ENV: true
+  CI_TEST: true
 
 
 jobs:
@@ -122,7 +122,7 @@ jobs:
         run: |
           # rest server (background)
           docker run --network="host" --rm -i --name rest \
-              --env CI_TEST_ENV=true \
+              --env CI_TEST=true \
               moudash:local \
               python -m rest_server --override-krs-insts ./resources/dummy-krs-data.json \
               &

@@ -1,7 +1,8 @@
 """Config settings."""
 
-
 import dataclasses as dc
+
+from wipac_dev_tools import from_environment_as_dataclass
 
 # --------------------------------------------------------------------------------------
 # Constants
@@ -21,6 +22,10 @@ class EnvConfig:
     MOU_MONGODB_PORT: int = 27017
     MOU_REST_HOST: str = "localhost"
     MOU_REST_PORT: int = 8080
+    CI_TEST: bool = False
+
+
+ENV = from_environment_as_dataclass(EnvConfig)
 
 
 AUTH_PREFIX = "mou"
@@ -36,3 +41,11 @@ EXCLUDE_DBS = [
 ]
 
 EXCLUDE_COLLECTIONS = ["system.indexes"]
+
+
+def is_testing() -> bool:
+    """Return true if this is the test environment.
+
+    Note: this needs to run on import.
+    """
+    return ENV.CI_TEST
