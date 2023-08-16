@@ -128,7 +128,7 @@ jobs:
               &
 
           sleep 30
-          pip install pytest wipac-rest-tools dacite requests
+          pip install pytest wipac-rest-tools dacite requests bson
           pytest -vvv tests/integration
 
 
