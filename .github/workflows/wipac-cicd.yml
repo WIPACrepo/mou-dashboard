@@ -2,6 +2,9 @@ name: wipac ci/cd
 
 on: [push]
 
+env:
+  CI_TEST_ENV: true
+
 
 jobs:
 
@@ -79,7 +82,6 @@ jobs:
         run: |
           pip install --upgrade pip wheel setuptools
           pip install .[tests]
-          cp resources/dummy_client_secrets.json client_secrets.json
           pytest -vvv tests/unit
 
 
@@ -118,8 +120,6 @@ jobs:
 
       - name: run
         run: |
-          export CI_TEST_ENV=true
-
           # rest server (background)
           docker run --network="host" --rm -i --name rest \
               --env CI_TEST_ENV=true \
@@ -129,7 +129,6 @@ jobs:
 
           sleep 30
           pip install pytest wipac-rest-tools dacite requests bson
-          cp resources/dummy_client_secrets.json client_secrets.json
           pytest -vvv tests/integration --exitfirst
 
 
