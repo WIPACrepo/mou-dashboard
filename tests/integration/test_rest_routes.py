@@ -257,19 +257,34 @@ class TestRecordHandler:
     def test_post_w_bad_args(ds_rc: RestClient) -> None:
         """Test `POST` @ `/record` with bad arguments."""
         # 'record' is the only required arg
-        with pytest.raises(requests.exceptions.HTTPError):
+        with pytest.raises(
+            requests.exceptions.HTTPError,
+            match=rf"400 Client Error: `arg`: \(ValueError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
+        ):
             _ = ds_rc.request_seq("POST", f"/record/{WBS_L1}", {"foo": "bar"})
 
-        with pytest.raises(requests.exceptions.HTTPError):
+        with pytest.raises(
+            requests.exceptions.HTTPError,
+            match=rf"400 Client Error: `arg`: \(ValueError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
+        ):
             _ = ds_rc.request_seq("POST", f"/record/{WBS_L1}")
 
-        with pytest.raises(requests.exceptions.HTTPError):
+        with pytest.raises(
+            requests.exceptions.HTTPError,
+            match=rf"400 Client Error: `arg`: \(ValueError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
+        ):
             _ = ds_rc.request_seq("POST", f"/record/{WBS_L1}", {"institution": "foo"})
 
-        with pytest.raises(requests.exceptions.HTTPError):
+        with pytest.raises(
+            requests.exceptions.HTTPError,
+            match=rf"400 Client Error: `arg`: \(ValueError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
+        ):
             _ = ds_rc.request_seq("POST", f"/record/{WBS_L1}", {"labor": "bar"})
 
-        with pytest.raises(requests.exceptions.HTTPError):
+        with pytest.raises(
+            requests.exceptions.HTTPError,
+            match=rf"400 Client Error: `arg`: \(ValueError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
+        ):
             _ = ds_rc.request_seq(
                 "POST", f"/record/{WBS_L1}", {"institution": "foo", "labor": "bar"}
             )
@@ -278,10 +293,16 @@ class TestRecordHandler:
     def test_delete_w_bad_args(ds_rc: RestClient) -> None:
         """Test `DELETE` @ `/record` with bad arguments."""
         # 'record' is the only required arg
-        with pytest.raises(requests.exceptions.HTTPError):
+        with pytest.raises(
+            requests.exceptions.HTTPError,
+            match=rf"400 Client Error: `arg`: \(ValueError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
+        ):
             _ = ds_rc.request_seq("DELETE", f"/record/{WBS_L1}", {"foo": "bar"})
 
-        with pytest.raises(requests.exceptions.HTTPError):
+        with pytest.raises(
+            requests.exceptions.HTTPError,
+            match=rf"400 Client Error: `arg`: \(ValueError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
+        ):
             _ = ds_rc.request_seq("DELETE", f"/record/{WBS_L1}")
 
 
