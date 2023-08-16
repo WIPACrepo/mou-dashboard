@@ -1,6 +1,4 @@
 #!/bin/bash
-set -x  # turn on debugging
-set -e  # exit on fail
 
 # Setup Keycloak environment variables for a test environment
 
