@@ -82,7 +82,7 @@ jobs:
         run: |
           pip install --upgrade pip wheel setuptools
           pip install .[tests]
-          cp resources/dummy_client_secrets_for_web_app.json client_secrets.json
+          export OIDC_CLIENT_SECRETS=$realpath(resources/dummy_client_secrets_for_web_app.json)
           pytest -vvv tests/unit
 
 
@@ -143,6 +143,7 @@ jobs:
           # test
           docker run --network="host" --rm -i --name test \
               --env CI_TEST=true \
+              --env OIDC_CLIENT_SECRETS=resources/dummy_client_secrets_for_web_app.json \
               --mount type=bind,source=$(realpath $DIR),target=/local/$DIR \
               moudash:local \
               /local/$DIR/test-script.sh
