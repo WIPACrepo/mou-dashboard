@@ -213,7 +213,7 @@ class TestTableHandler:
         for arg, body_min in tests.items():
             with pytest.raises(
                 requests.exceptions.HTTPError,
-                match=rf"400 Client Error: `{arg}`: \(MissingArgumentError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
+                match=rf"400 Client Error: `{arg}`: \(MissingArgumentError\) .+ for url: {ds_rc.address}/table/data/{WBS_L1}",
             ):
                 ds_rc.request_seq(
                     "GET",
@@ -224,7 +224,7 @@ class TestTableHandler:
             # empty
             with pytest.raises(
                 requests.exceptions.HTTPError,
-                match=rf"400 Client Error: `is_admin`: \(MissingArgumentError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
+                match=rf"400 Client Error: `is_admin`: \(MissingArgumentError\) .+ for url: {ds_rc.address}/table/data/{WBS_L1}",
             ):
                 ds_rc.request_seq(
                     "GET",
