@@ -100,7 +100,7 @@ class TestNoArgumentRoutes:
     @staticmethod
     def test_snapshots_timestamps_get(ds_rc: RestClient) -> None:
         """Test `GET` @ `/snapshots/list`."""
-        resp = ds_rc.request_seq("GET", f"/snapshots/list/{WBS_L1}")
+        resp = ds_rc.request_seq("GET", f"/snapshots/list/{WBS_L1}", {"is_admin": True})
         assert list(resp.keys()) == ["snapshots"]
         assert isinstance(resp["snapshots"], list)
         for snap in resp["snapshots"]:
@@ -124,7 +124,9 @@ class TestNoArgumentRoutes:
             == 3
         )
 
-        assert not ds_rc.request_seq("GET", f"/snapshots/list/{WBS_L1}")["snapshots"]
+        assert not ds_rc.request_seq(
+            "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": True}
+        )["snapshots"]
         assert not ds_rc.request_seq(
             "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": False}
         )["snapshots"]
@@ -158,9 +160,9 @@ class TestNoArgumentRoutes:
             # implicitly non-admin
             else:  # every-4 off by 2
                 assert i % 4 == 2
-                snapshots = ds_rc.request_seq("GET", f"/snapshots/list/{WBS_L1}")[
-                    "snapshots"
-                ]
+                snapshots = ds_rc.request_seq(
+                    "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": True}
+                )["snapshots"]
                 assert len(snapshots) == i
 
             assert resp["timestamp"] in [s["timestamp"] for s in snapshots]
@@ -278,9 +280,9 @@ class TestTableHandler:
             self._assert_schema(record)
 
         # assert schema in Snapshot Collections
-        for snapshot in ds_rc.request_seq("GET", f"/snapshots/list/{WBS_L1}")[
-            "snapshots"
-        ]:
+        for snapshot in ds_rc.request_seq(
+            "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": True}
+        )["snapshots"]:
             resp = ds_rc.request_seq(
                 "GET",
                 f"/table/data/{WBS_L1}",

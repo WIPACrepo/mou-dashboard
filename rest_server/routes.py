@@ -96,9 +96,7 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
             timestamps = await self.mou_db_client.list_snapshot_timestamps(
                 wbs_l1, exclude_admin_snaps=not is_admin
             )
-            if (
-                curr_snap == mou_db.LIVE_COLLECTION
-            ):  # live collection (aka not a snapshot)
+            if curr_snap == mou_db.LIVE_COLLECTION:  # aka not a snapshot
                 prev_snap = timestamps[-1]
             elif idx := timestamps.index(curr_snap):
                 prev_snap = timestamps[idx - 1]

@@ -662,7 +662,10 @@ class MOUDatabaseClient:
     async def list_snapshot_timestamps(
         self, wbs_db: str, exclude_admin_snaps: bool
     ) -> list[str]:
-        """Return a list of the snapshot collections."""
+        """Return a list of the snapshot collections.
+
+        NOTE: does not return LIVE_COLLECTION
+        """
         logging.info(f"Getting Snapshot Timestamps ({wbs_db=})...")
 
         await self._check_database_state(wbs_db)
