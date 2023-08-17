@@ -229,6 +229,7 @@ class TestDataSource:
         return mocker.patch("web_app.data_source.connections._rest_connection")
 
     @staticmethod
+    @patch("web_app.data_source.connections.CurrentUser._get_info")
     def test_pull_data_table(mock_rest: Any, tconfig: tc.TableConfigParser) -> None:
         """Test pull_data_table()."""
         response = {"foo": 0, "table": [{"a": "a"}, {"b": 2}, {"c": None}]}
