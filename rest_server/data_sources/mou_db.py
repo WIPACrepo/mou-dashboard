@@ -5,6 +5,7 @@ import dataclasses as dc
 import io
 import logging
 import time
+from typing import cast
 
 import dacite
 import pandas as pd  # type: ignore[import]
@@ -99,7 +100,7 @@ class MOUDatabaseClient:
         try:
             decoded = base64.b64decode(base64_xlsx)
             df = pd.read_excel(io.BytesIO(decoded))  # pylint:disable=invalid-name
-            raw_table: list[uut.DBRecord] = df.fillna("").to_dict("records")
+            raw_table = cast(list[uut.DBRecord], df.fillna("").to_dict("records"))
         except Exception as e:
             raise web.HTTPError(400, reason=str(e))
 
