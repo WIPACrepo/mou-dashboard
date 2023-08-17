@@ -3,7 +3,7 @@
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 
 import cachetools.func
 import flask
