@@ -129,8 +129,24 @@ jobs:
               &
 
           sleep 30
-          pip install pytest wipac-rest-tools dacite requests bson
-          pytest -vvv tests/integration
+
+          # make test script
+          DIR="test-script-dir"
+          mkdir $DIR
+          echo "#!/bin/bash" >> $DIR/test-script.sh
+          echo "set -xe" >> $DIR/test-script.sh
+          echo "pip install .[tests]" >> $DIR/test-script.sh
+          echo "python -m pytest -vvv tests/integration" >> $DIR/test-script.sh
+          chmod +x $DIR/test-script.sh
+          cat $DIR/test-script.sh
+
+          # test
+          docker run --network="host" --rm -i --name test \
+              --env CI_TEST=true \
+              --mount type=bind,source=$(realpath $DIR),target=/local/$DIR \
+              moudash:local \
+              /local/$DIR/test-script.sh
+
 
       - name: mongodump
         if: always()

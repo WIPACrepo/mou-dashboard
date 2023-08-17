@@ -9,7 +9,6 @@ NOTE: THESE TESTS NEED TO RUN IN ORDER -- STATE DEPENDENT
 
 import base64
 import dataclasses as dc
-import sys
 import time
 from typing import Dict
 
@@ -19,7 +18,6 @@ from dacite import from_dict
 from rest_tools.client import RestClient
 
 # NOTE: universal_utils has no requirements -- only used to assert types
-sys.path.insert(0, "")
 import universal_utils.types as uut  # isort:skip  # noqa: E402  # pylint: disable=wrong-import-position
 
 WBS_L1 = "mo"
