@@ -13,7 +13,7 @@ import flask
 import requests
 
 # local imports
-from rest_tools.client import OpenIDRestClient, RestClient
+from rest_tools.client import ClientCredentialsAuth, RestClient
 
 from ..config import ENV, MAX_CACHE_MINS, oidc
 
@@ -30,13 +30,11 @@ def _rest_connection() -> RestClient:
     else:
         with open(ENV.OIDC_CLIENT_SECRETS) as f:
             oidc_client = json.load(f).get("web", {})
-        rc = OpenIDRestClient(
+        rc = ClientCredentialsAuth(
             ENV.REST_SERVER_URL,
             token_url=oidc_client.get("issuer"),
             client_id=oidc_client.get("client_id"),
             client_secret=oidc_client.get("client_secret"),
-            timeout=20,
-            retries=1,
         )
 
     return rc
