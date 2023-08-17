@@ -128,8 +128,9 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
 
         collection = self.get_argument(
             "snapshot",
-            default="",
+            default=mou_db.LIVE_COLLECTION,
             type=str,
+            forbiddens=[""],
         )
 
         institution = self.get_argument(
@@ -215,7 +216,7 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
         clientbound_snapshot_info = await self._get_clientbound_snapshot_info(
             wbs_l1,
             curr_snap,
-            len(await self.mou_db_client.get_table(wbs_l1)),
+            len(await self.mou_db_client.get_table(wbs_l1, curr_snap, "", "")),
             is_admin,
             prev_snap_override=prev_snap,  # optimization & race condition protection
         )
@@ -455,7 +456,7 @@ class InstitutionValuesHandler(BaseMOUHandler):  # pylint: disable=W0223
         )
         snapshot_timestamp = self.get_argument(
             "snapshot_timestamp",
-            default="",
+            default=mou_db.LIVE_COLLECTION,
             type=str,
         )
 

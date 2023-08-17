@@ -19,7 +19,7 @@ from ..utils import types, utils
 from ..utils.mongo_tools import DocumentNotFoundError, Mongofier
 from . import columns
 
-_LIVE_COLLECTION = "LIVE_COLLECTION"
+LIVE_COLLECTION = "LIVE_COLLECTION"
 
 
 class MOUDatabaseClient:
@@ -46,7 +46,7 @@ class MOUDatabaseClient:
 
         await self._ingest_new_collection(
             wbs_db,
-            _LIVE_COLLECTION,
+            LIVE_COLLECTION,
             table,
             "",
             creator,
@@ -199,9 +199,9 @@ class MOUDatabaseClient:
 
         now = int(time.time())
 
-        doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
+        doc = await self._get_supplemental_doc(wbs_db, LIVE_COLLECTION)
         doc = dc.replace(doc, confirmation_touchstone_ts=now)
-        await self._set_supplemental_doc(wbs_db, _LIVE_COLLECTION, doc)
+        await self._set_supplemental_doc(wbs_db, LIVE_COLLECTION, doc)
 
         logging.info(f"Re-touchstoned ({wbs_db=}, {now=}).")
         return now
@@ -211,7 +211,7 @@ class MOUDatabaseClient:
         logging.debug(f"Getting touchstone ({wbs_db=})...")
 
         try:
-            doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
+            doc = await self._get_supplemental_doc(wbs_db, LIVE_COLLECTION)
         except DocumentNotFoundError:
             return 0
 
@@ -223,7 +223,7 @@ class MOUDatabaseClient:
         wbs_db: str,
         institution: str,
         vals: uut.InstitutionValues,
-        snapshot_timestamp: str = _LIVE_COLLECTION,
+        snapshot_timestamp: str,
     ) -> uut.InstitutionValues:
         """Put in DB."""
         doc = await self._get_supplemental_doc(wbs_db, snapshot_timestamp)
@@ -248,11 +248,13 @@ class MOUDatabaseClient:
         await self._check_database_state(wbs_db)
 
         # update
-        vals = await self.get_institution_values(wbs_db, _LIVE_COLLECTION, institution)
+        vals = await self.get_institution_values(wbs_db, LIVE_COLLECTION, institution)
         vals = vals.confirm(headcounts, table, computing)
 
         # put in DB
-        await self._update_institution_values(wbs_db, institution, vals)
+        await self._update_institution_values(
+            wbs_db, institution, vals, LIVE_COLLECTION
+        )
 
         logging.info(
             f"Confirmed Institution's Values ({wbs_db=}, {institution=}, {vals=})."
@@ -279,9 +281,7 @@ class MOUDatabaseClient:
         await self._check_database_state(wbs_db)
 
         # update "last edit"s by diffing
-        before = await self.get_institution_values(
-            wbs_db, _LIVE_COLLECTION, institution
-        )
+        before = await self.get_institution_values(wbs_db, LIVE_COLLECTION, institution)
         vals = before.compute_last_edits(
             phds_authors,
             faculty,
@@ -293,7 +293,9 @@ class MOUDatabaseClient:
         )
 
         # put in DB
-        await self._update_institution_values(wbs_db, institution, vals)
+        await self._update_institution_values(
+            wbs_db, institution, vals, LIVE_COLLECTION
+        )
 
         logging.info(
             f"Upserted Institution's Values ({wbs_db=}, {institution=}, {vals=})."
@@ -319,6 +321,9 @@ class MOUDatabaseClient:
     ) -> uut.InstitutionValues:
         """Get the values for an institution."""
         logging.debug(f"Getting Institution's Values ({wbs_db=}, {institution=})...")
+        if not snapshot_timestamp:
+            raise web.HTTPError(422, reason="collection (snapshot) cannot be falsy")
+
         while True:
             try:
                 return await self._get_institution_values(
@@ -330,7 +335,7 @@ class MOUDatabaseClient:
                     f"Creating new institution values ({wbs_db=}, {institution=})..."
                 )
                 await self._update_institution_values(
-                    wbs_db, institution, uut.InstitutionValues()
+                    wbs_db, institution, uut.InstitutionValues(), LIVE_COLLECTION
                 )
 
     async def _get_institution_values(
@@ -340,9 +345,8 @@ class MOUDatabaseClient:
         institution: str,
     ) -> uut.InstitutionValues:
         await self._check_database_state(wbs_db)
-
         if not snapshot_timestamp:
-            snapshot_timestamp = _LIVE_COLLECTION
+            raise web.HTTPError(422, reason="collection (snapshot) cannot be falsy")
 
         try:
             doc = await self._get_supplemental_doc(wbs_db, snapshot_timestamp)
@@ -447,7 +451,7 @@ class MOUDatabaseClient:
 
         If collection already exists, replace.
         """
-        if admin_only and snap_coll == _LIVE_COLLECTION:
+        if admin_only and snap_coll == LIVE_COLLECTION:
             raise Exception(
                 f"A Live Collection cannot be admin-only ({wbs_db=} {snap_coll=} {admin_only=})."
             )
@@ -503,11 +507,11 @@ class MOUDatabaseClient:
         logging.debug("Ensured All Databases' Indexes.")
 
     async def get_table(
-        self, wbs_db: str, snap_coll: str = "", labor: str = "", institution: str = ""
+        self, wbs_db: str, snap_coll: str, labor: str, institution: str
     ) -> uut.DBTable:
         """Return the table from the collection name."""
         if not snap_coll:
-            snap_coll = _LIVE_COLLECTION
+            raise web.HTTPError(422, reason="collection (snapshot) cannot be falsy")
 
         logging.debug(f"Getting from {snap_coll} ({wbs_db=})...")
 
@@ -556,7 +560,7 @@ class MOUDatabaseClient:
 
         # prep
         record = self.data_adaptor.mongofy_record(wbs_db, record)
-        coll_obj = self._mongo[wbs_db][_LIVE_COLLECTION]
+        coll_obj = self._mongo[wbs_db][LIVE_COLLECTION]
 
         # if record has an ID -- replace it
         if record.get(columns.ID):
@@ -574,7 +578,7 @@ class MOUDatabaseClient:
         if record[columns.INSTITUTION]:
             instvals = await self.get_institution_values(
                 wbs_db,
-                "",
+                LIVE_COLLECTION,
                 record[columns.INSTITUTION],  # type: ignore[arg-type]
             )
             instvals = dc.replace(
@@ -588,19 +592,20 @@ class MOUDatabaseClient:
                 wbs_db,
                 record[columns.INSTITUTION],  # type: ignore[arg-type]
                 instvals,
+                LIVE_COLLECTION,
             )
 
         return self.data_adaptor.demongofy_record(record), instvals
 
     async def _set_is_deleted_status(
-        self, wbs_db: str, record_id: str, is_deleted: bool, editor: str = ""
+        self, wbs_db: str, record_id: str, is_deleted: bool, editor: str
     ) -> tuple[uut.DBRecord, uut.InstitutionValues | None]:
         """Mark the record as deleted/not-deleted."""
         query = self.data_adaptor.mongofy_record(
             wbs_db,
             {columns.ID: record_id},
         )
-        record: uut.DBRecord = await self._mongo[wbs_db][_LIVE_COLLECTION].find_one(
+        record: uut.DBRecord = await self._mongo[wbs_db][LIVE_COLLECTION].find_one(
             query
         )
 
@@ -632,8 +637,8 @@ class MOUDatabaseClient:
 
         await self._check_database_state(wbs_db)
 
-        table = await self.get_table(wbs_db, _LIVE_COLLECTION)
-        supplemental_doc = await self._get_supplemental_doc(wbs_db, _LIVE_COLLECTION)
+        table = await self.get_table(wbs_db, LIVE_COLLECTION, "", "")
+        supplemental_doc = await self._get_supplemental_doc(wbs_db, LIVE_COLLECTION)
 
         snap_coll = str(time.time())
         await self._ingest_new_collection(
@@ -663,9 +668,7 @@ class MOUDatabaseClient:
         await self._check_database_state(wbs_db)
 
         snapshots = [
-            c
-            for c in await self._list_collection_names(wbs_db)
-            if c != _LIVE_COLLECTION
+            c for c in await self._list_collection_names(wbs_db) if c != LIVE_COLLECTION
         ]
         snapshots.sort(reverse=True)
 
@@ -685,6 +688,6 @@ class MOUDatabaseClient:
 
         await self._check_database_state(wbs_db)
 
-        record = await self._set_is_deleted_status(wbs_db, record_id, False)
+        record = await self._set_is_deleted_status(wbs_db, record_id, False, "")
 
         logging.info(f"Restored {record} ({wbs_db=}).")

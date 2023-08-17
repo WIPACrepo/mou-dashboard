@@ -50,9 +50,11 @@ def test_ingest(ds_rc: RestClient) -> None:
                 "POST", f"/table/data/{WBS_L1}", INITIAL_INGEST_BODY
             )
         case "mongodump_v2":
+            # CI runner should have pre-ingested data
             resp = ds_rc.request_seq("GET", f"/table/data/{WBS_L1}", {"is_admin": True})
         case "mongodump_v3":
-            pass
+            # CI runner should have pre-ingested data
+            resp = ds_rc.request_seq("GET", f"/table/data/{WBS_L1}", {"is_admin": True})
         case other:
             raise RuntimeError(
                 f"did not receive valid 'INTEGRATION_TEST_INGEST_TYPE': {other}"
