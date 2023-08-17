@@ -191,6 +191,8 @@ class CurrentUser:
     def get_institutions() -> list[str]:
         """Get the user's editable institutions."""
 
+        # NOTE: an institution admin is not a dashboard admin
+
         # Ex: /institutions/IceCube/UW-Madison/mou-dashboard-editor
         # Ex: /institutions/IceCube/UW-Madison/_admin
 

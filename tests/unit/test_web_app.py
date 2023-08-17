@@ -235,7 +235,7 @@ class TestDataSource:
     ) -> None:
         """Test pull_data_table()."""
         current_user.return_value = web_app.data_source.connections.UserInfo(
-            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"], ""
+            "t.hanks", ["/tokens/mou-dashboard-admin"], ""
         )
         response = {"foo": 0, "table": [{"a": "a"}, {"b": 2}, {"c": None}]}
         bodies = [
@@ -287,7 +287,7 @@ class TestDataSource:
     ) -> None:
         """Test push_record()."""
         current_user.return_value = web_app.data_source.connections.UserInfo(
-            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"], ""
+            "t.hanks", ["/tokens/mou-dashboard-admin"], ""
         )
         unrealistic_hardcoded_resp = {
             "foo": 0,
@@ -342,7 +342,7 @@ class TestDataSource:
     def test_delete_record(current_user: Any, mock_rest: Any) -> None:
         """Test delete_record()."""
         current_user.return_value = web_app.data_source.connections.UserInfo(
-            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"], ""
+            "t.hanks", ["/tokens/mou-dashboard-admin"], ""
         )
         record_id = "23"
 
@@ -409,7 +409,7 @@ class TestDataSource:
     def test_create_snapshot(current_user: Any, mock_rest: Any) -> None:
         """Test create_snapshot()."""
         current_user.return_value = web_app.data_source.connections.UserInfo(
-            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"], ""
+            "t.hanks", ["/tokens/mou-dashboard-admin"], ""
         )
         response = uut.SnapshotInfo(
             timestamp="a",
