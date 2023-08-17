@@ -667,6 +667,7 @@ class MOUDatabaseClient:
             for c in await self._list_collection_names(wbs_db)
             if c != _LIVE_COLLECTION
         ]
+        snapshots.sort(reverse=True)
 
         if exclude_admin_snaps:
             snapshots = [

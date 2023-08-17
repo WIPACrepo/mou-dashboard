@@ -37,6 +37,7 @@ with open("./tests/integration/Dummy_WBS.xlsx", "rb") as f:
         "base64_file": base64.b64encode(f.read()).decode(encoding="utf-8"),
         "filename": f.name,
         "creator": "Hank",
+        "is_admin": True,
     }
 
 
@@ -49,7 +50,7 @@ def test_ingest(ds_rc: RestClient) -> None:
                 "POST", f"/table/data/{WBS_L1}", INITIAL_INGEST_BODY
             )
         case "mongodump_v2":
-            pass
+            resp = ds_rc.request_seq("GET", f"/table/data/{WBS_L1}", {"is_admin": True})
         case "mongodump_v3":
             pass
         case other:
@@ -78,7 +79,7 @@ def test_ingest(ds_rc: RestClient) -> None:
         resp = ds_rc.request_seq(
             "POST",
             f"/table/data/{WBS_L1}",
-            {"base64_file": "123456789", "filename": "foo-file"},
+            {"base64_file": "123456789", "filename": "foo-file", "is_admin": True},
         )
 
 
@@ -202,9 +203,29 @@ class TestTableHandler:
     @staticmethod
     def test_get_w_bad_args(ds_rc: RestClient) -> None:
         """Test `GET` @ `/table/data` with bad arguments."""
-        # there are no required args
-        ds_rc.request_seq("GET", f"/table/data/{WBS_L1}", {"foo": "bar"})
-        ds_rc.request_seq("GET", f"/table/data/{WBS_L1}")
+        tests: dict[str, dict[str, Any]] = {
+            "is_admin": {"foo": "bar"},
+        }
+        for arg, body_min in tests.items():
+            with pytest.raises(
+                requests.exceptions.HTTPError,
+                match=rf"400 Client Error: `{arg}`: \(MissingArgumentError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
+            ):
+                ds_rc.request_seq(
+                    "GET",
+                    f"/table/data/{WBS_L1}",
+                    body_min,
+                )
+
+            # empty
+            with pytest.raises(
+                requests.exceptions.HTTPError,
+                match=rf"400 Client Error: `is_admin`: \(MissingArgumentError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
+            ):
+                ds_rc.request_seq(
+                    "GET",
+                    f"/table/data/{WBS_L1}",
+                )
 
     @staticmethod
     def _assert_schema(record: uut.DBRecord, has_total_rows: bool = False) -> None:
@@ -249,7 +270,9 @@ class TestTableHandler:
     def test_get_schema(self, ds_rc: RestClient) -> None:
         """Test `GET` @ `/table/data`."""
         # assert schema in Live Collection
-        for record in ds_rc.request_seq("GET", f"/table/data/{WBS_L1}")["table"]:
+        for record in ds_rc.request_seq(
+            "GET", f"/table/data/{WBS_L1}", {"is_admin": True}
+        )["table"]:
             self._assert_schema(record)
 
         # assert schema in Snapshot Collections
@@ -257,7 +280,9 @@ class TestTableHandler:
             "snapshots"
         ]:
             resp = ds_rc.request_seq(
-                "GET", f"/table/data/{WBS_L1}", {"snapshot": snapshot["timestamp"]}
+                "GET",
+                f"/table/data/{WBS_L1}",
+                {"snapshot": snapshot["timestamp"], "is_admin": True},
             )
             for record in resp["table"]:
                 self._assert_schema(record)
@@ -415,7 +440,7 @@ class TestInstitutionValuesHandler:
         assert local_insts
         for inst in local_insts:
             records = ds_rc.request_seq(
-                "GET", f"/table/data/{WBS_L1}", {"institution": inst}
+                "GET", f"/table/data/{WBS_L1}", {"institution": inst, "is_admin": True}
             )["table"]
             now = int(time.time())
             match inst:

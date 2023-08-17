@@ -80,9 +80,52 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
 
     ROUTE = rf"/table/data/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
+    async def _get_clientbound_snapshot_info(
+        self,
+        wbs_l1: str,
+        curr_snap: str,
+        n_records: int,
+        is_admin: bool,
+        prev_snap_override: str | None = None,
+    ) -> dict[str, Any]:
+        curr_snap_info = await self.mou_db_client.get_snapshot_info(wbs_l1, curr_snap)
+
+        if prev_snap_override:
+            prev_snap = prev_snap_override
+        else:
+            timestamps = await self.mou_db_client.list_snapshot_timestamps(
+                wbs_l1, exclude_admin_snaps=not is_admin
+            )
+            if not curr_snap:  # live collection (aka not a snapshot)
+                prev_snap = timestamps[-1]
+            elif idx := timestamps.index(curr_snap):
+                prev_snap = timestamps[idx - 1]
+            else:  # 0 -- no previous snapshot
+                prev_snap = None
+
+        if prev_snap:
+            return {
+                "n_records": n_records,
+                "previous_snapshot": dc.asdict(
+                    await self.mou_db_client.get_snapshot_info(wbs_l1, prev_snap)
+                ),
+                "current_snapshot": dc.asdict(curr_snap_info),
+            }
+        else:
+            return {
+                "n_records": n_records,
+                "previous_snapshot": None,
+                "current_snapshot": dc.asdict(curr_snap_info),
+            }
+
     @scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
+        is_admin = self.get_argument(
+            "is_admin",
+            type=bool,
+        )
+
         collection = self.get_argument(
             "snapshot",
             default="",
@@ -133,7 +176,15 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
         # sort
         table.sort(key=self.tc_cache.sort_key)
 
-        self.write({"table": table})
+        # get info for snapshot(s)
+        clientbound_snapshot_info = await self._get_clientbound_snapshot_info(
+            wbs_l1,
+            collection,
+            len(table),
+            is_admin,
+        )
+
+        self.write(clientbound_snapshot_info | {"table": table})
 
     @scope_role_auth(prefix=AUTH_PREFIX, roles=["admin"])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
@@ -150,6 +201,10 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
             "creator",
             type=str,
         )
+        is_admin = self.get_argument(
+            "is_admin",
+            type=bool,
+        )
 
         # ingest
         prev_snap, curr_snap = await self.mou_db_client.ingest_xlsx(
@@ -157,27 +212,15 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
         )
 
         # get info for snapshot(s)
-        curr_snap_info = await self.mou_db_client.get_snapshot_info(wbs_l1, curr_snap)
-        n_records = len(await self.mou_db_client.get_table(wbs_l1))
+        clientbound_snapshot_info = await self._get_clientbound_snapshot_info(
+            wbs_l1,
+            curr_snap,
+            len(await self.mou_db_client.get_table(wbs_l1)),
+            is_admin,
+            prev_snap_override=prev_snap,  # optimization & race condition protection
+        )
 
-        if prev_snap:
-            self.write(
-                {
-                    "n_records": n_records,
-                    "previous_snapshot": dc.asdict(
-                        await self.mou_db_client.get_snapshot_info(wbs_l1, prev_snap)
-                    ),
-                    "current_snapshot": dc.asdict(curr_snap_info),
-                }
-            )
-        else:
-            self.write(
-                {
-                    "n_records": n_records,
-                    "previous_snapshot": None,
-                    "current_snapshot": dc.asdict(curr_snap_info),
-                }
-            )
+        self.write(clientbound_snapshot_info)
 
 
 # -----------------------------------------------------------------------------
@@ -287,14 +330,14 @@ class SnapshotsHandler(BaseMOUHandler):  # pylint: disable=W0223
         is_admin = self.get_argument(
             "is_admin",
             type=bool,
-            default=False,
         )
 
+        # db calls: O(1)
         timestamps = await self.mou_db_client.list_snapshot_timestamps(
             wbs_l1, exclude_admin_snaps=not is_admin
         )
-        timestamps.sort(reverse=True)
 
+        # db calls: O(n)
         snapshots = [
             await self.mou_db_client.get_snapshot_info(wbs_l1, ts) for ts in timestamps
         ]
