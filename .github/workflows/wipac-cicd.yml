@@ -82,7 +82,7 @@ jobs:
         run: |
           pip install --upgrade pip wheel setuptools
           pip install .[tests]
-          export OIDC_CLIENT_SECRETS=$realpath(resources/dummy_client_secrets_for_web_app.json)
+          export OIDC_CLIENT_SECRETS=$(realpath resources/dummy_client_secrets_for_web_app.json)
           pytest -vvv tests/unit
 
 
