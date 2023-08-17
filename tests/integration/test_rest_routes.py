@@ -10,6 +10,7 @@ NOTE: THESE TESTS NEED TO RUN IN ORDER -- STATE DEPENDENT
 import base64
 import dataclasses as dc
 import time
+from typing import Any
 
 import dacite
 import pytest
@@ -253,10 +254,11 @@ class TestRecordHandler:
     @staticmethod
     def test_post_w_bad_args(ds_rc: RestClient) -> None:
         """Test `POST` @ `/record` with bad arguments."""
-        for arg, body_min in {
+        tests: dict[str, dict[str, Any]] = {
             "record": {"editor": "me"},
             "editor": {"record": {"a": 1}},
-        }.items():
+        }
+        for arg, body_min in tests.items():
             with pytest.raises(
                 requests.exceptions.HTTPError,
                 match=rf"400 Client Error: `{arg}`: \(MissingArgumentError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
@@ -280,10 +282,11 @@ class TestRecordHandler:
     @staticmethod
     def test_delete_w_bad_args(ds_rc: RestClient) -> None:
         """Test `DELETE` @ `/record` with bad arguments."""
-        for arg, body_min in {
+        tests: dict[str, dict[str, Any]] = {
             "record_id": {"editor": "me"},
             "editor": {"record_id": {"a": 1}},
-        }.items():
+        }
+        for arg, body_min in tests.items():
             with pytest.raises(
                 requests.exceptions.HTTPError,
                 match=rf"400 Client Error: `{arg}`: \(MissingArgumentError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
