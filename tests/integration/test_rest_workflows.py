@@ -104,7 +104,7 @@ class TestNoArgumentRoutes:
         assert list(resp.keys()) == ["snapshots"]
         assert isinstance(resp["snapshots"], list)
         for snap in resp["snapshots"]:
-            assert snap.keys() == ["timestamp", "name", "creator"]
+            assert list(snap.keys()) == ["timestamp", "name", "creator", "admin_only"]
 
     @staticmethod
     def test_snapshots_make_post() -> None:
@@ -124,9 +124,6 @@ class TestNoArgumentRoutes:
             == 3
         )
 
-        assert not ds_rc.request_seq(
-            "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": True}
-        )["snapshots"]
         assert not ds_rc.request_seq(
             "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": False}
         )["snapshots"]
