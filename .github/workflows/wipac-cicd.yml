@@ -102,6 +102,14 @@ jobs:
 
   integration-tests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        integration_test_ingest_type: [
+          xlsx,
+          mongodump_v2,
+          mongodump_v3,
+        ]
     services:
       mongo:
         image: mongo:3
@@ -144,6 +152,7 @@ jobs:
           docker run --network="host" --rm -i --name test \
               --env CI_TEST=true \
               --env OIDC_CLIENT_SECRETS=resources/dummy_client_secrets_for_web_app.json \
+              --env INTEGRATION_TEST_INGEST_TYPE=${{ matrix.integration_test_ingest_type }} \
               --mount type=bind,source=$(realpath $DIR),target=/local/$DIR \
               moudash:local \
               /local/$DIR/test-script.sh

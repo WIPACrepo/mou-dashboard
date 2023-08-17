@@ -9,6 +9,7 @@ NOTE: THESE TESTS NEED TO RUN IN ORDER -- STATE DEPENDENT
 
 import base64
 import dataclasses as dc
+import os
 import time
 from typing import Any
 
@@ -31,26 +32,37 @@ def ds_rc() -> RestClient:
 
 ########################################################################################
 
+with open("./tests/integration/Dummy_WBS.xlsx", "rb") as f:
+    INITIAL_INGEST_BODY = {
+        "base64_file": base64.b64encode(f.read()).decode(encoding="utf-8"),
+        "filename": f.name,
+        "creator": "Hank",
+    }
 
+
+# NOTE: EXECUTED FIRST SO OTHER TESTS HAVE DATA IN THE DB
 def test_ingest(ds_rc: RestClient) -> None:
-    """Test POST /table/data.
-
-    NOTE: EXECUTE FIRST, SO OTHER TESTS HAVE DATA IN THE DB.
-    """
-    filename = "./tests/integration/Dummy_WBS.xlsx"
-    with open(filename, "rb") as f:
-        base64_bin = base64.b64encode(f.read())
-        base64_file = base64_bin.decode(encoding="utf-8")
-
-    body = {"base64_file": base64_file, "filename": filename, "creator": "Hank"}
-    resp = ds_rc.request_seq("POST", f"/table/data/{WBS_L1}", body)
+    """Test POST /table/data."""
+    match os.getenv("INTEGRATION_TEST_INGEST_TYPE"):
+        case "xlsx":
+            resp = ds_rc.request_seq(
+                "POST", f"/table/data/{WBS_L1}", INITIAL_INGEST_BODY
+            )
+        case "mongodump_v2":
+            pass
+        case "mongodump_v3":
+            pass
+        case other:
+            raise RuntimeError(
+                f"did not receive valid 'INTEGRATION_TEST_INGEST_TYPE': {other}"
+            )
 
     assert resp["n_records"]
     assert not resp["previous_snapshot"]
     assert (current_1 := resp["current_snapshot"])  # pylint: disable=C0325
 
     # Do it again...
-    resp = ds_rc.request_seq("POST", f"/table/data/{WBS_L1}", body)
+    resp = ds_rc.request_seq("POST", f"/table/data/{WBS_L1}", INITIAL_INGEST_BODY)
 
     assert resp["n_records"]
     assert (previous_2 := resp["previous_snapshot"])  # pylint: disable=C0325
@@ -63,8 +75,11 @@ def test_ingest(ds_rc: RestClient) -> None:
 
     # Now fail...
     with pytest.raises(requests.exceptions.HTTPError):
-        body = {"base64_file": "123456789", "filename": filename}
-        resp = ds_rc.request_seq("POST", f"/table/data/{WBS_L1}", body)
+        resp = ds_rc.request_seq(
+            "POST",
+            f"/table/data/{WBS_L1}",
+            {"base64_file": "123456789", "filename": "foo-file"},
+        )
 
 
 ########################################################################################
