@@ -367,21 +367,25 @@ class TestInstitutionValuesHandler:
             )
             resp_instval = from_dict(uut.InstitutionValues, resp)
             assert abs(now - int(time.time())) <= 1
-            assert resp_instval == dc.replace(
-                post_instval,
-                headcounts_metadata=uut.InstitutionAttrMetadata(
-                    last_edit_ts=now,
-                    confirmation_ts=0,
-                    confirmation_touchstone_ts=0,
-                ),
-                table_metadata=uut.InstitutionAttrMetadata(
-                    last_edit_ts=0, confirmation_ts=0, confirmation_touchstone_ts=0
-                ),
-                computing_metadata=uut.InstitutionAttrMetadata(
-                    last_edit_ts=now,
-                    confirmation_ts=0,
-                    confirmation_touchstone_ts=0,
-                ),
+            assert any(
+                resp_instval
+                == dc.replace(
+                    post_instval,
+                    headcounts_metadata=uut.InstitutionAttrMetadata(
+                        last_edit_ts=expected_ts,
+                        confirmation_ts=0,
+                        confirmation_touchstone_ts=0,
+                    ),
+                    table_metadata=uut.InstitutionAttrMetadata(
+                        last_edit_ts=0, confirmation_ts=0, confirmation_touchstone_ts=0
+                    ),
+                    computing_metadata=uut.InstitutionAttrMetadata(
+                        last_edit_ts=expected_ts,
+                        confirmation_ts=0,
+                        confirmation_touchstone_ts=0,
+                    ),
+                )
+                for expected_ts in [now, now + 1]  # could be a bit slow
             )
             assert not resp_instval.headcounts_metadata.has_valid_confirmation()
             assert resp_instval.table_metadata.has_valid_confirmation()
@@ -436,11 +440,15 @@ class TestInstitutionValuesHandler:
                 case other:
                     raise ValueError(other)
             resp_instval = from_dict(uut.InstitutionValues, resp["institution_values"])
-            assert resp_instval == dc.replace(
-                local_insts[inst],
-                table_metadata=dc.replace(
-                    resp_instval.table_metadata, last_edit_ts=now
-                ),
+            assert any(
+                resp_instval
+                == dc.replace(
+                    local_insts[inst],
+                    table_metadata=dc.replace(
+                        resp_instval.table_metadata, last_edit_ts=expected_ts
+                    ),
+                )
+                for expected_ts in [now, now + 1]  # could be a bit slow
             )
             assert not resp_instval.headcounts_metadata.has_valid_confirmation()
             assert not resp_instval.table_metadata.has_valid_confirmation()
@@ -464,16 +472,15 @@ class TestInstitutionValuesHandler:
                 },
             )
             resp_instval = from_dict(uut.InstitutionValues, resp)
-            assert resp_instval == dc.replace(
-                local_insts[inst],
-                headcounts_metadata=dc.replace(
-                    resp_instval.headcounts_metadata, confirmation_ts=now
-                ),
-            ) or resp_instval == dc.replace(  # could be a bit slow
-                local_insts[inst],
-                headcounts_metadata=dc.replace(
-                    resp_instval.headcounts_metadata, confirmation_ts=now + 1
-                ),
+            assert any(
+                resp_instval
+                == dc.replace(
+                    local_insts[inst],
+                    headcounts_metadata=dc.replace(
+                        resp_instval.headcounts_metadata, confirmation_ts=expected_ts
+                    ),
+                )
+                for expected_ts in [now, now + 1]  # could be a bit slow
             )
             assert resp_instval.headcounts_metadata.has_valid_confirmation()
             assert not resp_instval.table_metadata.has_valid_confirmation()
@@ -496,14 +503,18 @@ class TestInstitutionValuesHandler:
                 },
             )
             resp_instval = from_dict(uut.InstitutionValues, resp)
-            assert resp_instval == dc.replace(
-                local_insts[inst],
-                table_metadata=dc.replace(
-                    resp_instval.table_metadata, confirmation_ts=now
-                ),
-                computing_metadata=dc.replace(
-                    resp_instval.computing_metadata, confirmation_ts=now
-                ),
+            assert any(
+                resp_instval
+                == dc.replace(
+                    local_insts[inst],
+                    table_metadata=dc.replace(
+                        resp_instval.table_metadata, confirmation_ts=expected_ts
+                    ),
+                    computing_metadata=dc.replace(
+                        resp_instval.computing_metadata, confirmation_ts=expected_ts
+                    ),
+                )
+                for expected_ts in [now, now + 1]  # could be a bit slow
             )
             assert resp_instval.headcounts_metadata.has_valid_confirmation()  # (before)
             assert resp_instval.table_metadata.has_valid_confirmation()
