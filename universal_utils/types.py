@@ -2,19 +2,18 @@
 
 import dataclasses as dc
 import time
-from typing import Dict, List
 
 from bson.objectid import ObjectId
 
 # Data Source types
 # for web
 StrNum = int | float | str  # just data
-WebRecord = Dict[str, StrNum]
-WebTable = List[WebRecord]
+WebRecord = dict[str, StrNum]
+WebTable = list[WebRecord]
 # for db
 DataEntry = StrNum | ObjectId  # just data + mongo ID
-DBRecord = Dict[str, DataEntry]
-DBTable = List[DBRecord]
+DBRecord = dict[str, DataEntry]
+DBTable = list[DBRecord]
 
 
 @dc.dataclass(frozen=True)
@@ -55,7 +54,8 @@ class InstitutionAttrMetadata:
         return self.confirmation_ts < self.last_edit_ts
 
     def get_confirmation_reason(self) -> str:
-        """Get a human-readable reason for why the confirmation is valid/invalid."""
+        """Get a human-readable reason for why the confirmation is
+        valid/invalid."""
         if self._has_new_changes():
             return CHANGES
         if self._is_expired():
@@ -90,7 +90,8 @@ class InstitutionValues:
     ) -> "InstitutionValues":
         """Copy fields from args and compute new metadata.
 
-        Non-table metadata's `last_edit_ts` values are computed by diffing with `self`.
+        Non-table metadata's `last_edit_ts` values are computed by
+        diffing with `self`.
         """
         now = int(time.time())
 
@@ -124,7 +125,7 @@ class InstitutionValues:
             computing_metadata=computing_metadata,
         )
 
-    def restful_dict(self, institution: str) -> Dict[str, int | str | None]:
+    def restful_dict(self, institution: str) -> dict[str, int | str | None]:
         """Get a dict w/o the metadata fields + institution."""
         dicto = dc.asdict(self)
         dicto.pop("headcounts_metadata")
@@ -141,7 +142,8 @@ class InstitutionValues:
     def confirm(
         self, headcounts: bool, table: bool, computing: bool
     ) -> "InstitutionValues":
-        """Confirm the indicated values (update their metadata's `confirmation_ts`)."""
+        """Confirm the indicated values (update their metadata's
+        `confirmation_ts`)."""
         now = int(time.time())
 
         headcounts_metadata = self.headcounts_metadata

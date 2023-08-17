@@ -1,7 +1,6 @@
 """Layout root and high-level callbacks."""
 
 import logging
-from typing import Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import visdcc  # type: ignore[import]
@@ -160,7 +159,7 @@ def interval_page_reload(_: int) -> str:
     [Input("url-404-redirect", "refresh")],  # `refresh` is never triggered
     [State("url", "pathname")],
 )
-def main_redirect(_: bool, s_urlpath: str) -> Tuple[str, bool, str]:
+def main_redirect(_: bool, s_urlpath: str) -> tuple[str, bool, str]:
     """Redirect the url for any reason."""
     logging.critical(
         f"'{du.triggered()}' -> main_redirect() {CurrentUser.get_summary()=}"
@@ -214,7 +213,7 @@ def main_redirect(_: bool, s_urlpath: str) -> Tuple[str, bool, str]:
     [Input("navbar-toggler", "n_clicks")],
     [State("navbar-collapse", "is_open")],
 )
-def toggle_navbar_collapse(n_clicks: int, is_open: bool) -> Tuple[bool, str, bool]:
+def toggle_navbar_collapse(n_clicks: int, is_open: bool) -> tuple[bool, str, bool]:
     """Toggle the navbar collapse on small screens.
 
     https://dash-bootstrap-components.opensource.faculty.ai/docs/components/navbar/#
@@ -233,7 +232,7 @@ def toggle_navbar_collapse(n_clicks: int, is_open: bool) -> Tuple[bool, str, boo
     Input("mou-title", "hidden"),  # dummy input
     [State("url", "pathname")],
 )
-def load_nav_title(_: bool, s_urlpath: str) -> Tuple[str, bool, bool]:
+def load_nav_title(_: bool, s_urlpath: str) -> tuple[str, bool, bool]:
     """Load the title for the current mou/wbs-l1."""
     wbs_l1 = du.get_wbs_l1(s_urlpath)
 

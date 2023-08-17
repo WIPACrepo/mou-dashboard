@@ -3,7 +3,7 @@
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, cast
+from typing import Any, cast
 
 import cachetools.func  # type: ignore[import]
 import flask  # type: ignore[import]
@@ -17,7 +17,7 @@ class UserInfo:
     """Hold user data."""
 
     preferred_username: str
-    groups: List[str]
+    groups: list[str]
 
 
 class CurrentUser:
@@ -29,7 +29,7 @@ class CurrentUser:
         """Cache is keyed by the oidc session token."""
         # pylint:disable=unused-argument
         logging.warning(f"Cache Miss: CurrentUser._cached_get_info({oidc_csrf_token=})")
-        resp: Dict[str, Any] = oidc.user_getinfo(["preferred_username", "groups"])
+        resp: dict[str, Any] = oidc.user_getinfo(["preferred_username", "groups"])
         return UserInfo(**resp)
 
     @staticmethod
@@ -40,7 +40,7 @@ class CurrentUser:
         )
 
     @staticmethod
-    def get_summary() -> Dict[str, Any] | None:
+    def get_summary() -> dict[str, Any] | None:
         """Query OIDC."""
         if not CurrentUser.is_loggedin():
             return None
@@ -93,7 +93,7 @@ class CurrentUser:
         return CurrentUser._get_info().preferred_username
 
     @staticmethod
-    def get_institutions() -> List[str]:
+    def get_institutions() -> list[str]:
         """Get the user's editable institutions."""
 
         # Ex: /institutions/IceCube/UW-Madison/mou-dashboard-editor

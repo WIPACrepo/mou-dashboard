@@ -7,7 +7,7 @@ import copy
 import pprint
 import time
 from decimal import Decimal
-from typing import Any, Dict, Final, List
+from typing import Any, Final
 from unittest.mock import ANY, AsyncMock, Mock, patch, sentinel
 
 import nest_asyncio  # type: ignore[import]
@@ -169,7 +169,7 @@ class TestMongofier:
     def test_mongofy_document() -> None:
         """Test mongofy_document() & demongofy_document()."""
         # Set-Up
-        original_human: Dict[str, Any] = {
+        original_human: dict[str, Any] = {
             "": "",
             " ": {
                 "xyz": 33,
@@ -179,7 +179,7 @@ class TestMongofier:
             },
             columns.ID: "0123456789ab0123456789ab",
         }
-        mongoed: Dict[str, Any] = {
+        mongoed: dict[str, Any] = {
             "": "",
             " ": {
                 "xyz": 33,
@@ -189,7 +189,7 @@ class TestMongofier:
             },
             columns.ID: ObjectId("0123456789ab0123456789ab"),
         }
-        rehumaned: Dict[str, Any] = {
+        rehumaned: dict[str, Any] = {
             "": "",
             " ": {
                 "xyz": 33,
@@ -250,7 +250,7 @@ class TestMOUDataAdaptor:
         }
 
         # Test good records
-        good_records: List[uut.DBRecord] = [
+        good_records: list[uut.DBRecord] = [
             {
                 "F.o.o": "foo-2",
                 "B.a.r": "bar-1",
@@ -293,7 +293,7 @@ class TestMOUDataAdaptor:
             mou_data_adaptor._validate_record_data(WBS, record)
 
         # Test bad records
-        bad_records: List[uut.DBRecord] = [
+        bad_records: list[uut.DBRecord] = [
             {"F.o.o": "foo-2", "Ham": 357},  # bad conditional column
             {
                 "F.o.o": "pork",
@@ -324,7 +324,7 @@ class TestMOUDataAdaptor:
         mou_data_adaptor = utils.MOUDataAdaptor(await tcc.TableConfigCache.create())
 
         # Set-Up
-        records: List[uut.DBRecord] = [
+        records: list[uut.DBRecord] = [
             {},
             {
                 "a.b": 5,
@@ -336,7 +336,7 @@ class TestMOUDataAdaptor:
             },
         ]
 
-        mongofied_records: List[uut.DBRecord] = [
+        mongofied_records: list[uut.DBRecord] = [
             {},
             {
                 "a;b": 5,
@@ -357,7 +357,7 @@ class TestMOUDataAdaptor:
     def test_demongofy_record() -> None:
         """Test _demongofy_record()."""
         # Set-Up
-        records: List[uut.DBRecord] = [
+        records: list[uut.DBRecord] = [
             {"_id": ANY},
             {"_id": ANY, utils.MOUDataAdaptor.IS_DELETED: True},
             {"_id": ANY, utils.MOUDataAdaptor.IS_DELETED: False},
@@ -365,7 +365,7 @@ class TestMOUDataAdaptor:
             {"_id": ObjectId("5f725c6af0803660075769ab"), "FOO": "bar"},
         ]
 
-        demongofied_records: List[uut.DBRecord] = [
+        demongofied_records: list[uut.DBRecord] = [
             {"_id": ANY},
             {"_id": ANY},
             {"_id": ANY},
@@ -397,13 +397,13 @@ class TestTableConfigDataAdaptor:
         )
 
         # Set-Up
-        before_records: List[uut.DBRecord] = [
+        before_records: list[uut.DBRecord] = [
             {"_id": ANY},
             {"Grand Total": 999.99, "FTE": 50},
             {"NSF M&O Core": 100},
             {"_id": ANY, "a;b": 5, "Foo;Bar": "Baz", "Grand Total": 999.99},
         ]
-        after_records: List[uut.DBRecord] = [
+        after_records: list[uut.DBRecord] = [
             {"_id": ANY},
             {"FTE": 50},
             {},
@@ -427,7 +427,7 @@ class TestTableConfigDataAdaptor:
         )
 
         # Set-Up
-        before_records: List[uut.DBRecord] = [
+        before_records: list[uut.DBRecord] = [
             {
                 "_id": ANY,
                 "Institution": "Stony-Brook",
@@ -455,7 +455,7 @@ class TestTableConfigDataAdaptor:
                 "Grand Total": 5555555555,  # will get overwritten w/ FTE
             },
         ]
-        after_records: List[uut.DBRecord] = [
+        after_records: list[uut.DBRecord] = [
             {
                 "_id": ANY,
                 "Institution": "Stony-Brook",
@@ -550,7 +550,7 @@ class TestTableConfigDataAdaptor:
                 )
 
         # Test example table and empty table
-        test_tables: Final[List[uut.DBTable]] = [copy.deepcopy(data.FTE_ROWS), []]
+        test_tables: Final[list[uut.DBTable]] = [copy.deepcopy(data.FTE_ROWS), []]
         for table in test_tables:
             # Call
             totals = tc_data_adaptor.get_total_rows(WBS, table)
@@ -558,7 +558,6 @@ class TestTableConfigDataAdaptor:
 
             # Assert total sums
             for total_row in totals:
-
                 # L3 US/Non-US Level
                 if (
                     "L3 NON-US TOTAL"

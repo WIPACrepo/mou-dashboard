@@ -9,7 +9,7 @@ import inspect
 import itertools
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Final, Iterator, List, TypedDict
+from typing import Any, Final, Iterator, TypedDict
 from unittest.mock import patch
 
 import pytest
@@ -292,7 +292,7 @@ class TestDataSource:
             institution: str
             editor: str
 
-        bodies: List[_Body] = [
+        bodies: list[_Body] = [
             # Default values
             {"record": {"BAR": 23}, "editor": "t.hanks"},
             # Other values

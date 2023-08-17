@@ -3,7 +3,7 @@
 
 import dataclasses as dc
 import logging
-from typing import Dict, Final, List, Tuple
+from typing import Final
 
 import cachetools.func  # type: ignore[import]
 
@@ -15,22 +15,22 @@ from .connections import mou_request
 class _WBSTableCache:
     """The response dict from '/table/config'."""
 
-    columns: List[str]
-    simple_dropdown_menus: Dict[str, List[str]]
-    labor_categories: List[Tuple[str, str]]
-    conditional_dropdown_menus: Dict[str, Tuple[str, Dict[str, List[str]]]]
-    dropdowns: List[str]
-    numerics: List[str]
-    non_editables: List[str]
-    hiddens: List[str]
-    mandatories: List[str]
-    tooltips: Dict[str, str]
-    widths: Dict[str, int]
-    border_left_columns: List[str]
+    columns: list[str]
+    simple_dropdown_menus: dict[str, list[str]]
+    labor_categories: list[tuple[str, str]]
+    conditional_dropdown_menus: dict[str, tuple[str, dict[str, list[str]]]]
+    dropdowns: list[str]
+    numerics: list[str]
+    non_editables: list[str]
+    hiddens: list[str]
+    mandatories: list[str]
+    tooltips: dict[str, str]
+    widths: dict[str, int]
+    border_left_columns: list[str]
     page_size: int
 
 
-CacheType = Dict[str, _WBSTableCache]  # The response dict from '/table/config'
+CacheType = dict[str, _WBSTableCache]  # The response dict from '/table/config'
 
 
 class TableConfigParser:  # pylint: disable=R0904
@@ -80,7 +80,7 @@ class TableConfigParser:  # pylint: disable=R0904
             for k, v in mou_request("GET", "/table/config").items()
         }
 
-    def get_table_columns(self) -> List[str]:
+    def get_table_columns(self) -> list[str]:
         """Get table column's names."""
         cols = self._configs[self._wbs_l1].columns
 
@@ -107,15 +107,15 @@ class TableConfigParser:  # pylint: disable=R0904
         except KeyError:
             return column
 
-    def get_simple_column_dropdown_menu(self, column: str) -> List[str]:
+    def get_simple_column_dropdown_menu(self, column: str) -> list[str]:
         """Get dropdown menu for a column."""
         return sorted(self._configs[self._wbs_l1].simple_dropdown_menus[column])
 
-    def get_l2_categories(self) -> List[str]:
+    def get_l2_categories(self) -> list[str]:
         """Get dropdown menu for a column."""
         return self.get_simple_column_dropdown_menu(self.const.WBS_L2)
 
-    def get_labor_categories_w_abbrevs(self) -> List[Tuple[str, str]]:
+    def get_labor_categories_w_abbrevs(self) -> list[tuple[str, str]]:
         """Get list of labors  and their abbreviations.."""
         return sorted(self._configs[self._wbs_l1].labor_categories, key=lambda k: k[1])
 
@@ -131,19 +131,19 @@ class TableConfigParser:  # pylint: disable=R0904
         """Get whether column data can be edited by end-user."""
         return column not in self._configs[self._wbs_l1].non_editables
 
-    def get_non_editable_columns(self) -> List[str]:
+    def get_non_editable_columns(self) -> list[str]:
         """Get the columns whose data cannot be edited by end-user."""
         return self._configs[self._wbs_l1].non_editables
 
-    def get_hidden_columns(self) -> List[str]:
+    def get_hidden_columns(self) -> list[str]:
         """Get the columns hidden be default."""
         return self._configs[self._wbs_l1].hiddens
 
-    def get_mandatory_columns(self) -> List[str]:
+    def get_mandatory_columns(self) -> list[str]:
         """Get the columns that must be filled in by user."""
         return self._configs[self._wbs_l1].mandatories
 
-    def get_always_hidden_columns(self) -> List[str]:
+    def get_always_hidden_columns(self) -> list[str]:
         """Get the columns that should never be shown to the user.
 
         AKA, columns that are marked as hidden and have width of `0`.
@@ -156,7 +156,7 @@ class TableConfigParser:  # pylint: disable=R0904
 
         return cols
 
-    def get_dropdown_columns(self) -> List[str]:
+    def get_dropdown_columns(self) -> list[str]:
         """Get list of dropdown-type columns."""
         return self._configs[self._wbs_l1].dropdowns
 
@@ -170,7 +170,7 @@ class TableConfigParser:  # pylint: disable=R0904
 
     def get_conditional_column_parent_and_options(
         self, column: str
-    ) -> Tuple[str, List[str]]:
+    ) -> tuple[str, list[str]]:
         """Get the parent column's (name, list of options)."""
         return (
             self._configs[self._wbs_l1].conditional_dropdown_menus[column][0],
@@ -185,7 +185,7 @@ class TableConfigParser:  # pylint: disable=R0904
 
     def get_conditional_column_dropdown_menu(
         self, column: str, parent_col_option: str
-    ) -> List[str]:
+    ) -> list[str]:
         """Get the dropdown menu for a conditional dropdown-column."""
         return self._configs[self._wbs_l1].conditional_dropdown_menus[column][1][
             parent_col_option

@@ -2,7 +2,6 @@
 
 import dataclasses as dc
 import logging
-from typing import Dict, List
 
 import universal_utils.types as uut
 from dash import no_update  # type: ignore[import]
@@ -39,7 +38,7 @@ class SelectInstitutionValueOutput:
     below_table_container_hidden: bool = no_update
     # INST DROPDOWN
     ddown_inst_val: str = no_update
-    ddown_inst_opts: List[Dict[str, str]] = no_update
+    ddown_inst_opts: list[dict[str, str]] = no_update
     # INST-VAL STORES
     conf_headcounts: dict = no_update
     conf_table: dict = no_update

@@ -1,7 +1,7 @@
 """REST interface for reading and writing MOU data."""
 
 
-from typing import Any, Dict, Final, List, Tuple, TypedDict, cast
+from typing import Any, Final, TypedDict, cast
 
 import universal_utils.types as uut
 from dacite import from_dict
@@ -174,7 +174,7 @@ def _convert_record_dash_to_rest(
 
 def record_to_strings(
     record: uut.WebRecord, tconfig: tc.TableConfigParser
-) -> List[str]:
+) -> list[str]:
     """Get a string representation of the record."""
     strings = []
     for field, value in _convert_record_dash_to_rest(record).items():
@@ -189,7 +189,7 @@ def record_to_strings(
 
 def _validate(
     data: Any,
-    in_type: type | Tuple[type, ...],
+    in_type: type | tuple[type, ...],
     falsy_okay: bool = True,
     out: type | None = None,
 ) -> Any:
@@ -322,7 +322,7 @@ def push_record(  # pylint: disable=R0913
         institution_values: uut.InstitutionValues
 
     # request
-    body: Dict[str, Any] = {
+    body: dict[str, Any] = {
         "record": _convert_record_dash_to_rest(record, tconfig),
         "editor": CurrentUser.get_username(),
     }
@@ -350,12 +350,12 @@ def delete_record(wbs_l1: str, record_id: str) -> None:
 # Snapshot Functions
 
 
-def list_snapshots(wbs_l1: str) -> List[uut.SnapshotInfo]:
+def list_snapshots(wbs_l1: str) -> list[uut.SnapshotInfo]:
     """Get the list of snapshots."""
     _validate(wbs_l1, str, falsy_okay=False)
 
     class _RespSnapshots(TypedDict):
-        snapshots: List[dict]  # to be List[uut.SnapshotInfo]
+        snapshots: list[dict]  # to be list[uut.SnapshotInfo]
 
     body = {
         "is_admin": CurrentUser.is_loggedin_with_permissions()
@@ -391,7 +391,7 @@ def create_snapshot(wbs_l1: str, name: str) -> uut.SnapshotInfo:
 
 def override_table(
     wbs_l1: str, base64_file: str, filename: str
-) -> Tuple[int, uut.SnapshotInfo | None, uut.SnapshotInfo]:
+) -> tuple[int, uut.SnapshotInfo | None, uut.SnapshotInfo]:
     """Ingest .xlsx file as the new live collection.
 
     Arguments:
@@ -492,7 +492,8 @@ def confirm_institution_values(
 
 
 def retouchstone(wbs_l1: str) -> int:
-    """Make an updated touchstone timestamp value for all institutions (no snapshots)."""
+    """Make an updated touchstone timestamp value for all institutions (no
+    snapshots)."""
     _validate(wbs_l1, str, falsy_okay=False)
 
     response = mou_request(
@@ -502,7 +503,8 @@ def retouchstone(wbs_l1: str) -> int:
 
 
 def get_touchstone(wbs_l1: str) -> int:
-    """Make an updated touchstone timestamp value for all institutions (no snapshots)."""
+    """Make an updated touchstone timestamp value for all institutions (no
+    snapshots)."""
     _validate(wbs_l1, str, falsy_okay=False)
 
     response = mou_request(

@@ -4,7 +4,7 @@ import dataclasses as dc
 import logging
 from collections import OrderedDict as ODict
 from decimal import Decimal
-from typing import Any, Dict, Final, List, Tuple, cast
+from typing import Any, Final, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import universal_utils.types as uut
@@ -33,7 +33,7 @@ def _get_upload_success_modal_body(
     n_records: int,
     prev_snap_info: uut.SnapshotInfo | None,
     curr_snap_info: uut.SnapshotInfo | None,
-) -> List[dcc.Markdown]:
+) -> list[dcc.Markdown]:
     """Make the message for the ingest confirmation toast."""
 
     def _pseudonym(snapinfo: uut.SnapshotInfo) -> str:
@@ -41,7 +41,7 @@ def _get_upload_success_modal_body(
             return f'"{snapinfo.name}"'
         return utils.get_human_time(snapinfo.timestamp)
 
-    body: List[dcc.Markdown] = [
+    body: list[dcc.Markdown] = [
         dcc.Markdown(f'Uploaded {n_records} rows from "{filename}".'),
         dcc.Markdown("A snapshot was made of:"),
     ]
@@ -100,7 +100,7 @@ def handle_xlsx(  # pylint: disable=R0911
     # state(s)
     s_urlpath: str,
     s_filename: str,
-) -> Tuple[bool, str, str, bool, dbc.Toast, bool, List[dcc.Markdown]]:
+) -> tuple[bool, str, str, bool, dbc.Toast, bool, list[dcc.Markdown]]:
     """Manage uploading a new xlsx document as the new live table."""
     logging.warning(f"'{du.triggered()}' -> handle_xlsx()")
 
@@ -173,7 +173,7 @@ def summarize(
     # state(s)
     s_urlpath: str,
     s_snap_ts: types.DashVal,
-) -> Tuple[uut.WebTable, List[Dict[str, str]], List[Dict[str, Any]]]:
+) -> tuple[uut.WebTable, list[dict[str, str]], list[dict[str, Any]]]:
     """Manage uploading a new xlsx document as the new live table."""
     logging.warning(f"'{du.triggered()}' -> summarize()")
 
@@ -203,7 +203,7 @@ def summarize(
     for short_name, inst_info in insts_infos.items():
         inst_dc = src.pull_institution_values(wbs_l1, s_snap_ts, short_name)
 
-        row: Dict[str, uut.StrNum] = {
+        row: dict[str, uut.StrNum] = {
             "Institution": inst_info.long_name,
             "Institutional Lead": inst_info.institution_lead_uid,
             "SOW Table Confirmed": (
@@ -279,8 +279,8 @@ def summarize(
 def _blame_row(
     record: uut.WebRecord,
     tconfig: tc.TableConfigParser,
-    column_names: List[str],
-    snap_bundles: Dict[str, _SnapshotBundle],
+    column_names: list[str],
+    snap_bundles: dict[str, _SnapshotBundle],
 ) -> uut.WebRecord:
     """Get the blame row for a record."""
     logging.info(f"Blaming {record[tconfig.const.ID]}...")
@@ -297,7 +297,7 @@ def _blame_row(
             return None
 
     # get each field's history; Schema: { <field>: {<snap_ts>:<field_value>} }
-    field_changes: Dict[str, Dict[str, uut.StrNum]] = {}
+    field_changes: dict[str, dict[str, uut.StrNum]] = {}
     field_changes = ODict({k: ODict({MOST_RECENT_VALUE: record[k]}) for k in record})
     brand_new, never_changed, oldest_snap_ts = True, True, ""
     for snap_ts, bundle in snap_bundles.items():
@@ -362,7 +362,7 @@ def _blame_row(
     return blame_row
 
 
-def _blame_columns(column_names: List[str]) -> List[Dict[str, str]]:
+def _blame_columns(column_names: list[str]) -> list[dict[str, str]]:
     return [
         {
             "id": c,
@@ -374,7 +374,7 @@ def _blame_columns(column_names: List[str]) -> List[Dict[str, str]]:
     ]
 
 
-def _blame_style_cell_conditional(column_names: List[str]) -> types.TSCCond:
+def _blame_style_cell_conditional(column_names: list[str]) -> types.TSCCond:
     style_cell_conditional = []
     # border-left
     for col in [_CHANGES_COL]:
@@ -415,7 +415,7 @@ def blame(
     # state(s)
     s_urlpath: str,
     s_snap_ts: types.DashVal,
-) -> Tuple[uut.WebTable, List[Dict[str, str]], types.TSCCond]:
+) -> tuple[uut.WebTable, list[dict[str, str]], types.TSCCond]:
     """Manage uploading a new xlsx document as the new live table."""
     logging.warning(f"'{du.triggered()}' -> summarize()")
 
@@ -444,7 +444,7 @@ def blame(
     ]
 
     # populate blame table
-    snap_bundles: Dict[str, _SnapshotBundle] = {
+    snap_bundles: dict[str, _SnapshotBundle] = {
         si.timestamp: _SnapshotBundle(
             table=src.pull_data_table(
                 wbs_l1,
@@ -486,7 +486,7 @@ def retouchstone(
     # state(s)
     s_urlpath: str,
     s_snap_ts: types.DashVal,
-) -> Tuple[str, bool, str]:
+) -> tuple[str, bool, str]:
     """Make an updated touchstone timestamp value."""
     logging.warning(f"'{du.triggered()}' -> summarize()")
 

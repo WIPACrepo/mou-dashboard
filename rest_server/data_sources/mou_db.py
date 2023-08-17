@@ -5,7 +5,6 @@ import dataclasses as dc
 import io
 import logging
 import time
-from typing import Dict, List, Tuple
 
 import pandas as pd  # type: ignore[import]
 import pymongo.errors
@@ -36,7 +35,7 @@ class MOUDatabaseClient:
         wbs_db: str,
         table: uut.DBTable,
         creator: str,
-        all_insts_values: Dict[str, uut.InstitutionValues],
+        all_insts_values: dict[str, uut.InstitutionValues],
     ) -> None:
         """Create the live collection."""
         logging.debug(f"Creating Live Collection ({wbs_db=})...")
@@ -59,7 +58,7 @@ class MOUDatabaseClient:
 
     async def ingest_xlsx(  # pylint:disable=too-many-locals
         self, wbs_db: str, base64_xlsx: str, filename: str, creator: str
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         """Ingest the xlsx's data as the new Live Collection.
 
         Also make snapshots of the previous live table and the new one.
@@ -162,13 +161,13 @@ class MOUDatabaseClient:
         )
         return previous_snap, current_snap
 
-    async def _list_database_names(self) -> List[str]:
+    async def _list_database_names(self) -> list[str]:
         """Return all databases' names."""
         return [
             n for n in await self._mongo.list_database_names() if n not in EXCLUDE_DBS
         ]
 
-    async def _list_collection_names(self, db: str) -> List[str]:
+    async def _list_collection_names(self, db: str) -> list[str]:
         """Return collection names in database."""
         return [
             n
@@ -193,7 +192,8 @@ class MOUDatabaseClient:
         )
 
     async def retouchstone(self, wbs_db: str) -> int:
-        """Make an updated touchstone timestamp value for all LIVE institutions."""
+        """Make an updated touchstone timestamp value for all LIVE
+        institutions."""
         logging.debug(f"Re-touchstoning ({wbs_db=})...")
 
         now = int(time.time())
@@ -401,7 +401,7 @@ class MOUDatabaseClient:
         snap_coll: str,
         name: str,
         creator: str,
-        all_insts_values: Dict[str, uut.InstitutionValues],
+        all_insts_values: dict[str, uut.InstitutionValues],
         admin_only: bool,
         confirmation_touchstone_ts: int,
     ) -> None:
@@ -438,7 +438,7 @@ class MOUDatabaseClient:
         table: uut.DBTable,
         name: str,
         creator: str,
-        all_insts_values: Dict[str, uut.InstitutionValues],
+        all_insts_values: dict[str, uut.InstitutionValues],
         admin_only: bool,
         confirmation_touchstone_ts: int,
     ) -> None:
@@ -538,7 +538,7 @@ class MOUDatabaseClient:
 
     async def upsert_record(
         self, wbs_db: str, record: uut.DBRecord, editor: str
-    ) -> Tuple[uut.DBRecord, uut.InstitutionValues | None]:
+    ) -> tuple[uut.DBRecord, uut.InstitutionValues | None]:
         """Insert a record.
 
         Update if it already exists.
@@ -593,7 +593,7 @@ class MOUDatabaseClient:
 
     async def _set_is_deleted_status(
         self, wbs_db: str, record_id: str, is_deleted: bool, editor: str = ""
-    ) -> Tuple[uut.DBRecord, uut.InstitutionValues | None]:
+    ) -> tuple[uut.DBRecord, uut.InstitutionValues | None]:
         """Mark the record as deleted/not-deleted."""
         query = self.data_adaptor.mongofy_record(
             wbs_db,
@@ -610,7 +610,7 @@ class MOUDatabaseClient:
 
     async def delete_record(
         self, wbs_db: str, record_id: str, editor: str
-    ) -> Tuple[uut.DBRecord, uut.InstitutionValues | None]:
+    ) -> tuple[uut.DBRecord, uut.InstitutionValues | None]:
         """Mark the record as deleted."""
         logging.debug(f"Deleting {record_id} ({wbs_db=})...")
 
@@ -655,7 +655,7 @@ class MOUDatabaseClient:
 
     async def list_snapshot_timestamps(
         self, wbs_db: str, exclude_admin_snaps: bool
-    ) -> List[str]:
+    ) -> list[str]:
         """Return a list of the snapshot collections."""
         logging.info(f"Getting Snapshot Timestamps ({wbs_db=})...")
 

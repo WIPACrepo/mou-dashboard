@@ -6,7 +6,7 @@ import json
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, Final, List, Optional, cast
+from typing import Any, Final, Optional, cast
 
 import cachetools.func  # type: ignore[import]
 import flask  # type: ignore[import]
@@ -55,13 +55,13 @@ def _get_log_body(method: str, url: str, body: Any) -> str:
     return str(log_body)
 
 
-def mou_request(method: str, url: str, body: Any = None) -> Dict[str, Any]:
+def mou_request(method: str, url: str, body: Any = None) -> dict[str, Any]:
     """Make a request to the MoU REST server."""
     log_body = _get_log_body(method, url, body)
     logging.info(f"REQUEST :: {method} @ {url}, body: {log_body}")
 
     try:
-        response: Dict[str, Any] = _rest_connection().request_seq(method, url, body)
+        response: dict[str, Any] = _rest_connection().request_seq(method, url, body)
     except requests.exceptions.HTTPError as e:
         logging.exception(f"EXCEPTED: {e}")
         raise DataSourceException(str(e))
@@ -99,15 +99,15 @@ class Institution:
 
 
 @cachetools.func.ttl_cache(ttl=MAX_CACHE_MINS * 60)  # type: ignore[misc]
-def _cached_get_institutions_infos() -> Dict[str, Institution]:
+def _cached_get_institutions_infos() -> dict[str, Institution]:
     logging.warning("Cache Miss: _cached_get_institutions_infos()")
-    resp = cast(Dict[str, Dict[str, Any]], mou_request("GET", "/institution/today"))
+    resp = cast(dict[str, dict[str, Any]], mou_request("GET", "/institution/today"))
     return {k: Institution(**v) for k, v in resp.items()}
 
 
-def get_institutions_infos() -> Dict[str, Institution]:
+def get_institutions_infos() -> dict[str, Institution]:
     """Get a dict of all institutions with their info."""
-    return cast(Dict[str, Institution], _cached_get_institutions_infos())
+    return cast(dict[str, Institution], _cached_get_institutions_infos())
 
 
 #
@@ -120,7 +120,7 @@ class UserInfo:
     """Hold user data."""
 
     preferred_username: str
-    groups: List[str]
+    groups: list[str]
     access_token: str
 
 
@@ -133,7 +133,7 @@ class CurrentUser:
         """Cache is keyed by the oidc session token."""
         # pylint:disable=unused-argument
         logging.warning(f"Cache Miss: CurrentUser._cached_get_info({oidc_csrf_token=})")
-        resp: Dict[str, Any] = oidc.user_getinfo(["preferred_username", "groups"])
+        resp: dict[str, Any] = oidc.user_getinfo(["preferred_username", "groups"])
         resp["access_token"] = oidc.get_access_token()
         return UserInfo(**resp)
 
@@ -145,7 +145,7 @@ class CurrentUser:
         )
 
     @staticmethod
-    def get_summary() -> Optional[Dict[str, Any]]:
+    def get_summary() -> Optional[dict[str, Any]]:
         """Query OIDC."""
         if not CurrentUser.is_loggedin():
             return None
@@ -192,7 +192,7 @@ class CurrentUser:
         return CurrentUser._get_info().preferred_username
 
     @staticmethod
-    def get_institutions() -> List[str]:
+    def get_institutions() -> list[str]:
         """Get the user's editable institutions."""
 
         # Ex: /institutions/IceCube/UW-Madison/mou-dashboard-editor

@@ -2,7 +2,7 @@
 
 import dataclasses as dc
 import logging
-from typing import Final, List
+from typing import Final
 from urllib.parse import urljoin
 
 import dash  # type: ignore
@@ -38,7 +38,7 @@ class EnvConfig:
     OIDC_CLIENT_SECRETS: str = "client_secrets.json"
     OVERWRITE_REDIRECT_URI: str = ""
     DEBUG: bool = False
-    DEBUG_AS_PI: List[str] = dc.field(default_factory=list)
+    DEBUG_AS_PI: list[str] = dc.field(default_factory=list)
     LOG_REST_CALLS: bool = True
 
     CI_TEST: bool = False

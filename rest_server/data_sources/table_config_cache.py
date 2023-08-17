@@ -4,7 +4,7 @@
 import dataclasses as dc
 import logging
 import time
-from typing import Dict, Final, List, Tuple
+from typing import Final
 
 import universal_utils.types as uut
 
@@ -24,16 +24,16 @@ class _ColumnConfig:
     non_editable: bool = False
     hidden: bool = False
     mandatory: bool = False
-    options: List[str] | None = None
+    options: list[str] | None = None
     sort_value: int | None = None
     conditional_parent: str | None = None
-    conditional_options: Dict[str, List[str]] | None = None
+    conditional_options: dict[str, list[str]] | None = None
     border_left: bool = False
     on_the_fly: bool = False
     numeric: bool = False
 
 
-_LABOR_CATEGORY_DICTIONARY: Dict[str, str] = {
+_LABOR_CATEGORY_DICTIONARY: dict[str, str] = {
     # Science
     "KE": "Key Personnel (Faculty Members)",
     "SC": "Scientist",
@@ -50,7 +50,7 @@ _LABOR_CATEGORY_DICTIONARY: Dict[str, str] = {
 }
 
 
-_TASK_CATEGORY_DICTIONARY: Dict[str, str] = {
+_TASK_CATEGORY_DICTIONARY: dict[str, str] = {
     "Standard": "",
     "Intro": "",
     "Open": "",
@@ -73,8 +73,8 @@ class TableConfigCache:
 
     def __init__(
         self,
-        _column_configs: Dict[str, _ColumnConfig],
-        _institutions: List[todays_institutions.Institution],
+        _column_configs: dict[str, _ColumnConfig],
+        _institutions: list[todays_institutions.Institution],
     ) -> None:
         self.column_configs, self.institutions = _column_configs, _institutions
         self._timestamp = int(time.time())
@@ -87,8 +87,8 @@ class TableConfigCache:
         self._timestamp = int(time.time())
 
     @staticmethod
-    async def _build() -> Tuple[
-        Dict[str, _ColumnConfig], List[todays_institutions.Institution]
+    async def _build() -> tuple[
+        dict[str, _ColumnConfig], list[todays_institutions.Institution]
     ]:
         """Build the table config."""
         tooltip_funding_source_value: Final[str] = (
@@ -100,7 +100,7 @@ class TableConfigCache:
         logging.debug(f"KRS responded with {len(institutions)} institutions")
 
         # build column-configs
-        column_configs: Final[Dict[str, _ColumnConfig]] = {
+        column_configs: Final[dict[str, _ColumnConfig]] = {
             columns.WBS_L2: _ColumnConfig(
                 width=115,
                 sort_value=70,
@@ -257,25 +257,25 @@ class TableConfigCache:
                 return NON_US
         return ""
 
-    def get_columns(self) -> List[str]:
+    def get_columns(self) -> list[str]:
         """Get the columns."""
         return list(self.column_configs.keys())
 
-    def get_labor_categories_and_abbrevs(self) -> List[Tuple[str, str]]:
+    def get_labor_categories_and_abbrevs(self) -> list[tuple[str, str]]:
         """Get the labor categories and their abbreviations."""
         return [(name, abbrev) for abbrev, name in _LABOR_CATEGORY_DICTIONARY.items()]
 
     @staticmethod
-    def get_l2_categories(l1: str) -> List[str]:
+    def get_l2_categories(l1: str) -> list[str]:
         """Get the L2 categories."""
         return list(wbs.WORK_BREAKDOWN_STRUCTURES[l1].keys())
 
     @staticmethod
-    def get_l3_categories_by_l2(l1: str, l2: str) -> List[str]:
+    def get_l3_categories_by_l2(l1: str, l2: str) -> list[str]:
         """Get the L3 categories for an L2 value."""
         return wbs.WORK_BREAKDOWN_STRUCTURES[l1][l2]
 
-    def get_simple_dropdown_menus(self, l1: str) -> Dict[str, List[str]]:
+    def get_simple_dropdown_menus(self, l1: str) -> dict[str, list[str]]:
         """Get the columns that are simple dropdowns, with their options."""
         ret = {
             col: config.options
@@ -287,7 +287,7 @@ class TableConfigCache:
 
     def get_conditional_dropdown_menus(
         self, l1: str
-    ) -> Dict[str, Tuple[str, Dict[str, List[str]]]]:
+    ) -> dict[str, tuple[str, dict[str, list[str]]]]:
         """Get the columns (and conditions) that are conditionally dropdowns.
 
         Example:
@@ -301,35 +301,35 @@ class TableConfigCache:
         ret[columns.WBS_L3] = (columns.WBS_L2, wbs.WORK_BREAKDOWN_STRUCTURES[l1])
         return ret
 
-    def get_dropdowns(self, l1: str) -> List[str]:
+    def get_dropdowns(self, l1: str) -> list[str]:
         """Get the columns that are dropdowns."""
         return list(self.get_simple_dropdown_menus(l1).keys()) + list(
             self.get_conditional_dropdown_menus(l1).keys()
         )
 
-    def get_numerics(self) -> List[str]:
+    def get_numerics(self) -> list[str]:
         """Get the columns that have numeric data."""
         return [col for col, config in self.column_configs.items() if config.numeric]
 
-    def get_non_editables(self) -> List[str]:
+    def get_non_editables(self) -> list[str]:
         """Get the columns that are not editable."""
         return [
             col for col, config in self.column_configs.items() if config.non_editable
         ]
 
-    def get_hiddens(self) -> List[str]:
+    def get_hiddens(self) -> list[str]:
         """Get the columns that are hidden."""
         return [col for col, config in self.column_configs.items() if config.hidden]
 
-    def get_mandatory_columns(self) -> List[str]:
+    def get_mandatory_columns(self) -> list[str]:
         """Get the columns that are hidden."""
         return [col for col, config in self.column_configs.items() if config.mandatory]
 
-    def get_widths(self) -> Dict[str, int]:
+    def get_widths(self) -> dict[str, int]:
         """Get the widths of each column."""
         return {col: config.width for col, config in self.column_configs.items()}
 
-    def get_tooltips(self) -> Dict[str, str]:
+    def get_tooltips(self) -> dict[str, str]:
         """Get the widths of each column."""
         return {
             col: config.tooltip
@@ -337,7 +337,7 @@ class TableConfigCache:
             if config.tooltip
         }
 
-    def get_border_left_columns(self) -> List[str]:
+    def get_border_left_columns(self) -> list[str]:
         """Get the columns that have a left border."""
         return [
             col for col, config in self.column_configs.items() if config.border_left
@@ -347,13 +347,13 @@ class TableConfigCache:
         """Get page size."""
         return 19
 
-    def get_on_the_fly_fields(self) -> List[str]:
+    def get_on_the_fly_fields(self) -> list[str]:
         """Get names of fields created on-the-fly, data not stored."""
         return [col for col, config in self.column_configs.items() if config.on_the_fly]
 
-    def sort_key(self, k: Dict[str, uut.DataEntry]) -> Tuple[uut.DataEntry, ...]:
+    def sort_key(self, k: dict[str, uut.DataEntry]) -> tuple[uut.DataEntry, ...]:
         """Sort key for the table."""
-        sort_keys: List[uut.DataEntry] = []
+        sort_keys: list[uut.DataEntry] = []
 
         column_orders = {
             col: config.sort_value

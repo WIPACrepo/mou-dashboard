@@ -10,7 +10,6 @@ NOTE: THESE TESTS NEED TO RUN IN ORDER -- STATE DEPENDENT
 import base64
 import dataclasses as dc
 import time
-from typing import Dict
 
 import pytest
 import requests
@@ -312,7 +311,7 @@ class TestInstitutionValuesHandler:
     @staticmethod
     def test_institution_values_full_cycle(ds_rc: RestClient) -> None:
         """Test confirming admin-level re-touch-stoning."""
-        local_insts: Dict[str, uut.InstitutionValues] = {}
+        local_insts: dict[str, uut.InstitutionValues] = {}
         first_post_insts = {
             "LBNL": uut.InstitutionValues(
                 phds_authors=1,

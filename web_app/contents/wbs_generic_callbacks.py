@@ -4,7 +4,7 @@ import dataclasses as dc
 import logging
 import random
 import time
-from typing import Dict, List, Tuple, cast
+from typing import cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import universal_utils.types as uut
@@ -25,7 +25,7 @@ from ..utils.oidc_tools import CurrentUser
 
 def _totals_button_logic(
     n_clicks: int, all_cols: int
-) -> Tuple[bool, str, bool, str, str, int]:
+) -> tuple[bool, str, bool, str, str, int]:
     """Figure out whether to include totals, and format the button.
 
     Returns:
@@ -77,7 +77,7 @@ def _add_new_data(  # pylint: disable=R0913
     columns: types.TColumns,
     institution: types.DashVal,
     tconfig: tc.TableConfigParser,
-) -> Tuple[uut.WebTable, dbc.Toast]:
+) -> tuple[uut.WebTable, dbc.Toast]:
     """Push new record to data source; add to table.
 
     Returns:
@@ -128,7 +128,7 @@ def confirm_deletion(
     # state(s)
     s_urlpath: str,
     s_record: uut.WebRecord,
-) -> Tuple[dbc.Toast, int, bool, List[html.Div]]:
+) -> tuple[dbc.Toast, int, bool, list[html.Div]]:
     """Handle deleting the record chosen ."""
     logging.warning(f"'{du.triggered()}' -> confirm_deletion()")
 
@@ -197,7 +197,7 @@ def table_data_exterior_controls(
     s_all_cols: int,
     s_deleted_record: uut.WebRecord,
     s_flag_extctrl: bool,
-) -> Tuple[
+) -> tuple[
     uut.WebTable,
     int,
     dbc.Toast,
@@ -321,7 +321,7 @@ def _push_modified_records(
     current_table: uut.WebTable,
     previous_table: uut.WebTable,
     tconfig: tc.TableConfigParser,
-) -> Tuple[List[uut.StrNum], uut.WebRecord]:
+) -> tuple[list[uut.StrNum], uut.WebRecord]:
     """For each row that changed, push the record to the DS."""
     modified_records = [
         r
@@ -343,9 +343,9 @@ def _push_modified_records(
 def _find_deleted_record(
     current_table: uut.WebTable,
     previous_table: uut.WebTable,
-    keeps: List[uut.StrNum],
+    keeps: list[uut.StrNum],
     tconfig: tc.TableConfigParser,
-) -> Tuple[uut.WebRecord, str]:
+) -> tuple[uut.WebRecord, str]:
     """If a row was deleted by the user, find it."""
     delete_these = [
         r
@@ -396,7 +396,7 @@ def table_data_interior_controls(
     s_snap_ts: types.DashVal,
     s_flag_extctrl: bool,
     s_flag_intctrl: bool,
-) -> Tuple[
+) -> tuple[
     uut.WebTable,
     uut.WebRecord,
     bool,
@@ -482,12 +482,12 @@ def _table_columns_callback(
 
 def _table_dropdown(
     tconfig: tc.TableConfigParser,
-) -> Tuple[types.TDDown, types.TDDownCond]:
+) -> tuple[types.TDDown, types.TDDownCond]:
     """Grab table dropdowns."""
     simple_dropdowns: types.TDDown = {}
     conditional_dropdowns: types.TDDownCond = []
 
-    def _options(menu: List[str]) -> List[Dict[str, str]]:
+    def _options(menu: list[str]) -> list[dict[str, str]]:
         return [{"label": m, "value": m} for m in menu]
 
     for col in tconfig.get_dropdown_columns():
@@ -564,7 +564,7 @@ def setup_table(
     table_editable: bool,
     # state(s)
     s_urlpath: str,
-) -> Tuple[
+) -> tuple[
     types.TSCCond,
     types.TSDCond,
     types.TColumns,
@@ -603,7 +603,7 @@ def setup_table(
     [Input("wbs-view-snapshots", "n_clicks")],  # user
     [State("wbs-current-snapshot-ts", "value")],
 )
-def show_snapshot_dropdown(_: int, s_snap_ts: types.DashVal) -> Tuple[bool, bool, bool]:
+def show_snapshot_dropdown(_: int, s_snap_ts: types.DashVal) -> tuple[bool, bool, bool]:
     """Unhide the snapshot dropdown."""
     if s_snap_ts:  # show "View Live"
         return True, True, False
@@ -650,7 +650,7 @@ def setup_snapshot_components(
     # state(s)
     s_urlpath: str,
     s_snap_ts: types.DashVal,
-) -> Tuple[List[Dict[str, str]], List[html.Label], bool]:
+) -> tuple[list[dict[str, str]], list[html.Label], bool]:
     """Set up snapshot-related components."""
     try:
         du.precheck_setup_callback(s_urlpath)
@@ -662,11 +662,11 @@ def setup_snapshot_components(
             f"'{du.triggered()}' -> setup_snapshot_components()  ({s_urlpath=} {s_snap_ts=})"
         )
 
-    snap_options: List[Dict[str, str]] = []
-    label_lines: List[html.Label] = []
-    snapshots: List[uut.SnapshotInfo] = []
+    snap_options: list[dict[str, str]] = []
+    label_lines: list[html.Label] = []
+    snapshots: list[uut.SnapshotInfo] = []
 
-    # Populate List of Snapshots
+    # Populate list of Snapshots
     try:
         snapshots = src.list_snapshots(du.get_wbs_l1(s_urlpath))
     except DataSourceException:
@@ -728,7 +728,7 @@ def handle_make_snapshot(
     s_urlpath: str,
     s_name: str,
     s_snap_ts: str,
-) -> Tuple[bool, dbc.Toast, str, str]:
+) -> tuple[bool, dbc.Toast, str, str]:
     """Handle the naming and creating of a snapshot."""
     logging.warning(f"'{du.triggered()}' -> handle_make_snapshot()")
 
@@ -907,7 +907,7 @@ def toggle_pagination(
     n_clicks: int,
     # state(s)
     s_urlpath: str,
-) -> Tuple[
+) -> tuple[
     # All Rows
     str,
     str,
@@ -960,13 +960,13 @@ def toggle_hidden_columns(
     n_clicks: int,
     # state(s)
     s_urlpath: str,
-) -> Tuple[
+) -> tuple[
     # All Columns
     str,
     str,
     str,
     #
-    List[str],
+    list[str],
 ]:
     """Toggle hiding/showing the default hidden columns."""
     logging.warning(f"'{du.triggered()}' -> toggle_hidden_columns()")

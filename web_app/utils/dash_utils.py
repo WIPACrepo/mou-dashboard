@@ -3,7 +3,7 @@
 
 import logging
 import urllib
-from typing import Any, Collection, Dict, Final, List, cast
+from typing import Any, Collection, Final, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
 import universal_utils.types as uut
@@ -241,7 +241,7 @@ class ButtonIconLabelTooltipFactory:
     ) -> html.Div:
         """Make a button comprising of an icon and label, with a tooltip
         bubble."""
-        div_style: Dict[str, uut.StrNum] = {
+        div_style: dict[str, uut.StrNum] = {
             "display": "flex",
             "justify-content": "center",
         }
@@ -375,7 +375,7 @@ def table_columns(
 
 def _style_cell_conditional_fixed_width(
     _id: str, width: str, border_left: bool = False, align_right: bool = False
-) -> Dict[str, Collection[str]]:
+) -> dict[str, Collection[str]]:
     style = {
         "if": {"column_id": _id},
         "minWidth": width,
@@ -533,7 +533,7 @@ def after_deletion_toast() -> dbc.Toast:
 
 def make_toast(
     header: str,
-    message: str | List[str],
+    message: str | list[str],
     icon_color: str,
     duration: float = 0,
 ) -> dbc.Toast:
@@ -726,7 +726,7 @@ def simple_table(id_: str) -> dash_table.DataTable:
     )
 
 
-def fullscreen_loading(children: List[Any]) -> dcc.Loading:
+def fullscreen_loading(children: list[Any]) -> dcc.Loading:
     """Wrap components in a full-screen dcc.Loading component."""
     return dcc.Loading(
         type="cube",
