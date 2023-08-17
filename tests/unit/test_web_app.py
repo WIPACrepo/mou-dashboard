@@ -16,17 +16,16 @@ import pytest
 import requests
 import universal_utils.types as uut
 import web_app.utils
-from web_app.data_source import data_source as src
 from web_app.data_source import connections
+from web_app.data_source import data_source as src
 from web_app.data_source import table_config as tc
-from web_app.data_source import utils
 
 WBS = "mo"
 
 
 @pytest.fixture(autouse=True)
 def clear_all_cachetools_func_caches() -> Iterator[None]:
-    """Clear all `cachetools.func` caches, everywhere"""
+    """Clear all `cachetools.func` caches, everywhere."""
     yield
     connections._cached_get_institutions_infos.cache_clear()  # type: ignore[attr-defined]
     tc.TableConfigParser._cached_get_configs.cache_clear()  # type: ignore[attr-defined]
@@ -227,7 +226,7 @@ class TestDataSource:
     @pytest.fixture
     def mock_rest(mocker: Any) -> Any:
         """Patch mock_rest."""
-        return mocker.patch("web_app.data_source.utils._rest_connection")
+        return mocker.patch("web_app.data_source.connections._rest_connection")
 
     @staticmethod
     def test_pull_data_table(mock_rest: Any, tconfig: tc.TableConfigParser) -> None:
@@ -431,7 +430,7 @@ class TestTableConfig:
     @pytest.fixture
     def mock_rest(mocker: Any) -> Any:
         """Patch mock_rest."""
-        return mocker.patch("web_app.data_source.utils._rest_connection")
+        return mocker.patch("web_app.data_source.connections._rest_connection")
 
     @staticmethod
     def test_consts(tconfig: tc.TableConfigParser) -> None:

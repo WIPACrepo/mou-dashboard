@@ -14,7 +14,7 @@ from dash.dependencies import Input, Output, State  # type: ignore[import]
 from ..config import app
 from ..data_source import data_source as src
 from ..data_source import table_config as tc
-from ..data_source.utils import DataSourceException
+from ..data_source.connections import DataSourceException
 from ..utils import dash_utils as du
 from ..utils import types, utils
 from ..utils.oidc_tools import CurrentUser
@@ -37,7 +37,6 @@ def _totals_button_logic(
     """
     on = n_clicks % 2 == 1  # pylint: disable=C0103
     if not on:  # off -> don't trigger "show-all-columns"
-
         tooltip = "click to show cascading FTE totals by L2 and L3 -- along with a grand total"
         if CurrentUser.is_admin():
             tooltip = "click to show cascading FTE totals by institution, L2, and L3 -- along with a grand total"
