@@ -6,6 +6,7 @@ import json
 import logging
 from typing import Any
 
+import universal_utils.types as uut
 from motor.motor_tornado import MotorClient  # type: ignore
 from rest_tools import server
 
@@ -157,19 +158,26 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
 
         # get info for snapshot(s)
         curr_snap_info = await self.mou_db_client.get_snapshot_info(wbs_l1, curr_snap)
-        prev_snap_info = None
-        if prev_snap:
-            prev_snap_info = await self.mou_db_client.get_snapshot_info(
-                wbs_l1, prev_snap
-            )
+        n_records = len(await self.mou_db_client.get_table(wbs_l1))
 
-        self.write(
-            {
-                "n_records": len(await self.mou_db_client.get_table(wbs_l1)),
-                "previous_snapshot": dc.asdict(prev_snap_info) if prev_snap else None,
-                "current_snapshot": dc.asdict(curr_snap_info),
-            }
-        )
+        if prev_snap:
+            self.write(
+                {
+                    "n_records": n_records,
+                    "previous_snapshot": dc.asdict(
+                        await self.mou_db_client.get_snapshot_info(wbs_l1, prev_snap)
+                    ),
+                    "current_snapshot": dc.asdict(curr_snap_info),
+                }
+            )
+        else:
+            self.write(
+                {
+                    "n_records": n_records,
+                    "previous_snapshot": None,
+                    "current_snapshot": dc.asdict(curr_snap_info),
+                }
+            )
 
 
 # -----------------------------------------------------------------------------
@@ -183,7 +191,7 @@ class RecordHandler(BaseMOUHandler):  # pylint: disable=W0223
     @scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
-        record = self.get_argument(
+        record: uut.DBRecord = self.get_argument(
             "record",
             type=dict,
         )

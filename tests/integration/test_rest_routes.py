@@ -11,9 +11,9 @@ import base64
 import dataclasses as dc
 import time
 
+import dacite
 import pytest
 import requests
-import dacite
 from rest_tools.client import RestClient
 
 # NOTE: universal_utils has no requirements -- only used to assert types
@@ -264,7 +264,7 @@ class TestRecordHandler:
                 ds_rc.request_seq(
                     "POST",
                     f"/record/{WBS_L1}",
-                    {**body_min, **{"foo": "bar"}},
+                    body_min,
                 )
 
             # empty
@@ -291,7 +291,7 @@ class TestRecordHandler:
                 ds_rc.request_seq(
                     "DELETE",
                     f"/record/{WBS_L1}",
-                    {**body_min, **{"foo": "bar"}},
+                    body_min,
                 )
 
             # empty
@@ -438,7 +438,9 @@ class TestInstitutionValuesHandler:
                     )
                 case other:
                     raise ValueError(other)
-            resp_instval = dacite.from_dict(uut.InstitutionValues, resp["institution_values"])
+            resp_instval = dacite.from_dict(
+                uut.InstitutionValues, resp["institution_values"]
+            )
             assert any(
                 resp_instval
                 == dc.replace(

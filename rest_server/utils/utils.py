@@ -16,7 +16,8 @@ class TableConfigDataAdaptor:
         self.tc_cache = tc_cache
 
     def remove_on_the_fly_fields(self, record: uut.DBRecord) -> uut.DBRecord:
-        """Remove (del) any fields that are only to be calculated on-the-fly."""
+        """Remove (del) any fields that are only to be calculated on-the-
+        fly."""
         for field in record.copy().keys():
             if field in self.tc_cache.get_on_the_fly_fields():
                 # copy over grand total to FTE
@@ -93,9 +94,7 @@ class TableConfigDataAdaptor:
             )
 
         for l2_cat in self.tc_cache.get_l2_categories(wbs_l1):
-
             for l3_cat in self.tc_cache.get_l3_categories_by_l2(wbs_l1, l2_cat):
-
                 # add US/Non-US
                 if with_us_non_us:
                     for region in [table_config_cache.US, table_config_cache.NON_US]:

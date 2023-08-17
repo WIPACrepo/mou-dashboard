@@ -6,10 +6,10 @@ import io
 import logging
 import time
 
+import dacite
 import pandas as pd  # type: ignore[import]
 import pymongo.errors
 import universal_utils.types as uut
-import dacite
 from motor.motor_tornado import MotorClient  # type: ignore
 from tornado import web
 
@@ -99,7 +99,7 @@ class MOUDatabaseClient:
         try:
             decoded = base64.b64decode(base64_xlsx)
             df = pd.read_excel(io.BytesIO(decoded))  # pylint:disable=invalid-name
-            raw_table = df.fillna("").to_dict("records")
+            raw_table: list[uut.DBRecord] = df.fillna("").to_dict("records")
         except Exception as e:
             raise web.HTTPError(400, reason=str(e))
 
