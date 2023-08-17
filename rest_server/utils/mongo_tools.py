@@ -3,7 +3,7 @@
 import copy
 from typing import Any, Callable
 
-from bson.objectid import ObjectId  # type: ignore[import]
+from bson.objectid import ObjectId
 
 from ..data_sources import columns
 

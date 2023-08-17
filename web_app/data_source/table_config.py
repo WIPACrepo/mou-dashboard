@@ -5,7 +5,7 @@ import dataclasses as dc
 import logging
 from typing import Final
 
-import cachetools.func  # type: ignore[import]
+import cachetools.func
 
 from ..config import MAX_CACHE_MINS
 from .connections import mou_request
@@ -72,7 +72,7 @@ class TableConfigParser:  # pylint: disable=R0904
         self.const = TableConfigParser._Constants()
 
     @staticmethod
-    @cachetools.func.ttl_cache(ttl=MAX_CACHE_MINS * 60)  # type: ignore[misc]
+    @cachetools.func.ttl_cache(ttl=MAX_CACHE_MINS * 60)
     def _cached_get_configs() -> CacheType:
         logging.warning("Cache Miss: TableConfigParser._cached_get_configs()")
         return {

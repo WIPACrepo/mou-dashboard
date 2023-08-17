@@ -3,9 +3,8 @@
 
 import time
 from datetime import datetime as dt
-from typing import cast
 
-from dateutil import parser as dp  # type: ignore[import]
+from dateutil import parser as dp
 
 # --------------------------------------------------------------------------------------
 # Time-Related Functions
@@ -13,7 +12,7 @@ from dateutil import parser as dp  # type: ignore[import]
 
 def iso_to_epoch(iso: str) -> str:
     """From ISO datetime, return the epoch timestamp."""
-    return cast(str, dp.parse(iso).strftime("%s"))
+    return dp.parse(iso).strftime("%s")
 
 
 def get_now() -> str:

@@ -5,7 +5,7 @@ from typing import Any
 
 import universal_utils.types as uut
 from bson.objectid import ObjectId
-from dacite import from_dict
+import dacite
 
 
 @dc.dataclass(frozen=True)
@@ -24,6 +24,6 @@ class SupplementalDoc:
         """Get `snapshot_institution_values` as a dict of
         `InstitutionValues`s."""
         return {
-            k: from_dict(uut.InstitutionValues, v)
+            k: dacite.from_dict(uut.InstitutionValues, v)
             for k, v in self.snapshot_institution_values.items()
         }

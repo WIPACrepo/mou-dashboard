@@ -3,8 +3,8 @@
 
 from typing import Any, Final, TypedDict, cast
 
+import dacite
 import universal_utils.types as uut
-from dacite import from_dict
 
 from ..data_source.connections import CurrentUser
 from ..utils import types, utils
@@ -447,7 +447,7 @@ def pull_institution_values(
         "snapshot_timestamp": snapshot_ts,
     }
     response = mou_request("GET", f"/institution/values/{wbs_l1}", body=body)
-    return from_dict(uut.InstitutionValues, response)  # type: ignore[no-any-return] # fixed in future release
+    return dacite.from_dict(uut.InstitutionValues, response)  # type: ignore[no-any-return] # fixed in future release
 
 
 def push_institution_values(  # pylint: disable=R0913
@@ -464,7 +464,7 @@ def push_institution_values(  # pylint: disable=R0913
         f"/institution/values/{wbs_l1}",
         body=inst_dc.restful_dict(institution),  # type: ignore[arg-type]
     )
-    return from_dict(uut.InstitutionValues, response)  # type: ignore[no-any-return] # fixed in future release
+    return dacite.from_dict(uut.InstitutionValues, response)  # type: ignore[no-any-return] # fixed in future release
 
 
 def confirm_institution_values(
@@ -488,7 +488,7 @@ def confirm_institution_values(
             "computing": computing,
         },
     )
-    return from_dict(uut.InstitutionValues, response)  # type: ignore[no-any-return] # fixed in future release
+    return dacite.from_dict(uut.InstitutionValues, response)  # type: ignore[no-any-return] # fixed in future release
 
 
 def retouchstone(wbs_l1: str) -> int:

@@ -108,14 +108,14 @@ oidc = OpenIDConnect(server)  # grabs "OIDC_CLIENT_SECRETS"/ENV.OIDC_CLIENT_SECR
 
 @server.route("/login")  # type: ignore[misc]
 @oidc.require_login  # type: ignore[misc]
-def login() -> str | werkzeug.wrappers.response.Response:
+def login() -> str | werkzeug.wrappers.response.Response:  # type: ignore[name-defined]
     """On successful login, redirect to index."""
     logging.critical("/login")
     return flask.redirect("/")
 
 
 @server.route("/logout")  # type: ignore[misc]
-def logout() -> str | werkzeug.wrappers.response.Response:
+def logout() -> str | werkzeug.wrappers.response.Response:  # type: ignore[name-defined]
     """Performs local logout by removing the session cookie."""
     logging.critical("/logout")
     oidc.logout()
@@ -123,7 +123,7 @@ def logout() -> str | werkzeug.wrappers.response.Response:
 
 
 @server.route("/invalid-permissions")  # type: ignore[misc]
-def invalid_permissions() -> str | werkzeug.wrappers.response.Response:
+def invalid_permissions() -> str | werkzeug.wrappers.response.Response:  # type: ignore[name-defined]
     """Redirected to tell the user they can't do anything other than logout."""
     logging.critical("/invalid-permissions")
     return (

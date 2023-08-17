@@ -13,7 +13,7 @@ import time
 
 import pytest
 import requests
-from dacite import from_dict
+import dacite
 from rest_tools.client import RestClient
 
 # NOTE: universal_utils has no requirements -- only used to assert types
@@ -347,7 +347,7 @@ class TestInstitutionValuesHandler:
             resp = ds_rc.request_seq(
                 "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
             )
-            resp_instval = from_dict(uut.InstitutionValues, resp)
+            resp_instval = dacite.from_dict(uut.InstitutionValues, resp)
             assert resp_instval == uut.InstitutionValues()
             assert resp_instval.headcounts_metadata.has_valid_confirmation()
             assert resp_instval.table_metadata.has_valid_confirmation()
@@ -364,7 +364,7 @@ class TestInstitutionValuesHandler:
             resp = ds_rc.request_seq(
                 "POST", f"/institution/values/{WBS_L1}", post_instval.restful_dict(inst)
             )
-            resp_instval = from_dict(uut.InstitutionValues, resp)
+            resp_instval = dacite.from_dict(uut.InstitutionValues, resp)
             assert abs(now - int(time.time())) <= 1
             assert any(
                 resp_instval
@@ -438,7 +438,7 @@ class TestInstitutionValuesHandler:
                     )
                 case other:
                     raise ValueError(other)
-            resp_instval = from_dict(uut.InstitutionValues, resp["institution_values"])
+            resp_instval = dacite.from_dict(uut.InstitutionValues, resp["institution_values"])
             assert any(
                 resp_instval
                 == dc.replace(
@@ -470,7 +470,7 @@ class TestInstitutionValuesHandler:
                     # "computing": False,
                 },
             )
-            resp_instval = from_dict(uut.InstitutionValues, resp)
+            resp_instval = dacite.from_dict(uut.InstitutionValues, resp)
             assert any(
                 resp_instval
                 == dc.replace(
@@ -501,7 +501,7 @@ class TestInstitutionValuesHandler:
                     "computing": True,
                 },
             )
-            resp_instval = from_dict(uut.InstitutionValues, resp)
+            resp_instval = dacite.from_dict(uut.InstitutionValues, resp)
             assert any(
                 resp_instval
                 == dc.replace(
@@ -540,7 +540,7 @@ class TestInstitutionValuesHandler:
             resp = ds_rc.request_seq(
                 "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
             )
-            resp_instval = from_dict(uut.InstitutionValues, resp)
+            resp_instval = dacite.from_dict(uut.InstitutionValues, resp)
             assert resp_instval == dc.replace(
                 local_insts[inst],
                 headcounts_metadata=dc.replace(

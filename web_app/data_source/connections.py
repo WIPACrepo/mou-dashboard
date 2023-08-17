@@ -8,12 +8,12 @@ import re
 from dataclasses import dataclass
 from typing import Any, Final, Optional, cast
 
-import cachetools.func  # type: ignore[import]
-import flask  # type: ignore[import]
+import cachetools.func
+import flask
 import requests
 
 # local imports
-from rest_tools.client import OpenIDRestClient, RestClient  # type: ignore
+from rest_tools.client import OpenIDRestClient, RestClient
 
 from ..config import ENV, MAX_CACHE_MINS, oidc
 
@@ -98,7 +98,7 @@ class Institution:
     institution_lead_uid: str
 
 
-@cachetools.func.ttl_cache(ttl=MAX_CACHE_MINS * 60)  # type: ignore[misc]
+@cachetools.func.ttl_cache(ttl=MAX_CACHE_MINS * 60)
 def _cached_get_institutions_infos() -> dict[str, Institution]:
     logging.warning("Cache Miss: _cached_get_institutions_infos()")
     resp = cast(dict[str, dict[str, Any]], mou_request("GET", "/institution/today"))
@@ -107,7 +107,7 @@ def _cached_get_institutions_infos() -> dict[str, Institution]:
 
 def get_institutions_infos() -> dict[str, Institution]:
     """Get a dict of all institutions with their info."""
-    return cast(dict[str, Institution], _cached_get_institutions_infos())
+    return _cached_get_institutions_infos()
 
 
 #
@@ -128,7 +128,7 @@ class CurrentUser:
     """Wrap oidc's user info requests."""
 
     @staticmethod
-    @cachetools.func.ttl_cache(ttl=((5 * 60) - 1))  # type: ignore[misc] # access token has 5m lifetime
+    @cachetools.func.ttl_cache(ttl=((5 * 60) - 1))  # access token has 5m lifetime
     def _cached_get_info(oidc_csrf_token: str) -> UserInfo:
         """Cache is keyed by the oidc session token."""
         # pylint:disable=unused-argument
@@ -140,9 +140,8 @@ class CurrentUser:
     @staticmethod
     def _get_info() -> UserInfo:
         """Query OIDC."""
-        return cast(
-            UserInfo, CurrentUser._cached_get_info(flask.session["oidc_csrf_token"])
-        )
+        return CurrentUser._cached_get_info(flask.session["oidc_csrf_token"])
+
 
     @staticmethod
     def get_summary() -> Optional[dict[str, Any]]:

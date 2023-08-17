@@ -9,7 +9,7 @@ import time
 import pandas as pd  # type: ignore[import]
 import pymongo.errors
 import universal_utils.types as uut
-from dacite import from_dict
+import dacite
 from motor.motor_tornado import MotorClient  # type: ignore
 from tornado import web
 
@@ -349,7 +349,7 @@ class MOUDatabaseClient:
             logging.warning(str(e))
             return uut.InstitutionValues()
 
-        vals = from_dict(
+        vals = dacite.from_dict(
             uut.InstitutionValues, doc.snapshot_institution_values[institution]
         )
         logging.info(f"Institution's Values [{vals}] ({wbs_db=}, {institution=}).")
