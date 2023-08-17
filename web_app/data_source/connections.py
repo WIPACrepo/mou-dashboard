@@ -6,7 +6,7 @@ import json
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any, Final, Optional, cast
+from typing import Any, Final, cast
 
 import cachetools.func
 import flask
@@ -142,9 +142,8 @@ class CurrentUser:
         """Query OIDC."""
         return CurrentUser._cached_get_info(flask.session["oidc_csrf_token"])
 
-
     @staticmethod
-    def get_summary() -> Optional[dict[str, Any]]:
+    def get_summary() -> None | dict[str, Any]:
         """Query OIDC."""
         if not CurrentUser.is_loggedin():
             return None
