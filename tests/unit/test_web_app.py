@@ -29,7 +29,7 @@ def clear_all_cachetools_func_caches() -> Iterator[None]:
     yield
     connections._cached_get_institutions_infos.cache_clear()  # type: ignore[attr-defined]
     tc.TableConfigParser._cached_get_configs.cache_clear()  # type: ignore[attr-defined]
-    web_app.utils.oidc_tools.CurrentUser._cached_get_info.cache_clear()  # type: ignore[attr-defined]
+    web_app.data_source.connections.CurrentUser._cached_get_info.cache_clear()  # type: ignore[attr-defined]
 
 
 @pytest.fixture
@@ -273,12 +273,12 @@ class TestDataSource:
             assert ret == response["table"]
 
     @staticmethod
-    @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
+    @patch("web_app.data_source.connections.CurrentUser._get_info")
     def test_push_record(
         current_user: Any, mock_rest: Any, tconfig: tc.TableConfigParser
     ) -> None:
         """Test push_record()."""
-        current_user.return_value = web_app.utils.oidc_tools.UserInfo(
+        current_user.return_value = web_app.data_source.connections.UserInfo(
             "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
         )
         unrealistic_hardcoded_resp = {
@@ -330,10 +330,10 @@ class TestDataSource:
             assert ret == unrealistic_hardcoded_resp["record"]
 
     @staticmethod
-    @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
+    @patch("web_app.data_source.connections.CurrentUser._get_info")
     def test_delete_record(current_user: Any, mock_rest: Any) -> None:
         """Test delete_record()."""
-        current_user.return_value = web_app.utils.oidc_tools.UserInfo(
+        current_user.return_value = web_app.data_source.connections.UserInfo(
             "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
         )
         record_id = "23"
@@ -359,13 +359,13 @@ class TestDataSource:
         )
 
     @staticmethod
-    @patch("web_app.utils.oidc_tools.CurrentUser.is_loggedin")
-    @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
+    @patch("web_app.data_source.connections.CurrentUser.is_loggedin")
+    @patch("web_app.data_source.connections.CurrentUser._get_info")
     def test_list_snapshot_timestamps(
         current_user: Any, mock_ili: Any, mock_rest: Any
     ) -> None:
         """Test list_snapshot_timestamps()."""
-        current_user.return_value = web_app.utils.oidc_tools.UserInfo(
+        current_user.return_value = web_app.data_source.connections.UserInfo(
             "t.hanks", ["/tokens/mou-dashboard-admin"]
         )
         mock_ili.return_value = True
@@ -397,10 +397,10 @@ class TestDataSource:
         assert sorted(ret, key=lambda si: si.timestamp) == snap_infos
 
     @staticmethod
-    @patch("web_app.utils.oidc_tools.CurrentUser._get_info")
+    @patch("web_app.data_source.connections.CurrentUser._get_info")
     def test_create_snapshot(current_user: Any, mock_rest: Any) -> None:
         """Test create_snapshot()."""
-        current_user.return_value = web_app.utils.oidc_tools.UserInfo(
+        current_user.return_value = web_app.data_source.connections.UserInfo(
             "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"]
         )
         response = uut.SnapshotInfo(

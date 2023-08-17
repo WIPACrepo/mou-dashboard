@@ -14,10 +14,9 @@ from dash.dependencies import Input, Output, State  # type: ignore[import]
 from ..config import app
 from ..data_source import data_source as src
 from ..data_source import table_config as tc
-from ..data_source.connections import DataSourceException
+from ..data_source.connections import CurrentUser, DataSourceException
 from ..utils import dash_utils as du
 from ..utils import types, utils
-from ..utils.oidc_tools import CurrentUser
 
 # --------------------------------------------------------------------------------------
 # Table Callbacks

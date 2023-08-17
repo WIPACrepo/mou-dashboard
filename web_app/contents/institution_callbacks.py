@@ -10,9 +10,8 @@ from dash.dependencies import Input, Output, State  # type: ignore[import]
 from ..config import app
 from ..data_source import connections
 from ..data_source import data_source as src
-from ..data_source.connections import DataSourceException
+from ..data_source.connections import CurrentUser, DataSourceException
 from ..utils import dash_utils as du
-from ..utils.oidc_tools import CurrentUser
 
 
 @dc.dataclass
