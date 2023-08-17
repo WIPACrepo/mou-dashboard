@@ -230,8 +230,13 @@ class TestDataSource:
 
     @staticmethod
     @patch("web_app.data_source.connections.CurrentUser._get_info")
-    def test_pull_data_table(mock_rest: Any, tconfig: tc.TableConfigParser) -> None:
+    def test_pull_data_table(
+        current_user: Any, mock_rest: Any, tconfig: tc.TableConfigParser
+    ) -> None:
         """Test pull_data_table()."""
+        current_user.return_value = web_app.data_source.connections.UserInfo(
+            "t.hanks", ["/institutions/IceCube/UW-Madison/_admin"], ""
+        )
         response = {"foo": 0, "table": [{"a": "a"}, {"b": 2}, {"c": None}]}
         bodies = [
             {  # Default values
