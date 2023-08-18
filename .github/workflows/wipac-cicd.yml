@@ -149,10 +149,10 @@ jobs:
           tmp_file="temp.js"
           echo "print('_ ' + db.getCollectionNames())" > $tmp_file
 
-          for database in "mo mo-supplemental"; do
+          for database in mo mo-supplemental; do
               echo "dumping $database..."
               for col in $(mongosh $database $tmp_file | grep '_' | awk '{print $2}' | tr ',' ' '); do
-                  mongoexport -d "$database" -c $col -o "$out_dir/exp_${database}_${col}.json"
+                  mongoexport -d $database -c $col -o "$out_dir/exp_${database}_${col}.json"
               done
           done
 
