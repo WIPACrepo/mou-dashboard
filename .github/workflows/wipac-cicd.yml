@@ -138,9 +138,9 @@ jobs:
 
           # ingest data
           if [ "${{ matrix.integration_test_ingest_type }}" = "mongodump_v2" ]; then
-            ;
+            #
           elif [ "${{ matrix.integration_test_ingest_type }}" = "mongodump_v3" ]; then
-            ;
+            #
           fi
 
       - name: run
