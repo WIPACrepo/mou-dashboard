@@ -48,6 +48,10 @@ def test_ingest(ds_rc: RestClient) -> None:
     """Test POST /table/data."""
     match os.getenv("INTEGRATION_TEST_INGEST_TYPE"):
         case "xlsx":
+            # starting state is empty
+            assert not ds_rc.request_seq(
+                "GET", f"/table/data/{WBS_L1}", {"is_admin": True}
+            )["table"]
             resp = ds_rc.request_seq(
                 "POST", f"/table/data/{WBS_L1}", INITIAL_INGEST_BODY
             )
