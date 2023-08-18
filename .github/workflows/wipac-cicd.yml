@@ -136,6 +136,13 @@ jobs:
           sudo apt update
           sudo apt install mongodb-org mongodb-database-tools
 
+          # ingest data
+          if [ "${{ matrix.integration_test_ingest_type }}" = "mongodump_v2" ]; then
+            ;
+          elif [ "${{ matrix.integration_test_ingest_type }}" = "mongodump_v3" ]; then
+            ;
+          fi
+
       - name: run
         run: |
           # rest server (background)
@@ -170,13 +177,18 @@ jobs:
       - name: mongodump
         if: always()
         run: |
-          database="mo"
+          set -x
           out_dir="./mongodump-jsons"
-
           tmp_file="temp.js"
           echo "print('_ ' + db.getCollectionNames())" > $tmp_file
           for col in $(mongosh $database $tmp_file | grep '_' | awk '{print $2}' | tr ',' ' '); do
               mongoexport -d $database -c $col -o "$out_dir/exp_${database}_${col}.json"
+
+          for database in mo mo-supplemental; do
+              echo "dumping $database..."
+              for col in $(mongosh $database $tmp_file | grep '_' | awk '{print $2}' | tr ',' ' '); do
+                  mongoexport -d $database -c $col -o "$out_dir/exp_${database}_${col}.json"
+              done
           done
 
           more $out_dir/* | cat
