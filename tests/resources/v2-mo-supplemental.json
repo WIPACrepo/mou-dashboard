@@ -1,44 +1,46 @@
-{
-  "_id": {
-    "$oid": "64dfb21f078e78cd5f0fb0b6"
-  },
-  "name": "",
-  "timestamp": "LIVE_COLLECTION",
-  "creator": "Ohtani",
-  "snapshot_institution_values": {
-    "UDub": {
-      "phds_authors": 55,
-      "faculty": 100,
-      "scientists_post_docs": 60,
-      "grad_students": 30,
-      "cpus": 5000,
-      "gpus": 500,
-      "text": "hello world #0",
-      "headcounts_confirmed": false,
-      "computing_confirmed": false
+[
+  {
+    "_id": {
+      "$oid": "64dfb21f078e78cd5f0fb0b6"
     },
-    "UofA": {
-      "phds_authors": 110,
-      "faculty": 200,
-      "scientists_post_docs": 120,
-      "grad_students": 60,
-      "cpus": 10000,
-      "gpus": 1000,
-      "text": "hello world #1",
-      "headcounts_confirmed": true,
-      "computing_confirmed": false
+    "name": "",
+    "timestamp": "LIVE_COLLECTION",
+    "creator": "Ohtani",
+    "snapshot_institution_values": {
+      "UDub": {
+        "phds_authors": 55,
+        "faculty": 100,
+        "scientists_post_docs": 60,
+        "grad_students": 30,
+        "cpus": 5000,
+        "gpus": 500,
+        "text": "hello world #0",
+        "headcounts_confirmed": false,
+        "computing_confirmed": false
+      },
+      "UofA": {
+        "phds_authors": 110,
+        "faculty": 200,
+        "scientists_post_docs": 120,
+        "grad_students": 60,
+        "cpus": 10000,
+        "gpus": 1000,
+        "text": "hello world #1",
+        "headcounts_confirmed": true,
+        "computing_confirmed": false
+      },
+      "TechState": {
+        "phds_authors": 165,
+        "faculty": 300,
+        "scientists_post_docs": 180,
+        "grad_students": 90,
+        "cpus": 15000,
+        "gpus": 1500,
+        "text": "hello world #2",
+        "headcounts_confirmed": true,
+        "computing_confirmed": true
+      }
     },
-    "TechState": {
-      "phds_authors": 165,
-      "faculty": 300,
-      "scientists_post_docs": 180,
-      "grad_students": 90,
-      "cpus": 15000,
-      "gpus": 1500,
-      "text": "hello world #2",
-      "headcounts_confirmed": true,
-      "computing_confirmed": true
-    }
-  },
-  "admin_only": false
-}
+    "admin_only": false
+  }
+]
