@@ -201,6 +201,33 @@ class TestNoArgumentRoutes:
     #         assert all(s[0].isupper() for s in inst.split("-"))
     #         todays_institutions.Institution(**info)  # try to cast it (atrrs & types)
 
+    @staticmethod
+    def test_institution_values(ds_rc: RestClient) -> None:
+        """Test `/institution/values/`."""
+        post_body = {
+            "phds_authors": 55,
+            "faculty": 100,
+            "scientists_post_docs": 60,
+            "grad_students": 30,
+            "cpus": 5000,
+            "gpus": 500,
+            "text": "hello world",
+            "headcounts_confirmed": True,
+            "computing_confirmed": True,
+        }
+        ds_rc.request_seq(
+            "POST",
+            f"/institution/values/{WBS_L1}",
+            post_body | {"institution": "UDub"},
+        )
+
+        resp = ds_rc.request_seq(
+            "GET",
+            f"/institution/values/{WBS_L1}",
+            {"institution": "UDub"},
+        )
+        assert resp == post_body
+
 
 class TestTableHandler:
     """Test `/table/data`."""
