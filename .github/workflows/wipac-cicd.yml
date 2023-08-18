@@ -144,6 +144,7 @@ jobs:
 
           sudo apt install mongodb-org mongodb-database-tools
 
+          set -x
           out_dir="./mongodump-jsons"
           tmp_file="temp.js"
           echo "print('_ ' + db.getCollectionNames())" > $tmp_file
