@@ -137,6 +137,8 @@ jobs:
           sudo apt update
           sudo apt install mongodb-org mongodb-database-tools
 
+          set -x
+
           # ingest data
           if [ "${{ matrix.integration_test_ingest_type }}" = "mongodump_v2" ]; then
               if [[ ! $(grep -o 'LIVE_COLLECTION' $TEST_JSON_DIR/v2-mo-supplemental.json) ]]; then
