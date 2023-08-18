@@ -10,6 +10,7 @@ NOTE: THESE TESTS NEED TO RUN IN ORDER -- STATE DEPENDENT
 import base64
 import dataclasses as dc
 import os
+import re
 import time
 from typing import Any
 
@@ -49,9 +50,14 @@ def test_ingest(ds_rc: RestClient) -> None:
     match os.getenv("INTEGRATION_TEST_INGEST_TYPE"):
         case "xlsx":
             # starting state is empty
-            assert not ds_rc.request_seq(
-                "GET", f"/table/data/{WBS_L1}", {"is_admin": True}
-            )["table"]
+            with pytest.raises(
+                requests.exceptions.HTTPError,
+                match=re.escape(
+                    "requests.exceptions.HTTPError: 422 Client Error: Snapshot Database has no collections (wbs_db='mo'). for url: http://localhost:8080/table/data/mo?is_admin=True"
+                ),
+            ):
+                ds_rc.request_seq("GET", f"/table/data/{WBS_L1}", {"is_admin": True})
+            # ingest
             resp = ds_rc.request_seq(
                 "POST", f"/table/data/{WBS_L1}", INITIAL_INGEST_BODY
             )
