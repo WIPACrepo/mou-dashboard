@@ -6,11 +6,11 @@ cachetools==5.3.1
 certifi==2023.7.22
 cffi==1.15.1
 charset-normalizer==3.2.0
-click==8.1.6
+click==8.1.7
 coloredlogs==15.0.1
 cryptography==41.0.3
 dacite==1.8.1
-dash==2.12.0
+dash==2.12.1
 dash-bootstrap-components==1.4.2
 dash-core-components==2.0.0
 dash-html-components==2.0.0
@@ -48,7 +48,7 @@ opentelemetry-semantic-conventions==0.40b0
 packaging==23.1
 pamqp==3.2.1
 pandas==2.0.3
-plotly==5.16.0
+plotly==5.16.1
 protobuf==3.20.3
 pyasn1==0.5.0
 pyasn1-modules==0.3.0

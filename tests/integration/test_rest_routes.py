@@ -201,6 +201,60 @@ class TestNoArgumentRoutes:
     #         assert all(s[0].isupper() for s in inst.split("-"))
     #         todays_institutions.Institution(**info)  # try to cast it (atrrs & types)
 
+    @staticmethod
+    def test_institution_values(ds_rc: RestClient) -> None:
+        """Test `/institution/values/`."""
+        institutions = ["UDub", "UofA", "TechState"]
+
+        for i, inst in enumerate(institutions):
+            post_body = {
+                "phds_authors": 55 * (i + 1),
+                "faculty": 100 * (i + 1),
+                "scientists_post_docs": 60 * (i + 1),
+                "grad_students": 30 * (i + 1),
+                "cpus": 5000 * (i + 1),
+                "gpus": 500 * (i + 1),
+                "text": f"hello world #{i}",
+                "headcounts_confirmed": True,
+                "computing_confirmed": True,
+            }
+            ds_rc.request_seq(
+                "POST",
+                f"/institution/values/{WBS_L1}",
+                post_body | {"institution": inst},
+            )
+
+            resp = ds_rc.request_seq(
+                "GET",
+                f"/institution/values/{WBS_L1}",
+                {"institution": inst},
+            )
+            assert resp == post_body
+
+        snap_timestamp = ds_rc.request_seq(
+            "POST",
+            f"/snapshots/make/{WBS_L1}",
+            {"name": "Homerun", "creator": "Ohtani"},
+        )["timestamp"]
+
+        # after snapshot all should be unconfirmed in LIVE_COLLECTION
+        for i, inst in enumerate(institutions):
+            resp = ds_rc.request_seq(
+                "GET",
+                f"/institution/values/{WBS_L1}",
+                {"institution": inst},
+            )
+            assert not resp["headcounts_confirmed"]
+            assert not resp["computing_confirmed"]
+            # snapshot should be unchanged
+            resp = ds_rc.request_seq(
+                "GET",
+                f"/institution/values/{WBS_L1}",
+                {"institution": inst, "snapshot_timestamp": snap_timestamp},
+            )
+            assert resp["headcounts_confirmed"]
+            assert resp["computing_confirmed"]
+
 
 class TestTableHandler:
     """Test `/table/data`."""
