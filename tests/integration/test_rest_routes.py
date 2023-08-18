@@ -204,29 +204,30 @@ class TestNoArgumentRoutes:
     @staticmethod
     def test_institution_values(ds_rc: RestClient) -> None:
         """Test `/institution/values/`."""
-        post_body = {
-            "phds_authors": 55,
-            "faculty": 100,
-            "scientists_post_docs": 60,
-            "grad_students": 30,
-            "cpus": 5000,
-            "gpus": 500,
-            "text": "hello world",
-            "headcounts_confirmed": True,
-            "computing_confirmed": True,
-        }
-        ds_rc.request_seq(
-            "POST",
-            f"/institution/values/{WBS_L1}",
-            post_body | {"institution": "UDub"},
-        )
+        for i, inst in enumerate(["UDub", "UofA", "TechState"]):
+            post_body = {
+                "phds_authors": 55 * (i + 1),
+                "faculty": 100 * (i + 1),
+                "scientists_post_docs": 60 * (i + 1),
+                "grad_students": 30 * (i + 1),
+                "cpus": 5000 * (i + 1),
+                "gpus": 500 * (i + 1),
+                "text": f"hello world #{i}",
+                "headcounts_confirmed": True,
+                "computing_confirmed": True,
+            }
+            ds_rc.request_seq(
+                "POST",
+                f"/institution/values/{WBS_L1}",
+                post_body | {"institution": inst},
+            )
 
-        resp = ds_rc.request_seq(
-            "GET",
-            f"/institution/values/{WBS_L1}",
-            {"institution": "UDub"},
-        )
-        assert resp == post_body
+            resp = ds_rc.request_seq(
+                "GET",
+                f"/institution/values/{WBS_L1}",
+                {"institution": inst},
+            )
+            assert resp == post_body
 
 
 class TestTableHandler:
