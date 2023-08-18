@@ -138,9 +138,14 @@ jobs:
 
           # ingest data
           if [ "${{ matrix.integration_test_ingest_type }}" = "mongodump_v2" ]; then
-            #
+              mongoimport -d mo-supplemental -c LIVE_COLLECTION --type json --file tests/resources/v2-mo-supplemental.json
+              mongoimport -d mo -c LIVE_COLLECTION --type json --file tests/resources/v2-mo.json
+          # -> v3 includes v2 data
           elif [ "${{ matrix.integration_test_ingest_type }}" = "mongodump_v3" ]; then
-            #
+              mongoimport -d mo-supplemental -c 100 --type json --file tests/resources/v2-mo-supplemental.json
+              mongoimport -d mo -c 100 --type json --file tests/resources/v2-mo.json
+              mongoimport -d mo-supplemental -c LIVE_COLLECTION --type json --file tests/resources/v3-mo-supplemental.json
+              mongoimport -d mo -c LIVE_COLLECTION --type json --file tests/resources/v3-mo.json
           fi
 
       - name: run
