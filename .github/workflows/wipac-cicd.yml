@@ -145,17 +145,17 @@ jobs:
                   exit 1  # the ingested collection must be LIVE_COLLECTION
               fi
               mongoimport -d mo-supplemental -c LIVE_COLLECTION --type json --file $TEST_JSON_DIR/v2-mo-supplemental.json
-              mongoimport -d mo -c LIVE_COLLECTION --type json --file $TEST_JSON_DIR/v2-mo.json
+              mongoimport -d mo -c LIVE_COLLECTION --jsonArray --type json --file $TEST_JSON_DIR/v2-mo.json
           # -> v3 includes v2 data
           elif [ "${{ matrix.integration_test_ingest_type }}" = "mongodump_v3" ]; then
               sed -i 's/LIVE_COLLECTION/100/g' $TEST_JSON_DIR/v2-mo-supplemental.json
               mongoimport -d mo-supplemental -c 100 --type json --file $TEST_JSON_DIR/v2-mo-supplemental.json
-              mongoimport -d mo -c 100 --type json --file $TEST_JSON_DIR/v2-mo.json
+              mongoimport -d mo -c 100 --type json --jsonArray --file $TEST_JSON_DIR/v2-mo.json
               if [[ ! $(grep -o 'LIVE_COLLECTION' $TEST_JSON_DIR/v3-mo-supplemental.json) ]]; then
                   exit 1  # the ingested collection must be LIVE_COLLECTION
               fi
               mongoimport -d mo-supplemental -c LIVE_COLLECTION --type json --file $TEST_JSON_DIR/v3-mo-supplemental.json
-              mongoimport -d mo -c LIVE_COLLECTION --type json --file $TEST_JSON_DIR/v3-mo.json
+              mongoimport -d mo -c LIVE_COLLECTION --jsonArray --type json --file $TEST_JSON_DIR/v3-mo.json
           fi
 
       - name: run
