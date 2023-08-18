@@ -53,7 +53,7 @@ def test_ingest(ds_rc: RestClient) -> None:
             with pytest.raises(
                 requests.exceptions.HTTPError,
                 match=re.escape(
-                    "requests.exceptions.HTTPError: 422 Client Error: Snapshot Database has no collections (wbs_db='mo'). for url: http://localhost:8080/table/data/mo?is_admin=True"
+                    "422 Client Error: Snapshot Database has no collections (wbs_db='mo'). for url: http://localhost:8080/table/data/mo?is_admin=True"
                 ),
             ):
                 ds_rc.request_seq("GET", f"/table/data/{WBS_L1}", {"is_admin": True})
