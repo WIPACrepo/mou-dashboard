@@ -32,6 +32,8 @@ def ds_rc() -> RestClient:
 
 ########################################################################################
 
+SNAPSHOTS_DURING_INGESTION = 3
+
 with open("./tests/integration/Dummy_WBS.xlsx", "rb") as f:
     INITIAL_INGEST_BODY = {
         "base64_file": base64.b64encode(f.read()).decode(encoding="utf-8"),
@@ -114,16 +116,16 @@ class TestNoArgumentRoutes:
     @staticmethod
     def test_snapshots(ds_rc: RestClient) -> None:
         """Test `POST` @ `/snapshots/make` and `GET` @ `/snapshots/list`."""
-        # 3 snapshots were taken in test_ingest()
+        # snapshots taken in test_ingest()
         assert (
             len(
                 ds_rc.request_seq(
                     "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": True}
                 )["snapshots"]
             )
-            == 3
+            == SNAPSHOTS_DURING_INGESTION
         )
-
+        # BUT those snaps were admin-only
         assert not ds_rc.request_seq(
             "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": False}
         )["snapshots"]
@@ -147,18 +149,12 @@ class TestNoArgumentRoutes:
                 snapshots = ds_rc.request_seq(
                     "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": True}
                 )["snapshots"]
-                assert len(snapshots) == i + 3
-            # explicitly non-admin
-            elif i % 4 == 0:  # every-4
+                # first SNAPSHOTS_DURING_INGESTION were admin-only
+                assert len(snapshots) == i + SNAPSHOTS_DURING_INGESTION
+            # non-admin
+            else:
                 snapshots = ds_rc.request_seq(
                     "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": False}
-                )["snapshots"]
-                assert len(snapshots) == i
-            # implicitly non-admin
-            else:  # every-4 off by 2
-                assert i % 4 == 2
-                snapshots = ds_rc.request_seq(
-                    "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": True}
                 )["snapshots"]
                 assert len(snapshots) == i
 
