@@ -1,84 +1,82 @@
-[
-  {
-    "_id": null,
-    "name": "",
-    "timestamp": "LIVE_COLLECTION",
-    "creator": "Hank",
-    "snapshot_institution_values": {
-      "LBNL": {
-        "phds_authors": 1,
-        "faculty": 2,
-        "scientists_post_docs": 3,
-        "grad_students": 4,
-        "cpus": 5,
-        "gpus": 6,
-        "text": "foo's test text",
-        "headcounts_metadata": {
-          "last_edit_ts": 1692386531,
-          "confirmation_ts": 1692386533,
-          "confirmation_touchstone_ts": 0
-        },
-        "table_metadata": {
-          "last_edit_ts": 1692386532,
-          "confirmation_ts": 1692386534,
-          "confirmation_touchstone_ts": 0
-        },
-        "computing_metadata": {
-          "last_edit_ts": 1692386531,
-          "confirmation_ts": 1692386534,
-          "confirmation_touchstone_ts": 0
-        }
+{
+  "_id": null,
+  "name": "",
+  "timestamp": "LIVE_COLLECTION",
+  "creator": "Hank",
+  "snapshot_institution_values": {
+    "LBNL": {
+      "phds_authors": 1,
+      "faculty": 2,
+      "scientists_post_docs": 3,
+      "grad_students": 4,
+      "cpus": 5,
+      "gpus": 6,
+      "text": "foo's test text",
+      "headcounts_metadata": {
+        "last_edit_ts": 1692386531,
+        "confirmation_ts": 1692386533,
+        "confirmation_touchstone_ts": 0
       },
-      "DESY": {
-        "phds_authors": 100,
-        "faculty": 200,
-        "scientists_post_docs": 300,
-        "grad_students": 400,
-        "cpus": 500,
-        "gpus": 600,
-        "text": "bar's test text",
-        "headcounts_metadata": {
-          "last_edit_ts": 1692386531,
-          "confirmation_ts": 1692386533,
-          "confirmation_touchstone_ts": 0
-        },
-        "table_metadata": {
-          "last_edit_ts": 1692386532,
-          "confirmation_ts": 1692386534,
-          "confirmation_touchstone_ts": 0
-        },
-        "computing_metadata": {
-          "last_edit_ts": 1692386531,
-          "confirmation_ts": 1692386534,
-          "confirmation_touchstone_ts": 0
-        }
+      "table_metadata": {
+        "last_edit_ts": 1692386532,
+        "confirmation_ts": 1692386534,
+        "confirmation_touchstone_ts": 0
       },
-      "Alberta": {
-        "phds_authors": 51,
-        "faculty": 52,
-        "scientists_post_docs": 53,
-        "grad_students": 54,
-        "cpus": 55,
-        "gpus": 56,
-        "text": "baz's test text",
-        "headcounts_metadata": {
-          "last_edit_ts": 1692386531,
-          "confirmation_ts": 1692386533,
-          "confirmation_touchstone_ts": 0
-        },
-        "table_metadata": {
-          "last_edit_ts": 1692386532,
-          "confirmation_ts": 1692386534,
-          "confirmation_touchstone_ts": 0
-        },
-        "computing_metadata": {
-          "last_edit_ts": 1692386531,
-          "confirmation_ts": 1692386534,
-          "confirmation_touchstone_ts": 0
-        }
+      "computing_metadata": {
+        "last_edit_ts": 1692386531,
+        "confirmation_ts": 1692386534,
+        "confirmation_touchstone_ts": 0
       }
     },
-    "admin_only": false,
-    "confirmation_touchstone_ts": 1692386536
-  }
-]
+    "DESY": {
+      "phds_authors": 100,
+      "faculty": 200,
+      "scientists_post_docs": 300,
+      "grad_students": 400,
+      "cpus": 500,
+      "gpus": 600,
+      "text": "bar's test text",
+      "headcounts_metadata": {
+        "last_edit_ts": 1692386531,
+        "confirmation_ts": 1692386533,
+        "confirmation_touchstone_ts": 0
+      },
+      "table_metadata": {
+        "last_edit_ts": 1692386532,
+        "confirmation_ts": 1692386534,
+        "confirmation_touchstone_ts": 0
+      },
+      "computing_metadata": {
+        "last_edit_ts": 1692386531,
+        "confirmation_ts": 1692386534,
+        "confirmation_touchstone_ts": 0
+      }
+    },
+    "Alberta": {
+      "phds_authors": 51,
+      "faculty": 52,
+      "scientists_post_docs": 53,
+      "grad_students": 54,
+      "cpus": 55,
+      "gpus": 56,
+      "text": "baz's test text",
+      "headcounts_metadata": {
+        "last_edit_ts": 1692386531,
+        "confirmation_ts": 1692386533,
+        "confirmation_touchstone_ts": 0
+      },
+      "table_metadata": {
+        "last_edit_ts": 1692386532,
+        "confirmation_ts": 1692386534,
+        "confirmation_touchstone_ts": 0
+      },
+      "computing_metadata": {
+        "last_edit_ts": 1692386531,
+        "confirmation_ts": 1692386534,
+        "confirmation_touchstone_ts": 0
+      }
+    }
+  },
+  "admin_only": false,
+  "confirmation_touchstone_ts": 1692386536
+}
