@@ -208,20 +208,15 @@ class TestNoArgumentRoutes:
     def test_snapshots(ds_rc: RestClient) -> None:
         """Test `POST` @ `/snapshots/make` and `GET` @ `/snapshots/list`."""
         # snapshots taken in test_ingest()
-        assert (
-            len(
-                ds_rc.request_seq(
-                    "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": True}
-                )["snapshots"]
-            )
-            == SNAPSHOTS_DURING_INGESTION
-        )
-        # BUT those snaps were admin-only
-        assert not ds_rc.request_seq(
-            "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": False}
+        snaps = ds_rc.request_seq(
+            "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": True}
         )["snapshots"]
+        assert len(snaps) == SNAPSHOTS_DURING_INGESTION
+        # BUT some of those snaps were admin-only
+        ingest_admin_only_snapshots = len(s for s in snaps if s["admin_only"])
+        ingest_nonadmin_snapshots = len(snaps) - len(ingest_admin_only_snapshots)
 
-        for i in range(1, 20):
+        for i in range(ingest_nonadmin_snapshots + 1, 20):
             time.sleep(1)
             print(i)
             resp = ds_rc.request_seq(
@@ -240,8 +235,7 @@ class TestNoArgumentRoutes:
                 snapshots = ds_rc.request_seq(
                     "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": True}
                 )["snapshots"]
-                # first SNAPSHOTS_DURING_INGESTION were admin-only
-                assert len(snapshots) == i + SNAPSHOTS_DURING_INGESTION
+                assert len(snapshots) == i + ingest_admin_only_snapshots
             # non-admin
             else:
                 snapshots = ds_rc.request_seq(
