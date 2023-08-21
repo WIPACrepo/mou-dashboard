@@ -57,22 +57,55 @@ def test_ingest(ds_rc: RestClient) -> None:
                 ),
             ):
                 ds_rc.request_seq("GET", f"/table/data/{WBS_L1}", {"is_admin": True})
-            # ingest
-            resp = ds_rc.request_seq(
+            # ingest -- gets a snapshot
+            resp_post = ds_rc.request_seq(
                 "POST", f"/table/data/{WBS_L1}", INITIAL_INGEST_BODY
             )
-            assert not resp["previous_snapshot"]
+            assert not resp_post["previous_snapshot"]
+            # snaps
+            snaps = ds_rc.request_seq(
+                "GET",
+                f"/snapshots/list/{WBS_L1}",
+                {"is_admin": True},
+            )["snapshots"]
+            assert len(snaps) == 1
+            # get only snap
+            snap_resp = ds_rc.request_seq(
+                "GET",
+                f"/table/data/{WBS_L1}",
+                {"is_admin": True, "snapshot": snaps[0]},
+            )
+            assert not snap_resp["previous_snapshot"]
+            assert snap_resp["current_snapshot"] == snaps[0]
+            for inst in set(r["Institution"] for r in snap_resp["table"]):
+                ds_rc.request_seq(
+                    "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
+                )
+            # get live
+            resp_live = ds_rc.request_seq(
+                "GET",
+                f"/table/data/{WBS_L1}",
+                {"is_admin": True},
+            )
+            assert resp_live["previous_snapshot"]
+            assert resp_live["previous_snapshot"] == snaps[0]
+            for inst in set(r["Institution"] for r in resp_live["table"]):
+                ds_rc.request_seq(
+                    "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
+                )
         case "mongodump_v2":
             # CI runner should have pre-ingested 1 collection (only v2 data)
-            # snaps
+            # snaps -- none
             snaps = ds_rc.request_seq(
                 "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": True}
             )["snapshots"]
             assert len(snaps) == 0
             # get live
-            resp = ds_rc.request_seq("GET", f"/table/data/{WBS_L1}", {"is_admin": True})
-            assert not resp["previous_snapshot"]
-            for inst in set(r["Institution"] for r in resp["table"]):
+            resp_live = ds_rc.request_seq(
+                "GET", f"/table/data/{WBS_L1}", {"is_admin": True}
+            )
+            assert not resp_live["previous_snapshot"]
+            for inst in set(r["Institution"] for r in resp_live["table"]):
                 ds_rc.request_seq(
                     "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
                 )
@@ -86,25 +119,25 @@ def test_ingest(ds_rc: RestClient) -> None:
             )["snapshots"]
             assert len(snaps) == 1
             # get only snap
-            resp = ds_rc.request_seq(
+            snap_resp = ds_rc.request_seq(
                 "GET",
                 f"/table/data/{WBS_L1}",
                 {"is_admin": True, "snapshot": snaps[0]},
             )
-            assert not resp["previous_snapshot"]
-            for inst in set(r["Institution"] for r in resp["table"]):
+            assert not snap_resp["previous_snapshot"]
+            for inst in set(r["Institution"] for r in snap_resp["table"]):
                 ds_rc.request_seq(
                     "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
                 )
             # get live
-            resp2 = ds_rc.request_seq(
+            resp_live = ds_rc.request_seq(
                 "GET",
                 f"/table/data/{WBS_L1}",
                 {"is_admin": True},
             )
-            assert resp2["previous_snapshot"]
-            assert resp2["previous_snapshot"] == snaps[0]
-            for inst in set(r["Institution"] for r in resp2["table"]):
+            assert resp_live["previous_snapshot"]
+            assert resp_live["previous_snapshot"] == snaps[0]
+            for inst in set(r["Institution"] for r in resp_live["table"]):
                 ds_rc.request_seq(
                     "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
                 )
@@ -113,19 +146,17 @@ def test_ingest(ds_rc: RestClient) -> None:
                 f"did not receive valid 'INTEGRATION_TEST_INGEST_TYPE': {other}"
             )
 
-    assert resp["n_records"]
-    assert (current_1 := resp["current_snapshot"])  # pylint: disable=C0325
+    assert resp_live["n_records"]
+    assert resp_live["current_snapshot"] == "LIVE_COLLECTION"
 
     # Do it again...
     resp = ds_rc.request_seq("POST", f"/table/data/{WBS_L1}", INITIAL_INGEST_BODY)
 
     assert resp["n_records"]
-    assert (previous_2 := resp["previous_snapshot"])  # pylint: disable=C0325
-    assert (current_2 := resp["current_snapshot"])  # pylint: disable=C0325
-    assert (
-        float(current_1["timestamp"])
-        < float(previous_2["timestamp"])
-        < float(current_2["timestamp"])
+    assert resp["previous_snapshot"]
+    assert resp["current_snapshot"]
+    assert float(resp["previous_snapshot"]["timestamp"]) < float(
+        resp["current_snapshot"]["timestamp"]
     )
 
     # Now fail...
