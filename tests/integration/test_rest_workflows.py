@@ -469,7 +469,7 @@ class TestInstitutionValuesHandler:
         # Add institution values
         time.sleep(1)
         assert original_insts
-        for i, inst in enmurate(original_insts):
+        for i, inst in enumerate(original_insts):
             post_instval = uut.InstitutionValues(
                 phds_authors=1 * (i + 1),
                 faculty=2 * (i + 1),
