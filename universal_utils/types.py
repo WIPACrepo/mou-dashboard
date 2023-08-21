@@ -103,6 +103,8 @@ class InstitutionValues:
                     confirmation_touchstone_ts=0,
                 ),
             )
+        object.__setattr__(self, "computing_confirmed", None)
+        #
         if self.headcounts_confirmed:
             object.__setattr__(
                 self,
@@ -113,6 +115,7 @@ class InstitutionValues:
                     confirmation_touchstone_ts=0,
                 ),
             )
+        object.__setattr__(self, "headcounts_confirmed", None)
 
     def compute_last_edits(
         self,
@@ -167,6 +170,8 @@ class InstitutionValues:
         dicto.pop("headcounts_metadata")
         dicto.pop("table_metadata")
         dicto.pop("computing_metadata")
+        dicto.pop("computing_confirmed")
+        dicto.pop("headcounts_confirmed")
         dicto["institution"] = institution
 
         for key in list(dicto.keys()):

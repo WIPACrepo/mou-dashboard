@@ -436,7 +436,7 @@ class TestInstitutionValuesHandler:
     @staticmethod
     def test_institution_values_full_cycle(ds_rc: RestClient) -> None:
         """Test confirming admin-level re-touch-stoning."""
-        local_insts: dict[str, uut.InstitutionValues] = {}
+        original_insts: dict[str, uut.InstitutionValues] = {}
         first_post_insts = {
             "LBNL": uut.InstitutionValues(
                 phds_authors=1,
@@ -467,7 +467,7 @@ class TestInstitutionValuesHandler:
             ),
         }
 
-        # Get values (should all be default values)
+        # Get values
         for inst in first_post_insts:
             resp = ds_rc.request_seq(
                 "GET",
@@ -493,12 +493,12 @@ class TestInstitutionValuesHandler:
             assert resp_instval.table_metadata.has_valid_confirmation()
             assert resp_instval.computing_metadata.has_valid_confirmation()
             # update local storage
-            local_insts[inst] = resp_instval
+            original_insts[inst] = resp_instval
 
         # Add institution values
         time.sleep(1)
-        assert local_insts
-        for inst in local_insts:
+        assert original_insts
+        for inst in original_insts:
             post_instval = first_post_insts.pop(inst)  # be done w/ this structure ASAP
             now = int(time.time())
             resp_instval = dacite.from_dict(
@@ -543,12 +543,12 @@ class TestInstitutionValuesHandler:
             assert resp_instval.table_metadata.has_valid_confirmation()
             assert not resp_instval.computing_metadata.has_valid_confirmation()
             # update local storage
-            local_insts[inst] = resp_instval
+            original_insts[inst] = resp_instval
 
         # TEST EDITING TABLE
         time.sleep(1)
-        assert local_insts
-        for inst in local_insts:
+        assert original_insts
+        for inst in original_insts:
             records = ds_rc.request_seq(
                 "GET", f"/table/data/{WBS_L1}", {"institution": inst, "is_admin": True}
             )["table"]
@@ -595,13 +595,13 @@ class TestInstitutionValuesHandler:
                 uut.InstitutionValues, resp["institution_values"]
             )
             assert resp_instval == dc.replace(
-                local_insts[inst],
+                original_insts[inst],
                 table_metadata=dc.replace(
                     resp_instval.table_metadata,
                     last_edit_ts=now,
                 ),
-            ) or resp_instval == dc.replace(
-                local_insts[inst],
+            ) or resp_instval == dc.replace(  # could be a bit slow
+                original_insts[inst],
                 table_metadata=dc.replace(
                     resp_instval.table_metadata,
                     last_edit_ts=now + 1,
@@ -611,12 +611,12 @@ class TestInstitutionValuesHandler:
             assert not resp_instval.table_metadata.has_valid_confirmation()
             assert not resp_instval.computing_metadata.has_valid_confirmation()
             # update local storage
-            local_insts[inst] = resp_instval
+            original_insts[inst] = resp_instval
 
         # Confirm headcounts
         time.sleep(1)
-        assert local_insts
-        for inst in local_insts:
+        assert original_insts
+        for inst in original_insts:
             now = int(time.time())
             resp = ds_rc.request_seq(
                 "POST",
@@ -630,13 +630,13 @@ class TestInstitutionValuesHandler:
             )
             resp_instval = dacite.from_dict(uut.InstitutionValues, resp)
             assert resp_instval == dc.replace(
-                local_insts[inst],
+                original_insts[inst],
                 headcounts_metadata=dc.replace(
                     resp_instval.headcounts_metadata,
                     confirmation_ts=now,
                 ),
-            ) or resp_instval == dc.replace(
-                local_insts[inst],
+            ) or resp_instval == dc.replace(  # could be a bit slow
+                original_insts[inst],
                 headcounts_metadata=dc.replace(
                     resp_instval.headcounts_metadata,
                     confirmation_ts=now + 1,
@@ -646,12 +646,12 @@ class TestInstitutionValuesHandler:
             assert not resp_instval.table_metadata.has_valid_confirmation()
             assert not resp_instval.computing_metadata.has_valid_confirmation()
             # update local storage
-            local_insts[inst] = resp_instval
+            original_insts[inst] = resp_instval
 
         # Confirm table + computing
         time.sleep(1)
-        assert local_insts
-        for inst in local_insts:
+        assert original_insts
+        for inst in original_insts:
             now = int(time.time())
             resp = ds_rc.request_seq(
                 "POST",
@@ -664,7 +664,7 @@ class TestInstitutionValuesHandler:
             )
             resp_instval = dacite.from_dict(uut.InstitutionValues, resp)
             assert resp_instval == dc.replace(
-                local_insts[inst],
+                original_insts[inst],
                 table_metadata=dc.replace(
                     resp_instval.table_metadata,
                     confirmation_ts=now,
@@ -673,8 +673,8 @@ class TestInstitutionValuesHandler:
                     resp_instval.computing_metadata,
                     confirmation_ts=now,
                 ),
-            ) or resp_instval == dc.replace(
-                local_insts[inst],
+            ) or resp_instval == dc.replace(  # could be a bit slow
+                original_insts[inst],
                 table_metadata=dc.replace(
                     resp_instval.table_metadata,
                     confirmation_ts=now + 1,
@@ -688,7 +688,7 @@ class TestInstitutionValuesHandler:
             assert resp_instval.table_metadata.has_valid_confirmation()
             assert resp_instval.computing_metadata.has_valid_confirmation()
             # update local storage
-            local_insts[inst] = resp_instval
+            original_insts[inst] = resp_instval
 
         # Re-touchstone
         time.sleep(1)
@@ -704,14 +704,14 @@ class TestInstitutionValuesHandler:
 
         # Check values / confirmations
         time.sleep(1)
-        assert local_insts
-        for inst in local_insts:
+        assert original_insts
+        for inst in original_insts:
             resp = ds_rc.request_seq(
                 "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
             )
             resp_instval = dacite.from_dict(uut.InstitutionValues, resp)
             assert resp_instval == dc.replace(
-                local_insts[inst],
+                original_insts[inst],
                 headcounts_metadata=dc.replace(
                     resp_instval.headcounts_metadata,
                     confirmation_touchstone_ts=ts_ts,
@@ -729,4 +729,4 @@ class TestInstitutionValuesHandler:
             assert not resp_instval.table_metadata.has_valid_confirmation()
             assert not resp_instval.computing_metadata.has_valid_confirmation()
             # update local storage
-            local_insts[inst] = resp_instval
+            original_insts[inst] = resp_instval
