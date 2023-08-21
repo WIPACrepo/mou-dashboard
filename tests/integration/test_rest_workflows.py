@@ -497,10 +497,6 @@ class TestInstitutionValuesHandler:
                     resp_instval.headcounts_metadata,
                     last_edit_ts=now,
                 ),
-                table_metadata=dc.replace(
-                    resp_instval.table_metadata,
-                    last_edit_ts=now,
-                ),
                 computing_metadata=dc.replace(
                     resp_instval.computing_metadata,
                     last_edit_ts=now,
@@ -510,10 +506,6 @@ class TestInstitutionValuesHandler:
                 # use copies of known metadata
                 headcounts_metadata=dc.replace(
                     resp_instval.headcounts_metadata,
-                    last_edit_ts=now + 1,
-                ),
-                table_metadata=dc.replace(
-                    resp_instval.table_metadata,
                     last_edit_ts=now + 1,
                 ),
                 computing_metadata=dc.replace(
