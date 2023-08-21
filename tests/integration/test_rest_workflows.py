@@ -33,7 +33,17 @@ def ds_rc() -> RestClient:
 
 ########################################################################################
 
-SNAPSHOTS_DURING_INGESTION = 0  # set in test
+match os.getenv("INTEGRATION_TEST_INGEST_TYPE"):
+    case "xlsx":
+        SNAPSHOTS_DURING_INGESTION = 3
+    case "mongodump_v2":
+        SNAPSHOTS_DURING_INGESTION = 2
+    case "mongodump_v3":
+        SNAPSHOTS_DURING_INGESTION = 3
+    case other:
+        raise RuntimeError(
+            f"did not receive valid 'INTEGRATION_TEST_INGEST_TYPE': {other}"
+        )
 
 with open("./tests/integration/Dummy_WBS.xlsx", "rb") as f:
     INITIAL_INGEST_BODY = {
@@ -49,7 +59,6 @@ def test_ingest(ds_rc: RestClient) -> None:
     """Test POST /table/data."""
     match os.getenv("INTEGRATION_TEST_INGEST_TYPE"):
         case "xlsx":
-            SNAPSHOTS_DURING_INGESTION = 3
             # starting state is empty
             with pytest.raises(
                 requests.exceptions.HTTPError,
@@ -95,7 +104,6 @@ def test_ingest(ds_rc: RestClient) -> None:
                     "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
                 )
         case "mongodump_v2":
-            SNAPSHOTS_DURING_INGESTION = 2
             # CI runner should have pre-ingested 1 collection (only v2 data)
             # snaps -- none
             snaps = ds_rc.request_seq(
@@ -112,7 +120,6 @@ def test_ingest(ds_rc: RestClient) -> None:
                     "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
                 )
         case "mongodump_v3":
-            SNAPSHOTS_DURING_INGESTION = 3
             # CI runner should have pre-ingested 2 collections (v2 + v3 data)
             # snaps
             snaps = ds_rc.request_seq(
