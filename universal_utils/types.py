@@ -91,6 +91,29 @@ class InstitutionValues:
     computing_confirmed: bool | None = None
     headcounts_confirmed: bool | None = None
 
+    def __post_init__(self) -> None:
+        # since our instance is frozen, we need to use `__setattr__`
+        if self.computing_confirmed:
+            object.__setattr__(
+                self,
+                "computing_metadata",
+                InstitutionAttrMetadata(
+                    last_edit_ts=0,
+                    confirmation_ts=60,  # value makes it confirmed (& visible on frontend)
+                    confirmation_touchstone_ts=0,
+                ),
+            )
+        if self.headcounts_confirmed:
+            object.__setattr__(
+                self,
+                "headcounts_metadata",
+                InstitutionAttrMetadata(
+                    last_edit_ts=0,
+                    confirmation_ts=60,  # value makes it confirmed (& visible on frontend)
+                    confirmation_touchstone_ts=0,
+                ),
+            )
+
     def compute_last_edits(
         self,
         phds_authors: int | None,

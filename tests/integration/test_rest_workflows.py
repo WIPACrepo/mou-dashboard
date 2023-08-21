@@ -470,7 +470,9 @@ class TestInstitutionValuesHandler:
         # Get values (should all be default values)
         for inst in first_post_insts:
             resp = ds_rc.request_seq(
-                "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
+                "GET",
+                f"/institution/values/{WBS_L1}",
+                {"institution": inst, "is_admin": True},
             )
             resp_instval = dacite.from_dict(uut.InstitutionValues, resp)
             assert resp_instval == uut.InstitutionValues()
