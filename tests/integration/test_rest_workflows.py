@@ -437,38 +437,9 @@ class TestInstitutionValuesHandler:
     def test_institution_values_full_cycle(ds_rc: RestClient) -> None:
         """Test confirming admin-level re-touch-stoning."""
         original_insts: dict[str, uut.InstitutionValues] = {}
-        first_post_insts = {
-            "LBNL": uut.InstitutionValues(
-                phds_authors=1,
-                faculty=2,
-                scientists_post_docs=3,
-                grad_students=4,
-                cpus=5,
-                gpus=6,
-                text="foo's test text",
-            ),
-            "DESY": uut.InstitutionValues(
-                phds_authors=100,
-                faculty=200,
-                scientists_post_docs=300,
-                grad_students=400,
-                cpus=500,
-                gpus=600,
-                text="bar's test text",
-            ),
-            "Alberta": uut.InstitutionValues(
-                phds_authors=51,
-                faculty=52,
-                scientists_post_docs=53,
-                grad_students=54,
-                cpus=55,
-                gpus=56,
-                text="baz's test text",
-            ),
-        }
 
         # Get values
-        for inst in first_post_insts:
+        for inst in ["LBNL", "DESY", "Alberta"]:
             resp = ds_rc.request_seq(
                 "GET",
                 f"/institution/values/{WBS_L1}",
@@ -498,8 +469,16 @@ class TestInstitutionValuesHandler:
         # Add institution values
         time.sleep(1)
         assert original_insts
-        for inst in original_insts:
-            post_instval = first_post_insts.pop(inst)  # be done w/ this structure ASAP
+        for i, inst in enmurate(original_insts):
+            post_instval = uut.InstitutionValues(
+                phds_authors=1 * (i + 1),
+                faculty=2 * (i + 1),
+                scientists_post_docs=3 * (i + 1),
+                grad_students=4 * (i + 1),
+                cpus=5 * (i + 1),
+                gpus=6 * (i + 1),
+                text=f"{i}'s test text",
+            )
             now = int(time.time())
             resp_instval = dacite.from_dict(
                 uut.InstitutionValues,
@@ -512,6 +491,7 @@ class TestInstitutionValuesHandler:
             assert abs(now - int(time.time())) <= 1
             assert resp_instval == dc.replace(
                 post_instval,
+                # use copies of known metadata + assert last_edit_ts
                 headcounts_metadata=dc.replace(
                     resp_instval.headcounts_metadata,
                     last_edit_ts=now,
@@ -526,6 +506,7 @@ class TestInstitutionValuesHandler:
                 ),
             ) or resp_instval == dc.replace(  # could be a bit slow
                 post_instval,
+                # use copies of known metadata
                 headcounts_metadata=dc.replace(
                     resp_instval.headcounts_metadata,
                     last_edit_ts=now + 1,
