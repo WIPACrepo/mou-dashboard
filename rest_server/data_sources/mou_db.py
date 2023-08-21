@@ -373,7 +373,7 @@ class MOUDatabaseClient:
                 reason=f"Erroneous supplemental document found: {snap_coll=}, {doc=}",
             )
 
-        supplemental_doc = types.SupplementalDoc(**doc)
+        supplemental_doc = dacite.from_dict(types.SupplementalDoc, doc)
 
         # always override all `confirmation_touchstone_ts` attrs
         supplemental_doc.override_all_institutions_touchstones()
