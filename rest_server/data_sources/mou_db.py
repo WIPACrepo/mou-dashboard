@@ -227,7 +227,7 @@ class MOUDatabaseClient:
     ) -> uut.InstitutionValues:
         """Put in DB."""
         doc = await self._get_supplemental_doc(wbs_db, snapshot_timestamp)
-        doc.snapshot_institution_values.update({institution: dc.asdict(vals)})
+        doc.snapshot_institution_values.update({institution: vals})
         await self._set_supplemental_doc(wbs_db, snapshot_timestamp, doc)
 
         return vals
@@ -350,13 +350,11 @@ class MOUDatabaseClient:
 
         try:
             doc = await self._get_supplemental_doc(wbs_db, snapshot_timestamp)
+            vals = doc.snapshot_institution_values[institution]
         except DocumentNotFoundError as e:
             logging.warning(str(e))
             return uut.InstitutionValues()
 
-        vals = dacite.from_dict(
-            uut.InstitutionValues, doc.snapshot_institution_values[institution]
-        )
         logging.info(f"Institution's Values [{vals}] ({wbs_db=}, {institution=}).")
         return vals
 
@@ -420,9 +418,7 @@ class MOUDatabaseClient:
                 name=name,
                 timestamp=snap_coll,
                 creator=creator,
-                snapshot_institution_values={
-                    k: dc.asdict(v) for k, v in all_insts_values.items()
-                },
+                snapshot_institution_values=all_insts_values,
                 admin_only=admin_only,
                 confirmation_touchstone_ts=confirmation_touchstone_ts,
             ),

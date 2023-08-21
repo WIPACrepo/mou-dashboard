@@ -83,6 +83,10 @@ class InstitutionValues:
     table_metadata: InstitutionAttrMetadata = InstitutionAttrMetadata()
     computing_metadata: InstitutionAttrMetadata = InstitutionAttrMetadata()
 
+    # legacy data support
+    computing_confirmed: bool | None = None
+    headcounts_confirmed: bool | None = None
+
     def compute_last_edits(
         self,
         phds_authors: int | None,
