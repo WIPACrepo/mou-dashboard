@@ -134,7 +134,7 @@ class InstitutionValues:
         """
         now = int(time.time())
 
-        # Update "last edit"?
+        # Update headcounts_metadata "last edit"?
         if (
             self.phds_authors != phds_authors
             or self.faculty != faculty
@@ -145,7 +145,7 @@ class InstitutionValues:
         else:
             headcounts_metadata = self.headcounts_metadata
 
-        # Update "last edit"?
+        # Update computing_metadata "last edit"?
         if self.cpus != cpus or self.gpus != gpus:
             computing_metadata = dc.replace(self.computing_metadata, last_edit_ts=now)
         else:

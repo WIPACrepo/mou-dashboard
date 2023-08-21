@@ -10,6 +10,7 @@ NOTE: THESE TESTS NEED TO RUN IN ORDER -- STATE DEPENDENT
 import base64
 import dataclasses as dc
 import os
+import random
 import re
 import time
 from typing import Any
@@ -471,12 +472,12 @@ class TestInstitutionValuesHandler:
         assert original_insts
         for i, inst in enumerate(original_insts):
             post_instval = uut.InstitutionValues(
-                phds_authors=1 * (i + 1),
-                faculty=2 * (i + 1),
-                scientists_post_docs=3 * (i + 1),
-                grad_students=4 * (i + 1),
-                cpus=5 * (i + 1),
-                gpus=6 * (i + 1),
+                phds_authors=random.randint(1, 10) * (i + 1),
+                faculty=random.randint(1, 10) * (i + 1),
+                scientists_post_docs=random.randint(1, 10) * (i + 1),
+                grad_students=random.randint(1, 10) * (i + 1),
+                cpus=random.randint(1, 10) * (i + 1),
+                gpus=random.randint(1, 10) * (i + 1),
                 text=f"{i}'s test text",
             )
             now = int(time.time())
