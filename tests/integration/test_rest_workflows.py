@@ -510,24 +510,34 @@ class TestInstitutionValuesHandler:
                 ),
             )
             assert abs(now - int(time.time())) <= 1
-            assert any(
-                resp_instval
-                == dc.replace(
-                    post_instval,
-                    headcounts_metadata=dc.replace(
-                        resp_instval.headcounts_metadata,
-                        last_edit_ts=expected_ts,
-                    ),
-                    table_metadata=dc.replace(
-                        resp_instval.table_metadata,
-                        last_edit_ts=expected_ts,
-                    ),
-                    computing_metadata=dc.replace(
-                        resp_instval.computing_metadata,
-                        last_edit_ts=expected_ts,
-                    ),
-                )
-                for expected_ts in [now, now + 1]  # could be a bit slow
+            assert resp_instval == dc.replace(
+                post_instval,
+                headcounts_metadata=dc.replace(
+                    resp_instval.headcounts_metadata,
+                    last_edit_ts=now,
+                ),
+                table_metadata=dc.replace(
+                    resp_instval.table_metadata,
+                    last_edit_ts=now,
+                ),
+                computing_metadata=dc.replace(
+                    resp_instval.computing_metadata,
+                    last_edit_ts=now,
+                ),
+            ) or resp_instval == dc.replace(  # could be a bit slow
+                post_instval,
+                headcounts_metadata=dc.replace(
+                    resp_instval.headcounts_metadata,
+                    last_edit_ts=now + 1,
+                ),
+                table_metadata=dc.replace(
+                    resp_instval.table_metadata,
+                    last_edit_ts=now + 1,
+                ),
+                computing_metadata=dc.replace(
+                    resp_instval.computing_metadata,
+                    last_edit_ts=now + 1,
+                ),
             )
             assert not resp_instval.headcounts_metadata.has_valid_confirmation()
             assert resp_instval.table_metadata.has_valid_confirmation()
@@ -584,15 +594,18 @@ class TestInstitutionValuesHandler:
             resp_instval = dacite.from_dict(
                 uut.InstitutionValues, resp["institution_values"]
             )
-            assert any(
-                resp_instval
-                == dc.replace(
-                    local_insts[inst],
-                    table_metadata=dc.replace(
-                        resp_instval.table_metadata, last_edit_ts=expected_ts
-                    ),
-                )
-                for expected_ts in [now, now + 1]  # could be a bit slow
+            assert resp_instval == dc.replace(
+                local_insts[inst],
+                table_metadata=dc.replace(
+                    resp_instval.table_metadata,
+                    last_edit_ts=now,
+                ),
+            ) or resp_instval == dc.replace(
+                local_insts[inst],
+                table_metadata=dc.replace(
+                    resp_instval.table_metadata,
+                    last_edit_ts=now + 1,
+                ),
             )
             assert not resp_instval.headcounts_metadata.has_valid_confirmation()
             assert not resp_instval.table_metadata.has_valid_confirmation()
@@ -616,15 +629,18 @@ class TestInstitutionValuesHandler:
                 },
             )
             resp_instval = dacite.from_dict(uut.InstitutionValues, resp)
-            assert any(
-                resp_instval
-                == dc.replace(
-                    local_insts[inst],
-                    headcounts_metadata=dc.replace(
-                        resp_instval.headcounts_metadata, confirmation_ts=expected_ts
-                    ),
-                )
-                for expected_ts in [now, now + 1]  # could be a bit slow
+            assert resp_instval == dc.replace(
+                local_insts[inst],
+                headcounts_metadata=dc.replace(
+                    resp_instval.headcounts_metadata,
+                    confirmation_ts=now,
+                ),
+            ) or resp_instval == dc.replace(
+                local_insts[inst],
+                headcounts_metadata=dc.replace(
+                    resp_instval.headcounts_metadata,
+                    confirmation_ts=now + 1,
+                ),
             )
             assert resp_instval.headcounts_metadata.has_valid_confirmation()
             assert not resp_instval.table_metadata.has_valid_confirmation()
@@ -647,18 +663,26 @@ class TestInstitutionValuesHandler:
                 },
             )
             resp_instval = dacite.from_dict(uut.InstitutionValues, resp)
-            assert any(
-                resp_instval
-                == dc.replace(
-                    local_insts[inst],
-                    table_metadata=dc.replace(
-                        resp_instval.table_metadata, confirmation_ts=expected_ts
-                    ),
-                    computing_metadata=dc.replace(
-                        resp_instval.computing_metadata, confirmation_ts=expected_ts
-                    ),
-                )
-                for expected_ts in [now, now + 1]  # could be a bit slow
+            assert resp_instval == dc.replace(
+                local_insts[inst],
+                table_metadata=dc.replace(
+                    resp_instval.table_metadata,
+                    confirmation_ts=now,
+                ),
+                computing_metadata=dc.replace(
+                    resp_instval.computing_metadata,
+                    confirmation_ts=now,
+                ),
+            ) or resp_instval == dc.replace(
+                local_insts[inst],
+                table_metadata=dc.replace(
+                    resp_instval.table_metadata,
+                    confirmation_ts=now + 1,
+                ),
+                computing_metadata=dc.replace(
+                    resp_instval.computing_metadata,
+                    confirmation_ts=now + 1,
+                ),
             )
             assert resp_instval.headcounts_metadata.has_valid_confirmation()  # (before)
             assert resp_instval.table_metadata.has_valid_confirmation()
@@ -689,13 +713,16 @@ class TestInstitutionValuesHandler:
             assert resp_instval == dc.replace(
                 local_insts[inst],
                 headcounts_metadata=dc.replace(
-                    resp_instval.headcounts_metadata, confirmation_touchstone_ts=ts_ts
+                    resp_instval.headcounts_metadata,
+                    confirmation_touchstone_ts=ts_ts,
                 ),
                 table_metadata=dc.replace(
-                    resp_instval.table_metadata, confirmation_touchstone_ts=ts_ts
+                    resp_instval.table_metadata,
+                    confirmation_touchstone_ts=ts_ts,
                 ),
                 computing_metadata=dc.replace(
-                    resp_instval.computing_metadata, confirmation_touchstone_ts=ts_ts
+                    resp_instval.computing_metadata,
+                    confirmation_touchstone_ts=ts_ts,
                 ),
             )
             assert not resp_instval.headcounts_metadata.has_valid_confirmation()
