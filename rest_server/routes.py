@@ -97,10 +97,13 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
                 wbs_l1, exclude_admin_snaps=not is_admin
             )
             if curr_snap == mou_db.LIVE_COLLECTION:  # aka not a snapshot
-                prev_snap = timestamps[-1]
+                try:
+                    prev_snap = timestamps[-1]
+                except IndexError:
+                    prev_snap = None  # there are no snapshots
             elif idx := timestamps.index(curr_snap):
                 prev_snap = timestamps[idx - 1]
-            else:  # 0 -- no previous snapshot
+            else:  # idx=0 -- there are no earlier snapshots
                 prev_snap = None
 
         if prev_snap:
