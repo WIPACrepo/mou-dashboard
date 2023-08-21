@@ -145,7 +145,7 @@ class MOUDatabaseClient:
         # ingest
         try:
             doc = await self._get_supplemental_doc(wbs_db, previous_snap)
-            all_insts_values = doc.snapshot_institution_values_as_dc()
+            all_insts_values = doc.snapshot_institution_values
         except (DocumentNotFoundError, pymongo.errors.InvalidName):
             all_insts_values = {}
         await self._override_live_collection_for_xlsx(
@@ -644,7 +644,7 @@ class MOUDatabaseClient:
             table,
             name,
             creator,
-            supplemental_doc.snapshot_institution_values_as_dc(),
+            supplemental_doc.snapshot_institution_values,
             admin_only,
             confirmation_touchstone_ts=supplemental_doc.confirmation_touchstone_ts,
         )

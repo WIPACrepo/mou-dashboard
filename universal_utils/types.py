@@ -62,6 +62,11 @@ class InstitutionAttrMetadata:
             return EXPIRED
         return GOOD
 
+    def override_touchstone(self, value: int) -> None:
+        """Override touchstone with external value."""
+        # since our instance is frozen, we need to use `__setattr__`
+        object.__setattr__(self, "confirmation_touchstone_ts", value)
+
 
 @dc.dataclass(frozen=True)
 class InstitutionValues:
