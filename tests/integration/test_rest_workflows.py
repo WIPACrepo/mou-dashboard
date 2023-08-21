@@ -64,12 +64,50 @@ def test_ingest(ds_rc: RestClient) -> None:
             assert not resp["previous_snapshot"]
         case "mongodump_v2":
             # CI runner should have pre-ingested 1 collection (only v2 data)
+            # snaps
+            snaps = ds_rc.request_seq(
+                "GET", f"/snapshots/list/{WBS_L1}", {"is_admin": True}
+            )["snapshots"]
+            assert len(snaps) == 0
+            # get live
             resp = ds_rc.request_seq("GET", f"/table/data/{WBS_L1}", {"is_admin": True})
             assert not resp["previous_snapshot"]
+            for inst in set(r["Institution"] for r in resp["table"]):
+                ds_rc.request_seq(
+                    "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
+                )
         case "mongodump_v3":
             # CI runner should have pre-ingested 2 collections (v2 + v3 data)
-            resp = ds_rc.request_seq("GET", f"/table/data/{WBS_L1}", {"is_admin": True})
-            assert resp["previous_snapshot"]
+            # snaps
+            snaps = ds_rc.request_seq(
+                "GET",
+                f"/snapshots/list/{WBS_L1}",
+                {"is_admin": True},
+            )["snapshots"]
+            assert len(snaps) == 1
+            # get only snap
+            resp = ds_rc.request_seq(
+                "GET",
+                f"/table/data/{WBS_L1}",
+                {"is_admin": True, "snapshot": snaps[0]},
+            )
+            assert not resp["previous_snapshot"]
+            for inst in set(r["Institution"] for r in resp["table"]):
+                ds_rc.request_seq(
+                    "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
+                )
+            # get live
+            resp2 = ds_rc.request_seq(
+                "GET",
+                f"/table/data/{WBS_L1}",
+                {"is_admin": True},
+            )
+            assert resp2["previous_snapshot"]
+            assert resp2["previous_snapshot"] == snaps[0]
+            for inst in set(r["Institution"] for r in resp2["table"]):
+                ds_rc.request_seq(
+                    "GET", f"/institution/values/{WBS_L1}", {"institution": inst}
+                )
         case other:
             raise RuntimeError(
                 f"did not receive valid 'INTEGRATION_TEST_INGEST_TYPE': {other}"
