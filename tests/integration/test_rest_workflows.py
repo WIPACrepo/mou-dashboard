@@ -213,8 +213,8 @@ class TestNoArgumentRoutes:
         )["snapshots"]
         assert len(snaps) == SNAPSHOTS_DURING_INGESTION
         # BUT some of those snaps were admin-only
-        ingest_admin_only_snapshots = len(s for s in snaps if s["admin_only"])
-        ingest_nonadmin_snapshots = len(snaps) - len(ingest_admin_only_snapshots)
+        ingest_admin_only_snapshots = len([s for s in snaps if s["admin_only"]])
+        ingest_nonadmin_snapshots = len(snaps) - ingest_admin_only_snapshots
 
         for i in range(ingest_nonadmin_snapshots + 1, 20):
             time.sleep(1)
