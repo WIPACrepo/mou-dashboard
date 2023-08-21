@@ -4,6 +4,7 @@ import dataclasses as dc
 import time
 
 from bson.objectid import ObjectId
+from typeguard import typechecked
 
 # Data Source types
 # for web
@@ -16,6 +17,7 @@ DBRecord = dict[str, DataEntry]
 DBTable = list[DBRecord]
 
 
+@typechecked
 @dc.dataclass(frozen=True)
 class SnapshotInfo:
     """The typed dict containing a snapshot's name, timestamp, and creator.
@@ -34,6 +36,7 @@ CHANGES = "changes"
 GOOD = "good"
 
 
+@typechecked
 @dc.dataclass(frozen=True)
 class InstitutionAttrMetadata:
     """Metadata for an `InstitutionValues` attribute/attributes."""
@@ -68,6 +71,7 @@ class InstitutionAttrMetadata:
         object.__setattr__(self, "confirmation_touchstone_ts", value)
 
 
+@typechecked
 @dc.dataclass(frozen=True)
 class InstitutionValues:
     """Values for an institution."""

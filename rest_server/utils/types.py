@@ -4,11 +4,13 @@ import dataclasses as dc
 
 import universal_utils.types as uut
 from bson.objectid import ObjectId
+from typeguard import typechecked
 
 
+@typechecked
 @dc.dataclass(frozen=True)
 class SupplementalDoc:
-    """Fields for an Supplemental document, which supplements a snapshot."""
+    """Fields for a Supplemental document, which supplements a snapshot."""
 
     name: str
     timestamp: str
