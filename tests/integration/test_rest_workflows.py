@@ -61,19 +61,21 @@ def test_ingest(ds_rc: RestClient) -> None:
             resp = ds_rc.request_seq(
                 "POST", f"/table/data/{WBS_L1}", INITIAL_INGEST_BODY
             )
+            assert not resp["previous_snapshot"]
         case "mongodump_v2":
-            # CI runner should have pre-ingested data
+            # CI runner should have pre-ingested 1 collection (only v2 data)
             resp = ds_rc.request_seq("GET", f"/table/data/{WBS_L1}", {"is_admin": True})
+            assert not resp["previous_snapshot"]
         case "mongodump_v3":
-            # CI runner should have pre-ingested data
+            # CI runner should have pre-ingested 2 collections (v2 + v3 data)
             resp = ds_rc.request_seq("GET", f"/table/data/{WBS_L1}", {"is_admin": True})
+            assert resp["previous_snapshot"]
         case other:
             raise RuntimeError(
                 f"did not receive valid 'INTEGRATION_TEST_INGEST_TYPE': {other}"
             )
 
     assert resp["n_records"]
-    assert not resp["previous_snapshot"]
     assert (current_1 := resp["current_snapshot"])  # pylint: disable=C0325
 
     # Do it again...
