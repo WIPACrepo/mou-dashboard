@@ -497,6 +497,7 @@ class TestInstitutionValuesHandler:
                     resp_instval.headcounts_metadata,
                     last_edit_ts=now,
                 ),
+                table_metadata=resp_instval.table_metadata,
                 computing_metadata=dc.replace(
                     resp_instval.computing_metadata,
                     last_edit_ts=now,
@@ -508,6 +509,7 @@ class TestInstitutionValuesHandler:
                     resp_instval.headcounts_metadata,
                     last_edit_ts=now + 1,
                 ),
+                table_metadata=resp_instval.table_metadata,
                 computing_metadata=dc.replace(
                     resp_instval.computing_metadata,
                     last_edit_ts=now + 1,
