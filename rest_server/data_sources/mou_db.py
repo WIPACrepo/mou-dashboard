@@ -375,15 +375,12 @@ class MOUDatabaseClient:
                 reason=f"Erroneous supplemental document found: {snap_coll=}, {doc=}",
             )
 
-        # always override all `confirmation_touchstone_ts` attrs
-        siv_dict = doc["snapshot_institution_values"]
-        for inst in siv_dict.keys():
-            tsts = doc["confirmation_touchstone_ts"]
-            siv_dict[inst]["headcounts_metadata"]["confirmation_touchstone_ts"] = tsts
-            siv_dict[inst]["table_metadata"]["confirmation_touchstone_ts"] = tsts
-            siv_dict[inst]["computing_metadata"]["confirmation_touchstone_ts"] = tsts
+        supplemental_doc = types.SupplementalDoc(**doc)
 
-        return types.SupplementalDoc(**doc)
+        # always override all `confirmation_touchstone_ts` attrs
+        supplemental_doc.override_all_institutions_touchstones()
+
+        return supplemental_doc
 
     async def _set_supplemental_doc(
         self, wbs_db: str, snap_coll: str, doc: types.SupplementalDoc

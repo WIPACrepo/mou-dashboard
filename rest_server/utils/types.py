@@ -3,9 +3,9 @@
 import dataclasses as dc
 from typing import Any
 
+import dacite
 import universal_utils.types as uut
 from bson.objectid import ObjectId
-import dacite
 
 
 @dc.dataclass(frozen=True)
@@ -27,3 +27,18 @@ class SupplementalDoc:
             k: dacite.from_dict(uut.InstitutionValues, v)
             for k, v in self.snapshot_institution_values.items()
         }
+
+    def override_all_institutions_touchstones(self) -> None:
+        """Override all institutions touchstones with internal value."""
+        for inst_vals in self.snapshot_institution_values.values():
+            inst_vals["headcounts_metadata"][
+                "confirmation_touchstone_ts"
+            ] = self.confirmation_touchstone_ts
+
+            inst_vals["table_metadata"][
+                "confirmation_touchstone_ts"
+            ] = self.confirmation_touchstone_ts
+
+            inst_vals["computing_metadata"][
+                "confirmation_touchstone_ts"
+            ] = self.confirmation_touchstone_ts
