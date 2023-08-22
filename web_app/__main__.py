@@ -24,7 +24,7 @@ def main() -> None:
         host=ENV.WEB_SERVER_HOST,
         port=ENV.WEB_SERVER_PORT,
         # useful dev settings (these are enabled automatically when debug=True)
-        dev_tools_silence_routes_logging=True,
+        dev_tools_silence_routes_logging=not ENV.DEBUG,
         use_reloader=True,
         dev_tools_hot_reload=True,
     )
