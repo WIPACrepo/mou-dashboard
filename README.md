@@ -15,52 +15,40 @@ Statements of Work in accordance with MOUs:
 
 
 ## How to Run Locally
-You will need to launch four servers:
+You will need to launch servers:
 - MongoDB Server
-- Token Server
 - REST Server
 - Web Server
 - *Optional:* Telemetry Service (see [WIPAC Telemetry Repo](https://github.com/WIPACrepo/wipac-telemetry-prototype#wipac-telemetry-prototype))
 
-### Launch Local MongoDB Server via Docker
+### 1. Launch Local MongoDB Server via Docker
 1. *(Optional)* Kill All Active MongoDB Daemons
-1. `./rest_server/resources/mongo_test_server.sh`
+1. `docker run -p 27017:27017 --rm -i --name mou-mongo mongo:latest`
 
-### Launch Local Token Server via Docker
-1. `./rest_server/resources/token_test_server.sh`
+### 2. Build Local Docker Image
+```
+docker build -t moudash:local --no-cache .
+```
 
-### REST Server
+### 3. Launch REST Server
 A REST server that interfaces with a local MongoDB server
+```
+docker run --network="host" --rm -i --name mou-rest \
+    --env CI_TEST=true \
+    moudash:local \
+    python -m rest_server --override-krs-insts ./resources/dummy-krs-data.json
+```
 
-#### 1. Set Up Environment
-    <activate virtual env with python 3.10+>
-    pip install .
-    export KEYCLOAK_CLIENT_SECRET=[...]
-    . resources/keycloak-test-env-vars.sh
-    export DEBUG=yes
-
-#### 2. Start the Server
-    python -m rest_server
-
-##### 2a. or with telemetry, instead:
-    ./resources/start-rest-server-wipactel-local.sh
-
-### Web App
+### 4. Launch Web App
 A dashboard for managing & reporting MOU tasks
-
-#### 1. Set Up Environment
-    <activate virtual env with python 3.10+>
-    pip install .
-    export KEYCLOAK_CLIENT_SECRET=[...]
-    . resources/keycloak-test-env-vars.sh
-    python resources/client_secrets_json.py  # this will make a client_secrets.json file at $PWD
-    export DEBUG=yes
-
-#### 2. Start the Server
+```
+docker run --network="host" --rm -i --name mou-web \
+    --env CI_TEST=true \
+    --env DEBUG=yes \
+    --env OIDC_CLIENT_SECRETS=oidc-secret.json \
+    moudash:local \
     python -m web_app
+```
 
-##### 2a. or with telemetry, instead:
-    ./resources/start-web-app-wipactel-local.sh
-
-#### 3. View Webpage
+### 5. View Webpage
 Go to http://localhost:8050/
