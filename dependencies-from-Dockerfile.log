@@ -20,7 +20,7 @@ Deprecated==1.2.14
 dnspython==2.4.2
 et-xmlfile==1.1.0
 Flask==2.2.5
-flask-oidc==2.0.0
+flask-oidc==2.0.1
 googleapis-common-protos==1.56.2
 grpcio==1.57.0
 humanfriendly==10.0
@@ -52,7 +52,7 @@ protobuf==3.20.3
 pyasn1==0.5.0
 pycparser==2.21
 PyJWT==2.8.0
-pymongo==4.4.1
+pymongo==4.5.0
 pypng==0.20220715.0
 python-dateutil==2.8.2
 pytz==2023.3
