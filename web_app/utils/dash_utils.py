@@ -195,14 +195,18 @@ def precheck_setup_callback(s_urlpath: str) -> None:
 
     # Check if legit full-fledged path (otherwise a redirect is happening soon)
     if root_is_not_wbs(s_urlpath):
-        raise CallbackAbortException(f"Bad URL: {s_urlpath}")
+        raise CallbackAbortException(f"Pending redirect for URL: {s_urlpath}")
 
     # Check Login
     if not CurrentUser.is_loggedin_with_permissions():
-        raise CallbackAbortException(f"Bad permissions: {s_urlpath}")
+        raise CallbackAbortException(
+            f"User does not have minimum permissions (or not logged in): {s_urlpath}"
+        )
 
     if user_viewing_wrong_inst(s_urlpath):
-        raise CallbackAbortException(f"Bad institution: {s_urlpath}")
+        raise CallbackAbortException(
+            f"User does not have permissions to view institution: {s_urlpath}"
+        )
 
 
 # --------------------------------------------------------------------------------------
