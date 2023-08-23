@@ -138,6 +138,9 @@ class CurrentUser:
     @staticmethod
     def _get_info() -> UserInfo:
         """Query OIDC."""
+        if ENV.CI_TEST:
+            return UserInfo("Hank", ["/tokens/mou-dashboard-admin"], "XYZ")
+
         return CurrentUser._cached_get_info(flask.session["oidc_csrf_token"])
 
     @staticmethod
@@ -158,6 +161,8 @@ class CurrentUser:
     @staticmethod
     def is_loggedin() -> bool:
         """Is the user logged-in?"""
+        if ENV.CI_TEST:
+            return True
         return bool(oidc.user_loggedin)
 
     @staticmethod
