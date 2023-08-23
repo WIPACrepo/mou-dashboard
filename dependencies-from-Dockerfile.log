@@ -20,7 +20,7 @@ Deprecated==1.2.14
 dnspython==2.4.2
 et-xmlfile==1.1.0
 Flask==2.2.5
-flask-oidc==2.0.1
+flask-oidc==2.0.2
 googleapis-common-protos==1.56.2
 grpcio==1.57.0
 humanfriendly==10.0
@@ -73,7 +73,7 @@ visdcc==0.0.50
 Werkzeug==2.2.3
 wipac-dev-tools==1.6.16
 wipac-keycloak-rest-services==1.4.37
-wipac-rest-tools==1.5.1
+wipac-rest-tools==1.5.2
 wipac-telemetry==0.2.7
 wrapt==1.15.0
 yarl==1.9.2
