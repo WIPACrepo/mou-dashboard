@@ -23,7 +23,13 @@ You will need to launch servers:
 
 ### 1. Launch Local MongoDB Server via Docker
 1. *(Optional)* Kill All Active MongoDB Daemons
-1. `docker run -p 27017:27017 --rm -i --name mou-mongo mongo:latest`
+1. `docker run -p 27017:27017 --rm -i --name mou-mongo mongo:VERSION`
+1. *(Optional)* Ingest data to create a realistic start-up state
+```
+TEST_JSON_DIR=tests/resources
+mongoimport -d mo-supplemental -c LIVE_COLLECTION --type json --file $TEST_JSON_DIR/v2-mo-supplemental.json
+mongoimport -d mo -c LIVE_COLLECTION --jsonArray --type json --file $TEST_JSON_DIR/v2-mo.json
+```
 
 ### 2. Build Local Docker Image
 ```
