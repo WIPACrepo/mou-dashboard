@@ -92,30 +92,34 @@ class InstitutionValues:
     headcounts_confirmed: bool | None = None
 
     def __post_init__(self) -> None:
-        # since our instance is frozen, we need to use `__setattr__`
-        if self.computing_confirmed:
-            object.__setattr__(
-                self,
-                "computing_metadata",
-                InstitutionAttrMetadata(
-                    last_edit_ts=0,
-                    confirmation_ts=60,  # value makes it confirmed (& visible on frontend)
-                    confirmation_touchstone_ts=0,
-                ),
-            )
-        object.__setattr__(self, "computing_confirmed", None)
-        #
-        if self.headcounts_confirmed:
-            object.__setattr__(
-                self,
-                "headcounts_metadata",
-                InstitutionAttrMetadata(
-                    last_edit_ts=0,
-                    confirmation_ts=60,  # value makes it confirmed (& visible on frontend)
-                    confirmation_touchstone_ts=0,
-                ),
-            )
-        object.__setattr__(self, "headcounts_confirmed", None)
+        # convert legacy data for backward-compatibility
+        for legacy, new in [
+            ("computing_confirmed", "computing_metadata"),
+            ("headcounts_confirmed", "headcounts_metadata"),
+        ]:
+            if getattr(self, legacy) is True:
+                # since our instance is frozen, we need to use `__setattr__`
+                object.__setattr__(
+                    self,
+                    new,
+                    InstitutionAttrMetadata(
+                        last_edit_ts=0,
+                        confirmation_ts=60,  # value makes it confirmed (& visible on frontend)
+                        confirmation_touchstone_ts=0,
+                    ),
+                )
+            elif getattr(self, legacy) is False:
+                object.__setattr__(
+                    self,
+                    new,
+                    InstitutionAttrMetadata(
+                        last_edit_ts=60,
+                        confirmation_ts=0,  # value makes it not confirmed (& visible on frontend)
+                        confirmation_touchstone_ts=60,
+                    ),
+                )
+            # NOTE: value could also be None
+            object.__setattr__(self, legacy, None)
 
     def compute_last_edits(
         self,
