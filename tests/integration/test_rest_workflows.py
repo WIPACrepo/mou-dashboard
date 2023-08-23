@@ -447,7 +447,7 @@ class TestInstitutionValuesHandler:
                 {"institution": inst, "is_admin": True},
             )
             resp_instval = dacite.from_dict(uut.InstitutionValues, resp)
-            assert resp_instval == uut.InstitutionValues() or (
+            if not (  # is this from the json test data?
                 resp_instval.headcounts_metadata.last_edit_ts
                 <= int(time.time()) - 60 * 60 * 24 * 3  # from test data
                 and resp_instval.headcounts_metadata.confirmation_ts
@@ -460,10 +460,12 @@ class TestInstitutionValuesHandler:
                 <= int(time.time()) - 60 * 60 * 24 * 3  # from test data
                 and resp_instval.computing_metadata.confirmation_ts
                 <= int(time.time()) - 60 * 60 * 24 * 3  # from test data
-            )
-            assert resp_instval.headcounts_metadata.has_valid_confirmation()
-            assert resp_instval.table_metadata.has_valid_confirmation()
-            assert resp_instval.computing_metadata.has_valid_confirmation()
+            ):
+                # if it's not from the json test data, assert everything's confirmed by default
+                assert resp_instval == uut.InstitutionValues()
+                assert resp_instval.headcounts_metadata.has_valid_confirmation()
+                assert resp_instval.table_metadata.has_valid_confirmation()
+                assert resp_instval.computing_metadata.has_valid_confirmation()
             # update local storage
             original_insts[inst] = resp_instval
 
@@ -480,6 +482,16 @@ class TestInstitutionValuesHandler:
                 gpus=random.randint(1, 10) * (i + 1),
                 text=f"{i}'s test text",
             )
+
+            og_table_confirmation_state = dacite.from_dict(
+                uut.InstitutionValues,
+                ds_rc.request_seq(
+                    "GET",
+                    f"/institution/values/{WBS_L1}",
+                    {"institution": inst, "is_admin": True},
+                ),
+            ).table_metadata.has_valid_confirmation()
+
             now = int(time.time())
             resp_instval = dacite.from_dict(
                 uut.InstitutionValues,
@@ -516,7 +528,10 @@ class TestInstitutionValuesHandler:
                 ),
             )
             assert not resp_instval.headcounts_metadata.has_valid_confirmation()
-            assert resp_instval.table_metadata.has_valid_confirmation()
+            assert (
+                og_table_confirmation_state
+                == resp_instval.table_metadata.has_valid_confirmation()
+            )
             assert not resp_instval.computing_metadata.has_valid_confirmation()
             # update local storage
             original_insts[inst] = resp_instval
