@@ -6,6 +6,7 @@ import json
 import logging
 from typing import Any
 
+import universal_utils.constants as uuc
 import universal_utils.types as uut
 from motor.motor_tornado import MotorClient  # type: ignore
 from rest_tools import server
@@ -96,7 +97,7 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
             timestamps = await self.mou_db_client.list_snapshot_timestamps(
                 wbs_l1, exclude_admin_snaps=not is_admin
             )
-            if curr_snap == mou_db.LIVE_COLLECTION:  # aka not a snapshot
+            if curr_snap == uuc.LIVE_COLLECTION:  # aka not a snapshot
                 try:
                     prev_snap = timestamps[-1]
                 except IndexError:
@@ -131,7 +132,7 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
 
         collection = self.get_argument(
             "snapshot",
-            default=mou_db.LIVE_COLLECTION,
+            default=uuc.LIVE_COLLECTION,
             type=str,
             forbiddens=[""],
         )
@@ -459,7 +460,7 @@ class InstitutionValuesHandler(BaseMOUHandler):  # pylint: disable=W0223
         )
         snapshot_timestamp = self.get_argument(
             "snapshot_timestamp",
-            default=mou_db.LIVE_COLLECTION,
+            default=uuc.LIVE_COLLECTION,
             type=str,
         )
 

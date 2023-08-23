@@ -4,6 +4,7 @@
 from typing import Any, Final, TypedDict, cast
 
 import dacite
+import universal_utils.constants as uuc
 import universal_utils.types as uut
 
 from ..data_source.connections import CurrentUser
@@ -241,7 +242,7 @@ def pull_data_table(  # pylint: disable=R0913
     tconfig: tc.TableConfigParser,
     institution: types.DashVal = "",
     with_totals: bool = False,
-    snapshot_ts: types.DashVal = "",
+    snapshot_ts: types.DashVal = uuc.LIVE_COLLECTION,
     restore_id: str = "",
     raw: bool = False,
 ) -> uut.WebTable:
@@ -265,7 +266,9 @@ def pull_data_table(  # pylint: disable=R0913
     institution = _validate(institution, types.DashVal_types, out=str)
     # labor = _validate(labor, types.DashVal_types, out=str)
     _validate(with_totals, bool)
-    snapshot_ts = _validate(snapshot_ts, types.DashVal_types, out=str)
+    if not snapshot_ts:
+        snapshot_ts = uuc.LIVE_COLLECTION
+    snapshot_ts = _validate(snapshot_ts, types.DashVal_types, out=str, falsy_okay=False)
     _validate(restore_id, str)
 
     class _RespTableData(TypedDict):
@@ -441,7 +444,9 @@ def pull_institution_values(
 ) -> uut.InstitutionValues:
     """Get the institution's values."""
     _validate(wbs_l1, str, falsy_okay=False)
-    snapshot_ts = _validate(snapshot_ts, types.DashVal_types, out=str)
+    if not snapshot_ts:
+        snapshot_ts = uuc.LIVE_COLLECTION
+    snapshot_ts = _validate(snapshot_ts, types.DashVal_types, out=str, falsy_okay=False)
     institution = _validate(institution, types.DashVal_types, out=str)
 
     body = {
@@ -449,7 +454,7 @@ def pull_institution_values(
         "snapshot_timestamp": snapshot_ts,
     }
     response = mou_request("GET", f"/institution/values/{wbs_l1}", body=body)
-    return dacite.from_dict(uut.InstitutionValues, response)  # type: ignore[no-any-return] # fixed in future release
+    return dacite.from_dict(uut.InstitutionValues, response)
 
 
 def push_institution_values(  # pylint: disable=R0913
@@ -466,7 +471,7 @@ def push_institution_values(  # pylint: disable=R0913
         f"/institution/values/{wbs_l1}",
         body=inst_dc.restful_dict(institution),  # type: ignore[arg-type]
     )
-    return dacite.from_dict(uut.InstitutionValues, response)  # type: ignore[no-any-return] # fixed in future release
+    return dacite.from_dict(uut.InstitutionValues, response)
 
 
 def confirm_institution_values(
@@ -490,7 +495,7 @@ def confirm_institution_values(
             "computing": computing,
         },
     )
-    return dacite.from_dict(uut.InstitutionValues, response)  # type: ignore[no-any-return] # fixed in future release
+    return dacite.from_dict(uut.InstitutionValues, response)
 
 
 def retouchstone(wbs_l1: str) -> int:

@@ -10,6 +10,7 @@ from typing import cast
 import dacite
 import pandas as pd  # type: ignore[import]
 import pymongo.errors
+import universal_utils.constants as uuc
 import universal_utils.types as uut
 from motor.motor_tornado import MotorClient  # type: ignore
 from tornado import web
@@ -18,8 +19,6 @@ from ..config import EXCLUDE_COLLECTIONS, EXCLUDE_DBS
 from ..utils import types, utils
 from ..utils.mongo_tools import DocumentNotFoundError, Mongofier
 from . import columns
-
-LIVE_COLLECTION = "LIVE_COLLECTION"
 
 
 class MOUDatabaseClient:
@@ -46,7 +45,7 @@ class MOUDatabaseClient:
 
         await self._ingest_new_collection(
             wbs_db,
-            LIVE_COLLECTION,
+            uuc.LIVE_COLLECTION,
             table,
             "",
             creator,
@@ -199,9 +198,9 @@ class MOUDatabaseClient:
 
         now = int(time.time())
 
-        doc = await self._get_supplemental_doc(wbs_db, LIVE_COLLECTION)
+        doc = await self._get_supplemental_doc(wbs_db, uuc.LIVE_COLLECTION)
         doc = dc.replace(doc, confirmation_touchstone_ts=now)
-        await self._set_supplemental_doc(wbs_db, LIVE_COLLECTION, doc)
+        await self._set_supplemental_doc(wbs_db, uuc.LIVE_COLLECTION, doc)
 
         logging.info(f"Re-touchstoned ({wbs_db=}, {now=}).")
         return now
@@ -211,7 +210,7 @@ class MOUDatabaseClient:
         logging.debug(f"Getting touchstone ({wbs_db=})...")
 
         try:
-            doc = await self._get_supplemental_doc(wbs_db, LIVE_COLLECTION)
+            doc = await self._get_supplemental_doc(wbs_db, uuc.LIVE_COLLECTION)
         except DocumentNotFoundError:
             return 0
 
@@ -248,12 +247,14 @@ class MOUDatabaseClient:
         await self._check_database_state(wbs_db)
 
         # update
-        vals = await self.get_institution_values(wbs_db, LIVE_COLLECTION, institution)
+        vals = await self.get_institution_values(
+            wbs_db, uuc.LIVE_COLLECTION, institution
+        )
         vals = vals.confirm(headcounts, table, computing)
 
         # put in DB
         await self._update_institution_values(
-            wbs_db, institution, vals, LIVE_COLLECTION
+            wbs_db, institution, vals, uuc.LIVE_COLLECTION
         )
 
         logging.info(
@@ -281,7 +282,9 @@ class MOUDatabaseClient:
         await self._check_database_state(wbs_db)
 
         # update "last edit"s by diffing
-        before = await self.get_institution_values(wbs_db, LIVE_COLLECTION, institution)
+        before = await self.get_institution_values(
+            wbs_db, uuc.LIVE_COLLECTION, institution
+        )
         vals = before.compute_last_edits(
             phds_authors,
             faculty,
@@ -294,7 +297,7 @@ class MOUDatabaseClient:
 
         # put in DB
         await self._update_institution_values(
-            wbs_db, institution, vals, LIVE_COLLECTION
+            wbs_db, institution, vals, uuc.LIVE_COLLECTION
         )
 
         logging.info(
@@ -335,7 +338,7 @@ class MOUDatabaseClient:
                     f"Creating new institution values ({wbs_db=}, {institution=})..."
                 )
                 await self._update_institution_values(
-                    wbs_db, institution, uut.InstitutionValues(), LIVE_COLLECTION
+                    wbs_db, institution, uut.InstitutionValues(), uuc.LIVE_COLLECTION
                 )
 
     async def _get_institution_values(
@@ -444,7 +447,7 @@ class MOUDatabaseClient:
 
         If collection already exists, replace.
         """
-        if admin_only and snap_coll == LIVE_COLLECTION:
+        if admin_only and snap_coll == uuc.LIVE_COLLECTION:
             raise Exception(
                 f"A Live Collection cannot be admin-only ({wbs_db=} {snap_coll=} {admin_only=})."
             )
@@ -553,7 +556,7 @@ class MOUDatabaseClient:
 
         # prep
         record = self.data_adaptor.mongofy_record(wbs_db, record)
-        coll_obj = self._mongo[wbs_db][LIVE_COLLECTION]
+        coll_obj = self._mongo[wbs_db][uuc.LIVE_COLLECTION]
 
         # if record has an ID -- replace it
         if record.get(columns.ID):
@@ -571,7 +574,7 @@ class MOUDatabaseClient:
         if record[columns.INSTITUTION]:
             instvals = await self.get_institution_values(
                 wbs_db,
-                LIVE_COLLECTION,
+                uuc.LIVE_COLLECTION,
                 record[columns.INSTITUTION],  # type: ignore[arg-type]
             )
             instvals = dc.replace(
@@ -585,7 +588,7 @@ class MOUDatabaseClient:
                 wbs_db,
                 record[columns.INSTITUTION],  # type: ignore[arg-type]
                 instvals,
-                LIVE_COLLECTION,
+                uuc.LIVE_COLLECTION,
             )
 
         return self.data_adaptor.demongofy_record(record), instvals
@@ -598,7 +601,7 @@ class MOUDatabaseClient:
             wbs_db,
             {columns.ID: record_id},
         )
-        record: uut.DBRecord = await self._mongo[wbs_db][LIVE_COLLECTION].find_one(
+        record: uut.DBRecord = await self._mongo[wbs_db][uuc.LIVE_COLLECTION].find_one(
             query
         )
 
@@ -630,8 +633,8 @@ class MOUDatabaseClient:
 
         await self._check_database_state(wbs_db)
 
-        table = await self.get_table(wbs_db, LIVE_COLLECTION, "", "")
-        supplemental_doc = await self._get_supplemental_doc(wbs_db, LIVE_COLLECTION)
+        table = await self.get_table(wbs_db, uuc.LIVE_COLLECTION, "", "")
+        supplemental_doc = await self._get_supplemental_doc(wbs_db, uuc.LIVE_COLLECTION)
 
         snap_coll = str(time.time())
         await self._ingest_new_collection(
@@ -657,14 +660,16 @@ class MOUDatabaseClient:
     ) -> list[str]:
         """Return a list of the snapshot collections.
 
-        NOTE: does not return LIVE_COLLECTION
+        NOTE: does not return uuc.LIVE_COLLECTION
         """
         logging.info(f"Getting Snapshot Timestamps ({wbs_db=})...")
 
         await self._check_database_state(wbs_db)
 
         snapshots = [
-            c for c in await self._list_collection_names(wbs_db) if c != LIVE_COLLECTION
+            c
+            for c in await self._list_collection_names(wbs_db)
+            if c != uuc.LIVE_COLLECTION
         ]
         snapshots.sort(reverse=True)
 
