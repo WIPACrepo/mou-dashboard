@@ -243,7 +243,7 @@ class TestDataSource:
                 "institution": "",
                 # "labor": "",
                 "total_rows": False,
-                "snapshot": "",
+                "snapshot": "LIVE_COLLECTION",
                 "restore_id": "",
                 "is_admin": True,
             },
