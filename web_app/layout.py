@@ -50,22 +50,13 @@ def layout() -> None:
                         className="logo-container",
                         children=[
                             dbc.Col(
-                                dcc.Link(
-                                    href="/mo",
-                                    refresh=True,  # otherwise won't hit checks
-                                    children=html.Img(
-                                        src="/assets/mou_dash.png",
-                                        alt="MOU Dashboard",
-                                        width="300rem",
-                                    ),
+                                html.Img(
+                                    id="mou-logo",
+                                    src="/assets/mou_dash_mo.png",
+                                    alt="MOU Dashboard",
+                                    # width="600em",
+                                    height="30em",
                                 ),
-                            ),
-                            dbc.Col(
-                                html.Label(
-                                    "– IceCube",
-                                    id="mou-title",
-                                    className="logo-mou-current",
-                                )
                             ),
                         ],
                     ),
@@ -227,18 +218,20 @@ def toggle_navbar_collapse(n_clicks: int, is_open: bool) -> tuple[bool, str, boo
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("mou-title", "children"),
+        Output("mou-logo", "src"),
         Output("nav-link-mo", "active"),
         Output("nav-link-upgrade", "active"),
     ],
-    Input("mou-title", "hidden"),  # dummy input
+    Input("mou-logo", "hidden"),  # dummy input
     [State("url", "pathname")],
 )
-def load_nav_title(_: bool, s_urlpath: str) -> tuple[str, bool, bool]:
-    """Load the title for the current mou/wbs-l1."""
+def load_nav_logo(_: bool, s_urlpath: str) -> tuple[str, bool, bool]:
+    """Load the title logo for the current mou/wbs-l1."""
     wbs_l1 = du.get_wbs_l1(s_urlpath)
 
-    titles = {"mo": "IceCube M&O", "upgrade": "IceCube Upgrade"}
-    title = f"– {titles.get(wbs_l1, '')}"  # that's an en-dash
+    logo = {
+        "mo": "/assets/mou_dash_mo.png",
+        "upgrade": "/assets/mou_dash_upgrade.png",
+    }.get(wbs_l1, "")
 
-    return title, wbs_l1 == "mo", wbs_l1 == "upgrade"
+    return logo, wbs_l1 == "mo", wbs_l1 == "upgrade"

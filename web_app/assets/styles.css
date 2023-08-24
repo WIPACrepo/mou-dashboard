@@ -144,7 +144,7 @@ code {
 
 .logo-container {
     padding-top: 0.25rem;
-    padding-left: 2rem;
+    padding-left: 1rem;
 }
 
 .logo-mou-current {
@@ -177,14 +177,16 @@ code {
     color: silver !important;
     text-decoration: none;
     letter-spacing: .05em;
+    padding-left: 0rem; /* 0 because for lining up in collapsed menu */
+    padding-right: 1.5rem;
 }
 
 .hover-bold:hover {
-    color: #17a2b8 !important;
+    color: #258835 !important;
     cursor: pointer;
     /* faux-bold -- don't shift when hovered */
     /* https://www.sitepoint.com/quick-tip-fixing-font-weight-problem-hover-states/ */
-    text-shadow: 0 0 .04em #17a2b8, 0 0 .04em #17a2b8;
+    text-shadow: 0 0 .04em #258835, 0 0 .04em #258835;
 }
 
 .active {
@@ -196,7 +198,7 @@ code {
 .navbar-uncollapsed {
     position: absolute;
     right: 0px;
-    margin-top: 1.25rem;
+    margin-top: 1.5rem;
     margin-right: 1rem;
 }
 
@@ -207,15 +209,17 @@ code {
 .log-inout {
     letter-spacing: .05em;
     /* use text shadow instead of bold, b/c .hover-bold:hover */
-    text-shadow: 0 0 .04em #258835, 0 0 .04em #258835;
-    color: #258835;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    text-shadow: 0 0 .04em #17a2b8, 0 0 .04em #17a2b8;
+    color: #17a2b8;
+    padding-left: 0rem; /* 0 because for lining up in collapsed menu */
+    padding-right: 0rem;
+    text-decoration: none;
+    font-style: italic;
 }
 
 .nav-seperator {
     padding-left: 1rem;
-    padding-right: 1rem;
+    padding-right: 2rem;
     color: silver !important;
 }
 
@@ -223,12 +227,14 @@ code {
     letter-spacing: .05em;
     color: silver !important;
     font-style: italic;
-    padding-left: 1rem;
+    padding-left: 0rem; /* 0 because for lining up in collapsed menu */
     padding-right: 1rem;
 }
 
 .tab-link {
     padding: 0 !important;
+    padding-left: 1rem;
+    padding-right: 1rem;
     background-color: black !important;
     color: #aaaaaa !important;
     border: 0 !important;
