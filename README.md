@@ -51,9 +51,21 @@ A dashboard for managing & reporting MOU tasks
 docker run --network="host" --rm -i --name mou-web \
     --env CI_TEST=true \
     --env DEBUG=yes \
-    --env OIDC_CLIENT_SECRETS=oidc-secret.json \
+    --env OIDC_CLIENT_SECRETS=resources/dummy_client_secrets_for_web_app.json \
     moudash:local \
     python -m web_app
+```
+
+#### 4a. Launch from Source
+This is most useful for debugging and editing CSS live, since it requires no docker rebuilding.
+```
+<create virtual environment>
+pip install .
+pip uninstall UNKNOWN  # this uninstalls the mou source code so it can be ran/changed live
+export CI_TEST=true
+export DEBUG=yes
+export OIDC_CLIENT_SECRETS=resources/dummy_client_secrets_for_web_app.json
+python -m web_app
 ```
 
 ### 5. View Webpage
