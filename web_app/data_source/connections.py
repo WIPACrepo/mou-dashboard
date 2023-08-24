@@ -139,7 +139,7 @@ class CurrentUser:
     def _get_info() -> UserInfo:
         """Query OIDC."""
         if ENV.CI_TEST:
-            return UserInfo("Hank", ["/tokens/mou-dashboard-admin"], "XYZ")
+            return UserInfo("sohtani", ["/tokens/mou-dashboard-admin"], "XYZ")
 
         return CurrentUser._cached_get_info(flask.session["oidc_csrf_token"])
 

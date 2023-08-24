@@ -18,7 +18,7 @@ def layout() -> None:
     """Serve the layout to `app`."""
     app.title = "MOU Dashboard"
     if ENV.CI_TEST:
-        app.title += " -- Test"
+        app.title = "Test -- MOU Dashboard"
 
     # Layout
     app.layout = html.Div(
