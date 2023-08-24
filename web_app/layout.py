@@ -7,7 +7,7 @@ import visdcc  # type: ignore[import]
 from dash import dcc, html, no_update  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore
 
-from .config import AUTO_RELOAD_MINS, REDIRECT_WBS, app
+from .config import AUTO_RELOAD_MINS, ENV, REDIRECT_WBS, app
 from .contents import wbs_generic_layout
 from .data_source.connections import CurrentUser
 from .utils import dash_utils as du
@@ -17,6 +17,8 @@ from .utils import utils
 def layout() -> None:
     """Serve the layout to `app`."""
     app.title = "MOU Dashboard"
+    if ENV.CI_TEST:
+        app.title += " -- Test"
 
     # Layout
     app.layout = html.Div(
