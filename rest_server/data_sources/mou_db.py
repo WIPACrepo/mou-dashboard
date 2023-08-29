@@ -12,7 +12,7 @@ import pandas as pd  # type: ignore[import]
 import pymongo.errors
 import universal_utils.constants as uuc
 import universal_utils.types as uut
-from motor.motor_tornado import MotorClient  # type: ignore
+from motor.motor_tornado import MotorClient
 from tornado import web
 
 from ..config import EXCLUDE_COLLECTIONS, EXCLUDE_DBS
@@ -25,7 +25,7 @@ class MOUDatabaseClient:
     """MotorClient with additional guardrails for MOU things."""
 
     def __init__(
-        self, motor_client: MotorClient, data_adaptor: utils.MOUDataAdaptor
+        self, motor_client: MotorClient, data_adaptor: utils.MOUDataAdaptor  # type: ignore[valid-type]
     ) -> None:
         self.data_adaptor = data_adaptor
         self._mongo = motor_client
@@ -164,14 +164,14 @@ class MOUDatabaseClient:
     async def _list_database_names(self) -> list[str]:
         """Return all databases' names."""
         return [
-            n for n in await self._mongo.list_database_names() if n not in EXCLUDE_DBS
+            n for n in await self._mongo.list_database_names() if n not in EXCLUDE_DBS  # type: ignore[attr-defined]
         ]
 
     async def _list_collection_names(self, db: str) -> list[str]:
         """Return collection names in database."""
         return [
             n
-            for n in await self._mongo[db].list_collection_names()
+            for n in await self._mongo[db].list_collection_names()  # type: ignore[index]
             if n not in EXCLUDE_COLLECTIONS
         ]
 
@@ -364,7 +364,7 @@ class MOUDatabaseClient:
     async def _get_supplemental_doc(
         self, wbs_db: str, snap_coll: str
     ) -> types.SupplementalDoc:
-        doc = await self._mongo[f"{wbs_db}-supplemental"][snap_coll].find_one()
+        doc = await self._mongo[f"{wbs_db}-supplemental"][snap_coll].find_one()  # type: ignore[index]
         if not doc:
             raise DocumentNotFoundError(
                 f"No Supplemental document found for {snap_coll=}."
@@ -393,7 +393,7 @@ class MOUDatabaseClient:
                 reason=f"Tried to set erroneous supplemental document: {snap_coll=}, {doc=}",
             )
 
-        coll_obj = self._mongo[f"{wbs_db}-supplemental"][snap_coll]
+        coll_obj = self._mongo[f"{wbs_db}-supplemental"][snap_coll]  # type: ignore[index]
         await coll_obj.replace_one(
             {"timestamp": doc.timestamp}, dc.asdict(doc), upsert=True
         )
@@ -411,7 +411,7 @@ class MOUDatabaseClient:
         logging.debug(f"Creating Supplemental DB/Document ({wbs_db=}, {snap_coll=})...")
 
         # drop the collection if it already exists
-        await self._mongo[f"{wbs_db}-supplemental"].drop_collection(snap_coll)
+        await self._mongo[f"{wbs_db}-supplemental"].drop_collection(snap_coll)  # type: ignore[index]
 
         # populate the singleton document
         await self._set_supplemental_doc(
@@ -455,7 +455,7 @@ class MOUDatabaseClient:
         if admin_only:
             name = f"{name} (admin-only)"
 
-        db_obj = self._mongo[wbs_db]
+        db_obj = self._mongo[wbs_db]  # type: ignore[index]
 
         # drop the collection if it already exists
         await db_obj.drop_collection(snap_coll)
@@ -481,7 +481,7 @@ class MOUDatabaseClient:
 
     async def _ensure_collection_indexes(self, wbs_db: str, snap_coll: str) -> None:
         """Create indexes in collection."""
-        coll_obj = self._mongo[wbs_db][snap_coll]
+        coll_obj = self._mongo[wbs_db][snap_coll]  # type: ignore[index]
 
         _inst = Mongofier.mongofy_key_name(columns.INSTITUTION)
         await coll_obj.create_index(_inst, name=f"{_inst}_index", unique=False)
@@ -523,7 +523,7 @@ class MOUDatabaseClient:
         # build demongofied table
         table: uut.DBTable = []
         i, dels = 0, 0
-        async for record in self._mongo[wbs_db][snap_coll].find(query):
+        async for record in self._mongo[wbs_db][snap_coll].find(query):  # type: ignore[index]
             if record.get(self.data_adaptor.IS_DELETED):
                 dels += 1
                 continue
@@ -556,7 +556,7 @@ class MOUDatabaseClient:
 
         # prep
         record = self.data_adaptor.mongofy_record(wbs_db, record)
-        coll_obj = self._mongo[wbs_db][uuc.LIVE_COLLECTION]
+        coll_obj = self._mongo[wbs_db][uuc.LIVE_COLLECTION]  # type: ignore[index]
 
         # if record has an ID -- replace it
         if record.get(columns.ID):
@@ -601,7 +601,7 @@ class MOUDatabaseClient:
             wbs_db,
             {columns.ID: record_id},
         )
-        record: uut.DBRecord = await self._mongo[wbs_db][uuc.LIVE_COLLECTION].find_one(
+        record: uut.DBRecord = await self._mongo[wbs_db][uuc.LIVE_COLLECTION].find_one(  # type: ignore[index]
             query
         )
 
