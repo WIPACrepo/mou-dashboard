@@ -148,7 +148,10 @@ class TableConfigCache:
                 sort_value=25,
                 options=sorted(_TASK_CATEGORY_DICTIONARY.keys()),
                 tooltip="Task category",
-                mandatory=True,
+                # TODO: remove when task category is enabled in future release
+                mandatory=False,  # make True?
+                non_editable=True,
+                hidden=True,
             ),
             columns.TASK_DESCRIPTION: _ColumnConfig(
                 width=200,
