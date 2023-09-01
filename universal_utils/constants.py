@@ -1,0 +1,3 @@
+"""Constants."""
+
+LIVE_COLLECTION = "LIVE_COLLECTION"

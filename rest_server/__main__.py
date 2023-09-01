@@ -1,23 +1,22 @@
-"""Root python script for MoU REST API server interface."""
+"""Root python script for MOU REST API server interface."""
 
 
 import argparse
 import asyncio
+import dataclasses as dc
 import json
 import logging
-from typing import Any, Dict, List
 from urllib.parse import quote_plus
 
 import coloredlogs  # type: ignore[import]
+from rest_tools.server import RestHandlerSetup, RestServer
 
-# local imports
-from rest_tools.server import RestHandlerSetup, RestServer  # type: ignore
-from wipac_dev_tools import from_environment  # type: ignore[import]
-
-from . import config
+from .config import ENV
 from .data_sources import table_config_cache, todays_institutions
 from .routes import (
     InstitutionStaticHandler,
+    InstitutionValuesConfirmationHandler,
+    InstitutionValuesConfirmationTouchstoneHandler,
     InstitutionValuesHandler,
     MainHandler,
     MakeSnapshotHandler,
@@ -30,27 +29,29 @@ from .routes import (
 
 async def start(debug: bool = False) -> RestServer:
     """Start a Mad Dash REST service."""
-    config_env = from_environment(config.DEFAULT_ENV_CONFIG)
-    config.log_environment(config_env)
+    for field in dc.fields(ENV):
+        logging.info(
+            f"{field.name}\t{getattr(ENV, field.name)}\t({type(getattr(ENV, field.name)).__name__})"
+        )
 
-    mongodb_auth_user = quote_plus(config_env["MOU_MONGODB_AUTH_USER"])  # type: ignore
-    mongodb_auth_pass = quote_plus(config_env["MOU_MONGODB_AUTH_PASS"])  # type: ignore
-    mongodb_host = config_env["MOU_MONGODB_HOST"]  # type: ignore
-    mongodb_port = int(config_env["MOU_MONGODB_PORT"])
-
-    rhs_config: Dict[str, Any] = {"debug": debug}
-    if config_env["AUTH_OPENID_URL"]:
-        rhs_config["auth"] = {
-            "audience": config_env["AUTH_AUDIENCE"],
-            "openid_url": config_env["AUTH_OPENID_URL"],
+    args = RestHandlerSetup(  # type: ignore[no-untyped-call]
+        {
+            "auth": {
+                "secret": ENV.MOU_AUTH_SECRET,
+                "issuer": ENV.MOU_AUTH_ISSUER,
+                "algorithm": ENV.MOU_AUTH_ALGORITHM,
+            },
+            "debug": debug,
         }
-    args = RestHandlerSetup(rhs_config)
+    )
     args["tc_cache"] = await table_config_cache.TableConfigCache.create()
 
     # Setup DB URL
-    mongodb_url = f"mongodb://{mongodb_host}:{mongodb_port}"
+    mongodb_auth_user = quote_plus(ENV.MOU_MONGODB_AUTH_USER)
+    mongodb_auth_pass = quote_plus(ENV.MOU_MONGODB_AUTH_PASS)
+    mongodb_url = f"mongodb://{ENV.MOU_MONGODB_HOST}:{ENV.MOU_MONGODB_PORT}"
     if mongodb_auth_user and mongodb_auth_pass:
-        mongodb_url = f"mongodb://{mongodb_auth_user}:{mongodb_auth_pass}@{mongodb_host}:{mongodb_port}"
+        mongodb_url = f"mongodb://{mongodb_auth_user}:{mongodb_auth_pass}@{ENV.MOU_MONGODB_HOST}:{ENV.MOU_MONGODB_PORT}"
     args["mongodb_url"] = mongodb_url
 
     # Configure REST Routes
@@ -61,28 +62,39 @@ async def start(debug: bool = False) -> RestServer:
     server.add_route(MakeSnapshotHandler.ROUTE, MakeSnapshotHandler, args)  # post
     server.add_route(RecordHandler.ROUTE, RecordHandler, args)  # post, delete
     server.add_route(TableConfigHandler.ROUTE, TableConfigHandler, args)  # get
+    server.add_route(  # post, get
+        InstitutionValuesConfirmationTouchstoneHandler.ROUTE,
+        InstitutionValuesConfirmationTouchstoneHandler,
+        args,
+    )
+    server.add_route(  # post
+        InstitutionValuesConfirmationHandler.ROUTE,
+        InstitutionValuesConfirmationHandler,
+        args,
+    )
     server.add_route(  # get, post
-        InstitutionValuesHandler.ROUTE, InstitutionValuesHandler, args
+        InstitutionValuesHandler.ROUTE,
+        InstitutionValuesHandler,
+        args,
     )
     server.add_route(  # get
-        InstitutionStaticHandler.ROUTE, InstitutionStaticHandler, args
+        InstitutionStaticHandler.ROUTE,
+        InstitutionStaticHandler,
+        args,
     )
 
-    server.startup(
-        address=config_env["MOU_REST_HOST"], port=int(config_env["MOU_REST_PORT"])
-    )
+    server.startup(address=ENV.MOU_REST_HOST, port=ENV.MOU_REST_PORT)
     return server
 
 
 def main() -> None:
-    """Configure logging and start a MoU data service."""
+    """Configure logging and start a MOU data service."""
     loop = asyncio.get_event_loop()
     loop.run_until_complete(start(debug=True))
     loop.run_forever()
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
     parser.add_argument(
@@ -102,7 +114,7 @@ if __name__ == "__main__":
         with open(_args.override_krs_insts) as f:
             json_insts = json.load(f)
 
-        async def _overridden_krs() -> List[todays_institutions.Institution]:
+        async def _overridden_krs() -> list[todays_institutions.Institution]:
             return todays_institutions.convert_krs_institutions(json_insts)
 
         todays_institutions.request_krs_institutions = _overridden_krs

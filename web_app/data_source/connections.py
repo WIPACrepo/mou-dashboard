@@ -2,20 +2,20 @@
 
 
 import copy
-import re
-from dataclasses import dataclass
 import json
 import logging
-from typing import Any, Dict, Final, List, Optional, cast
+import re
+from dataclasses import dataclass
+from typing import Any, Final, cast
 
-import cachetools.func  # type: ignore[import]
-import flask  # type: ignore[import]
+import cachetools.func
+import flask
 import requests
 
 # local imports
-from rest_tools.client import RestClient, OpenIDRestClient  # type: ignore
+from rest_tools.client import ClientCredentialsAuth, RestClient
 
-from ..config import MAX_CACHE_MINS, get_config_vars, oidc
+from ..config import ENV, MAX_CACHE_MINS, oidc
 
 
 class DataSourceException(Exception):
@@ -24,24 +24,17 @@ class DataSourceException(Exception):
 
 def _rest_connection() -> RestClient:
     """Return REST Client connection object."""
-    config_vars = get_config_vars()
-
-    if config_vars["CI_TEST_ENV"]:
+    if ENV.CI_TEST:
         logging.warning("CI TEST ENV - no auth to REST API")
-        rc = RestClient(
-            config_vars["REST_SERVER_URL"],
-            timeout=5,
-            retries=0
-        )
+        rc = RestClient(ENV.REST_SERVER_URL, timeout=5, retries=0)
     else:
-        oidc_client = json.load(open(config_vars["OIDC_CLIENT_SECRETS"])).get("web", {})
-        rc = OpenIDRestClient(
-            config_vars["REST_SERVER_URL"],
+        with open(ENV.OIDC_CLIENT_SECRETS) as f:
+            oidc_client = json.load(f).get("web", {})
+        rc = ClientCredentialsAuth(
+            ENV.REST_SERVER_URL,
             token_url=oidc_client.get("issuer"),
             client_id=oidc_client.get("client_id"),
             client_secret=oidc_client.get("client_secret"),
-            timeout=20,
-            retries=1
         )
 
     return rc
@@ -60,13 +53,13 @@ def _get_log_body(method: str, url: str, body: Any) -> str:
     return str(log_body)
 
 
-def mou_request(method: str, url: str, body: Any = None) -> Dict[str, Any]:
+def mou_request(method: str, url: str, body: Any = None) -> dict[str, Any]:
     """Make a request to the MoU REST server."""
     log_body = _get_log_body(method, url, body)
     logging.info(f"REQUEST :: {method} @ {url}, body: {log_body}")
 
     try:
-        response: Dict[str, Any] = _rest_connection().request_seq(method, url, body)
+        response: dict[str, Any] = _rest_connection().request_seq(method, url, body)
     except requests.exceptions.HTTPError as e:
         logging.exception(f"EXCEPTED: {e}")
         raise DataSourceException(str(e))
@@ -103,16 +96,16 @@ class Institution:
     institution_lead_uid: str
 
 
-@cachetools.func.ttl_cache(ttl=MAX_CACHE_MINS * 60)  # type: ignore[misc]
-def _cached_get_institutions_infos() -> Dict[str, Institution]:
+@cachetools.func.ttl_cache(ttl=MAX_CACHE_MINS * 60)
+def _cached_get_institutions_infos() -> dict[str, Institution]:
     logging.warning("Cache Miss: _cached_get_institutions_infos()")
-    resp = cast(Dict[str, Dict[str, Any]], mou_request("GET", "/institution/today"))
+    resp = cast(dict[str, dict[str, Any]], mou_request("GET", "/institution/today"))
     return {k: Institution(**v) for k, v in resp.items()}
 
 
-def get_institutions_infos() -> Dict[str, Institution]:
+def get_institutions_infos() -> dict[str, Institution]:
     """Get a dict of all institutions with their info."""
-    return cast(Dict[str, Institution], _cached_get_institutions_infos())
+    return _cached_get_institutions_infos()
 
 
 #
@@ -125,7 +118,7 @@ class UserInfo:
     """Hold user data."""
 
     preferred_username: str
-    groups: List[str]
+    groups: list[str]
     access_token: str
 
 
@@ -133,24 +126,27 @@ class CurrentUser:
     """Wrap oidc's user info requests."""
 
     @staticmethod
-    @cachetools.func.ttl_cache(ttl=((5 * 60) - 1))  # type: ignore[misc] # access token has 5m lifetime
+    @cachetools.func.ttl_cache(ttl=((5 * 60) - 1))  # access token has 5m lifetime
     def _cached_get_info(oidc_csrf_token: str) -> UserInfo:
         """Cache is keyed by the oidc session token."""
         # pylint:disable=unused-argument
         logging.warning(f"Cache Miss: CurrentUser._cached_get_info({oidc_csrf_token=})")
-        resp: Dict[str, Any] = oidc.user_getinfo(["preferred_username", "groups"])
+        resp: dict[str, Any] = oidc.user_getinfo(["preferred_username", "groups"])
         resp["access_token"] = oidc.get_access_token()
         return UserInfo(**resp)
 
     @staticmethod
     def _get_info() -> UserInfo:
         """Query OIDC."""
-        return cast(
-            UserInfo, CurrentUser._cached_get_info(flask.session["oidc_csrf_token"])
-        )
+        if ENV.CI_TEST:
+            return UserInfo(
+                "arnold.schwarzenegger", ["/tokens/mou-dashboard-admin"], "XYZ"
+            )
+
+        return CurrentUser._cached_get_info(flask.session["oidc_csrf_token"])
 
     @staticmethod
-    def get_summary() -> Optional[Dict[str, Any]]:
+    def get_summary() -> None | dict[str, Any]:
         """Query OIDC."""
         if not CurrentUser.is_loggedin():
             return None
@@ -167,6 +163,8 @@ class CurrentUser:
     @staticmethod
     def is_loggedin() -> bool:
         """Is the user logged-in?"""
+        if ENV.CI_TEST:
+            return True
         return bool(oidc.user_loggedin)
 
     @staticmethod
@@ -197,8 +195,10 @@ class CurrentUser:
         return CurrentUser._get_info().preferred_username
 
     @staticmethod
-    def get_institutions() -> List[str]:
+    def get_institutions() -> list[str]:
         """Get the user's editable institutions."""
+
+        # NOTE: an institution admin is not a dashboard admin
 
         # Ex: /institutions/IceCube/UW-Madison/mou-dashboard-editor
         # Ex: /institutions/IceCube/UW-Madison/_admin

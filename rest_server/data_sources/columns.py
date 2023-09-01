@@ -1,4 +1,4 @@
-"""The MoU Table column names."""
+"""The MOU Table column names."""
 
 ID = "_id"
 WBS_L2 = "WBS L2"
@@ -7,6 +7,7 @@ LABOR_CAT = "Labor Cat."
 US_NON_US = "US / Non-US"
 INSTITUTION = "Institution"
 NAME = "Name"
+TASK = "Task"
 TASK_DESCRIPTION = "Task Description"
 SOURCE_OF_FUNDS_US_ONLY = "Source of Funds (U.S. Only)"
 FTE = "FTE"

@@ -1,16 +1,13 @@
 """Layout root and high-level callbacks."""
 
 import logging
-from typing import Tuple
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
-import dash_core_components as dcc  # type: ignore
-import dash_html_components as html  # type: ignore
 import visdcc  # type: ignore[import]
-from dash import no_update  # type: ignore[import]
+from dash import dcc, html, no_update  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore
 
-from .config import AUTO_RELOAD_MINS, REDIRECT_WBS, app
+from .config import AUTO_RELOAD_MINS, ENV, REDIRECT_WBS, app
 from .contents import wbs_generic_layout
 from .data_source.connections import CurrentUser
 from .utils import dash_utils as du
@@ -19,13 +16,16 @@ from .utils import utils
 
 def layout() -> None:
     """Serve the layout to `app`."""
-    app.title = "MoU Dashboard"
+    app.title = "MOU Dashboard"
+    if ENV.CI_TEST:
+        app.title = "Test -- MOU Dashboard"
 
     # Layout
     app.layout = html.Div(
         children=[
             dcc.Interval(
-                id="interval", interval=AUTO_RELOAD_MINS * 60 * 1000  # milliseconds
+                id="interval-page-reload",
+                interval=AUTO_RELOAD_MINS * 60 * 1000,  # milliseconds
             ),
             #
             # To change URLs without necessarily refreshing
@@ -33,11 +33,12 @@ def layout() -> None:
             dcc.Location(id="url-user-inst-redirect"),
             dcc.Location(id="url-404-redirect"),
             #
-            # JS calls for refreshing page
-            visdcc.Run_js("refresh-for-snapshot-make"),  # pylint: disable=E1101
-            visdcc.Run_js("refresh-for-override-success"),  # pylint: disable=E1101
-            visdcc.Run_js("refresh-for-snapshot-change"),  # pylint: disable=E1101
-            visdcc.Run_js("refresh-for-interval"),  # pylint: disable=E1101
+            # JS calls for reloading page
+            visdcc.Run_js("reload-for-snapshot-make"),  # pylint: disable=E1101
+            visdcc.Run_js("reload-for-override-success"),  # pylint: disable=E1101
+            visdcc.Run_js("reload-for-snapshot-change"),  # pylint: disable=E1101
+            visdcc.Run_js("reload-for-interval"),  # pylint: disable=E1101
+            visdcc.Run_js("reload-for-retouchstone"),  # pylint: disable=E1101
             #
             # Logo, Tabs, & Login
             dbc.Navbar(
@@ -48,13 +49,14 @@ def layout() -> None:
                     dbc.Row(
                         className="logo-container",
                         children=[
-                            html.Label("MoU", className="logo-mou"),
-                            html.Label("Dash", className="logo-dashboard logo-dash"),
-                            html.Label("board", className="logo-dashboard logo-board"),
-                            html.Label(
-                                "– IceCube MoUs",
-                                id="mou-title",
-                                className="logo-mou-current",
+                            dbc.Col(
+                                html.Img(
+                                    id="mou-logo",
+                                    src="/assets/mou_dash_mo.png",
+                                    alt="MOU Dashboard",
+                                    # width="600em",
+                                    height="30em",
+                                ),
                             ),
                         ],
                     ),
@@ -78,6 +80,12 @@ def layout() -> None:
                                 href="/upgrade",
                                 external_link=True,
                                 className="hover-bold",
+                            ),
+                            html.A(
+                                "User Guide PDF",
+                                download="MOU_Dashboard_Getting_Started.pdf",
+                                href="/assets/MOU_Dashboard_Getting_Started.pdf",
+                                className="hover-bold nav-link",
                             ),
                             html.Div(
                                 id="nav-seperator",
@@ -118,11 +126,11 @@ def layout() -> None:
 
 
 @app.callback(  # type: ignore[misc]
-    Output("refresh-for-interval", "run"),
-    Input("interval", "n_intervals"),  # dummy input
+    Output("reload-for-interval", "run"),
+    Input("interval-page-reload", "n_intervals"),  # dummy input
     prevent_initial_call=True,
 )
-def interval(_: int) -> str:
+def interval_page_reload(_: int) -> str:
     """Automatically refresh/reload page on interval.
 
     This will help re-check for login credentials in case of an expired
@@ -130,7 +138,7 @@ def interval(_: int) -> str:
     need to log in again.
     """
     logging.critical(
-        f"'{du.triggered()}' -> interval() {AUTO_RELOAD_MINS=} {CurrentUser.get_summary()=}"
+        f"'{du.triggered()}' -> interval_page_reload() {AUTO_RELOAD_MINS=} {CurrentUser.get_summary()=}"
     )
     return du.RELOAD
 
@@ -141,10 +149,10 @@ def interval(_: int) -> str:
         Output("tab-content", "hidden"),  # update to call view_live_table()
         Output("logged-in-user", "children"),
     ],
-    [Input("url-404-redirect", "refresh")],  # never triggered
+    [Input("url-404-redirect", "refresh")],  # `refresh` is never triggered
     [State("url", "pathname")],
 )
-def main_redirect(_: bool, s_urlpath: str) -> Tuple[str, bool, str]:
+def main_redirect(_: bool, s_urlpath: str) -> tuple[str, bool, str]:
     """Redirect the url for any reason."""
     logging.critical(
         f"'{du.triggered()}' -> main_redirect() {CurrentUser.get_summary()=}"
@@ -152,10 +160,12 @@ def main_redirect(_: bool, s_urlpath: str) -> Tuple[str, bool, str]:
 
     # is the user logged-in?
     if not CurrentUser.is_loggedin():
+        logging.warning("Redirecting to '/login' ...")
         return "login", True, ""
 
     # does the user have permissions?
     if not CurrentUser.is_loggedin_with_permissions():
+        logging.warning("Redirecting to '/invalid-permissions' ...")
         return "invalid-permissions", True, ""
 
     if CurrentUser.is_admin():
@@ -172,13 +182,16 @@ def main_redirect(_: bool, s_urlpath: str) -> Tuple[str, bool, str]:
             root = du.get_wbs_l1(s_urlpath)
         # redirect
         if CurrentUser.is_admin():
-            return root, False, user_label
+            url = root
         else:
-            return f"{root}/{CurrentUser.get_institutions()[0]}", False, user_label
+            url = f"{root}/{CurrentUser.get_institutions()[0]}"
+        logging.warning(f"Redirecting to '/{url}' ...")
+        return url, False, user_label
 
     # is this a known page?
     if du.root_is_not_wbs(s_urlpath):
-        logging.error(f"User viewing {s_urlpath=}. Redirecting to '{REDIRECT_WBS}'...")
+        logging.error(f"User viewing {s_urlpath=}")
+        logging.warning(f"Redirecting to '/{REDIRECT_WBS}' ...")
         return REDIRECT_WBS, False, user_label
 
     return no_update, False, user_label
@@ -193,7 +206,7 @@ def main_redirect(_: bool, s_urlpath: str) -> Tuple[str, bool, str]:
     [Input("navbar-toggler", "n_clicks")],
     [State("navbar-collapse", "is_open")],
 )
-def toggle_navbar_collapse(n_clicks: int, is_open: bool) -> Tuple[bool, str, bool]:
+def toggle_navbar_collapse(n_clicks: int, is_open: bool) -> tuple[bool, str, bool]:
     """Toggle the navbar collapse on small screens.
 
     https://dash-bootstrap-components.opensource.faculty.ai/docs/components/navbar/#
@@ -205,18 +218,20 @@ def toggle_navbar_collapse(n_clicks: int, is_open: bool) -> Tuple[bool, str, boo
 
 @app.callback(  # type: ignore[misc]
     [
-        Output("mou-title", "children"),
+        Output("mou-logo", "src"),
         Output("nav-link-mo", "active"),
         Output("nav-link-upgrade", "active"),
     ],
-    Input("mou-title", "hidden"),  # dummy input
+    Input("mou-logo", "hidden"),  # dummy input
     [State("url", "pathname")],
 )
-def load_nav_title(_: bool, s_urlpath: str) -> Tuple[str, bool, bool]:
-    """Load the title for the current mou/wbs-l1."""
+def load_nav_logo(_: bool, s_urlpath: str) -> tuple[str, bool, bool]:
+    """Load the title logo for the current mou/wbs-l1."""
     wbs_l1 = du.get_wbs_l1(s_urlpath)
 
-    titles = {"mo": "IceCube M&O", "upgrade": "IceCube Upgrade"}
-    title = f"– {titles.get(wbs_l1, '')}"  # that's an en-dash
+    logo = {
+        "mo": "/assets/mou_dash_mo.png",
+        "upgrade": "/assets/mou_dash_upgrade.png",
+    }.get(wbs_l1, "")
 
-    return title, wbs_l1 == "mo", wbs_l1 == "upgrade"
+    return logo, wbs_l1 == "mo", wbs_l1 == "upgrade"

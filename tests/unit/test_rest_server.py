@@ -5,42 +5,32 @@
 
 import copy
 import pprint
-import sys
 import time
 from decimal import Decimal
-from typing import Any, Final, List
+from typing import Any, Final
 from unittest.mock import ANY, AsyncMock, Mock, patch, sentinel
 
 import nest_asyncio  # type: ignore[import]
 import pytest
-from bson.objectid import ObjectId  # type: ignore[import]
+import universal_utils.types as uut
+from bson.objectid import ObjectId
+from rest_server import config
+from rest_server.data_sources import columns, mou_db
+from rest_server.data_sources import table_config_cache as tcc
+from rest_server.utils import mongo_tools, utils
 
 from .. import institution_list
 from . import data
-
-sys.path.append(".")
-from rest_server.utils import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
-    utils,
-    types,
-    mongo_tools,
-)
-from rest_server.data_sources import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
-    mou_db,
-    table_config_cache as tcc,
-    columns,
-)
-from rest_server import config  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
-
 
 nest_asyncio.apply()  # allows nested event loops
 
 
 KRS_INSTS: Final = "krs.institutions.list_insts_flat"
 KRS_TOKEN: Final = "krs.token.get_rest_client"
-MOU_DB_CLIENT: Final = "rest_server.data_sources.mou_db.MoUDatabaseClient"
+MOU_DB_CLIENT: Final = "rest_server.data_sources.mou_db.MOUDatabaseClient"
 MOTOR_CLIENT: Final = "motor.motor_tornado.MotorClient"
 TC_CACHE: Final = "rest_server.data_sources.table_config_cache.TableConfigCache"
-MOU_DATA_ADAPTOR: Final = "rest_server.utils.utils.MoUDataAdaptor"
+MOU_DATA_ADAPTOR: Final = "rest_server.utils.utils.MOUDataAdaptor"
 WBS: Final = "mo"
 
 
@@ -58,7 +48,7 @@ def mock_mongo(mocker: Any) -> Any:
     return mock_mongo
 
 
-class TestMoUDB:  # pylint: disable=R0904
+class TestMOUDB:  # pylint: disable=R0904
     """Test private methods in mou_db.py."""
 
     @staticmethod
@@ -67,13 +57,13 @@ class TestMoUDB:  # pylint: disable=R0904
     @patch(KRS_TOKEN, return_value=Mock())
     @patch(MOU_DB_CLIENT + "._ensure_all_db_indexes")
     async def test_init(mock_eadi: Any, _: Any, __: Any) -> None:
-        """Test MoUDatabaseClient.__init__()."""
+        """Test MOUDatabaseClient.__init__()."""
         # Setup & Mock
 
         # Call
-        mou_db_client = mou_db.MoUDatabaseClient(
+        mou_db_client = mou_db.MOUDatabaseClient(
             sentinel.mongo,
-            utils.MoUDataAdaptor(await tcc.TableConfigCache.create()),
+            utils.MOUDataAdaptor(await tcc.TableConfigCache.create()),
         )
 
         # Assert
@@ -84,9 +74,9 @@ class TestMoUDB:  # pylint: disable=R0904
         reset_mock(mock_eadi)
 
         # Call
-        mou_db_client = mou_db.MoUDatabaseClient(
+        mou_db_client = mou_db.MOUDatabaseClient(
             sentinel.mongo,
-            utils.MoUDataAdaptor(await tcc.TableConfigCache.create()),
+            utils.MOUDataAdaptor(await tcc.TableConfigCache.create()),
         )
 
         # Assert
@@ -100,9 +90,9 @@ class TestMoUDB:  # pylint: disable=R0904
         """Test _list_database_names()."""
         # Setup & Mock
         dbs = ["foo", "bar", "baz"] + config.EXCLUDE_DBS[:3]
-        mou_db_client = mou_db.MoUDatabaseClient(
+        mou_db_client = mou_db.MOUDatabaseClient(
             mock_mongo,
-            utils.MoUDataAdaptor(await tcc.TableConfigCache.create()),
+            utils.MOUDataAdaptor(await tcc.TableConfigCache.create()),
         )
         mock_mongo.list_database_names.side_effect = AsyncMock(return_value=dbs)
 
@@ -179,19 +169,34 @@ class TestMongofier:
     def test_mongofy_document() -> None:
         """Test mongofy_document() & demongofy_document()."""
         # Set-Up
-        original_human = {
+        original_human: dict[str, Any] = {
             "": "",
-            " ": {"xyz": 33, "NESTED.": {"2x NESTED": None}},
+            " ": {
+                "xyz": 33,
+                "NESTED.": {
+                    "2x NESTED": None,
+                },
+            },
             columns.ID: "0123456789ab0123456789ab",
         }
-        mongoed = {
+        mongoed: dict[str, Any] = {
             "": "",
-            " ": {"xyz": 33, "NESTED;": {"2x NESTED": None}},
+            " ": {
+                "xyz": 33,
+                "NESTED;": {
+                    "2x NESTED": None,
+                },
+            },
             columns.ID: ObjectId("0123456789ab0123456789ab"),
         }
-        rehumaned = {
+        rehumaned: dict[str, Any] = {
             "": "",
-            " ": {"xyz": 33, "NESTED.": {"2x NESTED": ""}},
+            " ": {
+                "xyz": 33,
+                "NESTED.": {
+                    "2x NESTED": "",
+                },
+            },
             columns.ID: "0123456789ab0123456789ab",
         }
 
@@ -205,8 +210,8 @@ class TestMongofier:
         assert into != rehumaned  # assert in-place change
 
 
-class TestMoUDataAdaptor:
-    """Test utils.MoUDataAdaptor."""
+class TestMOUDataAdaptor:
+    """Test utils.MOUDataAdaptor."""
 
     @staticmethod
     @pytest.mark.asyncio
@@ -219,7 +224,7 @@ class TestMoUDataAdaptor:
     ) -> None:
         """Test _validate_record_data()."""
         # Setup & Mock
-        mou_data_adaptor = utils.MoUDataAdaptor(await tcc.TableConfigCache.create())
+        mou_data_adaptor = utils.MOUDataAdaptor(await tcc.TableConfigCache.create())
 
         mock_gsdm.return_value = {
             "F.o.o": ["foo-1", "foo-2"],
@@ -245,7 +250,7 @@ class TestMoUDataAdaptor:
         }
 
         # Test good records
-        good_records: List[types.Record] = [
+        good_records: list[uut.DBRecord] = [
             {
                 "F.o.o": "foo-2",
                 "B.a.r": "bar-1",
@@ -288,7 +293,7 @@ class TestMoUDataAdaptor:
             mou_data_adaptor._validate_record_data(WBS, record)
 
         # Test bad records
-        bad_records: List[types.Record] = [
+        bad_records: list[uut.DBRecord] = [
             {"F.o.o": "foo-2", "Ham": 357},  # bad conditional column
             {
                 "F.o.o": "pork",
@@ -316,19 +321,31 @@ class TestMoUDataAdaptor:
     async def test_mongofy_record(mock_vrd: Any, _: Any, __: Any) -> None:
         """Test _mongofy_record()."""
         # Setup & Mock
-        mou_data_adaptor = utils.MoUDataAdaptor(await tcc.TableConfigCache.create())
+        mou_data_adaptor = utils.MOUDataAdaptor(await tcc.TableConfigCache.create())
 
         # Set-Up
-        records: List[types.Record] = [
+        records: list[uut.DBRecord] = [
             {},
-            {"a.b": 5, "Foo;Bar": "Baz"},
-            {"_id": "5f725c6af0803660075769ab", "FOO": "bar"},
+            {
+                "a.b": 5,
+                "Foo;Bar": "Baz",
+            },
+            {
+                "_id": "5f725c6af0803660075769ab",
+                "FOO": "bar",
+            },
         ]
 
-        mongofied_records: List[types.Record] = [
+        mongofied_records: list[uut.DBRecord] = [
             {},
-            {"a;b": 5, "Foo;Bar": "Baz"},
-            {"_id": ObjectId("5f725c6af0803660075769ab"), "FOO": "bar"},
+            {
+                "a;b": 5,
+                "Foo;Bar": "Baz",
+            },
+            {
+                "_id": ObjectId("5f725c6af0803660075769ab"),
+                "FOO": "bar",
+            },
         ]
         mock_vrd.side_effect = None
 
@@ -340,15 +357,15 @@ class TestMoUDataAdaptor:
     def test_demongofy_record() -> None:
         """Test _demongofy_record()."""
         # Set-Up
-        records: List[types.Record] = [
+        records: list[uut.DBRecord] = [
             {"_id": ANY},
-            {"_id": ANY, utils.MoUDataAdaptor.IS_DELETED: True},
-            {"_id": ANY, utils.MoUDataAdaptor.IS_DELETED: False},
+            {"_id": ANY, utils.MOUDataAdaptor.IS_DELETED: True},
+            {"_id": ANY, utils.MOUDataAdaptor.IS_DELETED: False},
             {"_id": ANY, "a;b": 5, "Foo;Bar": "Baz"},
             {"_id": ObjectId("5f725c6af0803660075769ab"), "FOO": "bar"},
         ]
 
-        demongofied_records: List[types.Record] = [
+        demongofied_records: list[uut.DBRecord] = [
             {"_id": ANY},
             {"_id": ANY},
             {"_id": ANY},
@@ -358,11 +375,11 @@ class TestMoUDataAdaptor:
 
         # Call & Assert
         for record, drecord in zip(records, demongofied_records):
-            assert utils.MoUDataAdaptor.demongofy_record(record) == drecord
+            assert utils.MOUDataAdaptor.demongofy_record(record) == drecord
 
         # Error Case
         with pytest.raises(KeyError):
-            utils.MoUDataAdaptor.demongofy_record({"a;b": 5, "Foo;Bar": "Baz"})
+            utils.MOUDataAdaptor.demongofy_record({"a;b": 5, "Foo;Bar": "Baz"})
 
 
 class TestTableConfigDataAdaptor:
@@ -380,13 +397,13 @@ class TestTableConfigDataAdaptor:
         )
 
         # Set-Up
-        before_records: List[types.Record] = [
+        before_records: list[uut.DBRecord] = [
             {"_id": ANY},
             {"Grand Total": 999.99, "FTE": 50},
             {"NSF M&O Core": 100},
             {"_id": ANY, "a;b": 5, "Foo;Bar": "Baz", "Grand Total": 999.99},
         ]
-        after_records: List[types.Record] = [
+        after_records: list[uut.DBRecord] = [
             {"_id": ANY},
             {"FTE": 50},
             {},
@@ -410,7 +427,7 @@ class TestTableConfigDataAdaptor:
         )
 
         # Set-Up
-        before_records: List[types.Record] = [
+        before_records: list[uut.DBRecord] = [
             {
                 "_id": ANY,
                 "Institution": "Stony-Brook",
@@ -438,7 +455,7 @@ class TestTableConfigDataAdaptor:
                 "Grand Total": 5555555555,  # will get overwritten w/ FTE
             },
         ]
-        after_records: List[types.Record] = [
+        after_records: list[uut.DBRecord] = [
             {
                 "_id": ANY,
                 "Institution": "Stony-Brook",
@@ -511,7 +528,7 @@ class TestTableConfigDataAdaptor:
         tc_cache = await tcc.TableConfigCache.create()
         tc_data_adaptor = utils.TableConfigDataAdaptor(tc_cache)
 
-        def _assert_funds_totals(_rows: types.Table, _total_row: types.Record) -> None:
+        def _assert_funds_totals(_rows: uut.DBTable, _total_row: uut.DBRecord) -> None:
             print("\n-----------------------------------------------------\n")
             pprint.pprint(_rows)
             pprint.pprint(_total_row)
@@ -533,7 +550,7 @@ class TestTableConfigDataAdaptor:
                 )
 
         # Test example table and empty table
-        test_tables: Final[List[types.Table]] = [copy.deepcopy(data.FTE_ROWS), []]
+        test_tables: Final[list[uut.DBTable]] = [copy.deepcopy(data.FTE_ROWS), []]
         for table in test_tables:
             # Call
             totals = tc_data_adaptor.get_total_rows(WBS, table)
@@ -541,7 +558,6 @@ class TestTableConfigDataAdaptor:
 
             # Assert total sums
             for total_row in totals:
-
                 # L3 US/Non-US Level
                 if (
                     "L3 NON-US TOTAL"

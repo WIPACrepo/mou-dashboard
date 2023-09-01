@@ -1,52 +1,61 @@
-"""Routes handlers for the MoU REST API server interface."""
+"""Routes handlers for the MOU REST API server interface."""
 
 
+import dataclasses as dc
 import json
 import logging
-from dataclasses import asdict
 from typing import Any
 
+import universal_utils.constants as uuc
+import universal_utils.types as uut
 from motor.motor_tornado import MotorClient  # type: ignore
-from rest_tools.server import RestHandler, handler  # type: ignore
+from rest_tools import server
 
-from .config import AUTH_SERVICE_ACCOUNT, is_testing
-from .data_sources import columns, mou_db, table_config_cache, todays_institutions, wbs
-from .utils import types, utils
+from .config import AUTH_PREFIX, is_testing
+from .data_sources import mou_db, table_config_cache, todays_institutions, wbs
+from .utils import utils
 
 _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
 
 
-if is_testing():
-    def service_account_auth(**kwargs):  # type: ignore
-        def make_wrapper(method):
-            async def wrapper(self, *args, **kwargs):
-                logging.warning('TESTING: auth disabled')
-                return await method(self, *args, **kwargs)
-            return wrapper
-        return make_wrapper
-else:
-    service_account_auth = handler.keycloak_role_auth
+# -----------------------------------------------------------------------------
+# REST requestor auth
 
+
+if is_testing():
+
+    def scope_role_auth(**kwargs):  # type: ignore
+        def make_wrapper(method):  # type: ignore[no-untyped-def]
+            async def wrapper(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+                logging.warning("TESTING: auth disabled")
+                return await method(self, *args, **kwargs)
+
+            return wrapper
+
+        return make_wrapper
+
+else:
+    scope_role_auth = server.scope_role_auth
 
 # -----------------------------------------------------------------------------
 
 
-class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
-    """BaseMoUHandler is a RestHandler for all MoU routes."""
+class BaseMOUHandler(server.RestHandler):  # pylint: disable=W0223
+    """BaseMOUHandler is a RestHandler for all MOU routes."""
 
-    def initialize(  # type: ignore  # pylint: disable=W0221
+    def initialize(  # type: ignore[override]  # pylint: disable=W0221
         self,
         mongodb_url: str,
         tc_cache: table_config_cache.TableConfigCache,
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Initialize a BaseMoUHandler object."""
-        super().initialize(*args, **kwargs)
+        """Initialize a BaseMOUHandler object."""
+        super().initialize(*args, **kwargs)  # type: ignore[no-untyped-call]
         # pylint: disable=W0201
         self.tc_cache = tc_cache
-        self.mou_db_client = mou_db.MoUDatabaseClient(
-            MotorClient(mongodb_url), utils.MoUDataAdaptor(self.tc_cache)
+        self.mou_db_client = mou_db.MOUDatabaseClient(
+            MotorClient(mongodb_url), utils.MOUDataAdaptor(self.tc_cache)
         )
         self.tc_data_adaptor = utils.TableConfigDataAdaptor(self.tc_cache)
 
@@ -54,8 +63,8 @@ class BaseMoUHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
 # -----------------------------------------------------------------------------
 
 
-class MainHandler(BaseMoUHandler):  # pylint: disable=W0223
-    """MainHandler is a BaseMoUHandler that handles the root route."""
+class MainHandler(BaseMOUHandler):  # pylint: disable=W0223
+    """MainHandler is a BaseMOUHandler that handles the root route."""
 
     ROUTE = r"/$"
 
@@ -67,20 +76,87 @@ class MainHandler(BaseMoUHandler):  # pylint: disable=W0223
 # -----------------------------------------------------------------------------
 
 
-class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
+class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
     """Handle requests for a table."""
 
     ROUTE = rf"/table/data/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
-    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
+    async def _get_clientbound_snapshot_info(
+        self,
+        wbs_l1: str,
+        curr_snap: str,
+        n_records: int,
+        is_admin: bool,
+        prev_snap_override: str | None = None,
+    ) -> dict[str, Any]:
+        curr_snap_info = await self.mou_db_client.get_snapshot_info(wbs_l1, curr_snap)
+
+        if prev_snap_override:
+            prev_snap = prev_snap_override
+        else:
+            timestamps = await self.mou_db_client.list_snapshot_timestamps(
+                wbs_l1, exclude_admin_snaps=not is_admin
+            )
+            if curr_snap == uuc.LIVE_COLLECTION:  # aka not a snapshot
+                try:
+                    prev_snap = timestamps[-1]
+                except IndexError:
+                    prev_snap = None  # there are no snapshots
+            elif idx := timestamps.index(curr_snap):
+                prev_snap = timestamps[idx - 1]
+            else:  # idx=0 -- there are no earlier snapshots
+                prev_snap = None
+
+        if prev_snap:
+            return {
+                "n_records": n_records,
+                "previous_snapshot": dc.asdict(
+                    await self.mou_db_client.get_snapshot_info(wbs_l1, prev_snap)
+                ),
+                "current_snapshot": dc.asdict(curr_snap_info),
+            }
+        else:
+            return {
+                "n_records": n_records,
+                "previous_snapshot": None,
+                "current_snapshot": dc.asdict(curr_snap_info),
+            }
+
+    @scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
-        collection = self.get_argument("snapshot", "")
+        is_admin = self.get_argument(
+            "is_admin",
+            type=bool,
+        )
 
-        institution = self.get_argument("institution", default=None)
-        restore_id = self.get_argument("restore_id", default=None)
-        labor = self.get_argument("labor", default=None)
-        total_rows = self.get_argument("total_rows", default=False, type=bool)
+        collection = self.get_argument(
+            "snapshot",
+            default=uuc.LIVE_COLLECTION,
+            type=str,
+            forbiddens=[""],
+        )
+
+        institution = self.get_argument(
+            "institution",
+            default="",
+            type=str,
+        )
+        restore_id = self.get_argument(
+            "restore_id",
+            default="",
+            type=str,
+        )
+        labor = self.get_argument(
+            "labor",
+            default="",
+            type=str,
+        )
+        total_rows = self.get_argument(
+            "total_rows",
+            default=False,
+            type=bool,
+        )
 
         if restore_id:
             await self.mou_db_client.restore_record(wbs_l1, restore_id)
@@ -97,7 +173,7 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
                 self.tc_data_adaptor.get_total_rows(
                     wbs_l1,
                     table,
-                    only_totals_w_data=labor or institution,
+                    only_totals_w_data=bool(labor or institution),
                     with_us_non_us=not institution,
                 )
             )
@@ -105,14 +181,35 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
         # sort
         table.sort(key=self.tc_cache.sort_key)
 
-        self.write({"table": table})
+        # get info for snapshot(s)
+        clientbound_snapshot_info = await self._get_clientbound_snapshot_info(
+            wbs_l1,
+            collection,
+            len(table),
+            is_admin,
+        )
 
-    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
+        self.write(clientbound_snapshot_info | {"table": table})
+
+    @scope_role_auth(prefix=AUTH_PREFIX, roles=["admin"])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
-        base64_file = self.get_argument("base64_file")
-        filename = self.get_argument("filename")
-        creator = self.get_argument("creator")
+        base64_file = self.get_argument(
+            "base64_file",
+            type=str,
+        )
+        filename = self.get_argument(
+            "filename",
+            type=str,
+        )
+        creator = self.get_argument(
+            "creator",
+            type=str,
+        )
+        is_admin = self.get_argument(
+            "is_admin",
+            type=bool,
+        )
 
         # ingest
         prev_snap, curr_snap = await self.mou_db_client.ingest_xlsx(
@@ -120,69 +217,78 @@ class TableHandler(BaseMoUHandler):  # pylint: disable=W0223
         )
 
         # get info for snapshot(s)
-        curr_snap_info = await self.mou_db_client.get_snapshot_info(wbs_l1, curr_snap)
-        prev_snap_info = None
-        if prev_snap:
-            prev_snap_info = await self.mou_db_client.get_snapshot_info(
-                wbs_l1, prev_snap
-            )
-
-        self.write(
-            {
-                "n_records": len(await self.mou_db_client.get_table(wbs_l1)),
-                "previous_snapshot": prev_snap_info,
-                "current_snapshot": curr_snap_info,
-            }
+        clientbound_snapshot_info = await self._get_clientbound_snapshot_info(
+            wbs_l1,
+            curr_snap,
+            len(await self.mou_db_client.get_table(wbs_l1, curr_snap, "", "")),
+            is_admin,
+            prev_snap_override=prev_snap,  # optimization & race condition protection
         )
+
+        self.write(clientbound_snapshot_info)
 
 
 # -----------------------------------------------------------------------------
 
 
-class RecordHandler(BaseMoUHandler):  # pylint: disable=W0223
+class RecordHandler(BaseMOUHandler):  # pylint: disable=W0223
     """Handle requests for a record."""
 
     ROUTE = rf"/record/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
-    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
+    @scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
-        record = self.get_argument("record")
-        editor = self.get_argument("editor")
-
-        if inst := self.get_argument("institution", default=None):
-            record[columns.INSTITUTION] = inst  # insert
-        if labor := self.get_argument("labor", default=None):
-            record[columns.LABOR_CAT] = labor  # insert
-        if task := self.get_argument("task", default=None):
-            record[columns.TASK_DESCRIPTION] = task  # insert
+        record: uut.DBRecord = self.get_argument(
+            "record",
+            type=dict,
+        )
+        editor = self.get_argument(
+            "editor",
+            type=str,
+        )
 
         record = self.tc_data_adaptor.remove_on_the_fly_fields(record)
-        record = await self.mou_db_client.upsert_record(wbs_l1, record, editor)
+        record, instvals = await self.mou_db_client.upsert_record(
+            wbs_l1, record, editor
+        )
         record = self.tc_data_adaptor.add_on_the_fly_fields(record)
+        resp = {"record": record}
+        if instvals:
+            resp["institution_values"] = dc.asdict(instvals)
+        self.write(resp)
 
-        self.write({"record": record})
-
-    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
+    @scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def delete(self, wbs_l1: str) -> None:
         """Handle DELETE."""
-        record_id = self.get_argument("record_id")
-        editor = self.get_argument("editor")
+        record_id = self.get_argument(
+            "record_id",
+            type=str,
+        )
+        editor = self.get_argument(
+            "editor",
+            type=str,
+        )
 
-        record = await self.mou_db_client.delete_record(wbs_l1, record_id, editor)
+        record, instvals = await self.mou_db_client.delete_record(
+            wbs_l1, record_id, editor
+        )
 
-        self.write({"record": record})
+        resp = {"record": record}
+        if instvals:
+            resp["institution_values"] = dc.asdict(instvals)
+        self.write(resp)
 
 
 # -----------------------------------------------------------------------------
 
 
-class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
+class TableConfigHandler(BaseMOUHandler):  # pylint: disable=W0223
     """Handle requests for the table config dict."""
 
     ROUTE = r"/table/config$"
 
-    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
+    @scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
         await self.tc_cache.refresh()
@@ -198,6 +304,7 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
                 "numerics": self.tc_cache.get_numerics(),
                 "non_editables": self.tc_cache.get_non_editables(),
                 "hiddens": self.tc_cache.get_hiddens(),
+                "mandatories": self.tc_cache.get_mandatory_columns(),
                 "tooltips": self.tc_cache.get_tooltips(),
                 "widths": self.tc_cache.get_widths(),
                 "border_left_columns": self.tc_cache.get_border_left_columns(),
@@ -206,7 +313,10 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
             for l1 in wbs.WORK_BREAKDOWN_STRUCTURES.keys()  # pylint:disable=C0201
         }
 
-        logging.debug("Table Config:\n%s", json.dumps(table_config, indent=4))
+        logging.debug(
+            "Table Config Keys:\n%s",
+            json.dumps({k: list(v.keys()) for k, v in table_config.items()}, indent=4),
+        )
 
         self.write(table_config)
 
@@ -214,118 +324,224 @@ class TableConfigHandler(BaseMoUHandler):  # pylint: disable=W0223
 # -----------------------------------------------------------------------------
 
 
-class SnapshotsHandler(BaseMoUHandler):  # pylint: disable=W0223
+class SnapshotsHandler(BaseMOUHandler):  # pylint: disable=W0223
     """Handle requests for listing the snapshots."""
 
     ROUTE = rf"/snapshots/list/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
-    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
+    @scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
-        is_admin = self.get_argument("is_admin", type=bool, default=False)
+        is_admin = self.get_argument(
+            "is_admin",
+            type=bool,
+        )
 
+        # db calls: O(1)
         timestamps = await self.mou_db_client.list_snapshot_timestamps(
             wbs_l1, exclude_admin_snaps=not is_admin
         )
-        timestamps.sort(reverse=True)
 
+        # db calls: O(n)
         snapshots = [
             await self.mou_db_client.get_snapshot_info(wbs_l1, ts) for ts in timestamps
         ]
 
-        self.write({"snapshots": snapshots})
+        self.write({"snapshots": [dc.asdict(si) for si in snapshots]})
 
 
 # -----------------------------------------------------------------------------
 
 
-class MakeSnapshotHandler(BaseMoUHandler):  # pylint: disable=W0223
+class MakeSnapshotHandler(BaseMOUHandler):  # pylint: disable=W0223
     """Handle requests for making snapshots."""
 
     ROUTE = rf"/snapshots/make/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
-    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
+    @scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
-        name = self.get_argument("name")
-        creator = self.get_argument("creator")
+        name = self.get_argument(
+            "name",
+            type=str,
+        )
+        creator = self.get_argument(
+            "creator",
+            type=str,
+        )
 
         snap_ts = await self.mou_db_client.snapshot_live_collection(
             wbs_l1, name, creator, False
         )
         snap_info = await self.mou_db_client.get_snapshot_info(wbs_l1, snap_ts)
 
-        self.write(snap_info)  # type: ignore
+        self.write(dc.asdict(snap_info))
 
 
 # -----------------------------------------------------------------------------
 
 
-class InstitutionValuesHandler(BaseMoUHandler):  # pylint: disable=W0223
-    """Handle requests for managing an institution's values, possibly for a snapshot."""
+class InstitutionValuesConfirmationTouchstoneHandler(
+    BaseMOUHandler
+):  # pylint: disable=W0223
+    """Handle requests for making a new touchstone timestamp for institution
+    values."""
+
+    ROUTE = rf"/institution/values/confirmation/touchstone/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
+
+    @scope_role_auth(prefix=AUTH_PREFIX, roles=["admin"])  # type: ignore
+    async def post(self, wbs_l1: str) -> None:
+        """Handle POST."""
+        timestamp = await self.mou_db_client.retouchstone(wbs_l1)
+
+        self.write({"touchstone_timestamp": timestamp})
+
+    @scope_role_auth(prefix=AUTH_PREFIX, roles=["admin"])  # type: ignore
+    async def get(self, wbs_l1: str) -> None:
+        """Handle POST."""
+        timestamp = await self.mou_db_client.get_touchstone(wbs_l1)
+
+        self.write({"touchstone_timestamp": timestamp})
+
+
+# -----------------------------------------------------------------------------
+
+
+class InstitutionValuesConfirmationHandler(BaseMOUHandler):  # pylint: disable=W0223
+    """Handle requests for confirming institution values."""
+
+    ROUTE = rf"/institution/values/confirmation/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
+
+    @scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
+    async def post(self, wbs_l1: str) -> None:
+        """Handle POST."""
+        institution = self.get_argument(
+            "institution",
+            type=str,
+        )
+        headcounts = self.get_argument(
+            "headcounts",
+            type=bool,
+            default=False,
+        )
+        table = self.get_argument(
+            "table",
+            type=bool,
+            default=False,
+        )
+        computing = self.get_argument(
+            "computing",
+            type=bool,
+            default=False,
+        )
+
+        vals = await self.mou_db_client.confirm_institution_values(
+            wbs_l1, institution, headcounts, table, computing
+        )
+
+        self.write(dc.asdict(vals))
+
+
+# -----------------------------------------------------------------------------
+
+
+class InstitutionValuesHandler(BaseMOUHandler):  # pylint: disable=W0223
+    """Handle requests for managing an institution's values, possibly for a
+    snapshot."""
 
     ROUTE = rf"/institution/values/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
-    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
+    @scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
-        institution = self.get_argument("institution")
-        snapshot_timestamp = self.get_argument("snapshot_timestamp", "")
+        institution = self.get_argument(
+            "institution",
+            type=str,
+        )
+        snapshot_timestamp = self.get_argument(
+            "snapshot_timestamp",
+            default=uuc.LIVE_COLLECTION,
+            type=str,
+        )
 
         vals = await self.mou_db_client.get_institution_values(
             wbs_l1, snapshot_timestamp, institution
         )
 
-        self.write(vals)  # type: ignore
+        self.write(dc.asdict(vals))
 
-    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
+    @scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
-        institution = self.get_argument("institution")
-
-        phds = self.get_argument("phds_authors", type=int, default=-1)
-        faculty = self.get_argument("faculty", type=int, default=-1)
-        sci = self.get_argument("scientists_post_docs", type=int, default=-1)
-        grad = self.get_argument("grad_students", type=int, default=-1)
-        cpus = self.get_argument("cpus", type=int, default=-1)
-        gpus = self.get_argument("gpus", type=int, default=-1)
-        text = self.get_argument("text", default="")
-        headcounts_confirmed = self.get_argument(
-            "headcounts_confirmed", type=bool, default=False
-        )
-        computing_confirmed = self.get_argument(
-            "computing_confirmed", type=bool, default=False
+        institution = self.get_argument(
+            "institution",
+            type=str,
         )
 
-        vals: types.InstitutionValues = {
-            "phds_authors": phds if phds >= 0 else None,
-            "faculty": faculty if faculty >= 0 else None,
-            "scientists_post_docs": sci if sci >= 0 else None,
-            "grad_students": grad if grad >= 0 else None,
-            "cpus": cpus if cpus >= 0 else None,
-            "gpus": gpus if gpus >= 0 else None,
-            "text": text,
-            "headcounts_confirmed": headcounts_confirmed,
-            "computing_confirmed": computing_confirmed,
-        }
+        # client cannot try to override metadata
+        phds_authors = self.get_argument(
+            "phds_authors",
+            type=int,
+            default=-1,
+        )
+        faculty = self.get_argument(
+            "faculty",
+            type=int,
+            default=-1,
+        )
+        scientists_post_docs = self.get_argument(
+            "scientists_post_docs",
+            type=int,
+            default=-1,
+        )
+        grad_students = self.get_argument(
+            "grad_students",
+            type=int,
+            default=-1,
+        )
+        cpus = self.get_argument(
+            "cpus",
+            type=int,
+            default=-1,
+        )
+        gpus = self.get_argument(
+            "gpus",
+            type=int,
+            default=-1,
+        )
+        text = self.get_argument(
+            "text",
+            default="",
+            type=str,
+        )
 
-        await self.mou_db_client.upsert_institution_values(wbs_l1, institution, vals)
+        vals = await self.mou_db_client.upsert_institution_values(
+            wbs_l1,
+            institution,
+            None if phds_authors == -1 else phds_authors,
+            None if faculty == -1 else faculty,
+            None if scientists_post_docs == -1 else scientists_post_docs,
+            None if grad_students == -1 else grad_students,
+            None if cpus == -1 else cpus,
+            None if gpus == -1 else gpus,
+            text,
+        )
 
-        self.write({})
+        self.write(dc.asdict(vals))
 
 
 # -----------------------------------------------------------------------------
 
 
-class InstitutionStaticHandler(BaseMoUHandler):  # pylint: disable=W0223
+class InstitutionStaticHandler(BaseMOUHandler):  # pylint: disable=W0223
     """Handle requests for querying current-day info about the institutions."""
 
     ROUTE = r"/institution/today$"
 
-    @service_account_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
+    @scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
         institutions = await todays_institutions.request_krs_institutions()
-        vals = {i.short_name: asdict(i) for i in institutions}
+        vals = {i.short_name: dc.asdict(i) for i in institutions}
 
         self.write(vals)

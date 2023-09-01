@@ -6,7 +6,7 @@
   "timestamp": "LIVE_COLLECTION",
   "creator": "Ohtani",
   "snapshot_institution_values": {
-    "UDub": {
+    "LBNL": {
       "phds_authors": 55,
       "faculty": 100,
       "scientists_post_docs": 60,
@@ -17,7 +17,7 @@
       "headcounts_confirmed": false,
       "computing_confirmed": false
     },
-    "UofA": {
+    "DESY": {
       "phds_authors": 110,
       "faculty": 200,
       "scientists_post_docs": 120,
@@ -28,7 +28,7 @@
       "headcounts_confirmed": true,
       "computing_confirmed": false
     },
-    "TechState": {
+    "Alberta": {
       "phds_authors": 165,
       "faculty": 300,
       "scientists_post_docs": 180,

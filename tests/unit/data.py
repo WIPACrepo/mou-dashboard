@@ -1,28 +1,14 @@
 """Testing data."""
 
-import pprint
-import random
-import sys
-from typing import Any, Final
-from unittest.mock import AsyncMock, Mock, patch
 
-import pytest
+from typing import Final
 
-from .. import institution_list
-
-sys.path.append(".")
-# pylint: disable=E0401,C0413,C0411
-from rest_server.utils import types  # isort:skip  # noqa
-from rest_server.data_sources import (  # isort:skip  # noqa
-    table_config_cache,
-    columns,
-)
-
+import universal_utils.types as uut
 
 WBS: Final[str] = "mo"
 
 
-FTE_ROWS: Final[types.Table] = [
+FTE_ROWS: Final[uut.DBTable] = [
     {
         "FTE": 0.49982416070757496,
         "Source of Funds (U.S. Only)": "Non-US In-Kind",
@@ -367,53 +353,53 @@ FTE_ROWS: Final[types.Table] = [
 #
 
 
-@pytest.mark.asyncio
-@patch(
-    "krs.institutions.list_insts_flat",
-    side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS),
-)
-@patch("krs.token.get_rest_client", return_value=Mock())
-@patch(
-    "rest_server.data_sources.table_config_cache.TableConfigCache.get_most_recent_doc"
-)
-@patch("rest_server.data_sources.table_config_cache.TableConfigCache._insert_replace")
-async def _make_fte_rows(mock_ir: Any, mock_gmrd: Any, _: Any, __: Any) -> None:
-    # Setup & Mock
-    mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
-    tc_cache = await table_config_cache.TableConfigCache.create()
-    mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
+# @pytest.mark.asyncio
+# @patch(
+#     "krs.institutions.list_insts_flat",
+#     side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS),
+# )
+# @patch("krs.token.get_rest_client", return_value=Mock())
+# @patch(
+#     "rest_server.data_sources.table_config_cache.TableConfigCache.get_most_recent_doc"
+# )
+# @patch("rest_server.data_sources.table_config_cache.TableConfigCache._insert_replace")
+# async def _make_fte_rows(mock_ir: Any, mock_gmrd: Any, _: Any, __: Any) -> None:
+#     # Setup & Mock
+#     mock_gmrd.side_effect = AsyncMock(return_value=(None, None))  # "db is empty"
+#     tc_cache = await table_config_cache.TableConfigCache.create()
+#     mock_ir.side_effect = AsyncMock(return_value=None)  # no-op the db insert
 
-    rows: types.Table = []
-    for l2 in [
-        "2.1 Program Coordination",
-        "2.2 Detector Operations & Maintenance (Online)",
-    ]:
-        for l3 in tc_cache.get_l3_categories_by_l2(WBS, l2):
-            if ".3" in l3:
-                break
-            # append 2 US for each funding source
-            for _ in range(2):
-                for fund in [
-                    columns.NSF_MO_CORE,
-                    columns.NSF_BASE_GRANTS,
-                    columns.US_IN_KIND,
-                ]:
-                    row = {
-                        columns.WBS_L2: l2,
-                        columns.WBS_L3: l3,
-                        columns.US_NON_US: table_config_cache.US,
-                    }
-                    row[columns.SOURCE_OF_FUNDS_US_ONLY] = fund
-                    row[columns.FTE] = random.random() * 1  # type: ignore[assignment]
-                    rows.append(row)  # type: ignore[arg-type]
+#     rows: types.Table = []
+#     for l2 in [
+#         "2.1 Program Coordination",
+#         "2.2 Detector Operations & Maintenance (Online)",
+#     ]:
+#         for l3 in tc_cache.get_l3_categories_by_l2(WBS, l2):
+#             if ".3" in l3:
+#                 break
+#             # append 2 US for each funding source
+#             for _ in range(2):
+#                 for fund in [
+#                     columns.NSF_MO_CORE,
+#                     columns.NSF_BASE_GRANTS,
+#                     columns.US_IN_KIND,
+#                 ]:
+#                     row = {
+#                         columns.WBS_L2: l2,
+#                         columns.WBS_L3: l3,
+#                         columns.US_NON_US: table_config_cache.US,
+#                     }
+#                     row[columns.SOURCE_OF_FUNDS_US_ONLY] = fund
+#                     row[columns.FTE] = random.random() * 1  # type: ignore[assignment]
+#                     rows.append(row)  # type: ignore[arg-type]
 
-            # append 2 Non-US
-            for _ in range(2):
-                row = {columns.WBS_L2: l2, columns.WBS_L3: l3}
-                row[columns.US_NON_US] = table_config_cache.NON_US
-                row[columns.SOURCE_OF_FUNDS_US_ONLY] = columns.NON_US_IN_KIND
-                row[columns.FTE] = random.random() * 1  # type: ignore[assignment]
-                rows.append(row)  # type: ignore[arg-type]
+#             # append 2 Non-US
+#             for _ in range(2):
+#                 row = {columns.WBS_L2: l2, columns.WBS_L3: l3}
+#                 row[columns.US_NON_US] = table_config_cache.NON_US
+#                 row[columns.SOURCE_OF_FUNDS_US_ONLY] = columns.NON_US_IN_KIND
+#                 row[columns.FTE] = random.random() * 1  # type: ignore[assignment]
+#                 rows.append(row)  # type: ignore[arg-type]
 
-    rows.sort(key=tc_cache.sort_key)
-    pprint.pprint(rows)
+#     rows.sort(key=tc_cache.sort_key)
+#     pprint.pprint(rows)

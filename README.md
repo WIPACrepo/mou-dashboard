@@ -6,67 +6,67 @@
 [![CircleCI](https://circleci.com/gh/WIPACrepo/mou-dashboard/tree/master.svg?style=shield)](https://circleci.com/gh/WIPACrepo/mou-dashboard/tree/master)
 
 A front-end to allow PIs to easily report to the ICC their
-Statements of Work in accordance with MoUs:
+Statements of Work in accordance with MOUs:
 [mou.icecube.aq](https://mou.icecube.aq/)
 
-*Active MoUs:*
+*Active MOUs:*
 - IceCube M&O
 - IceCube Upgrade
 
 
 ## How to Run Locally
-You will need to launch three servers:
+You will need to launch servers:
 - MongoDB Server
 - REST Server
 - Web Server
 - *Optional:* Telemetry Service (see [WIPAC Telemetry Repo](https://github.com/WIPACrepo/wipac-telemetry-prototype#wipac-telemetry-prototype))
 
-### Launch Local MongoDB Server via Docker
+### 1. Launch Local MongoDB Server via Docker
 1. *(Optional)* Kill All Active MongoDB Daemons
-1. `./rest_server/resources/mongo_test_server.sh`
+1. `docker run -p 27017:27017 --rm -i --name mou-mongo mongo:VERSION`
+1. *(Optional)* Ingest data to create a realistic start-up state
+```
+TEST_JSON_DIR=tests/resources
+mongoimport -d mo-supplemental -c LIVE_COLLECTION --type json --file $TEST_JSON_DIR/v2-mo-supplemental.json
+mongoimport -d mo -c LIVE_COLLECTION --jsonArray --type json --file $TEST_JSON_DIR/v2-mo.json
+```
 
-### REST Server
-A REST server that interfaces with a local MongoDB server *(future: also Smartsheet)*
+### 2. Build Local Docker Image
+```
+docker build -t moudash:local --no-cache .
+```
 
-#### 1. Set Up Enivornment
-    python3 -m virtualenv -p python3 mou-dash-rest
-    . mou-dash-rest/bin/activate
-    pip install -r rest_server/requirements.txt
+### 3. Launch REST Server
+A REST server that interfaces with a local MongoDB server
+```
+docker run --network="host" --rm -i --name mou-rest \
+    --env CI_TEST=true \
+    moudash:local \
+    python -m rest_server --override-krs-insts ./resources/dummy-krs-data.json
+```
 
-#### 2. Start the Server
-    python -m rest_server
-
-##### 2a. or with telemetry, instead:
-    ./resources/start-rest-server-wipactel-local.sh
-
-### Web App
-A dashboard for managing & reporting MoU tasks
-
-#### 1. Set Up Enivornment
-    python3.8 -m virtualenv -p python3.8 mou-dash-web
-    . mou-dash-web/bin/activate
-    pip install -r web_app/requirements.txt
-
-#### 2. Start the Server
+### 4. Launch Web App
+A dashboard for managing & reporting MOU tasks
+```
+docker run --network="host" --rm -i --name mou-web \
+    --env CI_TEST=true \
+    --env DEBUG=yes \
+    --env OIDC_CLIENT_SECRETS=resources/dummy_client_secrets_for_web_app.json \
+    moudash:local \
     python -m web_app
+```
 
-##### 2a. or with telemetry, instead:
-    ./resources/start-web-app-wipactel-local.sh
+#### 4a. Launch from Source
+This is most useful for debugging and editing CSS live, since it requires no docker rebuilding.
+```
+<create virtual environment>
+pip install .
+pip uninstall UNKNOWN  # this uninstalls the mou source code so it can be ran/changed live
+export CI_TEST=true
+export DEBUG=yes
+export OIDC_CLIENT_SECRETS=resources/dummy_client_secrets_for_web_app.json
+python -m web_app
+```
 
-#### 3. View Webpage
+### 5. View Webpage
 Go to http://localhost:8050/
-
-
-## Testing
-
-### Local / Manual Testing
-#### Unit
-1. `pytest tests/unit`
-#### Integration
-1. Set up and start servers (see above)
-1. `pytest tests/integration`
-
-### Automated Testing
-[![CircleCI](https://circleci.com/gh/WIPACrepo/mou-dashboard/tree/master.svg?style=shield)](https://circleci.com/gh/WIPACrepo/mou-dashboard/tree/master)
-
-

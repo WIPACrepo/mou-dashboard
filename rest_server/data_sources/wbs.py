@@ -1,9 +1,7 @@
 """The Work-Breakdown Structures."""
 
 
-from typing import Dict, List
-
-WORK_BREAKDOWN_STRUCTURES: Dict[str, Dict[str, List[str]]] = {
+WORK_BREAKDOWN_STRUCTURES: dict[str, dict[str, list[str]]] = {
     "mo": {
         "2.1 Program Coordination": [
             "2.1.0 Program Coordination",

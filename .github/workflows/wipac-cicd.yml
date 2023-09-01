@@ -2,6 +2,10 @@ name: wipac ci/cd
 
 on: [push]
 
+env:
+  CI_TEST: true
+  TEST_JSON_DIR: tests/resources
+
 
 jobs:
 
@@ -23,19 +27,19 @@ jobs:
       - uses: WIPACrepo/wipac-dev-flake8-action@v1.0
 
 
-  # mypy:
-  #   needs: [py-versions]
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: actions/setup-python@v4
-  #       with:
-  #         python-version: ${{ matrix.py3 }}
-  #     - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
+  mypy:
+    needs: [py-versions]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.py3 }}
+      - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
 
 
   py-setup:
@@ -79,7 +83,7 @@ jobs:
         run: |
           pip install --upgrade pip wheel setuptools
           pip install .[tests]
-          cp resources/dummy_client_secrets.json client_secrets.json
+          export OIDC_CLIENT_SECRETS=$(realpath resources/dummy_client_secrets_for_web_app.json)
           pytest -vvv tests/unit
 
 
@@ -99,6 +103,14 @@ jobs:
 
   integration-tests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        integration_test_ingest_type: [
+          xlsx,
+          mongodump_v2,
+          mongodump_v3,
+        ]
     services:
       mongo:
         image: mongo:3
@@ -116,34 +128,70 @@ jobs:
           tags: moudash:local
           load: true
 
-      - name: run
-        run: |
-          export CI_TEST_ENV=true
-
-          # rest server (background)
-          docker run --network="host" --rm -i --name rest \
-              --env CI_TEST_ENV=true \
-              moudash:local \
-              python -m rest_server --override-krs-insts ./resources/dummy-krs-data.json \
-              &
-
-          sleep 30
-          pip install pytest wipac-rest-tools
-          cp resources/dummy_client_secrets.json client_secrets.json
-          pytest -vvv tests/integration
-
-
-      - name: mongodump
-        if: always()
+      - name: mongo prep
         run: |
           sudo apt update
           sudo apt install wget curl gnupg2 software-properties-common apt-transport-https ca-certificates lsb-release
           curl -fsSL https://www.mongodb.org/static/pgp/server-6.0.asc|sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/mongodb-6.gpg
           echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu $(lsb_release -cs)/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
           sudo apt update
-
           sudo apt install mongodb-org mongodb-database-tools
 
+          set -x
+
+          # ingest data
+          if [ "${{ matrix.integration_test_ingest_type }}" = "mongodump_v2" ]; then
+              if [[ ! $(grep -o 'LIVE_COLLECTION' $TEST_JSON_DIR/v2-mo-supplemental.json) ]]; then
+                  exit 1  # the ingested collection must be LIVE_COLLECTION
+              fi
+              mongoimport -d mo-supplemental -c LIVE_COLLECTION --type json --file $TEST_JSON_DIR/v2-mo-supplemental.json
+              mongoimport -d mo -c LIVE_COLLECTION --jsonArray --type json --file $TEST_JSON_DIR/v2-mo.json
+          # -> v3 includes v2 data
+          elif [ "${{ matrix.integration_test_ingest_type }}" = "mongodump_v3" ]; then
+              sed -i 's/LIVE_COLLECTION/100/g' $TEST_JSON_DIR/v2-mo-supplemental.json
+              mongoimport -d mo-supplemental -c 100 --type json --file $TEST_JSON_DIR/v2-mo-supplemental.json
+              mongoimport -d mo -c 100 --type json --jsonArray --file $TEST_JSON_DIR/v2-mo.json
+              if [[ ! $(grep -o 'LIVE_COLLECTION' $TEST_JSON_DIR/v3-mo-supplemental.json) ]]; then
+                  exit 1  # the ingested collection must be LIVE_COLLECTION
+              fi
+              mongoimport -d mo-supplemental -c LIVE_COLLECTION --type json --file $TEST_JSON_DIR/v3-mo-supplemental.json
+              mongoimport -d mo -c LIVE_COLLECTION --jsonArray --type json --file $TEST_JSON_DIR/v3-mo.json
+          fi
+
+      - name: run
+        run: |
+          # rest server (background)
+          docker run --network="host" --rm -i --name rest \
+              --env CI_TEST=true \
+              moudash:local \
+              python -m rest_server --override-krs-insts ./resources/dummy-krs-data.json \
+              &
+
+          sleep 30
+
+          # make test script
+          DIR="test-script-dir"
+          mkdir $DIR
+          echo "#!/bin/bash" >> $DIR/test-script.sh
+          echo "set -xe" >> $DIR/test-script.sh
+          echo "pip install .[tests]" >> $DIR/test-script.sh
+          echo "python -m pytest -vvv tests/integration --exitfirst" >> $DIR/test-script.sh
+          chmod +x $DIR/test-script.sh
+          cat $DIR/test-script.sh
+
+          # test
+          docker run --network="host" --rm -i --name test \
+              --env CI_TEST=true \
+              --env OIDC_CLIENT_SECRETS=resources/dummy_client_secrets_for_web_app.json \
+              --env INTEGRATION_TEST_INGEST_TYPE=${{ matrix.integration_test_ingest_type }} \
+              --mount type=bind,source=$(realpath $DIR),target=/local/$DIR \
+              moudash:local \
+              /local/$DIR/test-script.sh
+
+
+      - name: mongodump
+        if: always()
+        run: |
           set -x
           out_dir="./mongodump-jsons"
           tmp_file="temp.js"
@@ -172,7 +220,7 @@ jobs:
   release:
     # only run on main/master/default
     if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
-    needs: [flake8, py-setup, unit-tests, integration-tests] # mypy
+    needs: [flake8, mypy, py-setup, unit-tests, integration-tests]
     runs-on: ubuntu-latest
     concurrency: release
     steps:

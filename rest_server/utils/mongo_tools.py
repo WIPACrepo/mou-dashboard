@@ -1,9 +1,9 @@
 """General tools for interacting with a MongoDB."""
 
 import copy
-from typing import Any, Callable, Dict
+from typing import Any, Callable
 
-from bson.objectid import ObjectId  # type: ignore[import]
+from bson.objectid import ObjectId
 
 from ..data_sources import columns
 
@@ -26,19 +26,19 @@ class Mongofier:
         return key.replace(";", ".")
 
     @staticmethod
-    def _mongofy_every_key(dicto: Dict[str, Any]) -> Dict[str, Any]:
+    def _mongofy_every_key(dicto: dict[str, Any]) -> dict[str, Any]:
         """Transform all keys to mongo-friendly, recursively, IN-PLACE."""
         return Mongofier._transform_every_key(dicto, Mongofier.mongofy_key_name)
 
     @staticmethod
-    def _demongofy_every_key(dicto: Dict[str, Any]) -> Dict[str, Any]:
+    def _demongofy_every_key(dicto: dict[str, Any]) -> dict[str, Any]:
         """Transform all keys to human-friendly, recursively, IN-PLACE."""
         return Mongofier._transform_every_key(dicto, Mongofier.demongofy_key_name)
 
     @staticmethod
     def _transform_every_key(
-        dicto: Dict[str, Any], key_func: Callable[[str], str]
-    ) -> Dict[str, Any]:
+        dicto: dict[str, Any], key_func: Callable[[str], str]
+    ) -> dict[str, Any]:
         """Change every key, IN-PLACE."""
         # first get the keys right
         for key in list(dicto.keys()):
@@ -52,7 +52,7 @@ class Mongofier:
         return dicto
 
     @staticmethod
-    def mongofy_document(doc_in: Dict[str, Any]) -> Dict[str, Any]:
+    def mongofy_document(doc_in: dict[str, Any]) -> dict[str, Any]:
         """Transform doc to mongo-friendly, recursively, AS A COPY."""
         doc = copy.deepcopy(doc_in)
         doc = Mongofier._mongofy_every_key(doc)
@@ -64,12 +64,12 @@ class Mongofier:
 
     @staticmethod
     def demongofy_document(
-        doc_in: Dict[str, Any], str_id: bool = True
-    ) -> Dict[str, Any]:
+        doc_in: dict[str, Any], str_id: bool = True
+    ) -> dict[str, Any]:
         """Transform doc to human-friendly, recursively, AS A COPY."""
         doc = copy.deepcopy(doc_in)
 
-        def no_nones(dicto: Dict[str, Any]) -> Dict[str, Any]:
+        def no_nones(dicto: dict[str, Any]) -> dict[str, Any]:
             """Recursively replace `None`s with ''."""
             for key in dicto.keys():
                 if dicto[key] is None:

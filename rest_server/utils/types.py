@@ -1,44 +1,37 @@
 """Custom type definitions."""
 
-from typing import Dict, List, Optional, TypedDict, Union
+import dataclasses as dc
 
-# Data Source types
-DataEntry = Union[int, float, str]  # just data
-Record = Dict[str, DataEntry]
-Table = List[Record]
-
-
-class SnapshotInfo(TypedDict):
-    """The typed dict containing a snapshot's name, timestamp, and creator.
-
-    Not a mongo schema. A subset of `SupplementalDoc` for REST calls.
-    """
-
-    timestamp: str
-    name: str
-    creator: str
-    admin_only: bool
+import universal_utils.types as uut
+from bson.objectid import ObjectId
+from typeguard import typechecked
 
 
-class InstitutionValues(TypedDict):
-    """Values for an institution."""
-
-    phds_authors: Optional[int]
-    faculty: Optional[int]
-    scientists_post_docs: Optional[int]
-    grad_students: Optional[int]
-    cpus: Optional[int]
-    gpus: Optional[int]
-    text: str
-    headcounts_confirmed: bool
-    computing_confirmed: bool
-
-
-class SupplementalDoc(TypedDict):
-    """Fields for an Supplemental document, which supplements a snapshot."""
+@typechecked
+@dc.dataclass(frozen=True)
+class SupplementalDoc:
+    """Fields for a Supplemental document, which supplements a snapshot."""
 
     name: str
     timestamp: str
     creator: str
-    snapshot_institution_values: Dict[str, InstitutionValues]
+    snapshot_institution_values: dict[str, uut.InstitutionValues]
     admin_only: bool
+    _id: ObjectId | None = None
+    confirmation_touchstone_ts: int = 0  # zero for legacy data
+
+    def override_all_institutions_touchstones(self) -> None:
+        """Override all institutions touchstones with internal value."""
+        for inst_vals in self.snapshot_institution_values.values():
+            #
+            inst_vals.headcounts_metadata.override_touchstone(
+                self.confirmation_touchstone_ts
+            )
+            #
+            inst_vals.table_metadata.override_touchstone(
+                self.confirmation_touchstone_ts
+            )
+            #
+            inst_vals.computing_metadata.override_touchstone(
+                self.confirmation_touchstone_ts
+            )

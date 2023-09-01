@@ -140,3 +140,5 @@ client_secrets.json
 
 # wipac-dev-py-setup-action
 !dependencies*.log
+
+*secret\.json

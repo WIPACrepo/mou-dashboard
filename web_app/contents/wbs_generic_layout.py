@@ -2,10 +2,9 @@
 
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
-import dash_core_components as dcc  # type: ignore[import]
-import dash_html_components as html  # type: ignore[import]
-import dash_table  # type: ignore[import]
+from dash import dash_table, dcc, html  # type: ignore[import]
 
+from ..config import ENV
 from ..utils import dash_utils as du
 
 
@@ -14,24 +13,6 @@ def layout() -> html.Div:
     return html.Div(
         children=[
             html.Div(id="dummy-input-for-setup", hidden=True),
-            #
-            # PDF User Guide
-            dbc.Alert(
-                className="caps",
-                color=du.Color.DARK,
-                style={
-                    "fontWeight": "bold",
-                    "fontStyle": "italic",
-                    "width": "100%",
-                    "text-align": "center",
-                    "margin-bottom": "1rem",
-                },
-                children=html.A(
-                    "Download User Guide PDF",
-                    download="MoU_Dashboard_Getting_Started.pdf",
-                    href="/assets/MoU_Dashboard_Getting_Started.pdf",
-                ),
-            ),
             #
             # "Viewing Snapshot" Alert
             dbc.Alert(
@@ -65,24 +46,23 @@ def layout() -> html.Div:
                 is_open=False,
             ),
             #
-            # Snapshot / Institution filter dropdown menu / Last Updated label
+            # Snapshot / Institution filter dropdown menu / Cloud Saved
             dbc.Row(
-                no_gutters=True,
+                className="g-0 bottom-border",  # "g-0" -> no gutters
                 children=[
                     dbc.Col(
-                        width=4,
+                        width=2,
                         children=[
-                            html.I(
-                                id="wbs-view-snapshots",
-                                n_clicks=0,
-                                className="fa fa-calendar-alt snapshot-icon top-corner",
+                            du.ButtonIconLabelTooltipFactory.make(
+                                "wbs-view-snapshots",
                                 hidden=True,
-                            ),
-                            dbc.Tooltip(
-                                "click to select and view past statements of work",
-                                target="wbs-view-snapshots",
-                                placement="right",
-                                style={"font-size": 15, "maxWidth": 600, "width": 350},
+                                icon_class=du.IconClassNames.CLOCK_ROTATE_LEFT,
+                                label_text="View a Snapshot",
+                                tooltip_text="click to select and view past statements of work",
+                                width="17rem",
+                                height="3.8rem",
+                                border_width=0,
+                                border_radius="0",
                             ),
                             html.Div(
                                 id="wbs-snapshot-dropdown-div",
@@ -94,13 +74,12 @@ def layout() -> html.Div:
                                     value="",
                                     disabled=False,
                                     persistence=True,
-                                    searchable=False,
+                                    searchable=True,
                                 ),
                             ),
                             html.Div(
                                 id="wbs-view-live-btn-div",
                                 hidden=True,
-                                style={"margin-top": "0.25rem"},
                                 children=dbc.Button(
                                     "View Today's SOW",
                                     id="wbs-view-live-btn",
@@ -111,12 +90,13 @@ def layout() -> html.Div:
                         ],
                     ),
                     dbc.Col(
-                        className="large-dropdown-container",
+                        className="institution-dropdown-container",
+                        width=8,
                         children=[
                             dcc.Dropdown(
                                 id="wbs-dropdown-institution",
-                                className="large-dropdown institution-dropdown",
-                                placeholder="— Viewing Entire Collaboration —",
+                                className="institution-dropdown",
+                                placeholder="IceCube Collaboration",
                                 # options set in callback
                                 # values set in callback
                                 disabled=True,
@@ -126,27 +106,20 @@ def layout() -> html.Div:
                         ],
                     ),
                     dbc.Col(
-                        width=4,
-                        children=[
-                            dcc.Loading(
-                                type="default",
-                                color=du.TEAL,
-                                style={
-                                    "right": "0px",
-                                    "position": "absolute",
-                                    "height": "2rem",
-                                },
-                                children=[
-                                    html.Div(
-                                        className="sow-last-updated",
-                                        children=[
-                                            html.Div(id="wbs-sow-last-updated"),
-                                            html.Div(id="wbs-sow-last-updated-time"),
-                                        ],
-                                    ),
-                                ],
-                            )
-                        ],
+                        width=2,
+                        children=du.ButtonIconLabelTooltipFactory.make(
+                            "wbs-cloud-saved",
+                            icon_class=du.IconClassNames.CLOUD,
+                            label_text="Saved",
+                            tooltip_text="your work is automatically being saved to the cloud",
+                            float_right=True,
+                            add_loading=True,
+                            add_interval=True,
+                            border_width=0,
+                            width="17rem",
+                            height="3.8rem",
+                            border_radius="0",
+                        ),
                     ),
                 ],
             ),
@@ -160,158 +133,268 @@ def layout() -> html.Div:
                     # Inputs
                     dbc.Row(
                         justify="center",
-                        no_gutters=True,
                         children=[
-                            dbc.Col(
-                                className="institution-headcount",
-                                children=[
-                                    html.Div(_label, className="caps"),
-                                    dcc.Input(
-                                        id=_id,
-                                        className="institution-headcount-input",
-                                        type="number",
-                                        min=0,
-                                        disabled=True,
-                                    ),
-                                ],
-                            )
-                            for _id, _label in [
-                                ("wbs-phds-authors", "PhDs/Authors"),
-                                ("wbs-faculty", "Faculty"),
-                                (
-                                    "wbs-scientists-post-docs",
-                                    "Scientists/Post-Docs",
+                            du.make_stacked_label_component_float_left(
+                                width=18,
+                                label="PhDs & Authors",
+                                component=dcc.Input(
+                                    id="wbs-phds-authors",
+                                    className="institution-headcount-input",
+                                    type="number",
+                                    min=0,
+                                    disabled=True,
                                 ),
-                                ("wbs-grad-students", "Grad Students"),
-                            ]
+                            ),
+                            du.make_stacked_label_component_float_left(
+                                width=18,
+                                label="Faculty",
+                                component=dcc.Input(
+                                    id="wbs-faculty",
+                                    className="institution-headcount-input",
+                                    type="number",
+                                    min=0,
+                                    disabled=True,
+                                ),
+                            ),
+                            du.make_stacked_label_component_float_left(
+                                width=18,
+                                label="Scientists/Post-Docs",
+                                component=dcc.Input(
+                                    id="wbs-scientists-post-docs",
+                                    className="institution-headcount-input",
+                                    type="number",
+                                    min=0,
+                                    disabled=True,
+                                ),
+                            ),
+                            du.make_stacked_label_component_float_left(
+                                width=18,
+                                label="Graduate Students",
+                                component=dcc.Input(
+                                    id="wbs-grad-students",
+                                    className="institution-headcount-input",
+                                    type="number",
+                                    min=0,
+                                    disabled=True,
+                                ),
+                            ),
+                            du.make_stacked_label_component_float_left(
+                                width=15,
+                                component=du.ButtonIconLabelTooltipFactory.make(
+                                    "wbs-headcounts-confirm-yes",
+                                    icon_class=du.IconClassNames.RIGHT_TO_BRACKET,  # set in callback
+                                    label_text="Confirm",  # set in callback
+                                    tooltip_text="headcounts need to be confirmed before each collaboration meeting",
+                                    button_classname=du.ButtonIconLabelTooltipFactory.build_classname(
+                                        outline=True,
+                                        color=du.Color.SUCCESS,
+                                    ),
+                                    height="3.8rem",
+                                ),
+                            ),
                         ],
-                    ),
-                    # Autosaved
-                    du.make_timecheck_container("wbs-headcounts-timecheck-container"),
-                    # Confirm
-                    html.Div(
-                        id="wbs-headcounts-confirm-container-container",
-                        children=du.make_confirm_container(
-                            "headcounts", "Submit Headcounts"
-                        ),
                     ),
                 ],
             ),
             #
             html.H2(className="section-header", id="wbs-h2-sow-table"),
             #
+            #
+            dbc.Row(
+                justify="center",
+                className="g-0",  # "g-0" -> no gutters
+                style={
+                    "margin-left": "7rem",
+                    "margin-bottom": "4rem",
+                },
+                children=[
+                    dbc.Col(
+                        width=2,
+                        style={"font-size": "10px"},
+                        children=[
+                            dbc.Label("AD – Administration"),
+                            dbc.Label("KE – Key Personnel (Faculty)"),
+                        ],
+                    ),
+                    dbc.Col(
+                        width=2,
+                        style={"font-size": "10px"},
+                        children=[
+                            dbc.Label("CS – Computer Science"),
+                            dbc.Label("MA – Manager"),
+                        ],
+                    ),
+                    dbc.Col(
+                        width=2,
+                        style={"font-size": "10px"},
+                        children=[
+                            dbc.Label("DS – Data Science"),
+                            dbc.Label("PO – Postdoctoral Associates"),
+                        ],
+                    ),
+                    dbc.Col(
+                        width=2,
+                        style={"font-size": "10px"},
+                        children=[
+                            dbc.Label("EN – Engineering"),
+                            dbc.Label("SC – Scientist"),
+                        ],
+                    ),
+                    dbc.Col(
+                        width=2,
+                        style={"font-size": "10px"},
+                        children=[
+                            dbc.Label("GR – Graduate (PhD) Students"),
+                            dbc.Label("WO – Winterover"),
+                        ],
+                    ),
+                    dbc.Col(
+                        width=2,
+                        style={"font-size": "10px"},
+                        children=[
+                            dbc.Label("IT – Information Technology"),
+                        ],
+                    ),
+                ],
+            ),
+            #
             # Top Tools
             dbc.Row(
-                className="wbs-table-top-toolbar",
-                no_gutters=True,
+                style={"padding-left": "1em", "padding-right": "120px"},
                 children=[
                     # Add Button
-                    du.new_data_button(1),
-                    # Labor Category filter dropdown menu
-                    dcc.Dropdown(
-                        id="wbs-filter-labor",
-                        placeholder="Filter by Labor Category",
-                        className="table-tool-large",
-                        # options set in callback
-                        # vale set in callback
-                        optionHeight=30,
+                    dbc.Col(
+                        width=3,
+                        children=du.ButtonIconLabelTooltipFactory.make(
+                            "wbs-new-data-button",
+                            icon_class=du.IconClassNames.PEN_TO_SQUARE,
+                            label_text="Create New Statement of Work",
+                            tooltip_text="click to add a new statement of work",
+                            button_classname=du.ButtonIconLabelTooltipFactory.build_classname(
+                                outline=True,
+                                color=du.Color.DARK,
+                            ),
+                            height="25.53px",
+                        ),
+                    ),
+                    # Confirm Table
+                    dbc.Col(
+                        width=3,
+                        children=du.ButtonIconLabelTooltipFactory.make(
+                            "wbs-table-confirm-yes",
+                            icon_class=du.IconClassNames.RIGHT_TO_BRACKET,  # set in callback
+                            label_text="Confirm All Statements of Work",  # set in callback
+                            tooltip_text="SOWs need to be confirmed before each collaboration meeting",
+                            button_classname=du.ButtonIconLabelTooltipFactory.build_classname(
+                                outline=True,
+                                color=du.Color.SUCCESS,
+                            ),
+                            height="25.53px",
+                            hidden=True,
+                        ),
+                    ),
+                    #
+                    # Show Totals
+                    dbc.Col(
+                        width=2,
+                        children=du.ButtonIconLabelTooltipFactory.make(
+                            "wbs-show-totals-button",
+                            icon_class=du.IconClassNames.PLUS_MINUS,  # set in callback
+                            label_text="Totals",
+                            height="25.53px",
+                            add_loading=True,
+                            width="100%",
+                        ),
+                    ),
+                    #
+                    # Show All Columns
+                    dbc.Col(
+                        width=2,
+                        children=du.ButtonIconLabelTooltipFactory.make(
+                            "wbs-show-all-columns-button",
+                            icon_class=du.IconClassNames.TABLE_COLUMNS,  # set in callback
+                            label_text="Extra Info",
+                            height="25.53px",
+                            add_loading=True,
+                            width="100%",
+                        ),
+                    ),
+                    #
+                    # Show Pages
+                    dbc.Col(
+                        width=2,
+                        children=du.ButtonIconLabelTooltipFactory.make(
+                            "wbs-show-all-rows-button",
+                            icon_class=du.IconClassNames.LAYER_GROUP,  # set in callback
+                            label_text="Show Pages",
+                            height="25.53px",
+                            hidden=True,  # set in callback
+                            add_loading=True,
+                            width="100%",
+                        ),
                     ),
                 ],
             ),
             #
             # Table
-            dash_table.DataTable(
-                id="wbs-data-table",
-                editable=False,
-                # sort_action="native",
-                # sort_mode="multi",
-                # filter_action="native",  # the UI for native filtering isn't there yet
-                sort_action="native",
-                # Styles
-                style_table={
-                    # "overflowX": "auto",  # setting to auto causes the dropdown-cell overlap bug
-                    # "overflowY": "auto",  # setting to auto causes the dropdown-cell overlap bug
-                    "padding-left": "1em",
-                },
-                style_header={
-                    "backgroundColor": "black",
-                    "color": "whitesmoke",
-                    "whiteSpace": "normal",
-                    "fontWeight": "normal",
-                    "height": "auto",
-                    "lineHeight": "11px",
-                },
-                style_cell={
-                    "textAlign": "left",
-                    "fontSize": 11,
-                    "font-family": "sans-serif",
-                    "padding-left": "0.5em",
-                    # these widths will make it obvious if there's a new/extra column
-                    "minWidth": "10px",
-                    "width": "10px",
-                    "maxWidth": "10px",
-                },
-                # style_cell_conditional set in callback
-                style_data={
-                    "whiteSpace": "normal",
-                    "height": "auto",
-                    "lineHeight": "12px",
-                    "wordBreak": "normal",
-                },
-                # style_data_conditional set in callback
-                # tooltip set in callback
-                row_deletable=False,  # toggled in callback
-                # hidden_columns set in callback
-                page_size=0,  # 0 -> *HUGE* performance gains # toggled in callback
-                # data set in callback
-                # columns set in callback
-                # dropdown set in callback
-                # dropdown_conditional set in callback
-                export_format="xlsx",
-                export_headers="display",
-                merge_duplicate_headers=True,
-                # fixed_rows={"headers": True, "data": 0},
+            html.Div(
+                id="wbs-data-table-container",
+                className="data-table-outer",
+                children=dash_table.DataTable(
+                    id="wbs-data-table",
+                    editable=False,
+                    sort_mode="multi",
+                    filter_action="native",
+                    filter_options={"case": "insensitive"},
+                    sort_action="native",
+                    # Styles
+                    style_table={
+                        # "overflowX": "auto",  # setting to auto causes the dropdown-cell overlap bug
+                        # "overflowY": "auto",  # setting to auto causes the dropdown-cell overlap bug
+                        "padding-left": "1em",
+                    },
+                    style_header={
+                        "backgroundColor": "black",
+                        "color": "whitesmoke",
+                        "whiteSpace": "normal",
+                        "fontWeight": "normal",
+                        "height": "auto",
+                        "lineHeight": "11px",
+                    },
+                    style_cell={
+                        "textAlign": "left",
+                        "fontSize": 11,
+                        "font-family": "sans-serif",
+                        "padding-left": "0.5em",
+                        # these widths will make it obvious if there's a new/extra column
+                        "minWidth": "10px",
+                        "width": "10px",
+                        "maxWidth": "10px",
+                    },
+                    # style_cell_conditional set in callback
+                    style_data={
+                        "whiteSpace": "normal",
+                        "height": "auto",
+                        "lineHeight": "12px",
+                        "wordBreak": "normal",
+                    },
+                    # style_data_conditional set in callback
+                    # tooltip set in callback
+                    row_deletable=False,  # toggled in callback
+                    # hidden_columns set in callback
+                    page_size=0,  # 0 -> *HUGE* performance gains # toggled in callback
+                    # data set in callback
+                    # columns set in callback
+                    # dropdown set in callback
+                    # dropdown_conditional set in callback
+                    export_format="xlsx",
+                    export_headers="display",
+                    merge_duplicate_headers=True,
+                    # fixed_rows={"headers": True, "data": 0},
+                ),
             ),
             #
-            # Bottom Buttons
-            du.fullscreen_loading(
-                children=[
-                    dbc.Row(
-                        className="wbs-table-bottom-toolbar",
-                        no_gutters=True,
-                        children=[
-                            #
-                            # New Data
-                            du.new_data_button(2),
-                            #
-                            # Show Totals
-                            dbc.Button(
-                                id="wbs-show-totals-button",
-                                n_clicks=0,
-                                className="table-tool-medium",
-                            ),
-                            #
-                            # Show All Columns
-                            dbc.Button(
-                                id="wbs-show-all-columns-button",
-                                n_clicks=0,
-                                className="table-tool-medium",
-                            ),
-                            #
-                            # Show All Rows
-                            dbc.Button(
-                                id="wbs-show-all-rows-button",
-                                n_clicks=0,
-                                className="table-tool-medium",
-                            ),
-                        ],
-                    ),
-                ]
-            ),
-            #
-            # Table Autosaved
-            du.make_timecheck_container("wbs-table-timecheck-container", loading=True),
-            #
+            # Computing + Notes
             html.Div(
                 id="institution-values-below-table-container",
                 hidden=True,
@@ -326,33 +409,47 @@ def layout() -> html.Div:
                     # Inputs
                     dbc.Row(
                         justify="center",
-                        no_gutters=True,
                         children=[
-                            dbc.Col(
-                                className="institution-headcount",
-                                children=[
-                                    html.Div(_label, className="caps"),
-                                    dcc.Input(
-                                        id=_id,
-                                        className="institution-headcount-input",
-                                        type="number",
-                                        min=0,
-                                        disabled=True,
+                            du.make_stacked_label_component_float_left(
+                                width=15,
+                                label="Number of CPUs",
+                                component=dcc.Input(
+                                    id="wbs-cpus",
+                                    className="institution-headcount-input",
+                                    type="number",
+                                    min=0,
+                                    disabled=True,
+                                ),
+                            ),
+                            du.make_stacked_label_component_float_left(
+                                width=15,
+                                label="Number of GPUs",
+                                component=dcc.Input(
+                                    id="wbs-gpus",
+                                    className="institution-headcount-input",
+                                    type="number",
+                                    min=0,
+                                    disabled=True,
+                                ),
+                            ),
+                            du.make_stacked_label_component_float_left(
+                                width=15,
+                                component=du.ButtonIconLabelTooltipFactory.make(
+                                    "wbs-computing-confirm-yes",
+                                    icon_class=du.IconClassNames.RIGHT_TO_BRACKET,  # set in callback
+                                    label_text="Confirm",  # set in callback
+                                    tooltip_text="computing contributions need to be confirmed before each collaboration meeting",
+                                    button_classname=du.ButtonIconLabelTooltipFactory.build_classname(
+                                        outline=True,
+                                        color=du.Color.SUCCESS,
                                     ),
-                                ],
-                            )
-                            for _id, _label in [
-                                ("wbs-cpus", "CPU"),
-                                ("wbs-gpus", "GPU"),
-                            ]
+                                    height="3.8rem",
+                                ),
+                            ),
                         ],
                     ),
-                    # Autosaved
-                    du.make_timecheck_container("wbs-computing-timecheck-container"),
-                    # Confirm
-                    du.make_confirm_container("computing", "Submit Counts"),
                     #
-                    # Free Text
+                    # Free Text & Autosaved
                     html.H2(
                         className="section-header",
                         id="wbs-h2-inst-textarea",
@@ -363,9 +460,39 @@ def layout() -> html.Div:
                         className="institution-text-area",
                         disabled=True,
                     ),
-                    # Autosaved
-                    du.make_timecheck_container(
-                        "wbs-institution-textarea-timecheck-container", loading=True
+                ],
+            ),
+            html.Div(
+                id="wbs-collaboration-summary-div",
+                hidden=True,
+                # one of these classes was overriding hidden property
+                # className="d-grid gap-2 mx-auto",  # "col-#" -> width; "mx-auto" -> centered
+                children=[
+                    #
+                    html.H2(
+                        className="section-header", children="Collaboration Summary"
+                    ),
+                    #
+                    # Summary Table
+                    du.fullscreen_loading(
+                        children=[
+                            html.Div(
+                                className="admin-table-button admin-zone-content",
+                                children=[
+                                    dbc.Button(
+                                        id="wbs-summary-table-recalculate",
+                                        n_clicks=0,
+                                        color=du.Color.SECONDARY,
+                                        children="Recalculate Institution Summary",
+                                        style={"width": "calc(100% - 4rem)"},
+                                    ),
+                                ],
+                            ),
+                            html.Div(
+                                className="admin-table admin-zone-content",
+                                children=du.simple_table("wbs-summary-table"),
+                            ),
+                        ]
                     ),
                 ],
             ),
@@ -374,79 +501,75 @@ def layout() -> html.Div:
             html.Div(
                 id="wbs-admin-zone-div",
                 hidden=True,
+                # one of these classes was overriding hidden property
+                # className="d-grid gap-2 mx-auto",  # "col-#" -> width; "mx-auto" -> centered
                 children=[
                     #
                     html.H2(className="section-header", children="Admin Zone"),
-                    #
-                    # Summary Table
-                    du.fullscreen_loading(
-                        children=[
-                            html.Div(
-                                style={
-                                    "margin-right": "10rem",
-                                    "width": "calc(100% - 10rem)",
-                                },
-                                children=[
-                                    dbc.Button(
-                                        id="wbs-summary-table-recalculate",
-                                        n_clicks=0,
-                                        block=True,
-                                        children="Recalculate Institution Summary",
-                                    ),
-                                ],
-                            ),
-                            du.simple_table("wbs-summary-table"),
-                        ]
-                    ),
-                    #
-                    html.Hr(),
                     #
                     # Blame Table
                     du.fullscreen_loading(
                         children=[
                             html.Div(
-                                style={
-                                    "margin-right": "10rem",
-                                    "width": "calc(100% - 10rem)",
-                                },
+                                className="admin-table-button admin-zone-content",
                                 children=[
                                     dbc.Button(
                                         id="wbs-blame-table-button",
                                         n_clicks=0,
-                                        block=True,
                                         color=du.Color.DARK,
                                         children="View How SOWs Have Changed",
+                                        style={"width": "calc(100% - 4rem)"},
                                     ),
                                 ],
                             ),
-                            du.simple_table("wbs-blame-table"),
+                            html.Div(
+                                className="admin-table admin-zone-content",
+                                children=du.simple_table("wbs-blame-table"),
+                            ),
                         ],
                     ),
                     #
-                    html.Hr(),
-                    #
-                    # Make Snapshot
-                    dbc.Button(
-                        "Make Collaboration-Wide Snapshot",
-                        id="wbs-make-snapshot-button",
-                        block=True,
-                        n_clicks=0,
-                        color=du.Color.SUCCESS,
-                        disabled=False,
-                        style={"margin-bottom": "1rem"},
-                    ),
-                    #
-                    html.Hr(),
-                    #
-                    # Upload/Override XLSX
-                    dbc.Button(
-                        "Override All Institutions' SOW Tables with .xlsx",
-                        id="wbs-upload-xlsx-launch-modal-button",
-                        block=True,
-                        n_clicks=0,
-                        color=du.Color.WARNING,
-                        disabled=False,
-                        style={"margin-bottom": "1rem"},
+                    html.Hr(className="admin-zone-content"),
+                    dbc.Row(
+                        className="admin-zone-content",
+                        children=[
+                            # Make Snapshot
+                            dbc.Col(
+                                width=4,
+                                children=dbc.Button(
+                                    "Make Collaboration-Wide Snapshot",
+                                    id="wbs-make-snapshot-button",
+                                    n_clicks=0,
+                                    color=du.Color.SUCCESS,
+                                    disabled=False,
+                                    style={"width": "100%"},
+                                ),
+                            ),
+                            # Reset Confirmations
+                            dbc.Col(
+                                width=4,
+                                children=dbc.Button(
+                                    "Reset Institution Confirmations",
+                                    id="wbs-retouchstone-button",
+                                    n_clicks=0,
+                                    color=du.Color.WARNING,
+                                    disabled=False,
+                                    style={"width": "100%"},
+                                ),
+                            ),
+                            # Upload/Override XLSX
+                            dbc.Col(
+                                width=4,
+                                children=dbc.Button(
+                                    "Override All Institutions' Statements of Work with .xlsx",
+                                    id="wbs-upload-xlsx-launch-modal-button",
+                                    n_clicks=0,
+                                    color=du.Color.DANGER,
+                                    disabled=not ENV.DEBUG,  # only for local testing
+                                    style={"width": "100%"},
+                                ),
+                            ),
+                        ],
                     ),
                 ],
             ),
@@ -460,9 +583,10 @@ def layout() -> html.Div:
                 storage_type="memory",
                 data=True,
             ),
-            # - for fagging the initial count-confirmation states
-            dcc.Store(id="wbs-headcounts-confirm-initial-state", storage_type="memory"),
-            dcc.Store(id="wbs-computing-confirm-initial-state", storage_type="memory"),
+            # - for storing confirmation info
+            dcc.Store(id="wbs-store-confirm-headcounts", storage_type="memory"),
+            dcc.Store(id="wbs-store-confirm-table", storage_type="memory"),
+            dcc.Store(id="wbs-store-confirm-computing", storage_type="memory"),
             # - for storing the last deleted record's id
             dcc.Store(id="wbs-last-deleted-record", storage_type="memory"),
             # - for discerning whether the table update was by the user vs automated
@@ -478,18 +602,23 @@ def layout() -> html.Div:
                 data=False,
             ),
             #
+            # Intervals
+            dcc.Interval(
+                id="wbs-interval-trigger-confirmation-refreshes",
+                interval=10 * 1000 if ENV.DEBUG else 30 * 1000,
+            ),
+            #
             # Container Divs -- for adding dynamic toasts, dialogs, etc.
             html.Div(id="wbs-toast-via-exterior-control-div"),
             html.Div(id="wbs-toast-via-confirm-deletion-div"),
             html.Div(id="wbs-toast-via-snapshot-div"),
             html.Div(id="wbs-toast-via-upload-div"),
             #
-            # Modals & Toasts
+            # Modals, Dialogs, & Toasts
             du.after_deletion_toast(),
             du.upload_modal(),
             du.upload_success_modal(),
             du.name_snapshot_modal(),
-            # du.add_new_data_modal(),
             dcc.ConfirmDialog(id="wbs-confirm-deletion"),
             dbc.Button(
                 id="wbs-undo-last-delete-hidden-button", style={"visibility": "hidden"}
