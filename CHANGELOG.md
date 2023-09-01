@@ -2,6 +2,17 @@
 
 <!--next-version-placeholder-->
 
+## v3.0.0 (2023-09-01)
+
+### Breaking
+
+* Co-authored-by: github-actions <github-actions@github.com> ([`97e4e76`](https://github.com/WIPACrepo/mou-dashboard/commit/97e4e76f7ca57ff222b65a9e114ca856d7126379))
+
+### Other
+
+* Additional Test Data ([#70](https://github.com/WIPACrepo/mou-dashboard/issues/70)) ([`0aae3ab`](https://github.com/WIPACrepo/mou-dashboard/commit/0aae3ab8536d4cf8d948efd4eb420eb3e57dd519))
+* CI Updates: Packages & Data ([#69](https://github.com/WIPACrepo/mou-dashboard/issues/69)) ([`4daa2bf`](https://github.com/WIPACrepo/mou-dashboard/commit/4daa2bf99320d975508f04f042e4032bd1a2e8f6))
+
 ## v2.2.0 (2022-10-24)
 ### Feature
 * OIDC REST Tokens ([#67](https://github.com/WIPACrepo/mou-dashboard/issues/67)) ([`2df6142`](https://github.com/WIPACrepo/mou-dashboard/commit/2df61421c4ab86ddce9d0744af0fbc9aab584229))
