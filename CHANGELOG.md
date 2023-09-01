@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v3.0.1 (2023-09-01)
+
+
+
 ## v3.0.0 (2023-09-01)
 
 ### Breaking
