@@ -37,9 +37,8 @@ async def start(debug: bool = False) -> RestServer:
     args = RestHandlerSetup(  # type: ignore[no-untyped-call]
         {
             "auth": {
-                "secret": ENV.MOU_AUTH_SECRET,
-                "issuer": ENV.MOU_AUTH_ISSUER,
-                "algorithm": ENV.MOU_AUTH_ALGORITHM,
+                "openid_url": ENV.OPENID_URL,
+                "audience": ENV.OPENID_AUDIENCE,
             },
             "debug": debug,
         }
