@@ -11,7 +11,7 @@ import universal_utils.types as uut
 from motor.motor_tornado import MotorClient  # type: ignore
 from rest_tools import server
 
-from .config import AUTH_PREFIX, is_testing
+from .config import AUTH_SERVICE_ACCOUNT, is_testing
 from .data_sources import mou_db, table_config_cache, todays_institutions, wbs
 from .utils import utils
 
@@ -24,9 +24,9 @@ _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
 
 if is_testing():
 
-    def scope_role_auth(**kwargs):  # type: ignore
-        def make_wrapper(method):  # type: ignore[no-untyped-def]
-            async def wrapper(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+    def keycloak_role_auth(**kwargs):  # type: ignore
+        def make_wrapper(method):
+            async def wrapper(self, *args, **kwargs):
                 logging.warning("TESTING: auth disabled")
                 return await method(self, *args, **kwargs)
 
@@ -35,7 +35,7 @@ if is_testing():
         return make_wrapper
 
 else:
-    scope_role_auth = server.scope_role_auth
+    keycloak_role_auth = server.keycloak_role_auth
 
 # -----------------------------------------------------------------------------
 
@@ -122,7 +122,7 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
                 "current_snapshot": dc.asdict(curr_snap_info),
             }
 
-    @scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
+    @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
         is_admin = self.get_argument(
@@ -191,7 +191,7 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
 
         self.write(clientbound_snapshot_info | {"table": table})
 
-    @scope_role_auth(prefix=AUTH_PREFIX, roles=["admin"])  # type: ignore
+    @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
         base64_file = self.get_argument(
@@ -236,7 +236,7 @@ class RecordHandler(BaseMOUHandler):  # pylint: disable=W0223
 
     ROUTE = rf"/record/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
-    @scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
+    @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
         record: uut.DBRecord = self.get_argument(
@@ -258,7 +258,7 @@ class RecordHandler(BaseMOUHandler):  # pylint: disable=W0223
             resp["institution_values"] = dc.asdict(instvals)
         self.write(resp)
 
-    @scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
+    @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def delete(self, wbs_l1: str) -> None:
         """Handle DELETE."""
         record_id = self.get_argument(
@@ -288,7 +288,7 @@ class TableConfigHandler(BaseMOUHandler):  # pylint: disable=W0223
 
     ROUTE = r"/table/config$"
 
-    @scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
+    @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
         await self.tc_cache.refresh()
@@ -329,7 +329,7 @@ class SnapshotsHandler(BaseMOUHandler):  # pylint: disable=W0223
 
     ROUTE = rf"/snapshots/list/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
-    @scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
+    @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
         is_admin = self.get_argument(
@@ -358,7 +358,7 @@ class MakeSnapshotHandler(BaseMOUHandler):  # pylint: disable=W0223
 
     ROUTE = rf"/snapshots/make/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
-    @scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
+    @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
         name = self.get_argument(
@@ -389,14 +389,14 @@ class InstitutionValuesConfirmationTouchstoneHandler(
 
     ROUTE = rf"/institution/values/confirmation/touchstone/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
-    @scope_role_auth(prefix=AUTH_PREFIX, roles=["admin"])  # type: ignore
+    @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
         timestamp = await self.mou_db_client.retouchstone(wbs_l1)
 
         self.write({"touchstone_timestamp": timestamp})
 
-    @scope_role_auth(prefix=AUTH_PREFIX, roles=["admin"])  # type: ignore
+    @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle POST."""
         timestamp = await self.mou_db_client.get_touchstone(wbs_l1)
@@ -412,7 +412,7 @@ class InstitutionValuesConfirmationHandler(BaseMOUHandler):  # pylint: disable=W
 
     ROUTE = rf"/institution/values/confirmation/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
-    @scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
+    @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
         institution = self.get_argument(
@@ -451,7 +451,7 @@ class InstitutionValuesHandler(BaseMOUHandler):  # pylint: disable=W0223
 
     ROUTE = rf"/institution/values/(?P<wbs_l1>{_WBS_L1_REGEX_VALUES})$"
 
-    @scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
+    @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
         institution = self.get_argument(
@@ -470,7 +470,7 @@ class InstitutionValuesHandler(BaseMOUHandler):  # pylint: disable=W0223
 
         self.write(dc.asdict(vals))
 
-    @scope_role_auth(prefix=AUTH_PREFIX, roles=["write", "admin"])  # type: ignore
+    @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
         institution = self.get_argument(
@@ -538,7 +538,7 @@ class InstitutionStaticHandler(BaseMOUHandler):  # pylint: disable=W0223
 
     ROUTE = r"/institution/today$"
 
-    @scope_role_auth(prefix=AUTH_PREFIX, roles=["read", "write", "admin"])  # type: ignore
+    @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
         institutions = await todays_institutions.request_krs_institutions()

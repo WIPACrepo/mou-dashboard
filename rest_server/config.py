@@ -30,8 +30,7 @@ class EnvConfig:
 
 ENV = from_environment_as_dataclass(EnvConfig)
 
-
-AUTH_PREFIX = "mou"
+AUTH_SERVICE_ACCOUNT = "mou-service-account"
 
 EXCLUDE_DBS = [
     "system.indexes",
