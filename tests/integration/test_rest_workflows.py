@@ -51,7 +51,6 @@ with open("./tests/integration/Dummy_WBS.xlsx", "rb") as f:
         "base64_file": base64.b64encode(f.read()).decode(encoding="utf-8"),
         "filename": f.name,
         "creator": "Hank",
-        "is_admin": True,
     }
 
 
@@ -84,7 +83,7 @@ def test_ingest(ds_rc: RestClient) -> None:
             snap_resp = ds_rc.request_seq(
                 "GET",
                 f"/table/data/{WBS_L1}",
-                {"is_admin": True, "snapshot": snaps[0]["timestamp"]},
+                {"snapshot": snaps[0]["timestamp"]},
             )
             assert not snap_resp["previous_snapshot"]
             assert snap_resp["current_snapshot"] == snaps[0]
@@ -96,7 +95,7 @@ def test_ingest(ds_rc: RestClient) -> None:
             resp_live = ds_rc.request_seq(
                 "GET",
                 f"/table/data/{WBS_L1}",
-                {"is_admin": True},
+                {},
             )
             assert resp_live["previous_snapshot"]
             assert resp_live["previous_snapshot"] == snaps[0]
@@ -113,7 +112,7 @@ def test_ingest(ds_rc: RestClient) -> None:
             assert len(snaps) == 0
             # get live
             resp_live = ds_rc.request_seq(
-                "GET", f"/table/data/{WBS_L1}", {"is_admin": True}
+                "GET", f"/table/data/{WBS_L1}", {}
             )
             assert not resp_live["previous_snapshot"]
             for inst in set(r["Institution"] for r in resp_live["table"]):
@@ -133,7 +132,7 @@ def test_ingest(ds_rc: RestClient) -> None:
             snap_resp = ds_rc.request_seq(
                 "GET",
                 f"/table/data/{WBS_L1}",
-                {"is_admin": True, "snapshot": snaps[0]["timestamp"]},
+                {"snapshot": snaps[0]["timestamp"]},
             )
             assert not snap_resp["previous_snapshot"]
             for inst in set(r["Institution"] for r in snap_resp["table"]):
@@ -144,7 +143,7 @@ def test_ingest(ds_rc: RestClient) -> None:
             resp_live = ds_rc.request_seq(
                 "GET",
                 f"/table/data/{WBS_L1}",
-                {"is_admin": True},
+                {},
             )
             assert resp_live["previous_snapshot"]
             assert resp_live["previous_snapshot"] == snaps[0]
@@ -175,7 +174,7 @@ def test_ingest(ds_rc: RestClient) -> None:
         resp = ds_rc.request_seq(
             "POST",
             f"/table/data/{WBS_L1}",
-            {"base64_file": "123456789", "filename": "foo-file", "is_admin": True},
+            {"base64_file": "123456789", "filename": "foo-file"},
         )
 
 
@@ -286,9 +285,7 @@ class TestTableHandler:
     @staticmethod
     def test_get_w_bad_args(ds_rc: RestClient) -> None:
         """Test `GET` @ `/table/data` with bad arguments."""
-        tests: dict[str, dict[str, Any]] = {
-            "is_admin": {"foo": "bar"},
-        }
+        tests: dict[str, dict[str, Any]] = {}
         for arg, body_min in tests.items():
             with pytest.raises(
                 requests.exceptions.HTTPError,
@@ -300,15 +297,7 @@ class TestTableHandler:
                     body_min,
                 )
 
-            # empty
-            with pytest.raises(
-                requests.exceptions.HTTPError,
-                match=rf"400 Client Error: `is_admin`: \(MissingArgumentError\) .+ for url: {ds_rc.address}/table/data/{WBS_L1}",
-            ):
-                ds_rc.request_seq(
-                    "GET",
-                    f"/table/data/{WBS_L1}",
-                )
+
 
     @staticmethod
     def _assert_schema(record: uut.DBRecord, has_total_rows: bool = False) -> None:
@@ -354,7 +343,7 @@ class TestTableHandler:
         """Test `GET` @ `/table/data`."""
         # assert schema in Live Collection
         for record in ds_rc.request_seq(
-            "GET", f"/table/data/{WBS_L1}", {"is_admin": True}
+            "GET", f"/table/data/{WBS_L1}", {}
         )["table"]:
             self._assert_schema(record)
 
@@ -365,7 +354,7 @@ class TestTableHandler:
             resp = ds_rc.request_seq(
                 "GET",
                 f"/table/data/{WBS_L1}",
-                {"snapshot": snapshot["timestamp"], "is_admin": True},
+                {"snapshot": snapshot["timestamp"]},
             )
             for record in resp["table"]:
                 self._assert_schema(record)
@@ -541,7 +530,7 @@ class TestInstitutionValuesHandler:
         assert original_insts
         for inst in original_insts:
             records = ds_rc.request_seq(
-                "GET", f"/table/data/{WBS_L1}", {"institution": inst, "is_admin": True}
+                "GET", f"/table/data/{WBS_L1}", {"institution": inst}
             )["table"]
             now = int(time.time())
             match inst:
