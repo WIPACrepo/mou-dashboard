@@ -111,9 +111,7 @@ def test_ingest(ds_rc: RestClient) -> None:
             )["snapshots"]
             assert len(snaps) == 0
             # get live
-            resp_live = ds_rc.request_seq(
-                "GET", f"/table/data/{WBS_L1}", {}
-            )
+            resp_live = ds_rc.request_seq("GET", f"/table/data/{WBS_L1}", {})
             assert not resp_live["previous_snapshot"]
             for inst in set(r["Institution"] for r in resp_live["table"]):
                 ds_rc.request_seq(
@@ -297,8 +295,6 @@ class TestTableHandler:
                     body_min,
                 )
 
-
-
     @staticmethod
     def _assert_schema(record: uut.DBRecord, has_total_rows: bool = False) -> None:
         # pprint.pprint(record)
@@ -342,9 +338,7 @@ class TestTableHandler:
     def test_get_schema(self, ds_rc: RestClient) -> None:
         """Test `GET` @ `/table/data`."""
         # assert schema in Live Collection
-        for record in ds_rc.request_seq(
-            "GET", f"/table/data/{WBS_L1}", {}
-        )["table"]:
+        for record in ds_rc.request_seq("GET", f"/table/data/{WBS_L1}", {})["table"]:
             self._assert_schema(record)
 
         # assert schema in Snapshot Collections
