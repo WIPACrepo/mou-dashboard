@@ -8,11 +8,10 @@ from typing import Any
 
 import universal_utils.constants as uuc
 import universal_utils.types as uut
-from motor.motor_tornado import MotorClient  # type: ignore
 from rest_tools import server
 
 from .config import AUTH_SERVICE_ACCOUNT, is_testing
-from .data_sources import mou_db, table_config_cache, todays_institutions, wbs
+from .data_sources import mou_db, todays_institutions, wbs
 from .utils import utils
 
 _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
@@ -45,18 +44,15 @@ class BaseMOUHandler(server.RestHandler):  # pylint: disable=W0223
 
     def initialize(  # type: ignore[override]  # pylint: disable=W0221
         self,
-        mongodb_url: str,
-        tc_cache: table_config_cache.TableConfigCache,
+        mou_db_client: mou_db.MOUDatabaseClient,
         *args: Any,
         **kwargs: Any,
     ) -> None:
         """Initialize a BaseMOUHandler object."""
         super().initialize(*args, **kwargs)  # type: ignore[no-untyped-call]
         # pylint: disable=W0201
-        self.tc_cache = tc_cache
-        self.mou_db_client = mou_db.MOUDatabaseClient(
-            MotorClient(mongodb_url), utils.MOUDataAdaptor(self.tc_cache)
-        )
+        self.mou_db_client = mou_db_client
+        self.tc_cache = self.mou_db_client.data_adaptor.tc_cache
         self.tc_data_adaptor = utils.TableConfigDataAdaptor(self.tc_cache)
 
 

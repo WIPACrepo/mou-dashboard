@@ -512,7 +512,6 @@ class MOUDatabaseClient:
         logging.debug(f"Getting from {snap_coll} ({wbs_db=})...")
 
         await self._check_database_state(wbs_db)
-        await self._ensure_all_db_indexes()
 
         query = {}
         if labor:

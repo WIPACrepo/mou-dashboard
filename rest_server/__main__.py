@@ -9,10 +9,11 @@ import logging
 from urllib.parse import quote_plus
 
 import coloredlogs  # type: ignore[import]
+from motor.motor_tornado import MotorClient
 from rest_tools.server import RestHandlerSetup, RestServer
 
 from .config import ENV
-from .data_sources import table_config_cache, todays_institutions
+from .data_sources import mou_db, table_config_cache, todays_institutions
 from .routes import (
     InstitutionStaticHandler,
     InstitutionValuesConfirmationHandler,
@@ -25,6 +26,7 @@ from .routes import (
     TableConfigHandler,
     TableHandler,
 )
+from .utils import utils
 
 
 async def start(debug: bool = False) -> RestServer:
@@ -43,15 +45,19 @@ async def start(debug: bool = False) -> RestServer:
             "debug": debug,
         }
     )
-    args["tc_cache"] = await table_config_cache.TableConfigCache.create()
 
-    # Setup DB URL
+    # Setup Mongo
     mongodb_auth_user = quote_plus(ENV.MOU_MONGODB_AUTH_USER)
     mongodb_auth_pass = quote_plus(ENV.MOU_MONGODB_AUTH_PASS)
     mongodb_url = f"mongodb://{ENV.MOU_MONGODB_HOST}:{ENV.MOU_MONGODB_PORT}"
     if mongodb_auth_user and mongodb_auth_pass:
         mongodb_url = f"mongodb://{mongodb_auth_user}:{mongodb_auth_pass}@{ENV.MOU_MONGODB_HOST}:{ENV.MOU_MONGODB_PORT}"
-    args["mongodb_url"] = mongodb_url
+    mou_db_client = mou_db.MOUDatabaseClient(
+        MotorClient(mongodb_url),
+        utils.MOUDataAdaptor(await table_config_cache.TableConfigCache.create()),
+    )
+    await mou_db_client._ensure_all_db_indexes()
+    args["mou_db_client"] = mou_db_client
 
     # Configure REST Routes
     server = RestServer(debug=debug)
