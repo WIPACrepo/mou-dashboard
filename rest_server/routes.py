@@ -181,15 +181,7 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
         # sort
         table.sort(key=self.tc_cache.sort_key)
 
-        # get info for snapshot(s)
-        clientbound_snapshot_info = await self._get_clientbound_snapshot_info(
-            wbs_l1,
-            collection,
-            len(table),
-            is_admin,
-        )
-
-        self.write(clientbound_snapshot_info | {"table": table})
+        self.write({"table": table})
 
     @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
