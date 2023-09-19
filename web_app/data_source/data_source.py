@@ -280,7 +280,6 @@ def pull_data_table(  # pylint: disable=R0913
         "total_rows": with_totals,
         "snapshot": snapshot_ts,
         "restore_id": restore_id,
-        "is_admin": CurrentUser.is_admin(),
     }
 
     response = cast(

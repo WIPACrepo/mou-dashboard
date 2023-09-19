@@ -125,11 +125,6 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
     @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
-        is_admin = self.get_argument(
-            "is_admin",
-            type=bool,
-        )
-
         collection = self.get_argument(
             "snapshot",
             default=uuc.LIVE_COLLECTION,
