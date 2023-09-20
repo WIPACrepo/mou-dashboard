@@ -51,6 +51,8 @@ with open("./tests/integration/Dummy_WBS.xlsx", "rb") as f:
         "base64_file": base64.b64encode(f.read()).decode(encoding="utf-8"),
         "filename": f.name,
         "creator": "Hank",
+        "is_admin": True,
+        "include_snapshot_info": True,
     }
 
 
@@ -83,7 +85,11 @@ def test_ingest(ds_rc: RestClient) -> None:
             snap_resp = ds_rc.request_seq(
                 "GET",
                 f"/table/data/{WBS_L1}",
-                {"snapshot": snaps[0]["timestamp"]},
+                {
+                    "is_admin": True,
+                    "include_snapshot_info": True,
+                    "snapshot": snaps[0]["timestamp"],
+                },
             )
             assert not snap_resp["previous_snapshot"]
             assert snap_resp["current_snapshot"] == snaps[0]
@@ -95,7 +101,7 @@ def test_ingest(ds_rc: RestClient) -> None:
             resp_live = ds_rc.request_seq(
                 "GET",
                 f"/table/data/{WBS_L1}",
-                {},
+                {"is_admin": True, "include_snapshot_info": True},
             )
             assert resp_live["previous_snapshot"]
             assert resp_live["previous_snapshot"] == snaps[0]
@@ -111,7 +117,11 @@ def test_ingest(ds_rc: RestClient) -> None:
             )["snapshots"]
             assert len(snaps) == 0
             # get live
-            resp_live = ds_rc.request_seq("GET", f"/table/data/{WBS_L1}", {})
+            resp_live = ds_rc.request_seq(
+                "GET",
+                f"/table/data/{WBS_L1}",
+                {"is_admin": True, "include_snapshot_info": True},
+            )
             assert not resp_live["previous_snapshot"]
             for inst in set(r["Institution"] for r in resp_live["table"]):
                 ds_rc.request_seq(
@@ -130,7 +140,11 @@ def test_ingest(ds_rc: RestClient) -> None:
             snap_resp = ds_rc.request_seq(
                 "GET",
                 f"/table/data/{WBS_L1}",
-                {"snapshot": snaps[0]["timestamp"]},
+                {
+                    "is_admin": True,
+                    "include_snapshot_info": True,
+                    "snapshot": snaps[0]["timestamp"],
+                },
             )
             assert not snap_resp["previous_snapshot"]
             for inst in set(r["Institution"] for r in snap_resp["table"]):
@@ -141,7 +155,7 @@ def test_ingest(ds_rc: RestClient) -> None:
             resp_live = ds_rc.request_seq(
                 "GET",
                 f"/table/data/{WBS_L1}",
-                {},
+                {"is_admin": True, "include_snapshot_info": True},
             )
             assert resp_live["previous_snapshot"]
             assert resp_live["previous_snapshot"] == snaps[0]
@@ -172,7 +186,12 @@ def test_ingest(ds_rc: RestClient) -> None:
         resp = ds_rc.request_seq(
             "POST",
             f"/table/data/{WBS_L1}",
-            {"base64_file": "123456789", "filename": "foo-file"},
+            {
+                "base64_file": "123456789",
+                "filename": "foo-file",
+                "is_admin": True,
+                "include_snapshot_info": True,
+            },
         )
 
 
