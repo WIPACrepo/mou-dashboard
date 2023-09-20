@@ -9,6 +9,7 @@ from typing import Any
 import universal_utils.constants as uuc
 import universal_utils.types as uut
 from rest_tools import server
+from wipac_dev_tools import strtobool
 
 from .config import AUTH_SERVICE_ACCOUNT, is_testing
 from .data_sources import mou_db, todays_institutions, wbs
@@ -150,24 +151,25 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
         )
 
         # optionals
-        # fmt:off
+
         include_snapshot_info = self.get_argument(
             "include_snapshot_info",
             type=bool,
             default=False,
         )
+
         def _is_admin_with_shapshot(val: Any) -> bool:
             if not include_snapshot_info:
                 raise ValueError("arg required when 'include_snapshot_info=True'")
-            if not isinstance(val, bool):
-                raise ValueError("arg must be bool")
-            return val
+            return strtobool(val)
+
         is_admin = self.get_argument(
             "is_admin",
             type=_is_admin_with_shapshot,
             default=True,
         )
-        # fmt:on
+
+        # work!
 
         if restore_id:
             await self.mou_db_client.restore_record(wbs_l1, restore_id)
