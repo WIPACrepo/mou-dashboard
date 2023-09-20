@@ -8,11 +8,11 @@ from typing import Any
 
 import universal_utils.constants as uuc
 import universal_utils.types as uut
-from motor.motor_tornado import MotorClient  # type: ignore
 from rest_tools import server
+from wipac_dev_tools import strtobool
 
 from .config import AUTH_SERVICE_ACCOUNT, is_testing
-from .data_sources import mou_db, table_config_cache, todays_institutions, wbs
+from .data_sources import mou_db, todays_institutions, wbs
 from .utils import utils
 
 _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
@@ -45,18 +45,15 @@ class BaseMOUHandler(server.RestHandler):  # pylint: disable=W0223
 
     def initialize(  # type: ignore[override]  # pylint: disable=W0221
         self,
-        mongodb_url: str,
-        tc_cache: table_config_cache.TableConfigCache,
+        mou_db_client: mou_db.MOUDatabaseClient,
         *args: Any,
         **kwargs: Any,
     ) -> None:
         """Initialize a BaseMOUHandler object."""
         super().initialize(*args, **kwargs)  # type: ignore[no-untyped-call]
         # pylint: disable=W0201
-        self.tc_cache = tc_cache
-        self.mou_db_client = mou_db.MOUDatabaseClient(
-            MotorClient(mongodb_url), utils.MOUDataAdaptor(self.tc_cache)
-        )
+        self.mou_db_client = mou_db_client
+        self.tc_cache = self.mou_db_client.data_adaptor.tc_cache
         self.tc_data_adaptor = utils.TableConfigDataAdaptor(self.tc_cache)
 
 
@@ -125,11 +122,6 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
     @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
-        is_admin = self.get_argument(
-            "is_admin",
-            type=bool,
-        )
-
         collection = self.get_argument(
             "snapshot",
             default=uuc.LIVE_COLLECTION,
@@ -158,6 +150,29 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
             type=bool,
         )
 
+        # optionals
+
+        include_snapshot_info = self.get_argument(
+            "include_snapshot_info",
+            type=bool,
+            default=False,
+        )
+
+        def _is_admin_with_shapshot(val: Any) -> bool:
+            if val is None:
+                return False
+            if not include_snapshot_info:
+                raise ValueError("arg required when 'include_snapshot_info=True'")
+            return strtobool(val)
+
+        is_admin = self.get_argument(
+            "is_admin",
+            type=_is_admin_with_shapshot,
+            default=None,  # -> False
+        )
+
+        # work!
+
         if restore_id:
             await self.mou_db_client.restore_record(wbs_l1, restore_id)
 
@@ -181,15 +196,17 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
         # sort
         table.sort(key=self.tc_cache.sort_key)
 
-        # get info for snapshot(s)
-        clientbound_snapshot_info = await self._get_clientbound_snapshot_info(
-            wbs_l1,
-            collection,
-            len(table),
-            is_admin,
-        )
-
-        self.write(clientbound_snapshot_info | {"table": table})
+        # finish up
+        if include_snapshot_info:
+            clientbound_snapshot_info = await self._get_clientbound_snapshot_info(
+                wbs_l1,
+                collection,
+                len(table),
+                is_admin,
+            )
+            self.write(clientbound_snapshot_info | {"table": table})
+        else:
+            self.write({"table": table})
 
     @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def post(self, wbs_l1: str) -> None:

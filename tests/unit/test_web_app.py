@@ -245,7 +245,6 @@ class TestDataSource:
                 "total_rows": False,
                 "snapshot": "LIVE_COLLECTION",
                 "restore_id": "",
-                "is_admin": True,
             },
             {  # Other values
                 "institution": "bar",
@@ -253,7 +252,6 @@ class TestDataSource:
                 "total_rows": True,
                 "snapshot": "123",
                 "restore_id": "456789456123",
-                "is_admin": True,
             },
         ]
 
