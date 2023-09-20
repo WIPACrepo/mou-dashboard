@@ -161,6 +161,8 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
         def _is_admin_with_shapshot(val: Any) -> bool:
             if not include_snapshot_info:
                 raise ValueError("arg required when 'include_snapshot_info=True'")
+            if isinstance(val, bool):
+                return val
             return strtobool(val)
 
         is_admin = self.get_argument(
