@@ -149,6 +149,26 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
             type=bool,
         )
 
+        # optionals
+        # fmt:off
+        include_snapshot_info = self.get_argument(
+            "include_snapshot_info",
+            type=bool,
+            default=False,
+        )
+        def _is_admin_with_shapshot(val: Any) -> bool:
+            if not include_snapshot_info:
+                raise ValueError("arg required when 'include_snapshot_info=True'")
+            if not isinstance(val, bool):
+                raise ValueError("arg must be bool")
+            return val
+        is_admin = self.get_argument(
+            "is_admin",
+            type=_is_admin_with_shapshot,
+            default=True,
+        )
+        # fmt:on
+
         if restore_id:
             await self.mou_db_client.restore_record(wbs_l1, restore_id)
 
@@ -172,15 +192,17 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
         # sort
         table.sort(key=self.tc_cache.sort_key)
 
-        # get info for snapshot(s)
-        clientbound_snapshot_info = await self._get_clientbound_snapshot_info(
-            wbs_l1,
-            collection,
-            len(table),
-            is_admin,
-        )
-
-        self.write(clientbound_snapshot_info | {"table": table})
+        # finish up
+        if include_snapshot_info:
+            clientbound_snapshot_info = await self._get_clientbound_snapshot_info(
+                wbs_l1,
+                collection,
+                len(table),
+                is_admin,
+            )
+            self.write(clientbound_snapshot_info | {"table": table})
+        else:
+            self.write({"table": table})
 
     @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
