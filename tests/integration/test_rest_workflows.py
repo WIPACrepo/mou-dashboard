@@ -68,7 +68,11 @@ def test_ingest(ds_rc: RestClient) -> None:
                     "422 Client Error: Snapshot Database has no collections (wbs_db='mo'). for url: http://localhost:8080/table/data/mo?is_admin=True"
                 ),
             ):
-                ds_rc.request_seq("GET", f"/table/data/{WBS_L1}", {"is_admin": True})
+                ds_rc.request_seq(
+                    "GET",
+                    f"/table/data/{WBS_L1}",
+                    {"is_admin": True, "include_snapshot_info": True},
+                )
             # ingest -- gets a snapshot
             resp_post = ds_rc.request_seq(
                 "POST", f"/table/data/{WBS_L1}", INITIAL_INGEST_BODY
@@ -78,7 +82,7 @@ def test_ingest(ds_rc: RestClient) -> None:
             snaps = ds_rc.request_seq(
                 "GET",
                 f"/snapshots/list/{WBS_L1}",
-                {"is_admin": True},
+                {"is_admin": True, "include_snapshot_info": True},
             )["snapshots"]
             assert len(snaps) == 1
             # get only snap
