@@ -11,6 +11,7 @@ from typing import Any, Final, cast
 import cachetools.func
 import flask
 import requests
+import universal_utils.types as uut
 
 # local imports
 from rest_tools.client import ClientCredentialsAuth, RestClient
@@ -85,25 +86,14 @@ def mou_request(method: str, url: str, body: Any = None) -> dict[str, Any]:
 #
 
 
-@dataclass(frozen=True)
-class Institution:
-    """Hold minimal institution data."""
-
-    short_name: str
-    long_name: str
-    is_us: bool
-    has_mou: bool
-    institution_lead_uid: str
-
-
 @cachetools.func.ttl_cache(ttl=MAX_CACHE_MINS * 60)
-def _cached_get_institutions_infos() -> dict[str, Institution]:
+def _cached_get_institutions_infos() -> dict[str, uut.Institution]:
     logging.warning("Cache Miss: _cached_get_institutions_infos()")
     resp = cast(dict[str, dict[str, Any]], mou_request("GET", "/institution/today"))
-    return {k: Institution(**v) for k, v in resp.items()}
+    return {k: uut.Institution(**v) for k, v in resp.items()}
 
 
-def get_institutions_infos() -> dict[str, Institution]:
+def get_institutions_infos() -> dict[str, uut.Institution]:
     """Get a dict of all institutions with their info."""
     return _cached_get_institutions_infos()
 

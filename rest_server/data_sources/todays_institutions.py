@@ -1,28 +1,17 @@
 """Tools for getting info on the state of today's institutions."""
 
 import logging
-from dataclasses import dataclass
 from typing import Any
 
+import universal_utils.types as uut
 from krs import institutions as krs_institutions  # type: ignore[import]
 from krs import token
 from wipac_dev_tools import strtobool
 
 
-@dataclass(frozen=True)
-class Institution:
-    """Hold minimal institution data."""
-
-    short_name: str
-    long_name: str
-    is_us: bool
-    has_mou: bool
-    institution_lead_uid: str
-
-
-def convert_krs_institutions(response: dict[str, Any]) -> list[Institution]:
-    """Convert from krs response data to list[Institution]."""
-    insts: list[Institution] = []
+def convert_krs_institutions(response: dict[str, Any]) -> list[uut.Institution]:
+    """Convert from krs response data to list[uut.Institution]."""
+    insts: list[uut.Institution] = []
     for inst, attrs in response.items():
         if not attrs:
             continue
@@ -33,7 +22,7 @@ def convert_krs_institutions(response: dict[str, Any]) -> list[Institution]:
             if has_mou and "is_US" not in attrs:
                 raise KeyError('"is_US" is required')
             insts.append(
-                Institution(
+                uut.Institution(
                     short_name=inst,
                     long_name=attrs.get("name", inst),
                     is_us=strtobool(attrs.get("is_US", "false")),
@@ -56,7 +45,7 @@ def filter_krs_institutions(group_path: str, attrs: dict[str, Any]) -> bool:
         return False
 
 
-async def request_krs_institutions() -> list[Institution]:
+async def request_krs_institutions() -> list[uut.Institution]:
     """Grab the master list of institutions along with their details."""
     rc = token.get_rest_client()
 

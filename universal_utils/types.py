@@ -17,6 +17,17 @@ DBRecord = dict[str, DataEntry]
 DBTable = list[DBRecord]
 
 
+@dc.dataclass(frozen=True)
+class Institution:
+    """Hold minimal institution data."""
+
+    short_name: str
+    long_name: str
+    is_us: bool
+    has_mou: bool
+    institution_lead_uid: str
+
+
 @typechecked
 @dc.dataclass(frozen=True)
 class SnapshotInfo:
