@@ -1,8 +1,8 @@
 """Tools for getting info on the state of today's institutions."""
 
+import dataclasses as dc
 import logging
 
-import dataclass as dc
 import universal_utils.types as uut
 from krs import institutions as krs_institutions  # type: ignore[import]
 from krs import token
