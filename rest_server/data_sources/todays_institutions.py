@@ -1,6 +1,5 @@
 """Tools for getting info on the state of today's institutions."""
 
-import dataclasses as dc
 import logging
 
 import universal_utils.types as uut
