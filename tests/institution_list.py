@@ -8,7 +8,6 @@ NOTE: Keep things simple here. Avoid non-basic imports,
       so file can be imported by 3rd parties independently.
 """
 
-
 INSTITUTIONS = {
     "Aachen": {
         "has_mou": "true",
@@ -461,7 +460,3 @@ INSTITUTIONS = {
         "is_US": "true",
     },
 }
-
-
-def mock_list_insts() -> dict[str, str]:
-    return INSTITUTIONS
