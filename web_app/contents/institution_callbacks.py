@@ -362,7 +362,7 @@ def to_pull_institution_values(
 
     output = SelectInstitutionValueOutput()
 
-    def inactive_flag(info: connections.Institution) -> str:
+    def inactive_flag(info: uut.Institution) -> str:
         if info.has_mou:
             return ""
         return "inactive: "

@@ -74,7 +74,7 @@ class TableConfigCache:
     def __init__(
         self,
         _column_configs: dict[str, _ColumnConfig],
-        _institutions: list[todays_institutions.Institution],
+        _institutions: list[uut.Institution],
     ) -> None:
         self.column_configs, self.institutions = _column_configs, _institutions
         self._timestamp = int(time.time())
@@ -87,9 +87,7 @@ class TableConfigCache:
         self._timestamp = int(time.time())
 
     @staticmethod
-    async def _build() -> tuple[
-        dict[str, _ColumnConfig], list[todays_institutions.Institution]
-    ]:
+    async def _build() -> tuple[dict[str, _ColumnConfig], list[uut.Institution]]:
         """Build the table config."""
         tooltip_funding_source_value: Final[str] = (
             "This number is dependent on the Funding Source and FTE. "
