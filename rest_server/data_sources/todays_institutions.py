@@ -10,7 +10,6 @@ from wipac_dev_tools import strtobool
 
 
 def convert_krs_institution(
-    experiment: str,
     inst: str,
     attrs: dict[str, str],
 ) -> uut.Institution:
@@ -52,6 +51,6 @@ async def request_krs_institutions() -> list[uut.Institution]:
                 # if inst is in other experiment, use first attrs, but set `has_mou`
                 dc.replace(all_insts[name], {"has_mou": True})
             else:
-                all_insts[name] = convert_krs_institution(experiment, name, attrs)
+                all_insts[name] = convert_krs_institution(name, attrs)
 
     return list(all_insts.values())

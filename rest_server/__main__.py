@@ -121,7 +121,10 @@ if __name__ == "__main__":
             json_insts = json.load(f)
 
         async def _overridden_krs() -> list[uut.Institution]:
-            return todays_institutions.convert_krs_institutions(json_insts)
+            return [
+                todays_institutions.convert_krs_institution(i, attrs)
+                for i, attrs in json_insts.items()
+            ]
 
         todays_institutions.request_krs_institutions = _overridden_krs
 
