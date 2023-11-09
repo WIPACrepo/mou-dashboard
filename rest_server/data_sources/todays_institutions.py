@@ -38,19 +38,14 @@ async def request_krs_institutions() -> list[uut.Institution]:
 
     all_insts: dict[str, uut.Institution] = {}
 
-    for experiment in ("IceCube", "IceCube-Gen2"):
-        krs_experiment_insts = await krs_institutions.list_insts(
-            experiment=experiment,
-            filter_func=None,
-            rest_client=rc,
-        )
-        for name, attrs in krs_experiment_insts.items():
-            if not attrs:
-                continue
-            if name in all_insts:
-                # if inst is in other experiment, use first attrs, but set `has_mou`
-                dc.replace(all_insts[name], has_mou=True)
-            else:
-                all_insts[name] = convert_krs_institution(name, attrs)
+    krs_experiment_insts = await krs_institutions.list_insts(
+        experiment="IceCube",
+        filter_func=None,
+        rest_client=rc,
+    )
+    for name, attrs in krs_experiment_insts.items():
+        if not attrs:
+            continue
+        all_insts[name] = convert_krs_institution(name, attrs)
 
     return list(all_insts.values())
