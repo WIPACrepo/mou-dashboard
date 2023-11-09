@@ -1,8 +1,8 @@
 """Tools for getting info on the state of today's institutions."""
 
 import logging
-from typing import Any
 
+import dataclass as dc
 import universal_utils.types as uut
 from krs import institutions as krs_institutions  # type: ignore[import]
 from krs import token
@@ -13,10 +13,8 @@ def convert_krs_institution(
     experiment: str,
     inst: str,
     attrs: dict[str, str],
-) -> list[uut.Institution]:
+) -> uut.Institution:
     """Convert from krs response data to list[uut.Institution]."""
-    if not attrs:
-        continue
     try:
         has_mou = strtobool(attrs.get("has_mou", "false"))
         if has_mou and "name" not in attrs:
@@ -27,7 +25,7 @@ def convert_krs_institution(
             short_name=inst,
             long_name=attrs.get("name", inst),
             is_us=strtobool(attrs.get("is_US", "false")),
-            mou_list=[experiment] if has_mou else [],
+            has_mou=True,
             institution_lead_uid=attrs.get("institutionLeadUid", ""),
         )
     except Exception:
@@ -39,7 +37,7 @@ async def request_krs_institutions() -> list[uut.Institution]:
     """Grab the master list of institutions along with their details."""
     rc = token.get_rest_client()
 
-    all_insts = {}
+    all_insts: dict[str, uut.Institution] = {}
 
     for experiment in ("IceCube", "IceCube-Gen2"):
         krs_experiment_insts = await krs_institutions.list_insts(
@@ -51,8 +49,8 @@ async def request_krs_institutions() -> list[uut.Institution]:
             if not attrs:
                 continue
             if name in all_insts:
-                # if inst is in other experiment, use first attrs, but append `mou_list`
-                all_insts[name].mou_list.append(name)
+                # if inst is in other experiment, use first attrs, but set `has_mou`
+                dc.replace(all_insts[name], {"has_mou": True})
             else:
                 all_insts[name] = convert_krs_institution(experiment, name, attrs)
 
