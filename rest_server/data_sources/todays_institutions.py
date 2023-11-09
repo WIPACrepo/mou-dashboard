@@ -49,7 +49,7 @@ async def request_krs_institutions() -> list[uut.Institution]:
                 continue
             if name in all_insts:
                 # if inst is in other experiment, use first attrs, but set `has_mou`
-                dc.replace(all_insts[name], {"has_mou": True})
+                dc.replace(all_insts[name], has_mou=True)
             else:
                 all_insts[name] = convert_krs_institution(name, attrs)
 
