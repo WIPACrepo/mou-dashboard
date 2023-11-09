@@ -9,50 +9,51 @@ from krs import token
 from wipac_dev_tools import strtobool
 
 
-def convert_krs_institutions(response: dict[str, Any]) -> list[uut.Institution]:
+def convert_krs_institution(
+    experiment: str,
+    inst: str,
+    attrs: dict[str, str],
+) -> list[uut.Institution]:
     """Convert from krs response data to list[uut.Institution]."""
-    insts: list[uut.Institution] = []
-    for inst, attrs in response.items():
-        if not attrs:
-            continue
-        try:
-            has_mou = strtobool(attrs.get("has_mou", "false"))
-            if has_mou and "name" not in attrs:
-                raise KeyError('"name" is required')
-            if has_mou and "is_US" not in attrs:
-                raise KeyError('"is_US" is required')
-            insts.append(
-                uut.Institution(
-                    short_name=inst,
-                    long_name=attrs.get("name", inst),
-                    is_us=strtobool(attrs.get("is_US", "false")),
-                    has_mou=has_mou,
-                    institution_lead_uid=attrs.get("institutionLeadUid", ""),
-                )
-            )
-        except Exception:
-            logging.warning("bad inst attributes for inst %s", inst, exc_info=True)
-            raise
-    return insts
-
-
-def filter_krs_institutions(group_path: str, attrs: dict[str, Any]) -> bool:
-    """Filters for institutions in IceCube or Gen2 experiments."""
-    experiment = group_path.split("/")[2]
-    if experiment in ("IceCube", "IceCube-Gen2"):
-        return True
-    else:
-        return False
+    if not attrs:
+        continue
+    try:
+        has_mou = strtobool(attrs.get("has_mou", "false"))
+        if has_mou and "name" not in attrs:
+            raise KeyError('"name" is required')
+        if has_mou and "is_US" not in attrs:
+            raise KeyError('"is_US" is required')
+        return uut.Institution(
+            short_name=inst,
+            long_name=attrs.get("name", inst),
+            is_us=strtobool(attrs.get("is_US", "false")),
+            mou_list=[experiment] if has_mou else [],
+            institution_lead_uid=attrs.get("institutionLeadUid", ""),
+        )
+    except Exception:
+        logging.warning("bad inst attributes for inst %s", inst, exc_info=True)
+        raise
 
 
 async def request_krs_institutions() -> list[uut.Institution]:
     """Grab the master list of institutions along with their details."""
     rc = token.get_rest_client()
 
-    response = await krs_institutions.list_insts_flat(
-        rest_client=rc,
-        filter_func=filter_krs_institutions,
-        attr_whitelist=["name", "is_US", "has_mou", "institutionLeadUid"],
-    )
+    all_insts = {}
 
-    return convert_krs_institutions(response)
+    for experiment in ("IceCube", "IceCube-Gen2"):
+        krs_experiment_insts = await krs_institutions.list_insts(
+            experiment=experiment,
+            filter_func=None,
+            rest_client=rc,
+        )
+        for name, attrs in krs_experiment_insts.items():
+            if not attrs:
+                continue
+            if name in all_insts:
+                # if inst is in other experiment, use first attrs, but append `mou_list`
+                all_insts[name].mou_list.append(name)
+            else:
+                all_insts[name] = convert_krs_institution(experiment, name, attrs)
+
+    return list(all_insts.values())

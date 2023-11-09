@@ -355,8 +355,8 @@ FTE_ROWS: Final[uut.DBTable] = [
 
 # @pytest.mark.asyncio
 # @patch(
-#     "krs.institutions.list_insts_flat",
-#     side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS),
+#     "krs.institutions.list_insts",
+#     side_effect=institution_list.mock_list_insts,
 # )
 # @patch("krs.token.get_rest_client", return_value=Mock())
 # @patch(

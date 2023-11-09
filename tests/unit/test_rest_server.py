@@ -25,7 +25,7 @@ from . import data
 nest_asyncio.apply()  # allows nested event loops
 
 
-KRS_INSTS: Final = "krs.institutions.list_insts_flat"
+KRS_INSTS: Final = "krs.institutions.list_insts"
 KRS_TOKEN: Final = "krs.token.get_rest_client"
 MOU_DB_CLIENT: Final = "rest_server.data_sources.mou_db.MOUDatabaseClient"
 MOTOR_CLIENT: Final = "motor.motor_tornado.MotorClient"
@@ -53,7 +53,7 @@ class TestMOUDB:  # pylint: disable=R0904
 
     @staticmethod
     @pytest.mark.asyncio
-    @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
+    @patch(KRS_INSTS, side_effect=institution_list.mock_list_insts)
     @patch(KRS_TOKEN, return_value=Mock())
     @patch(MOU_DB_CLIENT + "._ensure_all_db_indexes")
     async def test_init(mock_eadi: Any, _: Any, __: Any) -> None:
@@ -84,7 +84,7 @@ class TestMOUDB:  # pylint: disable=R0904
 
     @staticmethod
     @pytest.mark.asyncio
-    @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
+    @patch(KRS_INSTS, side_effect=institution_list.mock_list_insts)
     @patch(KRS_TOKEN, return_value=Mock())
     async def test_list_database_names(_: Any, __: Any, mock_mongo: Any) -> None:
         """Test _list_database_names()."""
@@ -215,7 +215,7 @@ class TestMOUDataAdaptor:
 
     @staticmethod
     @pytest.mark.asyncio
-    @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
+    @patch(KRS_INSTS, side_effect=institution_list.mock_list_insts)
     @patch(KRS_TOKEN, return_value=Mock())
     @patch(TC_CACHE + ".get_conditional_dropdown_menus")
     @patch(TC_CACHE + ".get_simple_dropdown_menus")
@@ -315,7 +315,7 @@ class TestMOUDataAdaptor:
 
     @staticmethod
     @pytest.mark.asyncio
-    @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
+    @patch(KRS_INSTS, side_effect=institution_list.mock_list_insts)
     @patch(KRS_TOKEN, return_value=Mock())
     @patch(MOU_DATA_ADAPTOR + "._validate_record_data")
     async def test_mongofy_record(mock_vrd: Any, _: Any, __: Any) -> None:
@@ -387,7 +387,7 @@ class TestTableConfigDataAdaptor:
 
     @staticmethod
     @pytest.mark.asyncio
-    @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
+    @patch(KRS_INSTS, side_effect=institution_list.mock_list_insts)
     @patch(KRS_TOKEN, return_value=Mock())
     async def test_remove_on_the_fly_fields(_: Any, __: Any) -> None:
         """Test remove_on_the_fly_fields()."""
@@ -417,7 +417,7 @@ class TestTableConfigDataAdaptor:
 
     @staticmethod
     @pytest.mark.asyncio
-    @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
+    @patch(KRS_INSTS, side_effect=institution_list.mock_list_insts)
     @patch(KRS_TOKEN, return_value=Mock())
     async def test_add_on_the_fly_fields(_: Any, __: Any) -> None:
         """Test add_on_the_fly_fields()."""
@@ -517,7 +517,7 @@ class TestTableConfigDataAdaptor:
 
     @staticmethod
     @pytest.mark.asyncio
-    @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
+    @patch(KRS_INSTS, side_effect=institution_list.mock_list_insts)
     @patch(KRS_TOKEN, return_value=Mock())
     async def test_insert_total_rows(_: Any, __: Any) -> None:
         """Test insert_total_rows().
@@ -622,7 +622,7 @@ class TestTableConfig:
 
     @staticmethod
     @pytest.mark.asyncio
-    @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
+    @patch(KRS_INSTS, side_effect=institution_list.mock_list_insts)
     @patch(KRS_TOKEN, return_value=Mock())
     @patch(TC_CACHE + "._build")
     @patch("rest_server.data_sources.table_config_cache.MAX_CACHE_AGE", 5)
@@ -657,7 +657,7 @@ class TestTableConfig:
 
     @staticmethod
     @pytest.mark.asyncio
-    @patch(KRS_INSTS, side_effect=AsyncMock(return_value=institution_list.INSTITUTIONS))
+    @patch(KRS_INSTS, side_effect=institution_list.mock_list_insts)
     @patch(KRS_TOKEN, return_value=Mock())
     async def test_us_or_non_us(_: Any, __: Any) -> None:
         """Test _us_or_non_us().

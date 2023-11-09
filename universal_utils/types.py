@@ -24,7 +24,7 @@ class Institution:
     short_name: str
     long_name: str
     is_us: bool
-    has_mou: bool
+    mou_list: list[str]  # the experiments that the inst has an mou for
     institution_lead_uid: str
 
 
