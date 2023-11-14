@@ -23,7 +23,7 @@ def convert_krs_institution(
             short_name=inst,
             long_name=attrs.get("name", inst),
             is_us=strtobool(attrs.get("is_US", "false")),
-            has_mou=True,
+            has_mou=has_mou,
             institution_lead_uid=attrs.get("institutionLeadUid", ""),
         )
     except Exception:
