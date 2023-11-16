@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.0.5 (2023-11-16)
+
+### Other
+
+* KRS Institution Updates ([#78](https://github.com/WIPACrepo/mou-dashboard/issues/78)) ([`d18d330`](https://github.com/WIPACrepo/mou-dashboard/commit/d18d330280c7a8e3df3ef69c34b961e86799dc3e))
+
 ## v3.0.4 (2023-09-20)
 
 
