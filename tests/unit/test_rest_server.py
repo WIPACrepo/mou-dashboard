@@ -25,7 +25,7 @@ from . import data
 nest_asyncio.apply()  # allows nested event loops
 
 
-KRS_INSTS: Final = "krs.institutions.list_insts_flat"
+KRS_INSTS: Final = "krs.institutions.list_insts"
 KRS_TOKEN: Final = "krs.token.get_rest_client"
 MOU_DB_CLIENT: Final = "rest_server.data_sources.mou_db.MOUDatabaseClient"
 MOTOR_CLIENT: Final = "motor.motor_tornado.MotorClient"
