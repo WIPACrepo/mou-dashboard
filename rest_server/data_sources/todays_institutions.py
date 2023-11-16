@@ -12,7 +12,7 @@ def convert_krs_institution(
     inst: str,
     attrs: dict[str, str],
 ) -> uut.Institution:
-    """Convert from krs response data to list[uut.Institution]."""
+    """Convert from krs response dict to an Institution instance."""
     try:
         has_mou = strtobool(attrs.get("has_mou", "false"))
         if has_mou and "name" not in attrs:
