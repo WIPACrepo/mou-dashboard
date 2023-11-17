@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.0.6 (2023-11-17)
+
+### Other
+
+* Pin `Flask<3` and `Werkzeug<3` ([#79](https://github.com/WIPACrepo/mou-dashboard/issues/79)) ([`a0b40dd`](https://github.com/WIPACrepo/mou-dashboard/commit/a0b40dda4728b33e5a009d19f9961cdd23e4133c))
+
 ## v3.0.5 (2023-11-16)
 
 ### Other
