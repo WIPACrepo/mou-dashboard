@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.0.7 (2023-11-17)
+
+### Other
+
+* Fix Institution Naming ([#80](https://github.com/WIPACrepo/mou-dashboard/issues/80)) ([`ddb3399`](https://github.com/WIPACrepo/mou-dashboard/commit/ddb3399bf37b13069543d707bfff38214fa739cb))
+
 ## v3.0.6 (2023-11-17)
 
 ### Other
