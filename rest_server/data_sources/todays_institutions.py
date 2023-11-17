@@ -43,7 +43,7 @@ async def request_krs_institutions() -> list[uut.Institution]:
         rest_client=rc,
     )
     for group, attrs in krs_experiment_insts.items():
-        name = group.split("/institutions/IceCube/")[1]
+        name = group.removeprefix("/institutions/IceCube/")
         if not attrs:
             continue
         all_insts[name] = convert_krs_institution(name, attrs)
