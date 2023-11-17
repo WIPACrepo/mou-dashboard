@@ -42,7 +42,8 @@ async def request_krs_institutions() -> list[uut.Institution]:
         filter_func=None,
         rest_client=rc,
     )
-    for name, attrs in krs_experiment_insts.items():
+    for group, attrs in krs_experiment_insts.items():
+        name = group.split("/institutions/IceCube/")[1]
         if not attrs:
             continue
         all_insts[name] = convert_krs_institution(name, attrs)
