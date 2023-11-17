@@ -9,10 +9,12 @@ from wipac_dev_tools import strtobool
 
 
 def convert_krs_institution(
-    inst: str,
+    group: str,
     attrs: dict[str, str],
 ) -> uut.Institution:
     """Convert from krs response dict to an Institution instance."""
+    name = group.removeprefix("/institutions/IceCube/")
+
     try:
         has_mou = strtobool(attrs.get("has_mou", "false"))
         if has_mou and "name" not in attrs:
@@ -20,14 +22,14 @@ def convert_krs_institution(
         if has_mou and "is_US" not in attrs:
             raise KeyError('"is_US" is required')
         return uut.Institution(
-            short_name=inst,
-            long_name=attrs.get("name", inst),
+            short_name=name,
+            long_name=attrs.get("name", name),
             is_us=strtobool(attrs.get("is_US", "false")),
             has_mou=has_mou,
             institution_lead_uid=attrs.get("institutionLeadUid", ""),
         )
     except Exception:
-        logging.warning("bad inst attributes for inst %s", inst, exc_info=True)
+        logging.warning("bad inst attributes for inst %s", name, exc_info=True)
         raise
 
 
@@ -43,9 +45,9 @@ async def request_krs_institutions() -> list[uut.Institution]:
         rest_client=rc,
     )
     for group, attrs in krs_experiment_insts.items():
-        name = group.removeprefix("/institutions/IceCube/")
         if not attrs:
             continue
-        all_insts[name] = convert_krs_institution(name, attrs)
+        inst = convert_krs_institution(group, attrs)
+        all_insts[inst.short_name] = inst
 
     return list(all_insts.values())
