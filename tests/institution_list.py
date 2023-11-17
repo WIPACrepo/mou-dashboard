@@ -9,451 +9,451 @@ NOTE: Keep things simple here. Avoid non-basic imports,
 """
 
 INSTITUTIONS = {
-    "Aachen": {
+    "/institutions/IceCube/Aachen": {
         "has_mou": "true",
         "name": "RWTH Aachen University",
         "abbreviation": "RWTH",
         "is_US": "false",
     },
-    "AcademiaSinica": {
+    "/institutions/IceCube/AcademiaSinica": {
         "has_mou": "true",
         "name": "Academia Sinica",
         "abbreviation": "AS",
         "is_US": "false",
     },
-    "Adelaide": {
+    "/institutions/IceCube/Adelaide": {
         "has_mou": "true",
         "name": "University of Adelaide",
         "abbreviation": "ADELAIDE",
         "is_US": "false",
     },
-    "Alabama": {
+    "/institutions/IceCube/Alabama": {
         "has_mou": "true",
         "name": "University of Alabama",
         "abbreviation": "UA",
         "is_US": "true",
     },
-    "Alaska-Anchorage": {
+    "/institutions/IceCube/Alaska-Anchorage": {
         "has_mou": "true",
         "name": "University of Alaska Anchorage",
         "abbreviation": "UAA",
         "is_US": "true",
     },
-    "Alberta": {
+    "/institutions/IceCube/Alberta": {
         "has_mou": "false",
         "name": "University of Alberta",
         "abbreviation": "ALBERTA",
         "is_US": "false",
     },
-    "Barbados": {
+    "/institutions/IceCube/Barbados": {
         "has_mou": "false",
         "name": "University of the West Indies",
         "abbreviation": "BARBADOS",
         "is_US": "false",
     },
-    "Berlin": {
+    "/institutions/IceCube/Berlin": {
         "has_mou": "true",
         "name": "Humboldt-Universität zu Berlin",
         "abbreviation": "HUMBOLDT",
         "is_US": "false",
     },
-    "Bochum": {
+    "/institutions/IceCube/Bochum": {
         "has_mou": "true",
         "name": "Ruhr-Universität Bochum",
         "abbreviation": "BOCHUM",
         "is_US": "false",
     },
-    "Bonn": {
+    "/institutions/IceCube/Bonn": {
         "has_mou": "false",
         "name": "Universität Bonn",
         "abbreviation": "BONN",
         "is_US": "false",
     },
-    "Brussels-ULB": {
+    "/institutions/IceCube/Brussels-ULB": {
         "has_mou": "false",
         "name": "Université Libre de Bruxelles",
         "abbreviation": "ULB",
         "is_US": "false",
     },
-    "Brussels-VUB": {
+    "/institutions/IceCube/Brussels-VUB": {
         "has_mou": "false",
         "name": "Vrije Universiteit Brussel (VUB)",
         "abbreviation": "VUB",
         "is_US": "false",
     },
-    "Canterbury": {
+    "/institutions/IceCube/Canterbury": {
         "has_mou": "true",
         "name": "University of Canterbury",
         "abbreviation": "UC",
         "is_US": "false",
     },
-    "Chiba": {
+    "/institutions/IceCube/Chiba": {
         "has_mou": "true",
         "name": "Chiba University",
         "abbreviation": "CHIBA",
         "is_US": "false",
     },
-    "Chicago": {
+    "/institutions/IceCube/Chicago": {
         "has_mou": "true",
         "name": "University of Chicago",
         "abbreviation": "UCHICAGO",
         "is_US": "true",
     },
-    "Clark-Atlanta": {
+    "/institutions/IceCube/Clark-Atlanta": {
         "has_mou": "true",
         "name": "Clark-Atlanta University",
         "abbreviation": "CAU",
         "is_US": "true",
     },
-    "Columbia": {
+    "/institutions/IceCube/Columbia": {
         "has_mou": "true",
         "name": "Columbia University",
         "abbreviation": "COLUMBIA",
         "is_US": "true",
     },
-    "Copenhagen": {
+    "/institutions/IceCube/Copenhagen": {
         "has_mou": "true",
         "name": "University of Copenhagen",
         "abbreviation": "NBI",
         "is_US": "false",
     },
-    "DESY": {
+    "/institutions/IceCube/DESY": {
         "has_mou": "false",
         "name": "DESY",
         "abbreviation": "DESY",
         "is_US": "false",
     },
-    "Delaware": {
+    "/institutions/IceCube/Delaware": {
         "has_mou": "true",
         "name": "University of Delaware",
         "abbreviation": "UD",
         "is_US": "true",
     },
-    "Dortmund": {
+    "/institutions/IceCube/Dortmund": {
         "has_mou": "false",
         "name": "TU Dortmund University",
         "abbreviation": "DTMND",
         "is_US": "false",
     },
-    "Drexel": {
+    "/institutions/IceCube/Drexel": {
         "has_mou": "true",
         "name": "Drexel University",
         "abbreviation": "DREXEL",
         "is_US": "true",
     },
-    "Erlangen": {
+    "/institutions/IceCube/Erlangen": {
         "has_mou": "true",
         "name": "Friedrich-Alexander-Universität Erlangen-Nürnberg",
         "abbreviation": "ERLANGEN",
         "is_US": "false",
     },
-    "GaTech": {
+    "/institutions/IceCube/GaTech": {
         "has_mou": "true",
         "name": "Georgia Institute of Technology",
         "abbreviation": "GTECH",
         "is_US": "true",
     },
-    "Geneva": {
+    "/institutions/IceCube/Geneva": {
         "has_mou": "false",
         "name": "Université de Genève",
         "abbreviation": "DPNC",
         "is_US": "false",
     },
-    "Gent": {
+    "/institutions/IceCube/Gent": {
         "has_mou": "true",
         "name": "University of Gent",
         "abbreviation": "GENT",
         "is_US": "false",
     },
-    "Harvard": {
+    "/institutions/IceCube/Harvard": {
         "has_mou": "true",
         "name": "Harvard University",
         "abbreviation": "HARVARD",
         "is_US": "true",
     },
-    "Heidelberg": {
+    "/institutions/IceCube/Heidelberg": {
         "has_mou": "false",
         "name": "Max-Planck-Institut für Kernphysik",
         "abbreviation": "PLANCK",
         "is_US": "false",
     },
-    "Kansas": {
+    "/institutions/IceCube/Kansas": {
         "has_mou": "true",
         "name": "University of Kansas",
         "abbreviation": "KU",
         "is_US": "true",
     },
-    "Karlsruhe": {
+    "/institutions/IceCube/Karlsruhe": {
         "has_mou": "true",
         "name": "Karlsruhe Institute of Technology",
         "abbreviation": "KIT",
         "is_US": "false",
     },
-    "KingsCollege": {
+    "/institutions/IceCube/KingsCollege": {
         "has_mou": "true",
         "name": "King's College London",
         "abbreviation": "KCL",
         "is_US": "false",
     },
-    "LBNL": {
+    "/institutions/IceCube/LBNL": {
         "has_mou": "true",
         "name": "Lawrence Berkeley National Laboratory",
         "abbreviation": "LBNL",
         "is_US": "true",
     },
-    "Lausanne": {
+    "/institutions/IceCube/Lausanne": {
         "has_mou": "false",
         "name": "École Polytechnique Fédérale",
         "abbreviation": "EPFL",
         "is_US": "false",
     },
-    "Loyola": {
+    "/institutions/IceCube/Loyola": {
         "has_mou": "true",
         "name": "Loyola University Chicago",
         "abbreviation": "LOYOLA",
         "is_US": "true",
     },
-    "MIT": {
+    "/institutions/IceCube/MIT": {
         "has_mou": "false",
         "name": "Massachusetts Institute of Technology",
         "abbreviation": "MIT",
         "is_US": "true",
     },
-    "Mainz": {
+    "/institutions/IceCube/Mainz": {
         "has_mou": "true",
         "name": "University of Mainz",
         "abbreviation": "MAINZ",
         "is_US": "false",
     },
-    "Manchester": {
+    "/institutions/IceCube/Manchester": {
         "has_mou": "true",
         "name": "University of Manchester",
         "abbreviation": "UOM",
         "is_US": "false",
     },
-    "Marquette": {
+    "/institutions/IceCube/Marquette": {
         "has_mou": "true",
         "name": "Marquette University",
         "abbreviation": "MARQUETTE",
         "is_US": "true",
     },
-    "Maryland": {
+    "/institutions/IceCube/Maryland": {
         "has_mou": "true",
         "name": "University of Maryland",
         "abbreviation": "UMD",
         "is_US": "true",
     },
-    "Mephi": {
+    "/institutions/IceCube/Mephi": {
         "has_mou": "true",
         "name": "Moscow Engineering Physics Institute",
         "abbreviation": "MEPHI",
         "is_US": "false",
     },
-    "Mercer": {
+    "/institutions/IceCube/Mercer": {
         "has_mou": "true",
         "name": "Mercer University",
         "abbreviation": "MERCER",
         "is_US": "true",
     },
-    "Michigan-State": {
+    "/institutions/IceCube/Michigan-State": {
         "has_mou": "true",
         "name": "Michigan State University",
         "abbreviation": "MSU",
         "is_US": "true",
     },
-    "Mons": {
+    "/institutions/IceCube/Mons": {
         "has_mou": "false",
         "name": "Université de Mons",
         "abbreviation": "MONS",
         "is_US": "false",
     },
-    "Munich": {
+    "/institutions/IceCube/Munich": {
         "has_mou": "true",
         "name": "Technische Universität München",
         "abbreviation": "TUM",
         "is_US": "false",
     },
-    "Munster": {
+    "/institutions/IceCube/Munster": {
         "has_mou": "true",
         "name": "Universität Münster",
         "abbreviation": "MÜNSTER",
         "is_US": "false",
     },
-    "Nebraska": {
+    "/institutions/IceCube/Nebraska": {
         "has_mou": "true",
         "name": "University of Nebraska–Lincoln",
         "abbreviation": "UNL",
         "is_US": "true",
     },
-    "NotreDame": {
+    "/institutions/IceCube/NotreDame": {
         "has_mou": "true",
         "name": "Notre Dame",
         "abbreviation": "ND",
         "is_US": "true",
     },
-    "Ohio-State": {
+    "/institutions/IceCube/Ohio-State": {
         "has_mou": "true",
         "name": "Ohio State University",
         "abbreviation": "OSU",
         "is_US": "true",
     },
-    "Oxford": {
+    "/institutions/IceCube/Oxford": {
         "has_mou": "true",
         "name": "University of Oxford",
         "abbreviation": "UOX",
         "is_US": "false",
     },
-    "Padova": {
+    "/institutions/IceCube/Padova": {
         "has_mou": "true",
         "name": "Università Degli Studi di Padova",
         "abbreviation": "UNIPD",
         "is_US": "false",
     },
-    "Penn-State": {
+    "/institutions/IceCube/Penn-State": {
         "has_mou": "true",
         "name": "Pennsylvania State University",
         "abbreviation": "PSU",
         "is_US": "true",
     },
-    "QMLondon": {
+    "/institutions/IceCube/QMLondon": {
         "has_mou": "true",
         "name": "Queen Mary University of London",
         "abbreviation": "QMLONDON",
         "is_US": "false",
     },
-    "Queens": {
+    "/institutions/IceCube/Queens": {
         "has_mou": "true",
         "name": "Queen's University",
         "abbreviation": "QUEEN'S",
         "is_US": "false",
     },
-    "Rochester": {
+    "/institutions/IceCube/Rochester": {
         "has_mou": "true",
         "name": "University of Rochester",
         "abbreviation": "ROCHESTER",
         "is_US": "true",
     },
-    "SD-Mines-Tech": {
+    "/institutions/IceCube/SD-Mines-Tech": {
         "has_mou": "true",
         "name": "South Dakota School of Mines and Technology",
         "abbreviation": "SDSMT",
         "is_US": "true",
     },
-    "SNOLAB": {
+    "/institutions/IceCube/SNOLAB": {
         "has_mou": "false",
         "name": "SNOLAB",
         "abbreviation": "SNOLAB",
         "is_US": "false",
     },
-    "Southern": {
+    "/institutions/IceCube/Southern": {
         "has_mou": "true",
         "name": "Southern University",
         "abbreviation": "SUBR",
         "is_US": "true",
     },
-    "Stockholm": {
+    "/institutions/IceCube/Stockholm": {
         "has_mou": "true",
         "name": "Stockholm University",
         "abbreviation": "SU",
         "is_US": "false",
     },
-    "Stony-Brook": {
+    "/institutions/IceCube/Stony-Brook": {
         "has_mou": "true",
         "name": "Stony Brook University",
         "abbreviation": "SBU",
         "is_US": "true",
     },
-    "Sungkyunkwan": {
+    "/institutions/IceCube/Sungkyunkwan": {
         "has_mou": "true",
         "name": "Sungkyunkwan University",
         "abbreviation": "SKKU",
         "is_US": "false",
     },
-    "TDLeeInstitute": {
+    "/institutions/IceCube/TDLeeInstitute": {
         "has_mou": "false",
         "name": "Shanghai Jiao Tong University",
         "abbreviation": "TDInstitute",
         "is_US": "false",
     },
-    "Texas-Arlington": {
+    "/institutions/IceCube/Texas-Arlington": {
         "has_mou": "true",
         "name": "University of Texas at Arlington",
         "abbreviation": "UTA",
         "is_US": "true",
     },
-    "Tokyo": {
+    "/institutions/IceCube/Tokyo": {
         "has_mou": "false",
         "name": "University of Tokyo",
         "abbreviation": "TOKYO",
         "is_US": "false",
     },
-    "Toronto": {
+    "/institutions/IceCube/Toronto": {
         "has_mou": "false",
         "name": "University of Toronto",
         "abbreviation": "TORONTO",
         "is_US": "false",
     },
-    "UC-Berkeley": {
+    "/institutions/IceCube/UC-Berkeley": {
         "has_mou": "false",
         "name": "University of California, Berkeley",
         "abbreviation": "UCB",
         "is_US": "true",
     },
-    "UC-Irvine": {
+    "/institutions/IceCube/UC-Irvine": {
         "has_mou": "true",
         "name": "University of California, Irvine",
         "abbreviation": "UCI",
         "is_US": "true",
     },
-    "UCLA": {
+    "/institutions/IceCube/UCLA": {
         "has_mou": "true",
         "name": "UCLA",
         "abbreviation": "UCLA",
         "is_US": "true",
     },
-    "UCLouvain": {
+    "/institutions/IceCube/UCLouvain": {
         "has_mou": "true",
         "name": "Université catholique de Louvain",
         "abbreviation": "UCLOUVAIN",
         "is_US": "false",
     },
-    "UW-Madison": {
+    "/institutions/IceCube/UW-Madison": {
         "has_mou": "true",
         "name": "University of Wisconsin–Madison",
         "abbreviation": "UW",
         "is_US": "true",
     },
-    "UW-River-Falls": {
+    "/institutions/IceCube/UW-River-Falls": {
         "has_mou": "true",
         "name": "University of Wisconsin, River Falls",
         "abbreviation": "UWRF",
         "is_US": "true",
     },
-    "Uppsala": {
+    "/institutions/IceCube/Uppsala": {
         "has_mou": "true",
         "name": "Uppsala University",
         "abbreviation": "UU",
         "is_US": "false",
     },
-    "Utah": {
+    "/institutions/IceCube/Utah": {
         "has_mou": "true",
         "name": "University of Utah",
         "abbreviation": "UTAH",
         "is_US": "true",
     },
-    "Washington": {
+    "/institutions/IceCube/Washington": {
         "has_mou": "false",
         "name": "University of Washington",
         "abbreviation": "UWa",
         "is_US": "true",
     },
-    "Wuppertal": {
+    "/institutions/IceCube/Wuppertal": {
         "has_mou": "true",
         "name": "University of Wuppertal",
         "abbreviation": "WUPPERTAL",
         "is_US": "false",
     },
-    "Yale": {
+    "/institutions/IceCube/Yale": {
         "has_mou": "true",
         "name": "Yale University",
         "abbreviation": "YALE",
