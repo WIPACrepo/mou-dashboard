@@ -44,12 +44,8 @@ async def request_krs_institutions() -> list[uut.Institution]:
     )
     for group, attrs in krs_experiment_insts.items():
         name = group.removeprefix("/institutions/IceCube/")
-        logging.critical(group)
-        logging.critical(name)
         if not attrs:
             continue
         all_insts[name] = convert_krs_institution(name, attrs)
-
-    assert 0
 
     return list(all_insts.values())
