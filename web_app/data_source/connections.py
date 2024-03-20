@@ -220,6 +220,7 @@ class CurrentUser:
                     f"User ({CurrentUser.get_username()}) belongs to {inst_short_name},"
                     " but institution does not have an MOU (has_mou=false)"
                 )
+                continue  # technically not needed since this inst couldn't be selected to begin with
             user_mou_insts.append(inst_short_name)
 
         return user_mou_insts
