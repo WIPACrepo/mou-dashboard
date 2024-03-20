@@ -172,7 +172,7 @@ def user_viewing_wrong_inst(urlpath: str) -> bool:
     Assumes the user is logged in.
     """
     if CurrentUser.is_admin():
-        all_insts = list(connections.get_institutions_infos().keys())
+        all_insts = list(connections.get_todays_institutions_infos().keys())
         return get_inst(urlpath) not in all_insts + [""]
     else:
         return get_inst(urlpath) not in CurrentUser.get_institutions()
