@@ -210,6 +210,10 @@ class CurrentUser:
         user_mou_insts = []
         for inst_short_name in user_insts:
             if inst_short_name not in all_insts_infos:
+                logging.error(
+                    f"User ({CurrentUser.get_username()}) belongs to {inst_short_name},"
+                    " but institution is not in today's list of institutions."
+                )
                 continue
             if not all_insts_infos[inst_short_name].has_mou:
                 logging.error(
