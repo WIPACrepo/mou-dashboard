@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.0.8 (2024-03-20)
+
+### Other
+
+* Fix auth for inst groups not in our infos ([#81](https://github.com/WIPACrepo/mou-dashboard/issues/81)) ([`0a42106`](https://github.com/WIPACrepo/mou-dashboard/commit/0a42106647a6d0ec03e9d637832de5a97257d12e))
+
 ## v3.0.7 (2023-11-17)
 
 ### Other
