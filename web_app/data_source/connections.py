@@ -209,6 +209,8 @@ class CurrentUser:
         infos = get_institutions_infos()
         editable_insts = []
         for short_name in group_insts:
+            if short_name not in infos:
+                continue
             if not infos[short_name].has_mou:
                 logging.error(
                     f"User ({CurrentUser.get_username()}) belongs to {short_name},"
