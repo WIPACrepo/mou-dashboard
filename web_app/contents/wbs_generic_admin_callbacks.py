@@ -185,7 +185,7 @@ def summarize(
     except DataSourceException:
         return [], [], []
 
-    insts_infos = connections.get_institutions_infos()
+    insts_infos = connections.get_todays_institutions_infos()
 
     def _sum_it(_inst: str, _l2: str = "") -> float:
         return float(

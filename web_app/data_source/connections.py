@@ -87,15 +87,15 @@ def mou_request(method: str, url: str, body: Any = None) -> dict[str, Any]:
 
 
 @cachetools.func.ttl_cache(ttl=MAX_CACHE_MINS * 60)
-def _cached_get_institutions_infos() -> dict[str, uut.Institution]:
+def _cached_get_todays_institutions_infos() -> dict[str, uut.Institution]:
     logging.warning("Cache Miss: _cached_get_institutions_infos()")
     resp = cast(dict[str, dict[str, Any]], mou_request("GET", "/institution/today"))
     return {k: uut.Institution(**v) for k, v in resp.items()}
 
 
-def get_institutions_infos() -> dict[str, uut.Institution]:
-    """Get a dict of all institutions with their info."""
-    return _cached_get_institutions_infos()
+def get_todays_institutions_infos() -> dict[str, uut.Institution]:
+    """Get a dict of all institutions with their info, accurate as of today."""
+    return _cached_get_todays_institutions_infos()
 
 
 #
@@ -197,26 +197,33 @@ class CurrentUser:
         # "/institutions/IceCube/UW-Madison/_admin" -> "UW-Madison"
         # "/institutions/IceCube-Gen2/UW-Madison/_admin" -> "UW-Madison"
 
-        group_insts = set()
+        user_insts = set()
         for user_group in CurrentUser._get_info().groups:
             pattern = (
                 r"/institutions/[^/]+/(?P<inst>[^/]+)/(mou-dashboard-editor|_admin)$"
             )
             if m := re.match(pattern, user_group):
-                group_insts.add(m.groupdict()["inst"])
+                user_insts.add(m.groupdict()["inst"])
 
         # now, check if each of the institutions has an mou
-        infos = get_institutions_infos()
-        editable_insts = []
-        for short_name in group_insts:
-            if not infos[short_name].has_mou:
+        all_insts_infos = get_todays_institutions_infos()
+        user_mou_insts = []
+        for inst_short_name in user_insts:
+            if inst_short_name not in all_insts_infos:
                 logging.error(
-                    f"User ({CurrentUser.get_username()}) belongs to {short_name},"
+                    f"User ({CurrentUser.get_username()}) belongs to {inst_short_name},"
+                    " but institution is not in today's list of institutions."
+                )
+                continue
+            if not all_insts_infos[inst_short_name].has_mou:
+                logging.error(
+                    f"User ({CurrentUser.get_username()}) belongs to {inst_short_name},"
                     " but institution does not have an MOU (has_mou=false)"
                 )
-            editable_insts.append(short_name)
+                continue  # technically not needed since this inst couldn't be selected to begin with
+            user_mou_insts.append(inst_short_name)
 
-        return editable_insts
+        return user_mou_insts
 
     @staticmethod
     def get_access_token() -> str:

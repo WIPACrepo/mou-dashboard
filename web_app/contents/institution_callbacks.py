@@ -375,7 +375,7 @@ def to_pull_institution_values(
                 "value": short_name,
                 # "disabled": not info.has_mou,
             }
-            for short_name, info in connections.get_institutions_infos().items()
+            for short_name, info in connections.get_todays_institutions_infos().items()
         ]
     else:
         output.ddown_inst_opts = [  # only include the user's institution(s)
@@ -384,7 +384,7 @@ def to_pull_institution_values(
                 "value": short_name,
                 # "disabled": not info.has_mou,
             }
-            for short_name, info in connections.get_institutions_infos().items()
+            for short_name, info in connections.get_todays_institutions_infos().items()
             if short_name in CurrentUser.get_institutions()
         ]
     output.ddown_inst_opts = sorted(output.ddown_inst_opts, key=lambda d: d["label"])

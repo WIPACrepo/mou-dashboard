@@ -142,3 +142,5 @@ client_secrets.json
 !dependencies*.log
 
 *secret\.json
+
+.idea
