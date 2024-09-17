@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.0.9 (2024-09-17)
+
+### Other
+
+* Relabel as "PhD Authors" ([#82](https://github.com/WIPACrepo/mou-dashboard/issues/82)) ([`b05eceb`](https://github.com/WIPACrepo/mou-dashboard/commit/b05eceb72e9b5fd66f62e390919dc908618a6a6a))
+
 ## v3.0.8 (2024-03-20)
 
 ### Other
