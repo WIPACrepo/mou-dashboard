@@ -136,7 +136,7 @@ def layout() -> html.Div:
                         children=[
                             du.make_stacked_label_component_float_left(
                                 width=18,
-                                label="PhDs & Authors",
+                                label="PhD Authors",
                                 component=dcc.Input(
                                     id="wbs-phds-authors",
                                     className="institution-headcount-input",
