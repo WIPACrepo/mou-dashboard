@@ -88,16 +88,16 @@ jobs:
         with:
           base-keywords: WIPAC IceCube
 
-  py-dependencies:
-    needs: [ writable-branch-detect ]
-    runs-on: ubuntu-latest
-    steps:
-      - if: needs.writable-branch-detect.outputs.OKAY == 'true'
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - if: needs.writable-branch-detect.outputs.OKAY == 'true'
-        uses: WIPACrepo/wipac-dev-py-dependencies-action@v1.1
+#  py-dependencies:
+#    needs: [ writable-branch-detect ]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - if: needs.writable-branch-detect.outputs.OKAY == 'true'
+#        uses: actions/checkout@v3
+#        with:
+#          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+#      - if: needs.writable-branch-detect.outputs.OKAY == 'true'
+#        uses: WIPACrepo/wipac-dev-py-dependencies-action@v1.1
 
 
   #############################################################################
@@ -151,7 +151,7 @@ jobs:
         ]
     services:
       mongo:
-        image: mongo:3
+        image: mongo:4.2
         ports:
         - 27017:27017
     steps:
@@ -170,8 +170,8 @@ jobs:
         run: |
           sudo apt update
           sudo apt install wget curl gnupg2 software-properties-common apt-transport-https ca-certificates lsb-release
-          curl -fsSL https://www.mongodb.org/static/pgp/server-6.0.asc|sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/mongodb-6.gpg
-          echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu $(lsb_release -cs)/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+          curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc|sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/mongodb-8.gpg
+          echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu $(lsb_release -cs)/mongodb-org/8.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-8.0.list
           sudo apt update
           sudo apt install mongodb-org mongodb-database-tools
 
@@ -263,7 +263,8 @@ jobs:
   release:
     # only run on main/master/default
     if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
-    needs: [flake8, mypy, py-setup, py-dependencies, unit-tests, integration-tests]
+    #needs: [flake8, mypy, py-setup, py-dependencies, unit-tests, integration-tests]
+    needs: [flake8, mypy, py-setup, unit-tests, integration-tests]
     runs-on: ubuntu-latest
     concurrency: release
     steps:
