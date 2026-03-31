@@ -163,6 +163,7 @@ class TableConfigCache:
                         columns.NSF_MO_CORE,
                         columns.NSF_BASE_GRANTS,
                         columns.US_IN_KIND,
+                        columns.NON_US_IN_KIND,
                     ],
                     NON_US: [columns.NON_US_IN_KIND],
                 },
