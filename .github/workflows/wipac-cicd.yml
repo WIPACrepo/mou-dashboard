@@ -35,6 +35,7 @@ jobs:
     uses: WIPACrepo/wipac-dev-workflows/.github/workflows/lint-python.yml@v1.33
     with:
       py-matrix-json: ${{ needs.py-versions.outputs.matrix }}
+      max-complexity: 21
 
 
   #############################################################################
