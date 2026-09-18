@@ -11,10 +11,11 @@ from typing import Any, Final, cast
 import cachetools.func
 import flask
 import requests
-import universal_utils.types as uut
 
 # local imports
 from rest_tools.client import ClientCredentialsAuth, RestClient
+
+import universal_utils.types as uut
 
 from ..config import ENV, MAX_CACHE_MINS, oidc
 

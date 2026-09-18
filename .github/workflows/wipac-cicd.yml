@@ -1,11 +1,18 @@
 name: wipac ci/cd
 
-on: [push]
+on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
+
+permissions:
+  contents: read
 
 env:
   CI_TEST: true
   TEST_JSON_DIR: tests/resources
-
 
 jobs:
 
@@ -14,9 +21,11 @@ jobs:
     outputs:
       matrix: ${{ steps.versions.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - id: versions
-        uses: WIPACrepo/wipac-dev-py-versions-action@v2.2
+        uses: WIPACrepo/wipac-dev-py-versions-action@v2.8
 
 
   #############################################################################
@@ -24,27 +33,12 @@ jobs:
   #############################################################################
 
 
-  flake8:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-      - uses: WIPACrepo/wipac-dev-flake8-action@v1.0
-
-
-  mypy:
-    needs: [py-versions]
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.py3 }}
-      - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
+  lint-python:
+    needs: [ py-versions ]
+    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/lint-python.yml@v1.33
+    with:
+      py-matrix-json: ${{ needs.py-versions.outputs.matrix }}
+      max-complexity: 21
 
 
   #############################################################################
@@ -52,52 +46,32 @@ jobs:
   #############################################################################
 
 
-  writable-branch-detect:
-    runs-on: ubuntu-latest
-    outputs:
-      OKAY: ${{ steps.detect.outputs.OKAY }}
-    steps:
-      - name: is this a non-dependabot branch?
-        id: detect
-        # dependabot can't access normal secrets
-        #   & don't run non-branch triggers (like tags)
-        #   & we don't want to trigger an update on PR's merge to main/master/default (which is a branch)
-        run: |
-          if [[ \
-              ${{github.actor}} != 'dependabot[bot]' && \
-              ${{github.ref_type}} == 'branch' && \
-              ${{format('refs/heads/{0}', github.event.repository.default_branch)}} != ${{github.ref}} \
-          ]]; then
-            echo "OKAY=true" >> "$GITHUB_OUTPUT"
-            echo "yes, this branch is compatible"
-          else
-            echo "OKAY=false" >> "$GITHUB_OUTPUT"
-            echo "no, this branch is incompatible"
-          fi
-
   py-setup:
-    needs: [ writable-branch-detect ]
+    if: ${{ github.actor != 'dependabot[bot]' }} # dependabot cannot access PAT
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
-      - if: needs.writable-branch-detect.outputs.OKAY == 'true'
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - if: needs.writable-branch-detect.outputs.OKAY == 'true'
-        uses: WIPACrepo/wipac-dev-py-setup-action@v3.1
+          ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.12
         with:
-          base-keywords: WIPAC IceCube
+          mode: PACKAGING
+          python_min: "3.11"
+          python_max: "3.13"
+          package_dirs: rest_server web_app universal_utils
+          keywords_comma: "WIPAC, IceCube"
 
-#  py-dependencies:
-#    needs: [ writable-branch-detect ]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - if: needs.writable-branch-detect.outputs.OKAY == 'true'
-#        uses: actions/checkout@v3
-#        with:
-#          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-#      - if: needs.writable-branch-detect.outputs.OKAY == 'true'
-#        uses: WIPACrepo/wipac-dev-py-dependencies-action@v1.1
+  py-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # setuptools-scm needs to access git tags
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.4
 
 
   #############################################################################
@@ -113,8 +87,11 @@ jobs:
       matrix:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # setuptools-scm needs to access git tags
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.py3 }}
       - name: run
@@ -128,9 +105,12 @@ jobs:
   test-build-docker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v2
-      - uses: docker/build-push-action@v3
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # setuptools-scm needs to access git tags
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
         with:
           context: .
           cache-from: type=gha
@@ -155,9 +135,12 @@ jobs:
         ports:
         - 27017:27017
     steps:
-      - uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v2
-      - uses: docker/build-push-action@v3
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # setuptools-scm needs to access git tags
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
         with:
           context: .
           cache-from: type=gha
@@ -256,25 +239,55 @@ jobs:
 
 
   #############################################################################
-  # GITHUB RELEASE
+  # TAG + RELEASE
   #############################################################################
 
 
-  release:
-    # only run on main/master/default
+  release-version:
     if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
-    #needs: [flake8, mypy, py-setup, py-dependencies, unit-tests, integration-tests]
-    needs: [flake8, mypy, py-setup, unit-tests, integration-tests]
+    needs: [
+      py-versions,
+      lint-python,
+      py-setup,
+      py-dependencies,
+      unit-tests,
+      integration-tests,
+    ]
     runs-on: ubuntu-latest
-    concurrency: release
+    outputs:
+      next-version: ${{ steps.next-version.outputs.version }}
     steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-        token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-    - name: Python Semantic Release
-      uses: python-semantic-release/python-semantic-release@v7.34.6
-      with:
-        github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        # repository_username: __token__
-        # repository_password: ${{ secrets.PYPI_TOKEN }}
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # setuptools-scm needs to access git tags
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+      - name: Determine next version
+        uses: WIPACrepo/wipac-dev-next-version-action@v1.8
+        id: next-version
+        with:
+          force-patch-if-no-commit-token: true
+          ignore-paths: |
+            **/README.md
+            .github/**
+            .gitignore
+
+
+  tag-and-release:
+    # only run on main/master/default
+    if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref && needs.release-version.outputs.next-version != ''
+    needs: [
+      py-versions,
+      lint-python,
+      py-setup,
+      py-dependencies,
+      unit-tests,
+      integration-tests,
+      release-version,
+    ]
+    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/tag-and-release.yml@v1.33
+    permissions: # for GITHUB_TOKEN
+      contents: write
+    with:
+      project-type: python
+      python-version: "${{ fromJSON(needs.py-versions.outputs.matrix)[0] }}"
+      publish-to-pypi: false

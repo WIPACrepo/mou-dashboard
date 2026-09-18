@@ -196,10 +196,7 @@ def layout() -> html.Div:
                     ),
                 ],
             ),
-            #
             html.H2(className="section-header", id="wbs-h2-sow-table"),
-            #
-            #
             dbc.Row(
                 justify="center",
                 className="g-0",  # "g-0" -> no gutters
@@ -468,7 +465,6 @@ def layout() -> html.Div:
                 # one of these classes was overriding hidden property
                 # className="d-grid gap-2 mx-auto",  # "col-#" -> width; "mx-auto" -> centered
                 children=[
-                    #
                     html.H2(
                         className="section-header", children="Collaboration Summary"
                     ),
@@ -504,7 +500,6 @@ def layout() -> html.Div:
                 # one of these classes was overriding hidden property
                 # className="d-grid gap-2 mx-auto",  # "col-#" -> width; "mx-auto" -> centered
                 children=[
-                    #
                     html.H2(className="section-header", children="Admin Zone"),
                     #
                     # Blame Table
@@ -528,7 +523,6 @@ def layout() -> html.Div:
                             ),
                         ],
                     ),
-                    #
                     html.Hr(className="admin-zone-content"),
                     dbc.Row(
                         className="admin-zone-content",

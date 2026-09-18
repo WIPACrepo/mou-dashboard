@@ -7,9 +7,10 @@ import time
 from typing import cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
-import universal_utils.types as uut
 from dash import html, no_update  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
+
+import universal_utils.types as uut
 
 from ..config import app
 from ..data_source import data_source as src
@@ -162,7 +163,6 @@ def confirm_deletion(
         Output("wbs-show-totals-button-i", "className"),
         # ALL COLUMNS
         Output("wbs-show-all-columns-button", "n_clicks"),
-        #
         Output("wbs-table-update-flag-exterior-control", "data"),
         # All Rows
         Output("wbs-show-all-rows-button", "n_clicks"),
@@ -206,7 +206,6 @@ def table_data_exterior_controls(
     str,
     # All Columns
     int,
-    #
     bool,
     # All Rows
     int,
@@ -307,7 +306,6 @@ def table_data_exterior_controls(
         tot_icon,
         # All Columns
         all_cols,
-        #
         not s_flag_extctrl,  # toggle flag to send a message to table_interior_controls
         # All Rows
         int(not do_paginate),  # n_clicks: 0/even -> paginate; 1/odd -> don't paginate
@@ -763,12 +761,9 @@ class UserDependentComponentsOutput:
     datatable_editable: bool = no_update
     new_data_btn_hidden: bool = no_update
     datatable_row_deletable: bool = no_update
-    #
     dropdown_institution_disabled: bool = no_update
-    #
     admin_zone_hidden: bool = no_update
     collaboration_summary_hidden: bool = no_update
-    #
     phds_disabled: bool = no_update
     faculty_disabled: bool = no_update
     sci_disabled: bool = no_update
@@ -776,7 +771,6 @@ class UserDependentComponentsOutput:
     cpus_disabled: bool = no_update
     gpus_disabled: bool = no_update
     textarea_disabled: bool = no_update
-    #
     inst_redirect_pathname: str = no_update
 
 
@@ -891,7 +885,6 @@ def _setup_user_dependent_components_dc(
         Output("wbs-show-all-rows-button", "className"),
         Output("wbs-show-all-rows-button-tooltip", "children"),
         Output("wbs-show-all-rows-button-i", "className"),
-        #
         Output("wbs-data-table", "page_size"),
         Output("wbs-data-table", "page_action"),
     ],
@@ -911,7 +904,6 @@ def toggle_pagination(
     str,
     str,
     str,
-    #
     int,
     str,
 ]:
@@ -926,7 +918,6 @@ def toggle_pagination(
             ),
             "click to show all the rows without pages",
             du.IconClassNames.CHECK,
-            #
             tconfig.get_page_size(),
             "native",
         )
@@ -937,7 +928,6 @@ def toggle_pagination(
         ),
         "click to show pages",
         du.IconClassNames.LAYER_GROUP,
-        #
         9999999999,
         "none",
     )
@@ -964,7 +954,6 @@ def toggle_hidden_columns(
     str,
     str,
     str,
-    #
     list[str],
 ]:
     """Toggle hiding/showing the default hidden columns."""
@@ -982,7 +971,6 @@ def toggle_hidden_columns(
             ),
             "click to show additional columns, containing funding metrics and recent edit history for each entry",
             du.IconClassNames.TABLE_COLUMNS,
-            #
             hiddens,
         )
 

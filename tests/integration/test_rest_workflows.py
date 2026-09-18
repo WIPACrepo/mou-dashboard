@@ -52,7 +52,6 @@ with open("./tests/integration/Dummy_WBS.xlsx", "rb") as f:
         "filename": f.name,
         "creator": "Hank",
         "is_admin": True,
-        "include_snapshot_info": True,
     }
 
 
@@ -82,7 +81,7 @@ def test_ingest(ds_rc: RestClient) -> None:
             snaps = ds_rc.request_seq(
                 "GET",
                 f"/snapshots/list/{WBS_L1}",
-                {"is_admin": True, "include_snapshot_info": True},
+                {"is_admin": True},
             )["snapshots"]
             assert len(snaps) == 1
             # get only snap
@@ -194,7 +193,6 @@ def test_ingest(ds_rc: RestClient) -> None:
                 "base64_file": "123456789",
                 "filename": "foo-file",
                 "is_admin": True,
-                "include_snapshot_info": True,
             },
         )
 
@@ -390,7 +388,7 @@ class TestRecordHandler:
         for arg, body_min in tests.items():
             with pytest.raises(
                 requests.exceptions.HTTPError,
-                match=rf"400 Client Error: `{arg}`: \(MissingArgumentError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
+                match=rf"400 Client Error: the following arguments are required: {arg} for url: {ds_rc.address}/record/{WBS_L1}",
             ):
                 ds_rc.request_seq(
                     "POST",
@@ -401,7 +399,7 @@ class TestRecordHandler:
             # empty
             with pytest.raises(
                 requests.exceptions.HTTPError,
-                match=rf"400 Client Error: `record`: \(MissingArgumentError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
+                match=rf"400 Client Error: the following arguments are required: record, editor for url: {ds_rc.address}/record/{WBS_L1}",
             ):
                 ds_rc.request_seq(
                     "POST",
@@ -418,7 +416,7 @@ class TestRecordHandler:
         for arg, body_min in tests.items():
             with pytest.raises(
                 requests.exceptions.HTTPError,
-                match=rf"400 Client Error: `{arg}`: \(MissingArgumentError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
+                match=rf"400 Client Error: the following arguments are required: {arg} for url: {ds_rc.address}/record/{WBS_L1}",
             ):
                 ds_rc.request_seq(
                     "DELETE",
@@ -429,7 +427,7 @@ class TestRecordHandler:
             # empty
             with pytest.raises(
                 requests.exceptions.HTTPError,
-                match=rf"400 Client Error: `record_id`: \(MissingArgumentError\) .+ for url: {ds_rc.address}/record/{WBS_L1}",
+                match=rf"400 Client Error: the following arguments are required: record_id, editor for url: {ds_rc.address}/record/{WBS_L1}",
             ):
                 ds_rc.request_seq(
                     "DELETE",
@@ -450,7 +448,7 @@ class TestInstitutionValuesHandler:
             resp = ds_rc.request_seq(
                 "GET",
                 f"/institution/values/{WBS_L1}",
-                {"institution": inst, "is_admin": True},
+                {"institution": inst},
             )
             resp_instval = dacite.from_dict(uut.InstitutionValues, resp)
             if not (  # is this from the json test data?
@@ -494,7 +492,7 @@ class TestInstitutionValuesHandler:
                 ds_rc.request_seq(
                     "GET",
                     f"/institution/values/{WBS_L1}",
-                    {"institution": inst, "is_admin": True},
+                    {"institution": inst},
                 ),
             ).table_metadata.has_valid_confirmation()
 

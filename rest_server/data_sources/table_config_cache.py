@@ -122,7 +122,7 @@ class TableConfigCache:
             ),
             columns.INSTITUTION: _ColumnConfig(
                 width=70,
-                options=sorted(set(inst.short_name for inst in institutions)),
+                options=sorted({inst.short_name for inst in institutions}),
                 border_left=True,
                 sort_value=40,
                 tooltip="The institution. This cannot be changed.",
