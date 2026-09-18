@@ -10,15 +10,6 @@ build-backend = "setuptools.build_meta"
 
 [project]
 dependencies = [
-    # NOTE: only direct dependencies are listed here (imported by rest_server/web_app/
-    # universal_utils, or otherwise required at runtime but not imported by name, like
-    # `openpyxl` as pandas' xlsx engine). Everything else (Jinja2, numpy, requests' urllib3/
-    # idna/certifi, etc.) is a transitive dependency of one of these and gets installed
-    # automatically -- no need to pin it explicitly. A handful of previously-listed packages
-    # (Deprecated/wrapt, grpcio/protobuf/googleapis-common-protos/thrift, httplib2/
-    # oauth2client/pyasn1-modules/rsa/pyparsing, pytz, tenacity, pypng) turned out to be
-    # unused entirely -- not imported anywhere and not required (even transitively) by
-    # anything else in this list; verified via a clean resolve of just the direct deps below.
     'Flask>=3.1.3',
     'Werkzeug>=3.1.8',
     'cachetools>=7.2.0',
@@ -30,10 +21,6 @@ dependencies = [
     'motor>=3.7.1',
     'openpyxl>=3.1.5',
     'pandas>=3.0.6',
-    # capped (unlike our other deps' loose `>=` floors): pymongo 4.18.0 dropped support for
-    # MongoDB 4.2 (wire version 8), requiring wire version 9 (MongoDB 4.4+) -- but both local
-    # dev (per AGENTS.md) and CI's integration-tests job (`mongo:4.2` service container) run
-    # against MongoDB 4.2. Revisit this cap if/when the Mongo server version is bumped.
     'pymongo>=4.17.0,<4.18',
     'python-dateutil>=2.9.0.post0',
     'requests>=2.34.2',
