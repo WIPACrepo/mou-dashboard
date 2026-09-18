@@ -3,8 +3,6 @@
 <!--- End of README Badges (automated) --->
 # mou-dashboard
 
-[![CircleCI](https://circleci.com/gh/WIPACrepo/mou-dashboard/tree/master.svg?style=shield)](https://circleci.com/gh/WIPACrepo/mou-dashboard/tree/master)
-
 A front-end to allow PIs to easily report to the ICC their
 Statements of Work in accordance with MOUs:
 [mou.icecube.aq](https://mou.icecube.aq/)

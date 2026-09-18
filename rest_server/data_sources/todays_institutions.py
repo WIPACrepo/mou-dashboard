@@ -2,10 +2,11 @@
 
 import logging
 
-import universal_utils.types as uut
 from krs import institutions as krs_institutions  # type: ignore[import]
 from krs import token
 from wipac_dev_tools import strtobool
+
+import universal_utils.types as uut
 
 
 def convert_krs_institution(

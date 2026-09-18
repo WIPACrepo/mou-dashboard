@@ -7,9 +7,10 @@ from decimal import Decimal
 from typing import Any, Final, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
-import universal_utils.types as uut
 from dash import dcc, no_update  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
+
+import universal_utils.types as uut
 
 from ..config import app
 from ..data_source import connections

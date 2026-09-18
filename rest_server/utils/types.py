@@ -2,9 +2,10 @@
 
 import dataclasses as dc
 
-import universal_utils.types as uut
 from bson.objectid import ObjectId
 from typeguard import typechecked
+
+import universal_utils.types as uut
 
 
 @typechecked
@@ -23,15 +24,12 @@ class SupplementalDoc:
     def override_all_institutions_touchstones(self) -> None:
         """Override all institutions touchstones with internal value."""
         for inst_vals in self.snapshot_institution_values.values():
-            #
             inst_vals.headcounts_metadata.override_touchstone(
                 self.confirmation_touchstone_ts
             )
-            #
             inst_vals.table_metadata.override_touchstone(
                 self.confirmation_touchstone_ts
             )
-            #
             inst_vals.computing_metadata.override_touchstone(
                 self.confirmation_touchstone_ts
             )

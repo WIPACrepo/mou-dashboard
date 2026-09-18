@@ -120,7 +120,7 @@ class TableConfigDataAdaptor:
                                     l2=l2_cat,
                                     l3=l3_cat,
                                     fund_src=columns.US_IN_KIND,
-                                    region=region,  #
+                                    region=region,
                                 ),
                                 columns.NON_US_IN_KIND: grab_a_total(
                                     l2=l2_cat,

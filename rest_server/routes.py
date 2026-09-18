@@ -6,10 +6,11 @@ import json
 import logging
 from typing import Any
 
-import universal_utils.constants as uuc
-import universal_utils.types as uut
 from rest_tools import server
 from wipac_dev_tools import strtobool
+
+import universal_utils.constants as uuc
+import universal_utils.types as uut
 
 from .config import AUTH_SERVICE_ACCOUNT, is_testing
 from .data_sources import mou_db, todays_institutions, wbs
