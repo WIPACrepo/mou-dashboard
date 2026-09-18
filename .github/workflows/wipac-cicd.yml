@@ -7,6 +7,9 @@ on:
     tags-ignore:
       - '**'
 
+permissions:
+  contents: read
+
 env:
   CI_TEST: true
   TEST_JSON_DIR: tests/resources
@@ -45,6 +48,8 @@ jobs:
 
   py-setup:
     if: ${{ github.actor != 'dependabot[bot]' }} # dependabot cannot access PAT
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
