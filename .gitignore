@@ -147,3 +147,6 @@ client_secrets.json
 
 .idea/
 
+PLAN.md
+HANDOFF.md
+dep-build-Dockerfile/

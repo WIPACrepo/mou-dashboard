@@ -6,16 +6,25 @@ import json
 import logging
 from typing import Any
 
-import universal_utils.constants as uuc
-import universal_utils.types as uut
+import tornado.web
 from rest_tools import server
 from wipac_dev_tools import strtobool
+
+import universal_utils.constants as uuc
+import universal_utils.types as uut
 
 from .config import AUTH_SERVICE_ACCOUNT, is_testing
 from .data_sources import mou_db, todays_institutions, wbs
 from .utils import utils
 
 _WBS_L1_REGEX_VALUES = "|".join(wbs.WORK_BREAKDOWN_STRUCTURES.keys())
+
+
+def _non_empty_str(val: Any) -> str:
+    """`ArgumentHandler`-compatible `type=` validator disallowing an empty string."""
+    if val == "":
+        raise ValueError("cannot be an empty string")
+    return str(val)
 
 
 # -----------------------------------------------------------------------------
@@ -122,29 +131,28 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
     @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
-        collection = self.get_argument(
+        arghand = server.ArgumentHandler(server.ArgumentSource.QUERY_ARGUMENTS, self)
+        arghand.add_argument(
             "snapshot",
             default=uuc.LIVE_COLLECTION,
-            type=str,
-            forbiddens=[""],
+            type=_non_empty_str,
         )
-
-        institution = self.get_argument(
+        arghand.add_argument(
             "institution",
             default="",
             type=str,
         )
-        restore_id = self.get_argument(
+        arghand.add_argument(
             "restore_id",
             default="",
             type=str,
         )
-        labor = self.get_argument(
+        arghand.add_argument(
             "labor",
             default="",
             type=str,
         )
-        total_rows = self.get_argument(
+        arghand.add_argument(
             "total_rows",
             default=False,
             type=bool,
@@ -152,24 +160,37 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
 
         # optionals
 
-        include_snapshot_info = self.get_argument(
+        arghand.add_argument(
             "include_snapshot_info",
             type=bool,
             default=False,
         )
 
-        def _is_admin_with_shapshot(val: Any) -> bool:
-            if val is None:
-                return False
-            if not include_snapshot_info:
-                raise ValueError("arg required when 'include_snapshot_info=True'")
-            return strtobool(val)
+        # NOTE: `is_admin`'s validation depends on `include_snapshot_info` (parsed alongside
+        # it, above) -- since `ArgumentHandler.parse_args()` re-derives its argument list from
+        # the *entire* actual request each call, every query arg must be declared on this same
+        # `arghand`/`parse_args()` call (a second `ArgumentHandler` covering only "is_admin"
+        # would see "include_snapshot_info" as unrecognized, and vice versa). So `is_admin` is
+        # parsed here as a raw pass-through value, then validated manually below (once
+        # `include_snapshot_info` is a concrete value, not a not-yet-parsed namespace attribute).
+        arghand.add_argument("is_admin", default=None)
 
-        is_admin = self.get_argument(
-            "is_admin",
-            type=_is_admin_with_shapshot,
-            default=None,  # -> False
-        )
+        args = arghand.parse_args()
+        collection = args.snapshot
+        institution = args.institution
+        restore_id = args.restore_id
+        labor = args.labor
+        total_rows = args.total_rows
+        include_snapshot_info = args.include_snapshot_info
+
+        if args.is_admin is None:
+            is_admin = False
+        elif not include_snapshot_info:
+            raise tornado.web.HTTPError(
+                400, reason="is_admin: arg required when 'include_snapshot_info=True'"
+            )
+        else:
+            is_admin = strtobool(args.is_admin)
 
         # work!
 
@@ -211,22 +232,16 @@ class TableHandler(BaseMOUHandler):  # pylint: disable=W0223
     @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
-        base64_file = self.get_argument(
-            "base64_file",
-            type=str,
-        )
-        filename = self.get_argument(
-            "filename",
-            type=str,
-        )
-        creator = self.get_argument(
-            "creator",
-            type=str,
-        )
-        is_admin = self.get_argument(
-            "is_admin",
-            type=bool,
-        )
+        arghand = server.ArgumentHandler(server.ArgumentSource.JSON_BODY_ARGUMENTS, self)
+        arghand.add_argument("base64_file", type=str)
+        arghand.add_argument("filename", type=str)
+        arghand.add_argument("creator", type=str)
+        arghand.add_argument("is_admin", type=bool)
+        args = arghand.parse_args()
+        base64_file = args.base64_file
+        filename = args.filename
+        creator = args.creator
+        is_admin = args.is_admin
 
         # ingest
         prev_snap, curr_snap = await self.mou_db_client.ingest_xlsx(
@@ -256,14 +271,12 @@ class RecordHandler(BaseMOUHandler):  # pylint: disable=W0223
     @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
-        record: uut.DBRecord = self.get_argument(
-            "record",
-            type=dict,
-        )
-        editor = self.get_argument(
-            "editor",
-            type=str,
-        )
+        arghand = server.ArgumentHandler(server.ArgumentSource.JSON_BODY_ARGUMENTS, self)
+        arghand.add_argument("record", type=dict)
+        arghand.add_argument("editor", type=str)
+        args = arghand.parse_args()
+        record: uut.DBRecord = args.record
+        editor = args.editor
 
         record = self.tc_data_adaptor.remove_on_the_fly_fields(record)
         record, instvals = await self.mou_db_client.upsert_record(
@@ -278,14 +291,12 @@ class RecordHandler(BaseMOUHandler):  # pylint: disable=W0223
     @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def delete(self, wbs_l1: str) -> None:
         """Handle DELETE."""
-        record_id = self.get_argument(
-            "record_id",
-            type=str,
-        )
-        editor = self.get_argument(
-            "editor",
-            type=str,
-        )
+        arghand = server.ArgumentHandler(server.ArgumentSource.JSON_BODY_ARGUMENTS, self)
+        arghand.add_argument("record_id", type=str)
+        arghand.add_argument("editor", type=str)
+        args = arghand.parse_args()
+        record_id = args.record_id
+        editor = args.editor
 
         record, instvals = await self.mou_db_client.delete_record(
             wbs_l1, record_id, editor
@@ -349,10 +360,9 @@ class SnapshotsHandler(BaseMOUHandler):  # pylint: disable=W0223
     @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
-        is_admin = self.get_argument(
-            "is_admin",
-            type=bool,
-        )
+        arghand = server.ArgumentHandler(server.ArgumentSource.QUERY_ARGUMENTS, self)
+        arghand.add_argument("is_admin", type=bool)
+        is_admin = arghand.parse_args().is_admin
 
         # db calls: O(1)
         timestamps = await self.mou_db_client.list_snapshot_timestamps(
@@ -378,14 +388,12 @@ class MakeSnapshotHandler(BaseMOUHandler):  # pylint: disable=W0223
     @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
-        name = self.get_argument(
-            "name",
-            type=str,
-        )
-        creator = self.get_argument(
-            "creator",
-            type=str,
-        )
+        arghand = server.ArgumentHandler(server.ArgumentSource.JSON_BODY_ARGUMENTS, self)
+        arghand.add_argument("name", type=str)
+        arghand.add_argument("creator", type=str)
+        args = arghand.parse_args()
+        name = args.name
+        creator = args.creator
 
         snap_ts = await self.mou_db_client.snapshot_live_collection(
             wbs_l1, name, creator, False
@@ -432,25 +440,16 @@ class InstitutionValuesConfirmationHandler(BaseMOUHandler):  # pylint: disable=W
     @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
-        institution = self.get_argument(
-            "institution",
-            type=str,
-        )
-        headcounts = self.get_argument(
-            "headcounts",
-            type=bool,
-            default=False,
-        )
-        table = self.get_argument(
-            "table",
-            type=bool,
-            default=False,
-        )
-        computing = self.get_argument(
-            "computing",
-            type=bool,
-            default=False,
-        )
+        arghand = server.ArgumentHandler(server.ArgumentSource.JSON_BODY_ARGUMENTS, self)
+        arghand.add_argument("institution", type=str)
+        arghand.add_argument("headcounts", type=bool, default=False)
+        arghand.add_argument("table", type=bool, default=False)
+        arghand.add_argument("computing", type=bool, default=False)
+        args = arghand.parse_args()
+        institution = args.institution
+        headcounts = args.headcounts
+        table = args.table
+        computing = args.computing
 
         vals = await self.mou_db_client.confirm_institution_values(
             wbs_l1, institution, headcounts, table, computing
@@ -471,15 +470,16 @@ class InstitutionValuesHandler(BaseMOUHandler):  # pylint: disable=W0223
     @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def get(self, wbs_l1: str) -> None:
         """Handle GET."""
-        institution = self.get_argument(
-            "institution",
-            type=str,
-        )
-        snapshot_timestamp = self.get_argument(
+        arghand = server.ArgumentHandler(server.ArgumentSource.QUERY_ARGUMENTS, self)
+        arghand.add_argument("institution", type=str)
+        arghand.add_argument(
             "snapshot_timestamp",
             default=uuc.LIVE_COLLECTION,
             type=str,
         )
+        args = arghand.parse_args()
+        institution = args.institution
+        snapshot_timestamp = args.snapshot_timestamp
 
         vals = await self.mou_db_client.get_institution_values(
             wbs_l1, snapshot_timestamp, institution
@@ -490,47 +490,27 @@ class InstitutionValuesHandler(BaseMOUHandler):  # pylint: disable=W0223
     @keycloak_role_auth(roles=[AUTH_SERVICE_ACCOUNT])  # type: ignore
     async def post(self, wbs_l1: str) -> None:
         """Handle POST."""
-        institution = self.get_argument(
-            "institution",
-            type=str,
-        )
+        arghand = server.ArgumentHandler(server.ArgumentSource.JSON_BODY_ARGUMENTS, self)
+        arghand.add_argument("institution", type=str)
 
         # client cannot try to override metadata
-        phds_authors = self.get_argument(
-            "phds_authors",
-            type=int,
-            default=-1,
-        )
-        faculty = self.get_argument(
-            "faculty",
-            type=int,
-            default=-1,
-        )
-        scientists_post_docs = self.get_argument(
-            "scientists_post_docs",
-            type=int,
-            default=-1,
-        )
-        grad_students = self.get_argument(
-            "grad_students",
-            type=int,
-            default=-1,
-        )
-        cpus = self.get_argument(
-            "cpus",
-            type=int,
-            default=-1,
-        )
-        gpus = self.get_argument(
-            "gpus",
-            type=int,
-            default=-1,
-        )
-        text = self.get_argument(
-            "text",
-            default="",
-            type=str,
-        )
+        arghand.add_argument("phds_authors", type=int, default=-1)
+        arghand.add_argument("faculty", type=int, default=-1)
+        arghand.add_argument("scientists_post_docs", type=int, default=-1)
+        arghand.add_argument("grad_students", type=int, default=-1)
+        arghand.add_argument("cpus", type=int, default=-1)
+        arghand.add_argument("gpus", type=int, default=-1)
+        arghand.add_argument("text", default="", type=str)
+
+        args = arghand.parse_args()
+        institution = args.institution
+        phds_authors = args.phds_authors
+        faculty = args.faculty
+        scientists_post_docs = args.scientists_post_docs
+        grad_students = args.grad_students
+        cpus = args.cpus
+        gpus = args.gpus
+        text = args.text
 
         vals = await self.mou_db_client.upsert_institution_values(
             wbs_l1,

@@ -9,9 +9,10 @@ import logging
 from urllib.parse import quote_plus
 
 import coloredlogs  # type: ignore[import]
-import universal_utils.types as uut
 from motor.motor_tornado import MotorClient
 from rest_tools.server import RestHandlerSetup, RestServer
+
+import universal_utils.types as uut
 
 from .config import ENV
 from .data_sources import mou_db, table_config_cache, todays_institutions

@@ -3,9 +3,10 @@
 import dataclasses as dc
 import logging
 
-import universal_utils.types as uut
 from dash import no_update  # type: ignore[import]
 from dash.dependencies import Input, Output, State  # type: ignore[import]
+
+import universal_utils.types as uut
 
 from ..config import app
 from ..data_source import connections

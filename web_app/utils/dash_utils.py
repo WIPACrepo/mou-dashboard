@@ -6,8 +6,9 @@ import urllib
 from typing import Any, Collection, Final, cast
 
 import dash_bootstrap_components as dbc  # type: ignore[import]
-import universal_utils.types as uut
 from dash import callback_context, dash_table, dcc, html  # type: ignore[import]
+
+import universal_utils.types as uut
 
 from ..data_source import connections
 from ..data_source import data_source as src
