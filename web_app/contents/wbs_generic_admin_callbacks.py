@@ -494,6 +494,8 @@ def retouchstone(
     match du.triggered():
         # ON LOAD
         case ".":
+            if du.root_is_not_wbs(s_urlpath):
+                return tuple(no_update for _ in range(3))  # type: ignore[return-value]
             if s_snap_ts:
                 return (
                     "Cannot reset institution confirmations for snapshots",
