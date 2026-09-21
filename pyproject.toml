@@ -10,13 +10,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 dependencies = [
-    'Flask>=3.1.3',
-    'Werkzeug>=3.1.8',
+    'Flask>=3.0.3,<3.1',
+    'Werkzeug>=3.0.6,<3.1',
     'cachetools>=7.2.0',
     'coloredlogs>=15.0.1',
     'dacite>=1.9.2',
-    'dash-bootstrap-components>=2.0.4',
-    'dash>=3.0.4,<4.0',
+    'dash-bootstrap-components>=1.7.1,<2.0',
+    'dash>=2.16.1,<3.0',
     'flask-oidc>=2.4.0',
     'motor>=3.7.1',
     'openpyxl>=3.1.5',
@@ -26,7 +26,7 @@ dependencies = [
     'requests>=2.34.2',
     'tornado>=6.5.10',
     'typeguard>=4.6.0',
-    'visdcc>=0.0.63',
+    'visdcc>=0.0.50,<0.0.62',
     'wipac-dev-tools>=1.21.0',
     'wipac-keycloak-rest-services>=1.5.7',
     'wipac-rest-tools>=1.13.5',
@@ -93,23 +93,6 @@ exclude = [
 ]
 
 [tool.ty.rules]
-# Downgraded to warnings (not ignored) rather than fixed outright: `dash>=4.4.1` now ships
-# real type stubs (py.typed), where the previously-pinned `dash==2.16.1` did not, so the
-# `# type: ignore[import]` comments on `import dash` used to blanket-silence these as `Any`
-# under mypy. ty now sees real Dash types and surfaces pre-existing mismatches across the
-# web_app callback modules (Dash callbacks declaring e.g. `-> bool`/`-> str` but actually
-# receiving `Output(...)`/`Input(...)`/`State(...)` descriptor objects at decoration time,
-# and returning dash's `NoUpdate` sentinel where a concrete type is declared) — a real but
-# separate follow-up (fixing the Dash callback typing scheme repo-wide), not part of this
-# CI/packaging migration. Kept as warnings (not "ignore") so they stay visible in `ty check`
-# output for that follow-up, while not failing CI (lint-python.yml runs
-# `ty check --exit-zero-on-warning`).
-#
-# NOTE: a few of these, outside the Dash-callback pattern, look like they could be genuine
-# latent bugs rather than Dash-stub noise and are worth a closer look independently of the
-# broader cleanup: rest_server/data_sources/mou_db.py:578,589,604 and
-# rest_server/utils/utils.py:246 index/assign `dict[str, ...]` using `ObjectId | float`
-# values sourced from Mongo documents, where a `str` key is expected.
 invalid-argument-type = "warn"
 invalid-assignment = "warn"
 invalid-return-type = "warn"
