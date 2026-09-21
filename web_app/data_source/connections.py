@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from typing import Any, Final, cast
 
 import cachetools.func
-import flask
 import requests
 
 # local imports
@@ -118,12 +117,12 @@ class CurrentUser:
 
     @staticmethod
     @cachetools.func.ttl_cache(ttl=((5 * 60) - 1))  # access token has 5m lifetime
-    def _cached_get_info(oidc_csrf_token: str) -> UserInfo:
-        """Cache is keyed by the oidc session token."""
+    def _cached_get_info(access_token: str) -> UserInfo:
+        """Cache is keyed by the oidc access token."""
         # pylint:disable=unused-argument
-        logging.warning(f"Cache Miss: CurrentUser._cached_get_info({oidc_csrf_token=})")
+        logging.warning(f"Cache Miss: CurrentUser._cached_get_info({access_token=})")
         resp: dict[str, Any] = oidc.user_getinfo(["preferred_username", "groups"])
-        resp["access_token"] = oidc.get_access_token()
+        resp["access_token"] = access_token
         return UserInfo(**resp)
 
     @staticmethod
@@ -134,7 +133,7 @@ class CurrentUser:
                 "arnold.schwarzenegger", ["/tokens/mou-dashboard-admin"], "XYZ"
             )
 
-        return CurrentUser._cached_get_info(flask.session["oidc_csrf_token"])
+        return CurrentUser._cached_get_info(oidc.get_access_token())
 
     @staticmethod
     def get_summary() -> None | dict[str, Any]:
