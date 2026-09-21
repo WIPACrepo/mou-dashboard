@@ -19,7 +19,7 @@ def main() -> None:
     layout.layout()
 
     # Run Server
-    app.run_server(
+    app.run(
         debug=ENV.DEBUG,
         host=ENV.WEB_SERVER_HOST,
         port=ENV.WEB_SERVER_PORT,
