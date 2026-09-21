@@ -494,12 +494,6 @@ def retouchstone(
     match du.triggered():
         # ON LOAD
         case ".":
-            # the url may not (yet) point at a valid wbs -- a redirect is pending
-            try:
-                du.precheck_setup_callback(s_urlpath)
-            except du.CallbackAbortException as e:
-                logging.critical(f"ABORTED: retouchstone() [{e}]")
-                return tuple(no_update for _ in range(3))  # type: ignore[return-value]
             if s_snap_ts:
                 return (
                     "Cannot reset institution confirmations for snapshots",
