@@ -9,7 +9,9 @@ import dash  # type: ignore
 import dash_bootstrap_components as dbc  # type: ignore
 import flask
 import werkzeug
+from cachelib import SimpleCache
 from flask_oidc import OpenIDConnect  # type: ignore[import]
+from flask_session import Session
 from wipac_dev_tools import from_environment_as_dataclass
 
 AUTO_RELOAD_MINS = 15  # how often to auto-reload the page
@@ -83,6 +85,11 @@ app = dash.Dash(
 server = app.server
 app.config.suppress_callback_exceptions = True
 server.config.update(SECRET_KEY=ENV.FLASK_SECRET)
+
+# Store sessions server-side: the OIDC token + userinfo (needed for group-based
+# auth) don't fit in a client-side cookie (browsers cap cookies at ~4096 bytes).
+server.config.update(SESSION_TYPE="cachelib", SESSION_CACHELIB=SimpleCache())
+Session(server)
 
 
 # --------------------------------------------------------------------------------------
