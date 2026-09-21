@@ -121,7 +121,11 @@ class CurrentUser:
         """Cache is keyed by the oidc access token."""
         # pylint:disable=unused-argument
         logging.warning(f"Cache Miss: CurrentUser._cached_get_info({access_token=})")
-        resp: dict[str, Any] = oidc.user_getinfo(["preferred_username", "groups"])
+        fields = ("preferred_username", "groups")
+        # NOTE: `fields` is ignored by flask-oidc 2.x -- it always returns the full
+        # userinfo profile now, so we filter it down ourselves.
+        full_info: dict[str, Any] = oidc.user_getinfo(list(fields))
+        resp = {field: full_info[field] for field in fields}
         resp["access_token"] = access_token
         return UserInfo(**resp)
 
