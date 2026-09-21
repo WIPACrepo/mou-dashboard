@@ -10,5 +10,5 @@ jobs:
       packages: write
     with:
       image_namespace: wipacrepo
-      image_name: mou-dashboard-services
+      image_name: mou-dashboard
       mode: BUILD
