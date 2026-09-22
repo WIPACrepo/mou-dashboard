@@ -10,6 +10,11 @@ from typing import Any, Final, cast
 
 import cachetools.func
 import requests
+from flask_oidc.signals import (  # type: ignore[import]
+    after_authorize,
+    after_logout,
+    before_login_redirect,
+)
 
 # local imports
 from rest_tools.client import ClientCredentialsAuth, RestClient
@@ -233,3 +238,37 @@ class CurrentUser:
     def get_access_token() -> str:
         """Retrieve the logged-in user's access token."""
         return CurrentUser._get_info().access_token
+
+
+@before_login_redirect.connect
+def _log_login_redirect(sender: Any, **kwargs: Any) -> None:
+    """Log every redirect to the identity provider (helps spot re-login loops)."""
+    logging.info(f"OIDC: redirecting to login (next={kwargs.get('next')!r})")
+
+
+@after_authorize.connect
+def _log_authorize(sender: Any, **kwargs: Any) -> None:
+    """Log newly-issued token metadata (helps spot unexpectedly short-lived tokens)."""
+    token = kwargs.get("token") or {}
+    logging.info(
+        f"OIDC: authorized -- expires_in={token.get('expires_in')!r}, "
+        f"has_refresh_token={'refresh_token' in token}, "
+        f"return_to={kwargs.get('return_to')!r}"
+    )
+
+
+@after_logout.connect
+def _log_and_clear_on_logout(sender: Any, **kwargs: Any) -> None:
+    """Log why a logout happened and purge cached user info.
+
+    `reason='expired'` means flask-oidc's own before_request hook forced this
+    logout because it could not refresh the access token -- as opposed to the
+    user clicking "Log Out". This is the key signal for diagnosing re-login
+    loops (a forced logout followed by an immediate silent SSO re-login).
+    """
+    reason = kwargs.get("reason")
+    level = logging.WARNING if reason else logging.INFO
+    logging.log(
+        level, f"OIDC: logged out (reason={reason!r}, return_to={kwargs.get('return_to')!r})"
+    )
+    CurrentUser._cached_get_info.cache_clear()

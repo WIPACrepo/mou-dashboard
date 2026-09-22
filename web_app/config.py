@@ -107,10 +107,31 @@ server.config.update(
         # "OIDC_OPENID_REALM": "flask-demo", # default: None
         # "OIDC_SCOPES": ["openid", "email", "profile"], # default: ["openid", "email"]
         # "OIDC_INTROSPECTION_AUTH_METHOD": "client_secret_post",  # default: client_secret_post
-        "OVERWRITE_REDIRECT_URI": ENV.OVERWRITE_REDIRECT_URI,
+        "OIDC_OVERWRITE_REDIRECT_URI": ENV.OVERWRITE_REDIRECT_URI,
     }
 )
 oidc = OpenIDConnect(server)  # grabs "OIDC_CLIENT_SECRETS"/ENV.OIDC_CLIENT_SECRETS
+
+
+@server.after_request  # type: ignore[misc]
+def _log_auth_redirects(
+    response: werkzeug.wrappers.response.Response,  # type: ignore[name-defined]
+) -> werkzeug.wrappers.response.Response:  # type: ignore[name-defined]
+    """Log every server-side (HTTP) redirect, to help diagnose login/logout loops.
+
+    Dash's own page navigation (e.g. '/' -> '/mo') happens client-side via JS and
+    never shows up here. Only real HTTP redirects do: the OIDC login/authorize/
+    logout hops -- notably including flask-oidc's *forced* logout when it can't
+    refresh an access token, which fires no signal of its own and would
+    otherwise be invisible.
+    """
+    if 300 <= response.status_code < 400:
+        logging.info(
+            f"AUTH-REDIRECT {flask.request.method} {flask.request.path} -> "
+            f"{response.status_code} Location={response.location!r} "
+            f"oidc_token={'present' if flask.session.get('oidc_auth_token') else 'absent'}"
+        )
+    return response
 
 
 @server.route("/invalid-permissions")  # type: ignore[misc]
