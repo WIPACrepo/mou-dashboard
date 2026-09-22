@@ -2,6 +2,7 @@
 
 import dataclasses as dc
 import logging
+import os
 from typing import Final
 from urllib.parse import urljoin
 
@@ -133,15 +134,25 @@ def _log_auth_redirects(
     logout hops -- notably including flask-oidc's *forced* logout when it can't
     refresh an access token, which fires no signal of its own and would
     otherwise be invisible.
+
+    Scheme/proto/cookie-presence were added to rule out a reverse-proxy scheme
+    bug; that's now confirmed fine. `pid` and `cookie_sid` are here to catch a
+    *different* culprit: `SimpleCache` (our session store, config'd above) is
+    documented as "for single process environments" only -- if this pod runs
+    more than one worker process, each has its own private copy of the session
+    store, and a session written by one worker is invisible to another.
     """
     if 300 <= response.status_code < 400:
+        cookie_val = flask.request.cookies.get("session")
+        cookie_sid_prefix = cookie_val[:12] if cookie_val else None
         logging.info(
-            f"AUTH-REDIRECT {flask.request.method} {flask.request.path} -> "
+            f"AUTH-REDIRECT pid={os.getpid()} {flask.request.method} {flask.request.path} -> "
             f"{response.status_code} Location={response.location!r} "
             f"oidc_token={'present' if flask.session.get('oidc_auth_token') else 'absent'} "
             f"scheme={flask.request.scheme!r} "
             f"x_forwarded_proto={flask.request.headers.get('X-Forwarded-Proto')!r} "
-            f"has_cookie={'session' in flask.request.cookies}"
+            f"has_cookie={'session' in flask.request.cookies} "
+            f"cookie_sid={cookie_sid_prefix!r}"
         )
     return response
 
