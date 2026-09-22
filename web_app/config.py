@@ -107,7 +107,7 @@ server.config.update(
         # "OIDC_OPENID_REALM": "flask-demo", # default: None
         # "OIDC_SCOPES": ["openid", "email", "profile"], # default: ["openid", "email"]
         # "OIDC_INTROSPECTION_AUTH_METHOD": "client_secret_post",  # default: client_secret_post
-        "OVERWRITE_REDIRECT_URI": ENV.OVERWRITE_REDIRECT_URI,
+        "OIDC_OVERWRITE_REDIRECT_URI": ENV.OVERWRITE_REDIRECT_URI,
     }
 )
 oidc = OpenIDConnect(server)  # grabs "OIDC_CLIENT_SECRETS"/ENV.OIDC_CLIENT_SECRETS
