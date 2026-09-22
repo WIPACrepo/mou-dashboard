@@ -12,6 +12,7 @@ import werkzeug
 from cachelib import SimpleCache
 from flask_oidc import OpenIDConnect  # type: ignore[import]
 from flask_session import Session
+from werkzeug.middleware.proxy_fix import ProxyFix
 from wipac_dev_tools import from_environment_as_dataclass
 
 AUTO_RELOAD_MINS = 15  # how often to auto-reload the page
@@ -86,6 +87,14 @@ server = app.server
 app.config.suppress_callback_exceptions = True
 server.config.update(SECRET_KEY=ENV.FLASK_SECRET)
 
+# Trust the (single) reverse proxy/ingress in front of this app for scheme/host/
+# client-ip info. Without this, `request.url_root` (used throughout flask-oidc for
+# post-login/-logout redirect targets) resolves to the plain-http backend address
+# instead of the public https:// one, since Flask never sees the original scheme.
+server.wsgi_app = ProxyFix(  # type: ignore[method-assign]
+    server.wsgi_app, x_proto=1, x_host=1, x_for=1, x_port=1
+)
+
 # Store sessions server-side: the OIDC token + userinfo (needed for group-based
 # auth) don't fit in a client-side cookie (browsers cap cookies at ~4096 bytes).
 server.config.update(SESSION_TYPE="cachelib", SESSION_CACHELIB=SimpleCache())
@@ -129,7 +138,10 @@ def _log_auth_redirects(
         logging.info(
             f"AUTH-REDIRECT {flask.request.method} {flask.request.path} -> "
             f"{response.status_code} Location={response.location!r} "
-            f"oidc_token={'present' if flask.session.get('oidc_auth_token') else 'absent'}"
+            f"oidc_token={'present' if flask.session.get('oidc_auth_token') else 'absent'} "
+            f"scheme={flask.request.scheme!r} "
+            f"x_forwarded_proto={flask.request.headers.get('X-Forwarded-Proto')!r} "
+            f"has_cookie={'session' in flask.request.cookies}"
         )
     return response
 
