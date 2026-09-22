@@ -122,6 +122,31 @@ server.config.update(
 )
 oidc = OpenIDConnect(server)  # grabs "OIDC_CLIENT_SECRETS"/ENV.OIDC_CLIENT_SECRETS
 
+# flask-oidc's before_request hook (`check_token_expiry`) silently tries to refresh
+# the access token on *every* request and fires no signal of its own -- it's the
+# last unaccounted-for code path that writes to `session["oidc_auth_token"]`
+# (besides login/logout, which we already log). Wrap it to see directly whether
+# it's the one clearing the token, and why (e.g. a bad/missing `expires_at`).
+_orig_check_token_expiry = oidc.check_token_expiry
+
+
+def _traced_check_token_expiry() -> flask.Response | None:  # type: ignore[name-defined]
+    token_before = flask.session.get("oidc_auth_token") or {}
+    result = _orig_check_token_expiry()
+    token_after = flask.session.get("oidc_auth_token") or {}
+    if token_before.get("access_token") != token_after.get("access_token"):
+        logging.warning(
+            f"OIDC: pid={os.getpid()} check_token_expiry CHANGED session token on "
+            f"{flask.request.path!r} -- "
+            f"before(has_token={bool(token_before)}, expires_at={token_before.get('expires_at')!r}, "
+            f"expires_in={token_before.get('expires_in')!r}) -> "
+            f"after(has_token={bool(token_after)}) redirected={result is not None!r}"
+        )
+    return result
+
+
+oidc.check_token_expiry = _traced_check_token_expiry
+
 
 @server.after_request  # type: ignore[misc]
 def _log_auth_redirects(
