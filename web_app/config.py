@@ -98,8 +98,47 @@ server.wsgi_app = ProxyFix(  # type: ignore[method-assign]
 
 # Store sessions server-side: the OIDC token + userinfo (needed for group-based
 # auth) don't fit in a client-side cookie (browsers cap cookies at ~4096 bytes).
-server.config.update(SESSION_TYPE="cachelib", SESSION_CACHELIB=SimpleCache())
+_session_cache = SimpleCache()
+server.config.update(SESSION_TYPE="cachelib", SESSION_CACHELIB=_session_cache)
 Session(server)
+
+# The token is disappearing from the session between two requests that share the
+# same pid and the same cookie/sid -- meaning the SimpleCache *store* itself is
+# losing the entry. Wrap its get/set/delete directly to see every read, write,
+# and eviction, since reasoning about cachelib's internals from the outside
+# hasn't explained it.
+_orig_cache_get = _session_cache.get
+_orig_cache_set = _session_cache.set
+_orig_cache_delete = _session_cache.delete
+
+
+def _traced_cache_get(key: str) -> object:
+    value = _orig_cache_get(key)
+    logging.info(
+        f"SESSION-STORE pid={os.getpid()} GET key={key!r} found={value is not None} "
+        f"has_token={bool((value or {}).get('oidc_auth_token'))} "
+        f"cache_size={len(_session_cache._cache)}"
+    )
+    return value
+
+
+def _traced_cache_set(key: str, value: object, timeout: object = None) -> object:
+    logging.info(
+        f"SESSION-STORE pid={os.getpid()} SET key={key!r} "
+        f"has_token={bool((value or {}).get('oidc_auth_token'))} "
+        f"cache_size_before={len(_session_cache._cache)}"
+    )
+    return _orig_cache_set(key, value, timeout=timeout)
+
+
+def _traced_cache_delete(key: str) -> object:
+    logging.info(f"SESSION-STORE pid={os.getpid()} DELETE key={key!r}")
+    return _orig_cache_delete(key)
+
+
+_session_cache.get = _traced_cache_get  # type: ignore[method-assign]
+_session_cache.set = _traced_cache_set  # type: ignore[method-assign]
+_session_cache.delete = _traced_cache_delete  # type: ignore[method-assign]
 
 
 # --------------------------------------------------------------------------------------
