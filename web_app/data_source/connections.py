@@ -4,7 +4,6 @@
 import copy
 import json
 import logging
-import os
 import re
 from dataclasses import dataclass
 from typing import Any, Final, cast
@@ -244,7 +243,7 @@ class CurrentUser:
 @before_login_redirect.connect
 def _log_login_redirect(sender: Any, **kwargs: Any) -> None:
     """Log every redirect to the identity provider (helps spot re-login loops)."""
-    logging.info(f"OIDC: pid={os.getpid()} redirecting to login (next={kwargs.get('next')!r})")
+    logging.info(f"OIDC: redirecting to login (next={kwargs.get('next')!r})")
 
 
 @after_authorize.connect
@@ -252,7 +251,7 @@ def _log_authorize(sender: Any, **kwargs: Any) -> None:
     """Log newly-issued token metadata (helps spot unexpectedly short-lived tokens)."""
     token = kwargs.get("token") or {}
     logging.info(
-        f"OIDC: pid={os.getpid()} authorized -- expires_in={token.get('expires_in')!r}, "
+        f"OIDC: authorized -- expires_in={token.get('expires_in')!r}, "
         f"has_refresh_token={'refresh_token' in token}, "
         f"return_to={kwargs.get('return_to')!r}"
     )
@@ -270,8 +269,6 @@ def _log_and_clear_on_logout(sender: Any, **kwargs: Any) -> None:
     reason = kwargs.get("reason")
     level = logging.WARNING if reason else logging.INFO
     logging.log(
-        level,
-        f"OIDC: pid={os.getpid()} logged out (reason={reason!r}, "
-        f"return_to={kwargs.get('return_to')!r})",
+        level, f"OIDC: logged out (reason={reason!r}, return_to={kwargs.get('return_to')!r})"
     )
     CurrentUser._cached_get_info.cache_clear()
