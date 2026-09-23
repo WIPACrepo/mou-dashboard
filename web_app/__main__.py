@@ -27,6 +27,14 @@ def main() -> None:
         dev_tools_silence_routes_logging=not ENV.DEBUG,
         use_reloader=ENV.DEBUG,
         dev_tools_hot_reload=ENV.DEBUG,
+        # Flask.run() defaults `threaded=True`. Our session store (SimpleCache,
+        # persisted via SESSION_REFRESH_EACH_REQUEST, which also defaults to True)
+        # does a full read-modify-write of the whole session dict on every request,
+        # with no locking -- under real thread concurrency, two overlapping requests
+        # racing to save() can let a stale (e.g. pre-login) snapshot clobber a
+        # newer one, silently wiping the just-set OIDC token. Force single-threaded
+        # to make request handling serial and remove the race.
+        threaded=False,
     )
 
 
