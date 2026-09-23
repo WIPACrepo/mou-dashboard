@@ -3,7 +3,7 @@
 import dataclasses as dc
 import logging
 import os
-from typing import Final
+from typing import Any, Final
 from urllib.parse import urljoin
 
 import dash  # type: ignore
@@ -112,8 +112,8 @@ _orig_cache_set = _session_cache.set
 _orig_cache_delete = _session_cache.delete
 
 
-def _traced_cache_get(key: str) -> object:
-    value = _orig_cache_get(key)
+def _traced_cache_get(key: str) -> dict[str, Any] | None:
+    value: dict[str, Any] | None = _orig_cache_get(key)
     logging.info(
         f"SESSION-STORE pid={os.getpid()} GET key={key!r} found={value is not None} "
         f"has_token={bool((value or {}).get('oidc_auth_token'))} "
@@ -122,7 +122,9 @@ def _traced_cache_get(key: str) -> object:
     return value
 
 
-def _traced_cache_set(key: str, value: object, timeout: object = None) -> object:
+def _traced_cache_set(
+    key: str, value: dict[str, Any] | None, timeout: int | None = None
+) -> bool | None:
     logging.info(
         f"SESSION-STORE pid={os.getpid()} SET key={key!r} "
         f"has_token={bool((value or {}).get('oidc_auth_token'))} "
@@ -131,7 +133,7 @@ def _traced_cache_set(key: str, value: object, timeout: object = None) -> object
     return _orig_cache_set(key, value, timeout=timeout)
 
 
-def _traced_cache_delete(key: str) -> object:
+def _traced_cache_delete(key: str) -> bool:
     logging.info(f"SESSION-STORE pid={os.getpid()} DELETE key={key!r}")
     return _orig_cache_delete(key)
 
