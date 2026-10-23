@@ -298,7 +298,7 @@ jobs:
       release-version,
       tag-and-release
     ]
-    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/image-publish.yml@v1.33
+    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/image-publish.yml@v1.34
     permissions: # for GITHUB_TOKEN
       packages: write
     with:
